@@ -10,7 +10,7 @@ namespace Vox.Core.Configuration;
 /// </summary>
 public sealed class SettingsManager
 {
-    public static readonly string UserSettingsPath = Path.Combine(
+    public static readonly string DefaultUserSettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "Vox", "settings.json");
 
@@ -26,11 +26,18 @@ public sealed class SettingsManager
 
     private readonly ILogger<SettingsManager> _logger;
     private readonly string _defaultSettingsPath;
+    private readonly string _userSettingsPath;
 
     public SettingsManager(ILogger<SettingsManager> logger, string defaultSettingsPath)
+        : this(logger, defaultSettingsPath, DefaultUserSettingsPath)
+    {
+    }
+
+    public SettingsManager(ILogger<SettingsManager> logger, string defaultSettingsPath, string userSettingsPath)
     {
         _logger = logger;
         _defaultSettingsPath = defaultSettingsPath;
+        _userSettingsPath = userSettingsPath;
     }
 
     /// <summary>
@@ -38,21 +45,21 @@ public sealed class SettingsManager
     /// </summary>
     public VoxSettings Load()
     {
-        if (File.Exists(UserSettingsPath))
+        if (File.Exists(_userSettingsPath))
         {
             try
             {
-                var json = File.ReadAllText(UserSettingsPath);
+                var json = File.ReadAllText(_userSettingsPath);
                 var settings = JsonSerializer.Deserialize<VoxSettings>(json, JsonOptions);
                 if (settings is not null)
                 {
-                    _logger.LogInformation("Loaded settings from {Path}", UserSettingsPath);
+                    _logger.LogInformation("Loaded settings from {Path}", _userSettingsPath);
                     return settings;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to load user settings from {Path}, falling back to defaults", UserSettingsPath);
+                _logger.LogWarning(ex, "Failed to load user settings from {Path}, falling back to defaults", _userSettingsPath);
             }
         }
 
@@ -66,16 +73,16 @@ public sealed class SettingsManager
     {
         try
         {
-            var dir = Path.GetDirectoryName(UserSettingsPath)!;
+            var dir = Path.GetDirectoryName(_userSettingsPath)!;
             Directory.CreateDirectory(dir);
 
             var json = JsonSerializer.Serialize(settings, JsonOptions);
-            File.WriteAllText(UserSettingsPath, json);
-            _logger.LogInformation("Saved settings to {Path}", UserSettingsPath);
+            File.WriteAllText(_userSettingsPath, json);
+            _logger.LogInformation("Saved settings to {Path}", _userSettingsPath);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save settings to {Path}", UserSettingsPath);
+            _logger.LogError(ex, "Failed to save settings to {Path}", _userSettingsPath);
         }
     }
 
@@ -151,7 +158,7 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
 
     private void StartWatching()
     {
-        var dir = Path.GetDirectoryName(SettingsManager.UserSettingsPath)!;
+        var dir = Path.GetDirectoryName(SettingsManager.DefaultUserSettingsPath)!;
         if (!Directory.Exists(dir))
             return;
 

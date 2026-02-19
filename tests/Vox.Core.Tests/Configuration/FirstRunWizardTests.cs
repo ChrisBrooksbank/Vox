@@ -19,7 +19,7 @@ public class FirstRunWizardTests : IDisposable
 
     public FirstRunWizardTests()
     {
-        var userPath = SettingsManager.UserSettingsPath;
+        var userPath = SettingsManager.DefaultUserSettingsPath;
         if (File.Exists(userPath))
         {
             _userSettingsBackup = userPath + ".bak_" + Guid.NewGuid().ToString("N");
@@ -29,7 +29,7 @@ public class FirstRunWizardTests : IDisposable
 
     public void Dispose()
     {
-        var userPath = SettingsManager.UserSettingsPath;
+        var userPath = SettingsManager.DefaultUserSettingsPath;
         try
         {
             if (_userSettingsBackup != null && File.Exists(_userSettingsBackup))
@@ -100,7 +100,7 @@ public class FirstRunWizardTests : IDisposable
         var manager = new SettingsManager(logger, tempPath);
 
         // Ensure UserSettingsPath doesn't exist so SettingsMonitor loads from tempPath
-        var userPath = SettingsManager.UserSettingsPath;
+        var userPath = SettingsManager.DefaultUserSettingsPath;
         string? backupPath = null;
         if (File.Exists(userPath))
         {

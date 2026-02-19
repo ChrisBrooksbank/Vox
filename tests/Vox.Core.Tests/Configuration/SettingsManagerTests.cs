@@ -23,8 +23,12 @@ public sealed class SettingsManagerTests : IDisposable
         try { Directory.Delete(_tempDir, recursive: true); } catch { }
     }
 
-    private SettingsManager CreateManager() =>
-        new SettingsManager(NullLogger<SettingsManager>.Instance, _defaultSettingsPath);
+    private SettingsManager CreateManager()
+    {
+        // Use a non-existent user settings path so tests are isolated from real user settings
+        var isolatedUserPath = Path.Combine(_tempDir, "user-settings.json");
+        return new SettingsManager(NullLogger<SettingsManager>.Instance, _defaultSettingsPath, isolatedUserPath);
+    }
 
     [Fact]
     public void Load_ReturnsBuiltInDefaults_WhenNoFilesExist()
