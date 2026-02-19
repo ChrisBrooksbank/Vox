@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 6
+- Build iterations: 7
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -19,7 +19,7 @@
 ### Input System (spec: input-system.md)
 
 - [x] Add `KeyEvent` as `readonly struct`: VkCode, Modifiers (Shift/Ctrl/Alt/Insert flags enum), IsKeyDown, Timestamp (spec: input-system.md)
-- [ ] Add `NavigationCommand` enum: NextHeading, PrevHeading, NextLink, PrevLink, NextLandmark, PrevLandmark, HeadingLevel1-6, NextLine, PrevLine, NextWord, PrevWord, NextChar, PrevChar, ActivateElement, ToggleMode, SayAll, StopSpeech, ElementsList, ReadCurrentLine, ReadCurrentWord (spec: input-system.md)
+- [x] Add `NavigationCommand` enum: NextHeading, PrevHeading, NextLink, PrevLink, NextLandmark, PrevLandmark, HeadingLevel1-6, NextLine, PrevLine, NextWord, PrevWord, NextChar, PrevChar, ActivateElement, ToggleMode, SayAll, StopSpeech, ElementsList, ReadCurrentLine, ReadCurrentWord (spec: input-system.md)
 - [ ] Add `IKeyboardHook` interface with Install/Uninstall methods and KeyPressed event (spec: input-system.md)
 - [ ] Add `KeyMap` class loading from assets/config/default-keymap.json; maps (Modifiers, VkCode, InteractionMode) to NavigationCommand (spec: input-system.md)
 - [ ] Create assets/config/default-keymap.json with NVDA-convention keybindings (Insert as modifier) (spec: input-system.md)

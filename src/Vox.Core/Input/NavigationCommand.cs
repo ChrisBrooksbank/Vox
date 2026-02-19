@@ -1,0 +1,30 @@
+namespace Vox.Core.Input;
+
+public enum NavigationCommand
+{
+    NextHeading,
+    PrevHeading,
+    NextLink,
+    PrevLink,
+    NextLandmark,
+    PrevLandmark,
+    HeadingLevel1,
+    HeadingLevel2,
+    HeadingLevel3,
+    HeadingLevel4,
+    HeadingLevel5,
+    HeadingLevel6,
+    NextLine,
+    PrevLine,
+    NextWord,
+    PrevWord,
+    NextChar,
+    PrevChar,
+    ActivateElement,
+    ToggleMode,
+    SayAll,
+    StopSpeech,
+    ElementsList,
+    ReadCurrentLine,
+    ReadCurrentWord
+}
