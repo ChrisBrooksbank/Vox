@@ -14,10 +14,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vox.Core\Vox.Core.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <None Update="..\..\assets\config\default-settings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Link>assets\config\default-settings.json</Link>
-    </None>
-  </ItemGroup>
+  <Target Name="CopyConfigAssets" AfterTargets="Build">
+    <MakeDir Directories="$(OutputPath)assets\config" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-settings.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
+  </Target>
 </Project>
