@@ -42,6 +42,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
         _processingTask = Task.Run(ProcessEventsAsync, _cts.Token);
     }
 
+    /// <summary>
+    /// Raised when a RawKeyEvent is processed by the pipeline.
+    /// Subscribe to this to receive raw key events (e.g., for typing echo).
+    /// </summary>
+    public event EventHandler<RawKeyEvent>? RawKeyReceived;
+
     public void Post(ScreenReaderEvent evt)
     {
         _channel.Writer.TryWrite(evt);
@@ -134,8 +140,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
                 await HandleNavigationCommandAsync(navigationCommand, token).ConfigureAwait(false);
                 break;
 
-            case RawKeyEvent:
-                // RawKeyEvent is consumed by TypingEchoHandler; no speech output here.
+            case RawKeyEvent rawKey:
+                // Raise event so TypingEchoHandler (and others) can process raw key events.
+                RawKeyReceived?.Invoke(this, rawKey);
                 break;
 
             default:

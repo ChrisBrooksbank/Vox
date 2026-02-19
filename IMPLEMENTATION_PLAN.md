@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 12
+- Build iterations: 13
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -26,7 +26,7 @@
 - [x] Add `KeyboardHook` implementing IKeyboardHook via P/Invoke SetWindowsHookEx(WH_KEYBOARD_LL); callback extracts vkCode, posts pre-allocated KeyEvent to bounded channel via TryWrite, returns immediately (spec: input-system.md)
 - [x] Add channel consumer on separate thread: tracks modifier state, looks up KeyMap, dispatches NavigationCommand or posts KeyEvent to pipeline (spec: input-system.md)
 - [x] Add `TypingEchoHandler`: character echo on key-up of printable chars; word echo on Space/Enter/punctuation using rolling buffer; respects TypingEchoMode setting (spec: input-system.md)
-- [ ] Wire KeyboardHook into ScreenReaderService.StartAsync/StopAsync; register in DI (spec: input-system.md)
+- [x] Wire KeyboardHook into ScreenReaderService.StartAsync/StopAsync; register in DI (spec: input-system.md)
 - [ ] Add unit tests for KeyMap resolution (modifier+key -> command) and TypingEchoHandler (char echo, word echo, None mode) (spec: input-system.md)
 
 ### UIA Accessibility (spec: uia-accessibility.md)

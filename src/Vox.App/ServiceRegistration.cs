@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
+using Vox.Core.Input;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -31,6 +32,31 @@ public static class ServiceRegistration
 
         // Pipeline
         services.AddSingleton<EventPipeline>();
+
+        // Input
+        services.AddSingleton<IKeyboardHook, KeyboardHook>();
+        services.AddSingleton<KeyMap>(sp =>
+        {
+            var keyMapPath = Path.Combine(
+                AppContext.BaseDirectory,
+                "assets", "config", "default-keymap.json");
+            return KeyMap.LoadFromFile(keyMapPath);
+        });
+        services.AddSingleton<KeyInputDispatcher>(sp =>
+        {
+            var hook = sp.GetRequiredService<IKeyboardHook>();
+            var keyMap = sp.GetRequiredService<KeyMap>();
+            var pipeline = sp.GetRequiredService<EventPipeline>();
+            var logger = sp.GetRequiredService<ILogger<KeyInputDispatcher>>();
+            return new KeyInputDispatcher(hook, keyMap, pipeline, logger);
+        });
+        services.AddSingleton<TypingEchoHandler>(sp =>
+        {
+            var pipeline = sp.GetRequiredService<EventPipeline>();
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var logger = sp.GetRequiredService<ILogger<TypingEchoHandler>>();
+            return new TypingEchoHandler(pipeline, () => settings.CurrentValue.TypingEchoMode, logger);
+        });
 
         // Hosted service
         services.AddHostedService<ScreenReaderService>();
