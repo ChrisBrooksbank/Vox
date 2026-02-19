@@ -1,0 +1,10 @@
+{
+  "VerbosityLevel": "Beginner",
+  "SpeechRateWpm": 200,
+  "VoiceName": null,
+  "TypingEchoMode": "Both",
+  "AudioCuesEnabled": true,
+  "AnnounceVisitedLinks": true,
+  "ModifierKey": "Insert",
+  "FirstRunCompleted": false
+}

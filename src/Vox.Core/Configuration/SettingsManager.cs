@@ -1,0 +1,186 @@
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Vox.Core.Configuration;
+
+/// <summary>
+/// Manages loading and saving of VoxSettings from %APPDATA%/Vox/settings.json,
+/// with fallback to the bundled default-settings.json asset.
+/// </summary>
+public sealed class SettingsManager
+{
+    public static readonly string UserSettingsPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "Vox", "settings.json");
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
+        Converters =
+        {
+            new System.Text.Json.Serialization.JsonStringEnumConverter()
+        }
+    };
+
+    private readonly ILogger<SettingsManager> _logger;
+    private readonly string _defaultSettingsPath;
+
+    public SettingsManager(ILogger<SettingsManager> logger, string defaultSettingsPath)
+    {
+        _logger = logger;
+        _defaultSettingsPath = defaultSettingsPath;
+    }
+
+    /// <summary>
+    /// Loads settings from the user settings file, falling back to defaults if not found or invalid.
+    /// </summary>
+    public VoxSettings Load()
+    {
+        if (File.Exists(UserSettingsPath))
+        {
+            try
+            {
+                var json = File.ReadAllText(UserSettingsPath);
+                var settings = JsonSerializer.Deserialize<VoxSettings>(json, JsonOptions);
+                if (settings is not null)
+                {
+                    _logger.LogInformation("Loaded settings from {Path}", UserSettingsPath);
+                    return settings;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load user settings from {Path}, falling back to defaults", UserSettingsPath);
+            }
+        }
+
+        return LoadDefaults();
+    }
+
+    /// <summary>
+    /// Saves settings to %APPDATA%/Vox/settings.json, creating the directory if needed.
+    /// </summary>
+    public void Save(VoxSettings settings)
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(UserSettingsPath)!;
+            Directory.CreateDirectory(dir);
+
+            var json = JsonSerializer.Serialize(settings, JsonOptions);
+            File.WriteAllText(UserSettingsPath, json);
+            _logger.LogInformation("Saved settings to {Path}", UserSettingsPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save settings to {Path}", UserSettingsPath);
+        }
+    }
+
+    private VoxSettings LoadDefaults()
+    {
+        if (File.Exists(_defaultSettingsPath))
+        {
+            try
+            {
+                var json = File.ReadAllText(_defaultSettingsPath);
+                var settings = JsonSerializer.Deserialize<VoxSettings>(json, JsonOptions);
+                if (settings is not null)
+                {
+                    _logger.LogInformation("Loaded default settings from {Path}", _defaultSettingsPath);
+                    return settings;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load default settings from {Path}, using built-in defaults", _defaultSettingsPath);
+            }
+        }
+
+        _logger.LogInformation("Using built-in default settings");
+        return new VoxSettings();
+    }
+}
+
+/// <summary>
+/// IOptionsMonitor-compatible wrapper that watches the user settings file for changes
+/// and reloads automatically.
+/// </summary>
+public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
+{
+    private readonly SettingsManager _manager;
+    private readonly ILogger<SettingsMonitor> _logger;
+    private VoxSettings _current;
+    private readonly List<Action<VoxSettings, string?>> _listeners = new();
+    private FileSystemWatcher? _watcher;
+
+    public SettingsMonitor(SettingsManager manager, ILogger<SettingsMonitor> logger)
+    {
+        _manager = manager;
+        _logger = logger;
+        _current = _manager.Load();
+        StartWatching();
+    }
+
+    public VoxSettings CurrentValue => _current;
+
+    public VoxSettings Get(string? name) => _current;
+
+    public IDisposable? OnChange(Action<VoxSettings, string?> listener)
+    {
+        _listeners.Add(listener);
+        return new CallbackRegistration(() => _listeners.Remove(listener));
+    }
+
+    private void StartWatching()
+    {
+        var dir = Path.GetDirectoryName(SettingsManager.UserSettingsPath)!;
+        if (!Directory.Exists(dir))
+            return;
+
+        try
+        {
+            _watcher = new FileSystemWatcher(dir, "settings.json")
+            {
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+                EnableRaisingEvents = true
+            };
+            _watcher.Changed += OnFileChanged;
+            _watcher.Created += OnFileChanged;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not start file watcher for settings");
+        }
+    }
+
+    private void OnFileChanged(object sender, FileSystemEventArgs e)
+    {
+        // Small delay to let the file write complete
+        Thread.Sleep(100);
+        try
+        {
+            var reloaded = _manager.Load();
+            _current = reloaded;
+            _logger.LogInformation("Settings reloaded from file change");
+            foreach (var listener in _listeners)
+                listener(reloaded, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to reload settings after file change");
+        }
+    }
+
+    public void Dispose()
+    {
+        _watcher?.Dispose();
+    }
+
+    private sealed class CallbackRegistration(Action unregister) : IDisposable
+    {
+        public void Dispose() => unregister();
+    }
+}

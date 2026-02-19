@@ -14,4 +14,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vox.Core\Vox.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="..\..\assets\config\default-settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>assets\config\default-settings.json</Link>
+    </None>
+  </ItemGroup>
 </Project>
