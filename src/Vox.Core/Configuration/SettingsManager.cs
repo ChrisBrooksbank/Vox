@@ -115,6 +115,8 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
     private VoxSettings _current;
     private readonly List<Action<VoxSettings, string?>> _listeners = new();
     private FileSystemWatcher? _watcher;
+    // Track last programmatic save time to suppress the resulting file watcher event
+    private long _lastProgrammaticSaveTick;
 
     public SettingsMonitor(SettingsManager manager, ILogger<SettingsMonitor> logger)
     {
@@ -127,6 +129,19 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
     public VoxSettings CurrentValue => _current;
 
     public VoxSettings Get(string? name) => _current;
+
+    /// <summary>
+    /// Updates the current settings in memory and persists to disk.
+    /// Notifies all registered OnChange listeners.
+    /// </summary>
+    public void UpdateSettings(VoxSettings settings)
+    {
+        _current = settings;
+        Interlocked.Exchange(ref _lastProgrammaticSaveTick, Environment.TickCount64);
+        _manager.Save(settings);
+        foreach (var listener in _listeners)
+            listener(settings, null);
+    }
 
     public IDisposable? OnChange(Action<VoxSettings, string?> listener)
     {
@@ -160,6 +175,13 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
     {
         // Small delay to let the file write complete
         Thread.Sleep(100);
+
+        // Suppress reload if the file change was triggered by a programmatic save
+        // (within the past 500ms — the watcher delay is 100ms, so this is plenty)
+        var lastSave = Interlocked.Read(ref _lastProgrammaticSaveTick);
+        if (lastSave != 0 && Environment.TickCount64 - lastSave < 500)
+            return;
+
         try
         {
             var reloaded = _manager.Load();

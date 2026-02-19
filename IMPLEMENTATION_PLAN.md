@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 34
+- Build iterations: 35
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -60,9 +60,9 @@
 
 ### First-Run Wizard & Full Integration (spec: first-run-experience.md)
 
-- [ ] Add `FirstRunWizard`: speech-only, 7-step wizard; triggered when FirstRunCompleted==false; steps: welcome, rate(Up/Down live adjust+test sentence), voice(Up/Down cycle), verbosity(1/2/3), modifier(1/2), tutorial(H/K/Enter/Insert+Space practice), completion; saves settings at each step; re-runnable from settings (spec: first-run-experience.md)
-- [ ] Update ScreenReaderService.StartAsync: init UIAThread, start KeyboardHook, start EventPipeline, start SpeechEngine, load settings, check FirstRun -> run wizard if needed; StopAsync: cleanup all (spec: first-run-experience.md)
-- [ ] Add unit tests for EventPipeline coalescing (consecutive focus events within 30ms) and priority routing (assertive live -> High, mode change -> audio cue first) (spec: first-run-experience.md)
+- [x] Add `FirstRunWizard`: speech-only, 7-step wizard; triggered when FirstRunCompleted==false; steps: welcome, rate(Up/Down live adjust+test sentence), voice(Up/Down cycle), verbosity(1/2/3), modifier(1/2), tutorial(H/K/Enter/Insert+Space practice), completion; saves settings at each step; re-runnable from settings (spec: first-run-experience.md)
+- [x] Update ScreenReaderService.StartAsync: init UIAThread, start KeyboardHook, start EventPipeline, start SpeechEngine, load settings, check FirstRun -> run wizard if needed; StopAsync: cleanup all (spec: first-run-experience.md)
+- [x] Add unit tests for EventPipeline coalescing (consecutive focus events within 30ms) and priority routing (assertive live -> High, mode change -> audio cue first) (spec: first-run-experience.md)
 
 ## Completed
 

@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Vox.Core.Tests.Configuration;
 
+[Collection("SettingsTests")]
 public sealed class SettingsManagerTests : IDisposable
 {
     private readonly string _tempDir;

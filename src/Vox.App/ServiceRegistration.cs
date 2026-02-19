@@ -67,6 +67,9 @@ public static class ServiceRegistration
             return new TypingEchoHandler(pipeline, () => settings.CurrentValue.TypingEchoMode, logger);
         });
 
+        // First-run wizard
+        services.AddSingleton<FirstRunWizard>();
+
         // Navigation
         services.AddSingleton<NavigationManager>();
         services.AddSingleton<QuickNavHandler>();

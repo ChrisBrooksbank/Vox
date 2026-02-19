@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
@@ -27,6 +29,8 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SayAllController _sayAllController;
     private readonly AnnouncementBuilder _announcementBuilder;
     private readonly Vox.Core.Audio.IAudioCuePlayer _audioCuePlayer;
+    private readonly FirstRunWizard _firstRunWizard;
+    private readonly IOptionsMonitor<VoxSettings> _settings;
     private readonly ILogger<ScreenReaderService> _logger;
 
     public ScreenReaderService(
@@ -43,6 +47,8 @@ public sealed class ScreenReaderService : IHostedService
         SayAllController sayAllController,
         AnnouncementBuilder announcementBuilder,
         Vox.Core.Audio.IAudioCuePlayer audioCuePlayer,
+        FirstRunWizard firstRunWizard,
+        IOptionsMonitor<VoxSettings> settings,
         ILogger<ScreenReaderService> logger)
     {
         _speechEngine = speechEngine;
@@ -58,6 +64,8 @@ public sealed class ScreenReaderService : IHostedService
         _sayAllController = sayAllController;
         _announcementBuilder = announcementBuilder;
         _audioCuePlayer = audioCuePlayer;
+        _firstRunWizard = firstRunWizard;
+        _settings = settings;
         _logger = logger;
     }
 
@@ -71,6 +79,16 @@ public sealed class ScreenReaderService : IHostedService
         // Subscribe to UIA events (focus, structure, live regions, etc.)
         await _uiaEventSubscriber.SubscribeAsync();
 
+        // Install the low-level keyboard hook (needed before wizard for key input)
+        _keyboardHook.Install();
+
+        // Check if first run wizard needs to run (before starting normal pipeline)
+        if (!_settings.CurrentValue.FirstRunCompleted)
+        {
+            _logger.LogInformation("First run not completed — starting wizard");
+            await _firstRunWizard.RunAsync(cancellationToken);
+        }
+
         // Start typing echo handler (subscribes to pipeline RawKeyEvents)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
 
@@ -81,11 +99,8 @@ public sealed class ScreenReaderService : IHostedService
         // Start key input dispatcher (subscribes to keyboard hook)
         _keyInputDispatcher.Start();
 
-        // Install the low-level keyboard hook
-        _keyboardHook.Install();
-
         // Announce startup
-        _speechQueue.Enqueue(new Utterance("Vox screen reader started", SpeechPriority.Normal));
+        _speechQueue.Enqueue(new Utterance("Vox screen reader ready", SpeechPriority.Normal));
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
