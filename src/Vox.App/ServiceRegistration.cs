@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
@@ -32,6 +33,13 @@ public static class ServiceRegistration
 
         // Pipeline
         services.AddSingleton<EventPipeline>();
+        services.AddSingleton<IEventSink>(sp => sp.GetRequiredService<EventPipeline>());
+
+        // UIA Accessibility
+        services.AddSingleton<UIAThread>();
+        services.AddSingleton<UIAProvider>();
+        services.AddSingleton<UIAEventSubscriber>();
+        services.AddSingleton<LiveRegionMonitor>();
 
         // Input
         services.AddSingleton<IKeyboardHook, KeyboardHook>();

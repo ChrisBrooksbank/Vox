@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 19
+- Build iterations: 20
 - Last updated: 2026-02-19
 ## Tasks
 
@@ -35,7 +35,7 @@
 - [x] Add `UIAEventSubscriber` implementing UIA event handler interfaces (IUIAutomationFocusChangedEventHandler, IUIAutomationStructureChangedEventHandler, IUIAutomationPropertyChangedEventHandler, IUIAutomationEventHandler for LiveRegionChanged/Notification); handlers only post to channel and return immediately (spec: uia-accessibility.md)
 - [x] Subscribe UIAEventSubscriber to: FocusChanged, StructureChanged, PropertyChanged (Name/ExpandCollapseState), LiveRegionChanged (event 20024), Notification (IUIAutomation5) (spec: uia-accessibility.md)
 - [x] Add `LiveRegionMonitor`: Dictionary<runtimeId, lastKnownText> for diffing; polite regions throttled to 1 per 500ms per source; assertive immediate (spec: uia-accessibility.md)
-- [ ] Wire UIAThread, UIAProvider, UIAEventSubscriber into ScreenReaderService; register in DI (spec: uia-accessibility.md)
+- [x] Wire UIAThread, UIAProvider, UIAEventSubscriber into ScreenReaderService; register in DI (spec: uia-accessibility.md)
 - [ ] Add unit tests for LiveRegionMonitor: diff detection (new text vs unchanged), polite throttling (1 per 500ms), assertive bypass (spec: uia-accessibility.md)
 
 ### Virtual Buffer (spec: virtual-buffer.md)

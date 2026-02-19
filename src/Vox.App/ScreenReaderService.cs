@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Vox.Core.Accessibility;
 using Vox.Core.Input;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
@@ -18,6 +19,8 @@ public sealed class ScreenReaderService : IHostedService
     private readonly IKeyboardHook _keyboardHook;
     private readonly KeyInputDispatcher _keyInputDispatcher;
     private readonly TypingEchoHandler _typingEchoHandler;
+    private readonly UIAProvider _uiaProvider;
+    private readonly UIAEventSubscriber _uiaEventSubscriber;
     private readonly ILogger<ScreenReaderService> _logger;
 
     public ScreenReaderService(
@@ -27,6 +30,8 @@ public sealed class ScreenReaderService : IHostedService
         IKeyboardHook keyboardHook,
         KeyInputDispatcher keyInputDispatcher,
         TypingEchoHandler typingEchoHandler,
+        UIAProvider uiaProvider,
+        UIAEventSubscriber uiaEventSubscriber,
         ILogger<ScreenReaderService> logger)
     {
         _speechEngine = speechEngine;
@@ -35,12 +40,20 @@ public sealed class ScreenReaderService : IHostedService
         _keyboardHook = keyboardHook;
         _keyInputDispatcher = keyInputDispatcher;
         _typingEchoHandler = typingEchoHandler;
+        _uiaProvider = uiaProvider;
+        _uiaEventSubscriber = uiaEventSubscriber;
         _logger = logger;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Vox Screen Reader starting");
+
+        // Initialize UIA on the dedicated STA thread
+        await _uiaProvider.InitializeAsync();
+
+        // Subscribe to UIA events (focus, structure, live regions, etc.)
+        await _uiaEventSubscriber.SubscribeAsync();
 
         // Start typing echo handler (subscribes to pipeline RawKeyEvents)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
@@ -53,8 +66,6 @@ public sealed class ScreenReaderService : IHostedService
 
         // Announce startup
         _speechQueue.Enqueue(new Utterance("Vox screen reader started", SpeechPriority.Normal));
-
-        await Task.CompletedTask;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -69,6 +80,12 @@ public sealed class ScreenReaderService : IHostedService
 
         // Unsubscribe typing echo handler
         _eventPipeline.RawKeyReceived -= OnRawKeyReceived;
+
+        // Dispose UIA event subscriber (unsubscribes from all UIA events)
+        _uiaEventSubscriber.Dispose();
+
+        // Dispose UIA provider (releases COM objects on STA thread)
+        _uiaProvider.Dispose();
 
         _speechEngine.Cancel();
 
