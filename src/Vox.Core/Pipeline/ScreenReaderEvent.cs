@@ -57,3 +57,21 @@ public record RawKeyEvent(
     DateTimeOffset Timestamp,
     KeyEvent Key
 ) : ScreenReaderEvent(Timestamp);
+
+public record StructureChangedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId
+) : ScreenReaderEvent(Timestamp);
+
+public record PropertyChangedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId,
+    int PropertyId,
+    object? NewValue
+) : ScreenReaderEvent(Timestamp);
+
+public record NotificationEvent(
+    DateTimeOffset Timestamp,
+    string? ActivityId,
+    string? NotificationText
+) : ScreenReaderEvent(Timestamp);

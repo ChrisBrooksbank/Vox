@@ -3,9 +3,8 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 16
+- Build iterations: 17
 - Last updated: 2026-02-19
-
 ## Tasks
 
 ### Configuration & Settings (spec: first-run-experience.md)
@@ -33,7 +32,7 @@
 
 - [x] Add `UIAThread` class: starts a dedicated STA thread, provides RunAsync<T>(Func<T>) that marshals via TaskCompletionSource; all UIA COM operations must use this (spec: uia-accessibility.md)
 - [x] Add `UIAProvider` creating CUIAutomation on the STA thread; builds IUIAutomationCacheRequest with: Name, ControlType, AriaRole, AriaProperties, IsEnabled, HasKeyboardFocus, ItemStatus, LiveSetting, ClassName (spec: uia-accessibility.md)
-- [ ] Add `UIAEventSubscriber` implementing UIA event handler interfaces (IUIAutomationFocusChangedEventHandler, IUIAutomationStructureChangedEventHandler, IUIAutomationPropertyChangedEventHandler, IUIAutomationEventHandler for LiveRegionChanged/Notification); handlers only post to channel and return immediately (spec: uia-accessibility.md)
+- [x] Add `UIAEventSubscriber` implementing UIA event handler interfaces (IUIAutomationFocusChangedEventHandler, IUIAutomationStructureChangedEventHandler, IUIAutomationPropertyChangedEventHandler, IUIAutomationEventHandler for LiveRegionChanged/Notification); handlers only post to channel and return immediately (spec: uia-accessibility.md)
 - [ ] Subscribe UIAEventSubscriber to: FocusChanged, StructureChanged, PropertyChanged (Name/ExpandCollapseState), LiveRegionChanged (event 20024), Notification (IUIAutomation5) (spec: uia-accessibility.md)
 - [ ] Add `LiveRegionMonitor`: Dictionary<runtimeId, lastKnownText> for diffing; polite regions throttled to 1 per 500ms per source; assertive immediate (spec: uia-accessibility.md)
 - [ ] Wire UIAThread, UIAProvider, UIAEventSubscriber into ScreenReaderService; register in DI (spec: uia-accessibility.md)
