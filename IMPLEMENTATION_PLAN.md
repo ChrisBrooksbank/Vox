@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 33
+- Build iterations: 34
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -56,7 +56,7 @@
 - [x] Add `SayAllController`: Insert+Down triggers continuous reading from current position; speaks one line at a time, advances cursor; any keystroke cancels via CancellationTokenSource (spec: navigation.md)
 - [x] Add `ElementsListDialog`: WinForms accessible dialog; Insert+F7 opens it; switchable tabs for Headings/Links/Landmarks/FormFields; type to filter list; Enter to jump to element; data from VBufferDocument indices (spec: navigation.md)
 - [x] Wire NavigationManager, QuickNavHandler, SayAllController into ScreenReaderService; register in DI (spec: navigation.md)
-- [ ] Add unit tests for QuickNavHandler (next/prev finding, wrap), AnnouncementBuilder verbosity (Beginner vs Advanced output), SayAllController cancellation (spec: navigation.md)
+- [x] Add unit tests for QuickNavHandler (next/prev finding, wrap), AnnouncementBuilder verbosity (Beginner vs Advanced output), SayAllController cancellation (spec: navigation.md)
 
 ### First-Run Wizard & Full Integration (spec: first-run-experience.md)
 
