@@ -196,6 +196,21 @@ public sealed class VBufferBuilder
     // Parsing helpers (mirrors UIAEventSubscriber helpers)
     // -------------------------------------------------------------------------
 
+    internal static int ParseHeadingLevel_Internal(string ariaRole, string ariaProps, string controlType) =>
+        ParseHeadingLevel(ariaRole, ariaProps, controlType);
+
+    internal static string ParseLandmarkType_Internal(string ariaRole) => ParseLandmarkType(ariaRole);
+
+    internal static bool IsLinkElement_Internal(string ariaRole, string controlType) =>
+        IsLinkElement(ariaRole, controlType);
+
+    internal static bool IsFocusableControlType(string controlType) =>
+        FocusableControlTypes.Contains(controlType);
+
+    internal static void AppendNodeText_Internal(IVBufferElement element, System.Text.StringBuilder flatText) =>
+        AppendNodeText(element, ParseHeadingLevel(element.AriaRole, element.AriaProperties, element.ControlType),
+            IsLinkElement(element.AriaRole, element.ControlType), flatText);
+
     private static int ParseHeadingLevel(string ariaRole, string ariaProps, string controlType)
     {
         if (string.IsNullOrEmpty(ariaRole))
