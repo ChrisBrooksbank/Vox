@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 9
+- Build iterations: 10
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -23,7 +23,7 @@
 - [x] Add `IKeyboardHook` interface with Install/Uninstall methods and KeyPressed event (spec: input-system.md)
 - [x] Add `KeyMap` class loading from assets/config/default-keymap.json; maps (Modifiers, VkCode, InteractionMode) to NavigationCommand (spec: input-system.md)
 - [x] Create assets/config/default-keymap.json with NVDA-convention keybindings (Insert as modifier) (spec: input-system.md)
-- [ ] Add `KeyboardHook` implementing IKeyboardHook via P/Invoke SetWindowsHookEx(WH_KEYBOARD_LL); callback extracts vkCode, posts pre-allocated KeyEvent to bounded channel via TryWrite, returns immediately (spec: input-system.md)
+- [x] Add `KeyboardHook` implementing IKeyboardHook via P/Invoke SetWindowsHookEx(WH_KEYBOARD_LL); callback extracts vkCode, posts pre-allocated KeyEvent to bounded channel via TryWrite, returns immediately (spec: input-system.md)
 - [ ] Add channel consumer on separate thread: tracks modifier state, looks up KeyMap, dispatches NavigationCommand or posts KeyEvent to pipeline (spec: input-system.md)
 - [ ] Add `TypingEchoHandler`: character echo on key-up of printable chars; word echo on Space/Enter/punctuation using rolling buffer; respects TypingEchoMode setting (spec: input-system.md)
 - [ ] Wire KeyboardHook into ScreenReaderService.StartAsync/StopAsync; register in DI (spec: input-system.md)
