@@ -3,6 +3,7 @@ using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -65,6 +66,12 @@ public static class ServiceRegistration
             var logger = sp.GetRequiredService<ILogger<TypingEchoHandler>>();
             return new TypingEchoHandler(pipeline, () => settings.CurrentValue.TypingEchoMode, logger);
         });
+
+        // Navigation
+        services.AddSingleton<NavigationManager>();
+        services.AddSingleton<QuickNavHandler>();
+        services.AddSingleton<AnnouncementBuilder>();
+        services.AddSingleton<SayAllController>();
 
         // Hosted service
         services.AddHostedService<ScreenReaderService>();

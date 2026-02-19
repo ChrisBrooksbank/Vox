@@ -28,6 +28,9 @@ public sealed class QuickNavHandler
     /// <summary>Current cursor node — updated after each navigation. Set externally after focus changes.</summary>
     public VBufferNode? CurrentNode { get; set; }
 
+    /// <summary>The currently active document, or null if none has been set.</summary>
+    public VBufferDocument? CurrentDocument => _document;
+
     /// <summary>When true the handler wraps from last to first (and first to last) element.</summary>
     public bool WrapEnabled { get; set; } = true;
 

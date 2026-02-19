@@ -48,6 +48,18 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// </summary>
     public event EventHandler<RawKeyEvent>? RawKeyReceived;
 
+    /// <summary>
+    /// Raised when a NavigationCommandEvent is processed by the pipeline.
+    /// Subscribe to this to handle navigation commands (NavigationManager, QuickNavHandler, SayAllController).
+    /// </summary>
+    public event EventHandler<NavigationCommandEvent>? NavigationCommandReceived;
+
+    /// <summary>
+    /// Raised when a FocusChangedEvent is processed by the pipeline (after coalescing).
+    /// Subscribe to this for auto-mode-switching in NavigationManager.
+    /// </summary>
+    public event EventHandler<FocusChangedEvent>? FocusChangedProcessed;
+
     public void Post(ScreenReaderEvent evt)
     {
         _channel.Writer.TryWrite(evt);
@@ -153,6 +165,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     private async Task HandleFocusChangedAsync(FocusChangedEvent focus, CancellationToken token)
     {
+        // Notify subscribers (e.g. NavigationManager for auto-mode-switching)
+        FocusChangedProcessed?.Invoke(this, focus);
+
         // Focus changes are high priority — interrupt current speech
         var text = BuildFocusAnnouncement(focus);
         var utterance = new Utterance(text, SpeechPriority.Interrupt);
@@ -192,9 +207,8 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     private async Task HandleNavigationCommandAsync(NavigationCommandEvent evt, CancellationToken token)
     {
-        // Navigation commands will be routed to NavigationManager in a later task.
-        // For now, log the command so it is not silently dropped.
         _logger.LogDebug("NavigationCommand dispatched: {Command}", evt.Command);
+        NavigationCommandReceived?.Invoke(this, evt);
         await Task.CompletedTask.ConfigureAwait(false);
     }
 

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Vox.Core.Accessibility;
 using Vox.Core.Input;
+using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -21,6 +22,11 @@ public sealed class ScreenReaderService : IHostedService
     private readonly TypingEchoHandler _typingEchoHandler;
     private readonly UIAProvider _uiaProvider;
     private readonly UIAEventSubscriber _uiaEventSubscriber;
+    private readonly NavigationManager _navigationManager;
+    private readonly QuickNavHandler _quickNavHandler;
+    private readonly SayAllController _sayAllController;
+    private readonly AnnouncementBuilder _announcementBuilder;
+    private readonly Vox.Core.Audio.IAudioCuePlayer _audioCuePlayer;
     private readonly ILogger<ScreenReaderService> _logger;
 
     public ScreenReaderService(
@@ -32,6 +38,11 @@ public sealed class ScreenReaderService : IHostedService
         TypingEchoHandler typingEchoHandler,
         UIAProvider uiaProvider,
         UIAEventSubscriber uiaEventSubscriber,
+        NavigationManager navigationManager,
+        QuickNavHandler quickNavHandler,
+        SayAllController sayAllController,
+        AnnouncementBuilder announcementBuilder,
+        Vox.Core.Audio.IAudioCuePlayer audioCuePlayer,
         ILogger<ScreenReaderService> logger)
     {
         _speechEngine = speechEngine;
@@ -42,6 +53,11 @@ public sealed class ScreenReaderService : IHostedService
         _typingEchoHandler = typingEchoHandler;
         _uiaProvider = uiaProvider;
         _uiaEventSubscriber = uiaEventSubscriber;
+        _navigationManager = navigationManager;
+        _quickNavHandler = quickNavHandler;
+        _sayAllController = sayAllController;
+        _announcementBuilder = announcementBuilder;
+        _audioCuePlayer = audioCuePlayer;
         _logger = logger;
     }
 
@@ -57,6 +73,10 @@ public sealed class ScreenReaderService : IHostedService
 
         // Start typing echo handler (subscribes to pipeline RawKeyEvents)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
+
+        // Wire navigation components to pipeline events
+        _eventPipeline.NavigationCommandReceived += OnNavigationCommandReceived;
+        _eventPipeline.FocusChangedProcessed += OnFocusChangedProcessed;
 
         // Start key input dispatcher (subscribes to keyboard hook)
         _keyInputDispatcher.Start();
@@ -78,8 +98,13 @@ public sealed class ScreenReaderService : IHostedService
         // Stop key input dispatcher
         _keyInputDispatcher.Stop();
 
-        // Unsubscribe typing echo handler
+        // Unsubscribe event handlers
         _eventPipeline.RawKeyReceived -= OnRawKeyReceived;
+        _eventPipeline.NavigationCommandReceived -= OnNavigationCommandReceived;
+        _eventPipeline.FocusChangedProcessed -= OnFocusChangedProcessed;
+
+        // Stop Say All if running
+        _sayAllController.Cancel();
 
         // Dispose UIA event subscriber (unsubscribes from all UIA events)
         _uiaEventSubscriber.Dispose();
@@ -95,5 +120,55 @@ public sealed class ScreenReaderService : IHostedService
     private void OnRawKeyReceived(object? sender, RawKeyEvent e)
     {
         _typingEchoHandler.HandleKeyEvent(e);
+    }
+
+    private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e)
+    {
+        var command = e.Command;
+
+        // StopSpeech: cancel Say All and interrupt TTS
+        if (command == NavigationCommand.StopSpeech)
+        {
+            _sayAllController.Cancel();
+            _speechEngine.Cancel();
+            return;
+        }
+
+        // SayAll: start continuous reading from current document position
+        if (command == NavigationCommand.SayAll)
+        {
+            var doc = _quickNavHandler.CurrentDocument;
+            if (doc is not null)
+            {
+                var cursor = new Vox.Core.Buffer.VBufferCursor(doc, _audioCuePlayer);
+                _sayAllController.Start(cursor);
+            }
+            else
+            {
+                _logger.LogDebug("SayAll requested but no document is loaded");
+            }
+            return;
+        }
+
+        // Let NavigationManager decide if the command should be handled or blocked
+        bool handled = _navigationManager.HandleCommand(command, _quickNavHandler.CurrentNode);
+        if (handled) return;
+
+        // In Browse mode, pass quick-nav commands to QuickNavHandler
+        if (_navigationManager.CurrentMode == InteractionMode.Browse)
+        {
+            var node = _quickNavHandler.Handle(command);
+            if (node is not null)
+            {
+                var text = _announcementBuilder.Build(node, Vox.Core.Configuration.VerbosityLevel.Beginner);
+                if (!string.IsNullOrWhiteSpace(text))
+                    _speechQueue.Enqueue(new Utterance(text, SpeechPriority.High));
+            }
+        }
+    }
+
+    private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
+    {
+        _navigationManager.HandleFocusChanged(e);
     }
 }
