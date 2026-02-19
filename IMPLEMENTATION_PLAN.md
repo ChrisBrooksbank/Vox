@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 14
+- Build iterations: 15
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -31,7 +31,7 @@
 
 ### UIA Accessibility (spec: uia-accessibility.md)
 
-- [ ] Add `UIAThread` class: starts a dedicated STA thread, provides RunAsync<T>(Func<T>) that marshals via TaskCompletionSource; all UIA COM operations must use this (spec: uia-accessibility.md)
+- [x] Add `UIAThread` class: starts a dedicated STA thread, provides RunAsync<T>(Func<T>) that marshals via TaskCompletionSource; all UIA COM operations must use this (spec: uia-accessibility.md)
 - [ ] Add `UIAProvider` creating CUIAutomation on the STA thread; builds IUIAutomationCacheRequest with: Name, ControlType, AriaRole, AriaProperties, IsEnabled, HasKeyboardFocus, ItemStatus, LiveSetting, ClassName (spec: uia-accessibility.md)
 - [ ] Add `UIAEventSubscriber` implementing UIA event handler interfaces (IUIAutomationFocusChangedEventHandler, IUIAutomationStructureChangedEventHandler, IUIAutomationPropertyChangedEventHandler, IUIAutomationEventHandler for LiveRegionChanged/Notification); handlers only post to channel and return immediately (spec: uia-accessibility.md)
 - [ ] Subscribe UIAEventSubscriber to: FocusChanged, StructureChanged, PropertyChanged (Name/ExpandCollapseState), LiveRegionChanged (event 20024), Notification (IUIAutomation5) (spec: uia-accessibility.md)
