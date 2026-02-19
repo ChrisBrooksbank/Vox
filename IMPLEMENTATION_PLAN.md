@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 27
+- Build iterations: 28
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -50,7 +50,7 @@
 
 ### Navigation (spec: navigation.md)
 
-- [ ] Add `NavigationManager`: Browse/Focus mode state machine; Browse mode consumes single-letter nav keys; Focus mode passes keys through except Insert+Space; auto-switch: Enter on edit field -> Focus mode + focus_mode.wav, focus leaves form field -> Browse mode + browse_mode.wav (spec: navigation.md)
+- [x] Add `NavigationManager`: Browse/Focus mode state machine; Browse mode consumes single-letter nav keys; Focus mode passes keys through except Insert+Space; auto-switch: Enter on edit field -> Focus mode + focus_mode.wav, focus leaves form field -> Browse mode + browse_mode.wav (spec: navigation.md)
 - [ ] Add `QuickNavHandler` for Browse mode: H/Shift+H next/prev heading any level; 1-6/Shift+1-6 heading at level; K/Shift+K next/prev link; D/Shift+D next/prev landmark; F/Shift+F next/prev form field; T/Shift+T next/prev table; Tab/Shift+Tab next/prev focusable element (spec: navigation.md)
 - [ ] Add `AnnouncementBuilder`: translates VBufferNode + VerbosityProfile into spoken text; concatenates heading level, landmark type, name, control type, visited, required, expanded/collapsed; filtered by verbosity (Beginner=all, Intermediate=control+essential state, Advanced=minimal) (spec: navigation.md)
 - [ ] Add `SayAllController`: Insert+Down triggers continuous reading from current position; speaks one line at a time, advances cursor; any keystroke cancels via CancellationTokenSource (spec: navigation.md)
