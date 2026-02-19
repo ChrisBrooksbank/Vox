@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 4
+- Build iterations: 5
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -14,7 +14,7 @@
 - [x] Add `VerbosityLevel` enum (Beginner/Intermediate/Advanced) and `TypingEchoMode` enum (None/Characters/Words/Both) and `ModifierKey` enum (Insert/CapsLock) (spec: first-run-experience.md)
 - [x] Add `VerbosityProfile` class with three built-in profiles defining what fields are announced at each level (spec: first-run-experience.md)
 - [x] Add `SettingsManager` loading from %APPDATA%/Vox/settings.json with fallback to assets/config/default-settings.json; use IOptionsMonitor for live reload; register in DI (spec: first-run-experience.md)
-- [ ] Create assets/config/default-settings.json with sensible defaults (200 WPM, Beginner verbosity, Insert modifier, Both echo) (spec: first-run-experience.md)
+- [x] Create assets/config/default-settings.json with sensible defaults (200 WPM, Beginner verbosity, Insert modifier, Both echo) (spec: first-run-experience.md)
 
 ### Input System (spec: input-system.md)
 
