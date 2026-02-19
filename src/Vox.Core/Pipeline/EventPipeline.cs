@@ -1,0 +1,219 @@
+using Microsoft.Extensions.Logging;
+using System.Threading.Channels;
+using Vox.Core.Audio;
+using Vox.Core.Speech;
+
+namespace Vox.Core.Pipeline;
+
+/// <summary>
+/// Main event pipeline backed by Channel&lt;ScreenReaderEvent&gt;.
+/// SingleReader = true for performance.
+/// Coalescing: consecutive focus events within 30ms keep only the last.
+/// Routes events to speech queue with appropriate priority.
+/// LiveRegion assertive → High, polite → Low.
+/// ModeChanged → audio cue before speech.
+/// </summary>
+public sealed class EventPipeline : IDisposable
+{
+    private readonly SpeechQueue _speechQueue;
+    private readonly IAudioCuePlayer _audioCuePlayer;
+    private readonly ILogger<EventPipeline> _logger;
+    private readonly Channel<ScreenReaderEvent> _channel;
+    private readonly CancellationTokenSource _cts = new();
+    private readonly Task _processingTask;
+
+    private const int FocusCoalescingWindowMs = 30;
+
+    public EventPipeline(
+        SpeechQueue speechQueue,
+        IAudioCuePlayer audioCuePlayer,
+        ILogger<EventPipeline> logger)
+    {
+        _speechQueue = speechQueue;
+        _audioCuePlayer = audioCuePlayer;
+        _logger = logger;
+
+        _channel = Channel.CreateUnbounded<ScreenReaderEvent>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+            SingleWriter = false
+        });
+
+        _processingTask = Task.Run(ProcessEventsAsync, _cts.Token);
+    }
+
+    public void Post(ScreenReaderEvent evt)
+    {
+        _channel.Writer.TryWrite(evt);
+    }
+
+    public async ValueTask PostAsync(ScreenReaderEvent evt, CancellationToken cancellationToken = default)
+    {
+        await _channel.Writer.WriteAsync(evt, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ProcessEventsAsync()
+    {
+        var token = _cts.Token;
+        var reader = _channel.Reader;
+
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                if (!await reader.WaitToReadAsync(token).ConfigureAwait(false))
+                    break;
+
+                if (!reader.TryRead(out var evt))
+                    continue;
+
+                // Coalesce focus events: if it's a FocusChangedEvent, wait briefly for more
+                if (evt is FocusChangedEvent)
+                {
+                    await Task.Delay(FocusCoalescingWindowMs, token).ConfigureAwait(false);
+
+                    // Drain and keep only the last FocusChangedEvent
+                    ScreenReaderEvent? lastFocus = evt;
+                    while (reader.TryRead(out var next))
+                    {
+                        if (next is FocusChangedEvent)
+                            lastFocus = next;
+                        else
+                        {
+                            // Process non-focus event after focus
+                            await ProcessEventAsync(lastFocus!, token).ConfigureAwait(false);
+                            lastFocus = null;
+                            await ProcessEventAsync(next, token).ConfigureAwait(false);
+                        }
+                    }
+
+                    if (lastFocus != null)
+                        await ProcessEventAsync(lastFocus, token).ConfigureAwait(false);
+                }
+                else
+                {
+                    await ProcessEventAsync(evt, token).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("EventPipeline processing cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error in EventPipeline");
+        }
+    }
+
+    private async Task ProcessEventAsync(ScreenReaderEvent evt, CancellationToken token)
+    {
+        switch (evt)
+        {
+            case FocusChangedEvent focus:
+                await HandleFocusChangedAsync(focus, token).ConfigureAwait(false);
+                break;
+
+            case NavigationEvent nav:
+                await HandleNavigationAsync(nav, token).ConfigureAwait(false);
+                break;
+
+            case LiveRegionChangedEvent liveRegion:
+                await HandleLiveRegionAsync(liveRegion, token).ConfigureAwait(false);
+                break;
+
+            case ModeChangedEvent modeChanged:
+                await HandleModeChangedAsync(modeChanged, token).ConfigureAwait(false);
+                break;
+
+            case TypingEchoEvent typingEcho:
+                await HandleTypingEchoAsync(typingEcho, token).ConfigureAwait(false);
+                break;
+
+            default:
+                _logger.LogWarning("Unhandled event type: {EventType}", evt.GetType().Name);
+                break;
+        }
+    }
+
+    private async Task HandleFocusChangedAsync(FocusChangedEvent focus, CancellationToken token)
+    {
+        // Focus changes are high priority — interrupt current speech
+        var text = BuildFocusAnnouncement(focus);
+        var utterance = new Utterance(text, SpeechPriority.Interrupt);
+        await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+    }
+
+    private async Task HandleNavigationAsync(NavigationEvent nav, CancellationToken token)
+    {
+        var text = $"{nav.ElementName}. {nav.ControlType}";
+        var utterance = new Utterance(text, SpeechPriority.High);
+        await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+    }
+
+    private async Task HandleLiveRegionAsync(LiveRegionChangedEvent liveRegion, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(liveRegion.Text))
+            return;
+
+        var priority = liveRegion.Politeness == LiveRegionPoliteness.Assertive
+            ? SpeechPriority.High
+            : SpeechPriority.Low;
+
+        var utterance = new Utterance(liveRegion.Text, priority);
+        await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+    }
+
+    private async Task HandleModeChangedAsync(ModeChangedEvent modeChanged, CancellationToken token)
+    {
+        // Play audio cue first
+        var cueName = modeChanged.NewMode == InteractionMode.Browse ? "browse_mode" : "focus_mode";
+        _audioCuePlayer.Play(cueName);
+
+        var modeText = modeChanged.NewMode == InteractionMode.Browse ? "Browse mode" : "Focus mode";
+        var utterance = new Utterance(modeText, SpeechPriority.Interrupt);
+        await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+    }
+
+    private async Task HandleTypingEchoAsync(TypingEchoEvent typingEcho, CancellationToken token)
+    {
+        var utterance = new Utterance(typingEcho.Text, SpeechPriority.High);
+        await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+    }
+
+    private static string BuildFocusAnnouncement(FocusChangedEvent focus)
+    {
+        var parts = new List<string>();
+
+        if (focus.HeadingLevel > 0)
+            parts.Add($"Heading level {focus.HeadingLevel}");
+
+        if (!string.IsNullOrEmpty(focus.LandmarkType))
+            parts.Add(focus.LandmarkType);
+
+        if (!string.IsNullOrEmpty(focus.ElementName))
+            parts.Add(focus.ElementName);
+
+        if (!string.IsNullOrEmpty(focus.ControlType))
+            parts.Add(focus.ControlType);
+
+        if (focus.IsVisited)
+            parts.Add("visited");
+
+        if (focus.IsRequired)
+            parts.Add("required");
+
+        if (focus.IsExpandable)
+            parts.Add(focus.IsExpanded ? "expanded" : "collapsed");
+
+        return string.Join(", ", parts);
+    }
+
+    public void Dispose()
+    {
+        _channel.Writer.TryComplete();
+        _cts.Cancel();
+        try { _processingTask.Wait(TimeSpan.FromSeconds(2)); } catch { }
+        _cts.Dispose();
+    }
+}
