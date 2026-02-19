@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 26
+- Build iterations: 27
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -46,7 +46,7 @@
 - [x] Add `VBufferBuilder`: detects ControlType.Document, walks UIA tree depth-first with cached TreeWalker; parses AriaRole for heading levels/landmark types/link status; parses AriaProperties for required/expanded/visited/live; builds all indices; target <500ms for 1000-element page (spec: virtual-buffer.md)
 - [x] Add `VBufferCursor`: position as (currentNode, textOffset); movement: NextLine, PrevLine, NextWord, PrevWord, NextChar, PrevChar; boundary detection posts boundary.wav cue; wrap with wrap.wav (spec: virtual-buffer.md)
 - [x] Add `IncrementalUpdater`: on StructureChanged event, identifies changed subtree by RuntimeId; rebuilds only changed subtree; splices into existing document; recalculates text offsets (spec: virtual-buffer.md)
-- [ ] Add unit tests for VBufferBuilder (correct node tree + properties from mock UIA tree), VBufferCursor movement (all granularities), boundary/wrap behavior, IncrementalUpdater patching (spec: virtual-buffer.md)
+- [x] Add unit tests for VBufferBuilder (correct node tree + properties from mock UIA tree), VBufferCursor movement (all granularities), boundary/wrap behavior, IncrementalUpdater patching (spec: virtual-buffer.md)
 
 ### Navigation (spec: navigation.md)
 
