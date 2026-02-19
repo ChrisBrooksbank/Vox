@@ -1,3 +1,5 @@
+using Vox.Core.Input;
+
 namespace Vox.Core.Pipeline;
 
 public abstract record ScreenReaderEvent(DateTimeOffset Timestamp);
@@ -44,4 +46,14 @@ public record TypingEchoEvent(
     DateTimeOffset Timestamp,
     string Text,
     bool IsWord
+) : ScreenReaderEvent(Timestamp);
+
+public record NavigationCommandEvent(
+    DateTimeOffset Timestamp,
+    NavigationCommand Command
+) : ScreenReaderEvent(Timestamp);
+
+public record RawKeyEvent(
+    DateTimeOffset Timestamp,
+    KeyEvent Key
 ) : ScreenReaderEvent(Timestamp);

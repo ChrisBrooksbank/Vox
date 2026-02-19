@@ -13,7 +13,7 @@ namespace Vox.Core.Pipeline;
 /// LiveRegion assertive → High, polite → Low.
 /// ModeChanged → audio cue before speech.
 /// </summary>
-public sealed class EventPipeline : IDisposable
+public sealed class EventPipeline : IEventSink, IDisposable
 {
     private readonly SpeechQueue _speechQueue;
     private readonly IAudioCuePlayer _audioCuePlayer;
@@ -130,6 +130,14 @@ public sealed class EventPipeline : IDisposable
                 await HandleTypingEchoAsync(typingEcho, token).ConfigureAwait(false);
                 break;
 
+            case NavigationCommandEvent navigationCommand:
+                await HandleNavigationCommandAsync(navigationCommand, token).ConfigureAwait(false);
+                break;
+
+            case RawKeyEvent:
+                // RawKeyEvent is consumed by TypingEchoHandler; no speech output here.
+                break;
+
             default:
                 _logger.LogWarning("Unhandled event type: {EventType}", evt.GetType().Name);
                 break;
@@ -173,6 +181,14 @@ public sealed class EventPipeline : IDisposable
         var modeText = modeChanged.NewMode == InteractionMode.Browse ? "Browse mode" : "Focus mode";
         var utterance = new Utterance(modeText, SpeechPriority.Interrupt);
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+    }
+
+    private async Task HandleNavigationCommandAsync(NavigationCommandEvent evt, CancellationToken token)
+    {
+        // Navigation commands will be routed to NavigationManager in a later task.
+        // For now, log the command so it is not silently dropped.
+        _logger.LogDebug("NavigationCommand dispatched: {Command}", evt.Command);
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task HandleTypingEchoAsync(TypingEchoEvent typingEcho, CancellationToken token)
