@@ -3,14 +3,14 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 1
+- Build iterations: 2
 - Last updated: 2026-02-19
 
 ## Tasks
 
 ### Configuration & Settings (spec: first-run-experience.md)
 
-- [ ] Add `VoxSettings` record with all config fields: VerbosityLevel, SpeechRateWpm, VoiceName, TypingEchoMode, AudioCuesEnabled, AnnounceVisitedLinks, ModifierKey, FirstRunCompleted (spec: first-run-experience.md)
+- [x] Add `VoxSettings` record with all config fields: VerbosityLevel, SpeechRateWpm, VoiceName, TypingEchoMode, AudioCuesEnabled, AnnounceVisitedLinks, ModifierKey, FirstRunCompleted (spec: first-run-experience.md)
 - [ ] Add `VerbosityLevel` enum (Beginner/Intermediate/Advanced) and `TypingEchoMode` enum (None/Characters/Words/Both) and `ModifierKey` enum (Insert/CapsLock) (spec: first-run-experience.md)
 - [ ] Add `VerbosityProfile` class with three built-in profiles defining what fields are announced at each level (spec: first-run-experience.md)
 - [ ] Add `SettingsManager` loading from %APPDATA%/Vox/settings.json with fallback to assets/config/default-settings.json; use IOptionsMonitor for live reload; register in DI (spec: first-run-experience.md)
