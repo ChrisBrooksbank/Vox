@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 30
+- Build iterations: 31
 - Last updated: 2026-02-19
 
 ## Tasks
@@ -53,7 +53,7 @@
 - [x] Add `NavigationManager`: Browse/Focus mode state machine; Browse mode consumes single-letter nav keys; Focus mode passes keys through except Insert+Space; auto-switch: Enter on edit field -> Focus mode + focus_mode.wav, focus leaves form field -> Browse mode + browse_mode.wav (spec: navigation.md)
 - [x] Add `QuickNavHandler` for Browse mode: H/Shift+H next/prev heading any level; 1-6/Shift+1-6 heading at level; K/Shift+K next/prev link; D/Shift+D next/prev landmark; F/Shift+F next/prev form field; T/Shift+T next/prev table; Tab/Shift+Tab next/prev focusable element (spec: navigation.md)
 - [x] Add `AnnouncementBuilder`: translates VBufferNode + VerbosityProfile into spoken text; concatenates heading level, landmark type, name, control type, visited, required, expanded/collapsed; filtered by verbosity (Beginner=all, Intermediate=control+essential state, Advanced=minimal) (spec: navigation.md)
-- [ ] Add `SayAllController`: Insert+Down triggers continuous reading from current position; speaks one line at a time, advances cursor; any keystroke cancels via CancellationTokenSource (spec: navigation.md)
+- [x] Add `SayAllController`: Insert+Down triggers continuous reading from current position; speaks one line at a time, advances cursor; any keystroke cancels via CancellationTokenSource (spec: navigation.md)
 - [ ] Add `ElementsListDialog`: WinForms accessible dialog; Insert+F7 opens it; switchable tabs for Headings/Links/Landmarks/FormFields; type to filter list; Enter to jump to element; data from VBufferDocument indices (spec: navigation.md)
 - [ ] Wire NavigationManager, QuickNavHandler, SayAllController into ScreenReaderService; register in DI (spec: navigation.md)
 - [ ] Add unit tests for QuickNavHandler (next/prev finding, wrap), AnnouncementBuilder verbosity (Beginner vs Advanced output), SayAllController cancellation (spec: navigation.md)
