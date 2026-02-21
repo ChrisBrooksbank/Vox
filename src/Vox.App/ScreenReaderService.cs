@@ -89,6 +89,11 @@ public sealed class ScreenReaderService : IHostedService
             await _firstRunWizard.RunAsync(cancellationToken);
         }
 
+        // Apply speech settings
+        _speechEngine.SetRate(_settings.CurrentValue.SpeechRateWpm);
+        if (!string.IsNullOrEmpty(_settings.CurrentValue.VoiceName))
+            _speechEngine.SetVoice(_settings.CurrentValue.VoiceName);
+
         // Start typing echo handler (subscribes to pipeline RawKeyEvents)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
 

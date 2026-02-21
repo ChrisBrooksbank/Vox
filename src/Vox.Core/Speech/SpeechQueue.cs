@@ -64,26 +64,33 @@ public sealed class SpeechQueue : IDisposable
                 if (pending.Count == 0)
                     continue;
 
-                // Sort by priority (lower enum value = higher priority)
-                pending.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-
-                // If any Interrupt utterances, cancel immediately
-                if (pending.Any(u => u.Priority == SpeechPriority.Interrupt))
+                // If any Interrupt utterances, cancel current speech and drop everything
+                // below Interrupt priority — the user has moved on
+                bool hasInterrupt = pending.Any(u => u.Priority == SpeechPriority.Interrupt);
+                if (hasInterrupt)
                 {
                     _engine.Cancel();
+                    // Keep only the last Interrupt utterance (most recent focus/nav)
+                    var lastInterrupt = pending.Last(u => u.Priority == SpeechPriority.Interrupt);
+                    pending.Clear();
+                    pending.Add(lastInterrupt);
                 }
-
-                // Coalesce Normal-priority utterances: wait for more within window
-                // then concatenate consecutive Normal utterances
-                if (pending.Count == 1 && pending[0].Priority == SpeechPriority.Normal)
+                else
                 {
-                    // Wait briefly for more Normal utterances to coalesce
-                    await Task.Delay(CoalescingWindowMs, token).ConfigureAwait(false);
-                    while (reader.TryRead(out var extra))
-                    {
-                        pending.Add(extra);
-                    }
+                    // Sort by priority (lower enum value = higher priority)
                     pending.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+
+                    // Coalesce Normal-priority utterances: wait for more within window
+                    // then concatenate consecutive Normal utterances
+                    if (pending.Count == 1 && pending[0].Priority == SpeechPriority.Normal)
+                    {
+                        await Task.Delay(CoalescingWindowMs, token).ConfigureAwait(false);
+                        while (reader.TryRead(out var extra))
+                        {
+                            pending.Add(extra);
+                        }
+                        pending.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+                    }
                 }
 
                 // Group consecutive Normal utterances and coalesce them
@@ -91,6 +98,13 @@ public sealed class SpeechQueue : IDisposable
 
                 foreach (var utterance in toSpeak)
                 {
+                    // Before speaking each utterance, check if new Interrupt arrived
+                    if (reader.TryPeek(out var peeked) && peeked.Priority == SpeechPriority.Interrupt)
+                    {
+                        _engine.Cancel();
+                        break; // Re-enter the main loop to process the new interrupt
+                    }
+
                     token.ThrowIfCancellationRequested();
                     try
                     {
@@ -104,6 +118,7 @@ public sealed class SpeechQueue : IDisposable
                     {
                         // Speech was interrupted by a higher-priority utterance — normal operation
                         _logger.LogDebug("Speech interrupted: {Text}", utterance.Text);
+                        break; // Stop processing remaining utterances
                     }
                     catch (Exception ex)
                     {

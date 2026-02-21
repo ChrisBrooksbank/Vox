@@ -24,7 +24,7 @@ public enum ModifierKey
 public record VoxSettings
 {
     public VerbosityLevel VerbosityLevel { get; init; } = VerbosityLevel.Beginner;
-    public int SpeechRateWpm { get; init; } = 200;
+    public int SpeechRateWpm { get; init; } = 450;
     public string? VoiceName { get; init; }
     public TypingEchoMode TypingEchoMode { get; init; } = TypingEchoMode.Both;
     public bool AudioCuesEnabled { get; init; } = true;

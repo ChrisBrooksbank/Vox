@@ -163,7 +163,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     break;
 
                 case NotificationEvent notification:
-                    await HandleNotificationAsync(notification, token).ConfigureAwait(false);
+                    // Log only — most UIA notifications are system noise.
+                    // User-facing announcements come via LiveRegionChanged instead.
+                    _logger.LogDebug("Notification: {Text}", notification.NotificationText);
                     break;
 
                 case PropertyChangedEvent propertyChanged:

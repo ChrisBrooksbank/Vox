@@ -38,7 +38,7 @@ public sealed class SettingsManagerTests : IDisposable
         var settings = manager.Load();
 
         Assert.Equal(VerbosityLevel.Beginner, settings.VerbosityLevel);
-        Assert.Equal(200, settings.SpeechRateWpm);
+        Assert.Equal(450, settings.SpeechRateWpm);
         Assert.Equal(TypingEchoMode.Both, settings.TypingEchoMode);
         Assert.True(settings.AudioCuesEnabled);
         Assert.True(settings.AnnounceVisitedLinks);
@@ -126,7 +126,7 @@ public sealed class SettingsManagerTests : IDisposable
 
         // Should fall back to built-in defaults without throwing
         Assert.Equal(VerbosityLevel.Beginner, settings.VerbosityLevel);
-        Assert.Equal(200, settings.SpeechRateWpm);
+        Assert.Equal(450, settings.SpeechRateWpm);
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public sealed class SettingsManagerTests : IDisposable
 
         Assert.NotNull(settings);
         Assert.Equal(VerbosityLevel.Beginner, settings!.VerbosityLevel);
-        Assert.Equal(200, settings.SpeechRateWpm);
+        Assert.Equal(450, settings.SpeechRateWpm);
         Assert.Equal(TypingEchoMode.Both, settings.TypingEchoMode);
         Assert.Equal(ModifierKey.Insert, settings.ModifierKey);
         Assert.True(settings.AudioCuesEnabled);
