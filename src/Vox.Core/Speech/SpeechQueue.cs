@@ -100,6 +100,11 @@ public sealed class SpeechQueue : IDisposable
                     {
                         throw;
                     }
+                    catch (OperationCanceledException)
+                    {
+                        // Speech was interrupted by a higher-priority utterance — normal operation
+                        _logger.LogDebug("Speech interrupted: {Text}", utterance.Text);
+                    }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Error speaking utterance: {Text}", utterance.Text);

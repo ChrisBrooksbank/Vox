@@ -116,13 +116,25 @@ public sealed class FirstRunWizard
             "Press Enter to begin, or Escape to skip setup.",
             cancellationToken);
 
-        while (true)
+        // Timeout after 30 seconds — auto-skip if no user interaction
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
+
+        try
         {
-            var key = await WaitForKeyDownAsync(cancellationToken);
-            if (key.VkCode == VirtualKeys.Return)
-                return true;
-            if (key.VkCode == VirtualKeys.Escape)
-                return false;
+            while (true)
+            {
+                var key = await WaitForKeyDownAsync(timeoutCts.Token);
+                if (key.VkCode == VirtualKeys.Return)
+                    return true;
+                if (key.VkCode == VirtualKeys.Escape)
+                    return false;
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("First-run wizard timed out — skipping setup");
+            return false;
         }
     }
 
@@ -319,17 +331,17 @@ public sealed class FirstRunWizard
     private void OnKeyPressed(object? sender, KeyEvent e)
     {
         if (!e.IsKeyDown) return;
-        _keyWaiter?.TrySetResult(e);
+        Volatile.Read(ref _keyWaiter)?.TrySetResult(e);
     }
 
     private Task<KeyEvent> WaitForKeyDownAsync(CancellationToken cancellationToken)
     {
         var tcs = new TaskCompletionSource<KeyEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _keyWaiter = tcs;
+        Volatile.Write(ref _keyWaiter, tcs);
 
         cancellationToken.Register(() =>
         {
-            _keyWaiter = null;
+            Volatile.Write(ref _keyWaiter, null);
             tcs.TrySetCanceled(cancellationToken);
         });
 

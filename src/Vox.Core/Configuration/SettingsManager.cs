@@ -120,6 +120,7 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
     private readonly SettingsManager _manager;
     private readonly ILogger<SettingsMonitor> _logger;
     private VoxSettings _current;
+    private readonly object _listenerLock = new();
     private readonly List<Action<VoxSettings, string?>> _listeners = new();
     private FileSystemWatcher? _watcher;
     // Track last programmatic save time to suppress the resulting file watcher event
@@ -146,14 +147,16 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
         _current = settings;
         Interlocked.Exchange(ref _lastProgrammaticSaveTick, Environment.TickCount64);
         _manager.Save(settings);
-        foreach (var listener in _listeners)
+        Action<VoxSettings, string?>[] snapshot;
+        lock (_listenerLock) { snapshot = _listeners.ToArray(); }
+        foreach (var listener in snapshot)
             listener(settings, null);
     }
 
     public IDisposable? OnChange(Action<VoxSettings, string?> listener)
     {
-        _listeners.Add(listener);
-        return new CallbackRegistration(() => _listeners.Remove(listener));
+        lock (_listenerLock) { _listeners.Add(listener); }
+        return new CallbackRegistration(() => { lock (_listenerLock) { _listeners.Remove(listener); } });
     }
 
     private void StartWatching()
@@ -194,7 +197,9 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
             var reloaded = _manager.Load();
             _current = reloaded;
             _logger.LogInformation("Settings reloaded from file change");
-            foreach (var listener in _listeners)
+            Action<VoxSettings, string?>[] snapshot;
+            lock (_listenerLock) { snapshot = _listeners.ToArray(); }
+            foreach (var listener in snapshot)
                 listener(reloaded, null);
         }
         catch (Exception ex)

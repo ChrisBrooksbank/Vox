@@ -54,9 +54,15 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var prompt = new Prompt(utterance.Text);
 
         void OnCompleted(object? sender, SpeakCompletedEventArgs e)
         {
+            // Only handle completion for our specific prompt to avoid
+            // race conditions with cancelled warm-up or prior speech.
+            if (e.Prompt != prompt)
+                return;
+
             _synthesizer.SpeakCompleted -= OnCompleted;
             if (e.Cancelled)
                 tcs.TrySetCanceled();
@@ -74,7 +80,7 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
             tcs.TrySetCanceled(cancellationToken);
         });
 
-        _synthesizer.SpeakAsync(utterance.Text);
+        _synthesizer.SpeakAsync(prompt);
 
         try
         {

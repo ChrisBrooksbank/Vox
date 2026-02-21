@@ -98,9 +98,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
                             lastFocus = next;
                         else
                         {
-                            // Process non-focus event after focus
-                            await ProcessEventAsync(lastFocus!, token).ConfigureAwait(false);
-                            lastFocus = null;
+                            // Process pending focus event before non-focus event
+                            if (lastFocus != null)
+                            {
+                                await ProcessEventAsync(lastFocus, token).ConfigureAwait(false);
+                                lastFocus = null;
+                            }
                             await ProcessEventAsync(next, token).ConfigureAwait(false);
                         }
                     }
@@ -126,40 +129,65 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     private async Task ProcessEventAsync(ScreenReaderEvent evt, CancellationToken token)
     {
-        switch (evt)
+        try
         {
-            case FocusChangedEvent focus:
-                await HandleFocusChangedAsync(focus, token).ConfigureAwait(false);
-                break;
+            switch (evt)
+            {
+                case FocusChangedEvent focus:
+                    await HandleFocusChangedAsync(focus, token).ConfigureAwait(false);
+                    break;
 
-            case NavigationEvent nav:
-                await HandleNavigationAsync(nav, token).ConfigureAwait(false);
-                break;
+                case NavigationEvent nav:
+                    await HandleNavigationAsync(nav, token).ConfigureAwait(false);
+                    break;
 
-            case LiveRegionChangedEvent liveRegion:
-                await HandleLiveRegionAsync(liveRegion, token).ConfigureAwait(false);
-                break;
+                case LiveRegionChangedEvent liveRegion:
+                    await HandleLiveRegionAsync(liveRegion, token).ConfigureAwait(false);
+                    break;
 
-            case ModeChangedEvent modeChanged:
-                await HandleModeChangedAsync(modeChanged, token).ConfigureAwait(false);
-                break;
+                case ModeChangedEvent modeChanged:
+                    await HandleModeChangedAsync(modeChanged, token).ConfigureAwait(false);
+                    break;
 
-            case TypingEchoEvent typingEcho:
-                await HandleTypingEchoAsync(typingEcho, token).ConfigureAwait(false);
-                break;
+                case TypingEchoEvent typingEcho:
+                    await HandleTypingEchoAsync(typingEcho, token).ConfigureAwait(false);
+                    break;
 
-            case NavigationCommandEvent navigationCommand:
-                await HandleNavigationCommandAsync(navigationCommand, token).ConfigureAwait(false);
-                break;
+                case NavigationCommandEvent navigationCommand:
+                    await HandleNavigationCommandAsync(navigationCommand, token).ConfigureAwait(false);
+                    break;
 
-            case RawKeyEvent rawKey:
-                // Raise event so TypingEchoHandler (and others) can process raw key events.
-                RawKeyReceived?.Invoke(this, rawKey);
-                break;
+                case RawKeyEvent rawKey:
+                    // Raise event so TypingEchoHandler (and others) can process raw key events.
+                    RawKeyReceived?.Invoke(this, rawKey);
+                    break;
 
-            default:
-                _logger.LogWarning("Unhandled event type: {EventType}", evt.GetType().Name);
-                break;
+                case NotificationEvent notification:
+                    await HandleNotificationAsync(notification, token).ConfigureAwait(false);
+                    break;
+
+                case PropertyChangedEvent propertyChanged:
+                    _logger.LogDebug("PropertyChanged: PropertyId={PropertyId}, NewValue={NewValue}",
+                        propertyChanged.PropertyId, propertyChanged.NewValue);
+                    break;
+
+                case StructureChangedEvent structureChanged:
+                    _logger.LogDebug("StructureChanged: RuntimeId={RuntimeId}",
+                        structureChanged.RuntimeId is not null ? string.Join(",", structureChanged.RuntimeId) : "(null)");
+                    break;
+
+                default:
+                    _logger.LogWarning("Unhandled event type: {EventType}", evt.GetType().Name);
+                    break;
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw; // Let pipeline-level cancellation propagate
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing {EventType} event", evt.GetType().Name);
         }
     }
 
@@ -210,6 +238,15 @@ public sealed class EventPipeline : IEventSink, IDisposable
         _logger.LogDebug("NavigationCommand dispatched: {Command}", evt.Command);
         NavigationCommandReceived?.Invoke(this, evt);
         await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task HandleNotificationAsync(NotificationEvent notification, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(notification.NotificationText))
+            return;
+
+        var utterance = new Utterance(notification.NotificationText, SpeechPriority.Low);
+        await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
     }
 
     private async Task HandleTypingEchoAsync(TypingEchoEvent typingEcho, CancellationToken token)
