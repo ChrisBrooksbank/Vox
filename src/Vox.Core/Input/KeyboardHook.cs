@@ -52,11 +52,46 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
 
     private delegate nint LowLevelKeyboardProc(int nCode, nint wParam, nint lParam);
 
+    // Win32 message pump functions
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMessage(out MSG lpMsg, nint hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+
+    [DllImport("user32.dll")]
+    private static extern nint DispatchMessage(ref MSG lpmsg);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool TranslateMessage(ref MSG lpMsg);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PostThreadMessage(uint idThread, uint Msg, nint wParam, nint lParam);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    private const uint WM_QUIT = 0x0012;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MSG
+    {
+        public nint hwnd;
+        public uint message;
+        public nint wParam;
+        public nint lParam;
+        public uint time;
+        public int pt_x;
+        public int pt_y;
+    }
+
     private readonly ILogger<KeyboardHook> _logger;
     private readonly Channel<KeyEvent> _channel;
     private nint _hookHandle;
     private LowLevelKeyboardProc? _hookCallback; // Keep reference to prevent GC
     private Thread? _consumerThread;
+    private Thread? _hookThread;
+    private uint _hookThreadId;
     private CancellationTokenSource _cts = new();
 
     public event EventHandler<KeyEvent>? KeyPressed;
@@ -90,9 +125,24 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         };
         _consumerThread.Start();
 
-        // Store the delegate to prevent garbage collection
-        _hookCallback = HookCallback;
+        // Install the hook on a dedicated thread with a message pump.
+        // WH_KEYBOARD_LL requires a message pump — without one, Windows
+        // silently unhooks the callback after a few seconds.
+        var hookReady = new ManualResetEventSlim(false);
+        _hookThread = new Thread(() => HookThreadProc(hookReady))
+        {
+            IsBackground = true,
+            Name = "KeyboardHookMsgPump"
+        };
+        _hookThread.Start();
+        hookReady.Wait(); // Wait for hook to be installed before returning
+    }
 
+    private void HookThreadProc(ManualResetEventSlim hookReady)
+    {
+        _hookThreadId = GetCurrentThreadId();
+
+        _hookCallback = HookCallback;
         var hMod = GetModuleHandle(null);
         _hookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, _hookCallback, hMod, 0);
 
@@ -101,10 +151,25 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
             var error = Marshal.GetLastWin32Error();
             _logger.LogError("Failed to install keyboard hook. Win32 error: {Error}", error);
             _cts.Cancel();
+            hookReady.Set();
+            return;
         }
-        else
+
+        _logger.LogInformation("Keyboard hook installed");
+        hookReady.Set();
+
+        // Run a Windows message pump so the hook stays alive
+        while (GetMessage(out var msg, nint.Zero, 0, 0))
         {
-            _logger.LogInformation("Keyboard hook installed");
+            TranslateMessage(ref msg);
+            DispatchMessage(ref msg);
+        }
+
+        // Clean up hook when message pump exits
+        if (_hookHandle != nint.Zero)
+        {
+            UnhookWindowsHookEx(_hookHandle);
+            _hookHandle = nint.Zero;
         }
     }
 
@@ -113,17 +178,20 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         if (_hookHandle == nint.Zero)
             return;
 
-        if (!UnhookWindowsHookEx(_hookHandle))
+        // Post WM_QUIT to the hook thread's message pump to make it exit cleanly
+        if (_hookThreadId != 0)
         {
-            var error = Marshal.GetLastWin32Error();
-            _logger.LogWarning("Failed to uninstall keyboard hook. Win32 error: {Error}", error);
+            PostThreadMessage(_hookThreadId, WM_QUIT, nint.Zero, nint.Zero);
         }
 
-        _hookHandle = nint.Zero;
         _hookCallback = null;
 
         _cts.Cancel();
         _channel.Writer.TryComplete();
+
+        _hookThread?.Join(TimeSpan.FromSeconds(2));
+        _hookThread = null;
+        _hookThreadId = 0;
 
         _consumerThread?.Join(TimeSpan.FromSeconds(2));
         _consumerThread = null;
