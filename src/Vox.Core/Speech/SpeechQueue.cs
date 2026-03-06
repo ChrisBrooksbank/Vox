@@ -66,12 +66,16 @@ public sealed class SpeechQueue : IDisposable
 
                 // If any Interrupt utterances, cancel current speech and drop everything
                 // below Interrupt priority — the user has moved on
-                bool hasInterrupt = pending.Any(u => u.Priority == SpeechPriority.Interrupt);
-                if (hasInterrupt)
+                Utterance? lastInterrupt = null;
+                foreach (var u in pending)
+                {
+                    if (u.Priority == SpeechPriority.Interrupt)
+                        lastInterrupt = u;
+                }
+                if (lastInterrupt is not null)
                 {
                     _engine.Cancel();
                     // Keep only the last Interrupt utterance (most recent focus/nav)
-                    var lastInterrupt = pending.Last(u => u.Priority == SpeechPriority.Interrupt);
                     pending.Clear();
                     pending.Add(lastInterrupt);
                 }

@@ -53,9 +53,9 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
     private delegate nint LowLevelKeyboardProc(int nCode, nint wParam, nint lParam);
 
     // Win32 message pump functions
+    // Returns: >0 = message received, 0 = WM_QUIT, -1 = error
     [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetMessage(out MSG lpMsg, nint hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+    private static extern int GetMessage(out MSG lpMsg, nint hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
 
     [DllImport("user32.dll")]
     private static extern nint DispatchMessage(ref MSG lpmsg);
@@ -136,6 +136,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         };
         _hookThread.Start();
         hookReady.Wait(); // Wait for hook to be installed before returning
+        hookReady.Dispose();
     }
 
     private void HookThreadProc(ManualResetEventSlim hookReady)
@@ -159,8 +160,16 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         hookReady.Set();
 
         // Run a Windows message pump so the hook stays alive
-        while (GetMessage(out var msg, nint.Zero, 0, 0))
+        // GetMessage returns 0 for WM_QUIT, -1 on error, positive otherwise
+        int getResult;
+        while ((getResult = GetMessage(out var msg, nint.Zero, 0, 0)) != 0)
         {
+            if (getResult == -1)
+            {
+                var error = Marshal.GetLastWin32Error();
+                _logger.LogError("GetMessage failed in keyboard hook pump. Win32 error: {Error}", error);
+                break;
+            }
             TranslateMessage(ref msg);
             DispatchMessage(ref msg);
         }
@@ -184,12 +193,11 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
             PostThreadMessage(_hookThreadId, WM_QUIT, nint.Zero, nint.Zero);
         }
 
-        _hookCallback = null;
-
         _cts.Cancel();
         _channel.Writer.TryComplete();
 
         _hookThread?.Join(TimeSpan.FromSeconds(2));
+        _hookCallback = null; // Null after join — hook thread must be done before delegate can be GC'd
         _hookThread = null;
         _hookThreadId = 0;
 
