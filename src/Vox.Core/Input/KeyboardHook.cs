@@ -374,7 +374,9 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                     IsKeyDown = isKeyDown,
                     Timestamp = kbStruct.time,
                     ScanCode = (int)kbStruct.scanCode,
-                    CapsLockOn = _keyState.ScreenReaderModifier != ModifierKey.CapsLock && _keyState.CapsLockOn
+                    // The tracked state, whatever the modifier: with Caps Lock as the Vox key it is
+                    // only changed by a double tap passed through (and Vox turning it off)
+                    CapsLockOn = _keyState.CapsLockOn
                 };
 
                 KeyDecision decision;

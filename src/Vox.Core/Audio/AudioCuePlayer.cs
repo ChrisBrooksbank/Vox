@@ -83,8 +83,21 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     {
         if (!IsEnabled)
             return;
-        EnsureMixer().AddMixerInput(provider);
-        RestartIdleTimer();
+        AddToMixer(provider);
+    }
+
+    /// <summary>
+    /// Adds a cue to the mixer, opening the output if needed. Done under the output lock with the
+    /// idle timer stopped, so the idle close can't discard the mixer between the two steps.
+    /// </summary>
+    private void AddToMixer(ISampleProvider provider)
+    {
+        lock (_outputLock)
+        {
+            _idleTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            EnsureMixer().AddMixerInput(provider);
+            RestartIdleTimer();
+        }
     }
 
     public void Play(string cueName)
@@ -102,8 +115,7 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
         {
             // One output device stays open, feeding a mixer: a cue is just another mixer input,
             // so it starts without opening a device and overlapping cues simply mix
-            EnsureMixer().AddMixerInput(ToMixFormat(new CachedSoundSampleProvider(sound)));
-            RestartIdleTimer();
+            AddToMixer(ToMixFormat(new CachedSoundSampleProvider(sound)));
         }
         catch (Exception ex)
         {
