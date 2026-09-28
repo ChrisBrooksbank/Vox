@@ -330,6 +330,11 @@ public sealed class BrowseModeController
                 _navigationManager.HandleFocusChanged(focus);
         }
 
+        // Focus on the page itself (a dialog closed, the background clicked, a script's blur()):
+        // the root's text starts at offset 0, so following it would send the user to the top
+        if (ReferenceEquals(node, _quickNavHandler.CurrentDocument!.Root))
+            return;
+
         MoveTo(node);
     }
 

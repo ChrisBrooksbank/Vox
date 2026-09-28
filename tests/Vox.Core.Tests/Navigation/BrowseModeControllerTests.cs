@@ -1230,4 +1230,38 @@ public class BrowseModeControllerTests : IDisposable
         var spoken = await WaitForSpeech(u => u.Text.Contains("table"));
         Assert.DoesNotContain("After the table", spoken.Text);
     }
+
+    // -------------------------------------------------------------------------
+    // Round 8 fixes
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void FocusOnThePageItself_KeepsTheReadingPosition()
+    {
+        var doc = LoadDocument();
+        _controller.HandleCommand(NavigationCommand.NextLink); // cursor on "Read more"
+        var offset = _controller.Cursor!.TextOffset;
+        var node = _quickNav.CurrentNode;
+        Assert.True(offset > 0);
+
+        // A dialog closed and focus fell back to the document
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Page", "Document", RuntimeId: [1]));
+
+        Assert.Equal(offset, _controller.Cursor!.TextOffset);
+        Assert.Same(node, _quickNav.CurrentNode);
+    }
+
+    [Fact]
+    public void FocusOnThePageItself_FromAnEditField_ReturnsToBrowseMode()
+    {
+        LoadDocument();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "Edit", RuntimeId: [5]));
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+        var offset = _controller.Cursor!.TextOffset;
+
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Page", "Document", RuntimeId: [1]));
+
+        Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+        Assert.Equal(offset, _controller.Cursor!.TextOffset);
+    }
 }

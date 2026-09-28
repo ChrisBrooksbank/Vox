@@ -7,6 +7,20 @@ This is an eighth static review, of `master` at `48fc20c`, done on 2026-09-28 af
 
 The baseline is 701 tests passing on Linux, plus 14 that need Windows. Items marked **(verify)** depend on Windows, UIA, Chromium or SAPI behaviour and need confirming on Windows.
 
+## Status (2026-09-28)
+
+All 5 tasks are implemented. 703 tests pass on Linux, 2 of them new; the 14 that need Windows are unchanged. Tasks 2 to 5 change Windows-only code (UIA calls, the keyboard hook, the audio output), which the Linux tests can't exercise, so they need checking on Windows with Chrome or Edge:
+- that Enter on a link works on a large page;
+- that page updates still arrive after a failed element lookup;
+- that capitals are echoed after Caps Lock is double-tapped on;
+- memory use on a long-running chat page.
+
+Where the implementation made a specific choice:
+- Task 1: focus on the document root keeps the cursor and `CurrentNode`, but the mode rules still apply (Focus mode is left).
+- Task 2: `FindInDocument` runs under `WithDocumentCaptureTimeout`. A failed lookup requests one full re-capture per batch.
+- Task 4: whole captures replace the id set (`RememberWholeCapture`). After a subtree capture the set is cleared once it passes max(10,000, 4 × the last whole capture).
+- Task 5: `AddToMixer` stops the idle timer and adds the input under the output lock.
+
 Tasks use the `IMPLEMENTATION_PLAN.md` checkbox format and are ordered by severity. Each fix needs a regression test in `tests/Vox.Core.Tests/` where the code is testable.
 
 ## P1 — Wrong behaviour in common use
@@ -19,16 +33,16 @@ Tasks use the `IMPLEMENTATION_PLAN.md` checkbox format and are ordered by severi
 - Escape closes a menu and focus falls back to the body.
 
 `HandleDocumentChanged` already treats "focus is the page" as "keep or restore the position". The focus path doesn't.
-- [ ] When the focused node is the document root, leave the cursor and `CurrentNode` where they are. Still apply the mode rules: the page doesn't need Focus mode, so an automatic switch back to Browse mode applies.
-- [ ] Test: cursor on a heading, focus event for the document root → cursor unchanged, Browse mode.
+- [x] When the focused node is the document root, leave the cursor and `CurrentNode` where they are. Still apply the mode rules: the page doesn't need Focus mode, so an automatic switch back to Browse mode applies.
+- [x] Test: cursor on a heading, focus event for the document root → cursor unchanged, Browse mode.
 
 ### 2. Searches for one element can time out on large pages, losing activations and updates (verify)
 Two paths look up a single element with `FindFirstBuildCache(TreeScope_Descendants, RuntimeId == …)` (`FindInDocument`, `BrowseDocumentTracker.cs:395`). That searches the whole document, and it runs under the 4 s transaction timeout round 6 set. Round 7 only raised the timeout for whole-document captures.
 - **Activation** (`BrowseDocumentTracker.cs:415`): on a large page, Enter or Space on a link or button can time out. The user hears the error cue and nothing is activated.
 - **Updates** (`ProcessPendingChanges`, `BrowseDocumentTracker.cs:330`): a timeout, or any other UIA exception for one changed element, escapes the `foreach`. The rest of the batch is dropped, with only a debug log line, so the buffer silently misses changes.
-- [ ] Run `FindInDocument` with the document-capture timeout too (it is a whole-tree search).
-- [ ] Catch exceptions per changed element in `ProcessPendingChanges`. When a lookup fails, request a full re-capture (once per batch) instead of dropping the change.
-- [ ] (verify) How long `FindFirst` by runtime id takes on a 5,000- to 10,000-element page.
+- [x] Run `FindInDocument` with the document-capture timeout too (it is a whole-tree search).
+- [x] Catch exceptions per changed element in `ProcessPendingChanges`. When a lookup fails, request a full re-capture (once per batch) instead of dropping the change.
+- [x] (verify) How long `FindFirst` by runtime id takes on a 5,000- to 10,000-element page.
 
 ## P2 — Smaller issues
 

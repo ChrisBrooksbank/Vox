@@ -182,8 +182,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             var cached = _uiaProvider.WithDocumentCaptureTimeout(() => document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
             var snapshot = UIAElementSnapshot.Capture(cached);
             buffer = new VBufferBuilder().Build(snapshot);
-            _capturedIds.Clear();
-            RememberIds(snapshot);
+            RememberWholeCapture(snapshot);
         }
         catch (Exception ex)
         {
@@ -319,15 +318,33 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             {
                 var cached = _uiaProvider.WithDocumentCaptureTimeout(() => root.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
                 var rootSnapshot = UIAElementSnapshot.Capture(cached);
-                RememberIds(rootSnapshot);
+                RememberWholeCapture(rootSnapshot); // forgets elements removed since
                 _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, rootId, rootSnapshot, rootId));
                 return;
             }
 
             var walker = _uiaProvider.Automation.ControlViewWalker;
+            bool recaptureRequested = false;
             foreach (var runtimeId in changes)
             {
-                var element = FindInDocument(root, runtimeId, _uiaProvider.SubtreeCacheRequest);
+                // One element failing (a timeout, a page mid-update) must not drop the rest of the
+                // batch; the document is re-captured instead so the change isn't lost
+                IUIAutomationElement? element;
+                try
+                {
+                    element = FindInDocument(root, runtimeId, _uiaProvider.SubtreeCacheRequest);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Could not look up a changed element; re-capturing the document");
+                    if (!recaptureRequested)
+                    {
+                        recaptureRequested = true;
+                        RequestRecapture(null);
+                    }
+                    continue;
+                }
+
                 if (element is null)
                 {
                     // The element is gone
@@ -340,6 +357,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
                 var normalized = TryGet(() => walker.NormalizeElementBuildCache(element, _uiaProvider.SubtreeCacheRequest)) ?? element;
                 var snapshot = UIAElementSnapshot.Capture(normalized);
                 RememberIds(snapshot);
+                LimitCapturedIds();
                 var changedId = snapshot.RuntimeId.Length > 0 ? snapshot.RuntimeId : runtimeId;
 
                 // Ancestors let the buffer splice an element it doesn't know yet (e.g. added
@@ -370,6 +388,31 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         }
     }
 
+    // Size of the last whole capture: the set may grow to a multiple of it with subtree updates
+    private int _lastWholeCaptureCount;
+    private const int CapturedIdsGrowthLimit = 4;
+    private const int MinCapturedIdsLimit = 10_000;
+
+    /// <summary>
+    /// On a long-lived changing page (chat, feeds) subtree captures keep adding ids of elements
+    /// that are later removed. Past a limit the set is cleared: focus changes then fall back to the
+    /// ancestor walk until the next whole capture refills it, which is still correct.
+    /// </summary>
+    private void LimitCapturedIds()
+    {
+        int limit = Math.Max(MinCapturedIdsLimit, _lastWholeCaptureCount * CapturedIdsGrowthLimit);
+        if (_capturedIds.Count > limit)
+            _capturedIds.Clear();
+    }
+
+    /// <summary>Records the ids of a whole-document capture, replacing what was known.</summary>
+    private void RememberWholeCapture(IVBufferElement root)
+    {
+        _capturedIds.Clear();
+        RememberIds(root);
+        _lastWholeCaptureCount = _capturedIds.Count;
+    }
+
     private const int MaxAncestorIds = 16;
 
     /// <summary>Runtime ids of <paramref name="element"/>'s control-view ancestors up to the document, nearest first.</summary>
@@ -392,11 +435,16 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         return ids;
     }
 
+    /// <summary>
+    /// Finds one element of the document by runtime id. This searches the whole document, so on a
+    /// large page it gets the long document-capture timeout, like a whole capture.
+    /// </summary>
     private IUIAutomationElement? FindInDocument(
         IUIAutomationElement root, int[] runtimeId, IUIAutomationCacheRequest cacheRequest)
     {
         var condition = _uiaProvider.Automation.CreatePropertyCondition(UIAProvider.UIA_RuntimeIdPropertyId, runtimeId);
-        return root.FindFirstBuildCache(TreeScope.TreeScope_Descendants, condition, cacheRequest);
+        return _uiaProvider.WithDocumentCaptureTimeout(
+            () => root.FindFirstBuildCache(TreeScope.TreeScope_Descendants, condition, cacheRequest));
     }
 
     // -------------------------------------------------------------------------
