@@ -306,7 +306,7 @@ public sealed class VBufferBuilder
         // A form field reads as its label followed by its value ("Search hello"): Chromium's
         // inputs have no text child holding what was typed or selected
         var text = element.Name ?? string.Empty;
-        var value = FormControls.SpokenValue(node);
+        var value = FormControls.BufferValue(node);
         if (value is not null)
             text = string.IsNullOrEmpty(text) ? value : $"{text} {value}";
         if (string.IsNullOrEmpty(text)) return;

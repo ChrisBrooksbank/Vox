@@ -135,7 +135,8 @@ public record DocumentChangedEvent(
 public record FocusInDocumentEvent(
     DateTimeOffset Timestamp,
     int[] DocumentRuntimeId,
-    int[] FocusedRuntimeId
+    int[] FocusedRuntimeId,
+    long FocusSequence = 0
 ) : ScreenReaderEvent(Timestamp);
 
 /// <summary>

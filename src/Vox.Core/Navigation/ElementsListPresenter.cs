@@ -7,7 +7,8 @@ namespace Vox.Core.Navigation;
 /// </summary>
 public interface IElementsListPresenter
 {
-    Task<VBufferNode?> ShowAsync(VBufferDocument document);
+    /// <param name="currentNode">The virtual cursor's node: the list starts at the element there.</param>
+    Task<VBufferNode?> ShowAsync(VBufferDocument document, VBufferNode? currentNode);
 }
 
 /// <summary>
@@ -15,14 +16,14 @@ public interface IElementsListPresenter
 /// </summary>
 public sealed class ElementsListPresenter : IElementsListPresenter
 {
-    public Task<VBufferNode?> ShowAsync(VBufferDocument document)
+    public Task<VBufferNode?> ShowAsync(VBufferDocument document, VBufferNode? currentNode)
     {
         var tcs = new TaskCompletionSource<VBufferNode?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
         {
             try
             {
-                tcs.SetResult(ElementsListDialog.ShowModal(document));
+                tcs.SetResult(ElementsListDialog.ShowModal(document, currentNode));
             }
             catch (Exception ex)
             {

@@ -171,11 +171,24 @@ public class AnnouncementBuilderTests
     // -------------------------------------------------------------------------
 
     [Fact]
-    public void Advanced_PlainLink_ReturnsOnlyName()
+    public void Advanced_Link_KeepsItsRoleButNotVisited()
     {
+        // Advanced still says what is interactive, so a link never sounds like text
         var node = MakeNode(name: "Products", controlType: "Hyperlink", isLink: true, isVisited: true);
         var result = _builder.Build(node, VerbosityLevel.Advanced);
-        Assert.Equal("Products", result);
+        Assert.Equal("Products, link", result);
+    }
+
+    [Theory]
+    [InlineData("Edit", "Search, edit")]
+    [InlineData("Button", "Search, button")]
+    [InlineData("CheckBox", "Search, check box")]
+    [InlineData("Text", "Search")]
+    [InlineData("ListItem", "Search")]
+    public void Advanced_SpeaksRolesOfControlsOnly(string controlType, string expected)
+    {
+        var node = MakeNode(name: "Search", controlType: controlType);
+        Assert.Equal(expected, _builder.Build(node, VerbosityLevel.Advanced));
     }
 
     [Fact]

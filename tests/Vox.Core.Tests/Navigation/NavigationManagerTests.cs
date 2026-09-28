@@ -257,3 +257,22 @@ public class NavigationManagerSymmetricSwitchTests
         Assert.Equal(InteractionMode.Focus, manager.CurrentMode);
     }
 }
+
+public class NavigationManagerMenuTests
+{
+    private sealed class NullSink : IEventSink { public void Post(ScreenReaderEvent evt) { } }
+
+    [Theory]
+    [InlineData("MenuItem", null)]
+    [InlineData("Custom", "menuitem")]
+    [InlineData("TabItem", null)]
+    public void FocusMovingFromEditIntoAMenuOrTabList_StaysInFocus(string controlType, string? role)
+    {
+        var manager = new NavigationManager(new NullSink(), Microsoft.Extensions.Logging.Abstractions.NullLogger<NavigationManager>.Instance);
+        manager.SwitchTo(InteractionMode.Focus);
+
+        manager.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Open", controlType, AriaRole: role));
+
+        Assert.Equal(InteractionMode.Focus, manager.CurrentMode);
+    }
+}

@@ -45,5 +45,7 @@ public enum NavigationCommand
     TopOfDocument,
     BottomOfDocument,
     NextParagraph,
-    PrevParagraph
+    PrevParagraph,
+    Quit,
+    RunSetup
 }

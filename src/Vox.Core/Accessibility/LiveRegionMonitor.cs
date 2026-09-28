@@ -81,7 +81,10 @@ public sealed class LiveRegionMonitor
             // A cleared region (empty text) is recorded too, so the next identical text is new.
             if (region.LastText == text)
             {
-                bool repeat = text.Length > 0 && region.LastTextAt is { } at
+                // Only assertive regions: polite ones (status lines) are often re-rendered with
+                // unchanged text, and pages that repeat a polite message clear the region first
+                bool repeat = politeness == LiveRegionPoliteness.Assertive
+                    && text.Length > 0 && region.LastTextAt is { } at
                     && now - at >= TimeSpan.FromMilliseconds(RepeatAfterMs);
                 if (!repeat)
                 {

@@ -39,13 +39,17 @@ public sealed class ElementsListDialog : Form
 
     private readonly ElementsListViewModel _viewModel;
 
+    // The virtual cursor's node when the dialog opened: each tab starts at the element there
+    private readonly VBufferNode? _currentNode;
+
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
 
-    public ElementsListDialog(VBufferDocument document)
+    public ElementsListDialog(VBufferDocument document, VBufferNode? currentNode = null)
     {
         _viewModel = new ElementsListViewModel(document);
+        _currentNode = currentNode;
 
         // ---- Form properties ------------------------------------------------
         Text = "Elements List";
@@ -172,10 +176,10 @@ public sealed class ElementsListDialog : Form
     /// Returns the node the user jumped to, or null if cancelled.
     /// MUST be called on an STA thread (e.g. a dedicated WinForms thread).
     /// </summary>
-    public static VBufferNode? ShowModal(VBufferDocument document)
+    public static VBufferNode? ShowModal(VBufferDocument document, VBufferNode? currentNode = null)
     {
         Application.EnableVisualStyles();
-        using var dlg = new ElementsListDialog(document);
+        using var dlg = new ElementsListDialog(document, currentNode);
         // Opened from a background thread in response to a global hotkey: make sure it
         // comes to the front and takes keyboard focus.
         dlg.StartPosition = FormStartPosition.CenterScreen;
@@ -324,12 +328,18 @@ public sealed class ElementsListDialog : Form
         try
         {
             _listBox.Items.Clear();
-            foreach (var node in _viewModel.GetFilteredItems())
+            var items = _viewModel.GetFilteredItems();
+            foreach (var node in items)
             {
-                _listBox.Items.Add(new NodeItem(node));
+                _listBox.Items.Add(new NodeItem(node, _viewModel.DisplayText(node)));
             }
             if (_listBox.Items.Count > 0)
-                _listBox.SelectedIndex = 0;
+            {
+                // Unfiltered, start at the element where the user is; filtered, at the best match
+                _listBox.SelectedIndex = _viewModel.FilterText.Trim().Length == 0
+                    ? Math.Max(0, ElementsListViewModel.InitialSelectionIndex(items, _currentNode))
+                    : 0;
+            }
         }
         finally
         {
@@ -411,13 +421,14 @@ public sealed class ElementsListDialog : Form
     private sealed class NodeItem
     {
         public VBufferNode Node { get; }
+        private readonly string _text;
 
-        public NodeItem(VBufferNode node)
+        public NodeItem(VBufferNode node, string text)
         {
             Node = node;
+            _text = text;
         }
 
-        public override string ToString() =>
-            ElementsListViewModel.GetDisplayText(Node);
+        public override string ToString() => _text;
     }
 }

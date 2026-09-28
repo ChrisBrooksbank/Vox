@@ -76,9 +76,32 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     /// Re-evaluates which web document (if any) contains the focused element.
     /// Safe to call from any thread; the work runs on the UIA thread.
     /// </summary>
-    public Task OnFocusChangedAsync() => RunOnUiaThread(DetectDocument, "detecting web document");
+    /// <param name="focusSequence">
+    /// The focus change this check is for (see <see cref="BrowseModeController.FocusSequence"/>),
+    /// echoed in <see cref="FocusInDocumentEvent"/> so a report about an earlier focus is ignored.
+    /// </param>
+    public Task OnFocusChangedAsync(long focusSequence = 0)
+    {
+        // Coalesce: while a check is waiting to run (e.g. the UIA thread is busy with a slow page),
+        // later focus changes only update which focus it reports on — no backlog builds up
+        Interlocked.Exchange(ref _pendingFocusSequence, focusSequence);
+        if (Interlocked.Exchange(ref _detectQueued, 1) == 1)
+            return Task.CompletedTask;
 
-    private void DetectDocument()
+        return RunOnUiaThread(() =>
+        {
+            // Cleared first, so a focus change during this check queues another
+            Interlocked.Exchange(ref _detectQueued, 0);
+            DetectDocument(Interlocked.Read(ref _pendingFocusSequence));
+        }, "detecting web document");
+    }
+
+    private int _detectQueued;
+    private long _pendingFocusSequence;
+
+    private void DetectDocument() => DetectDocument(0);
+
+    private void DetectDocument(long focusSequence)
     {
         var automation = _uiaProvider.Automation;
         var cacheRequest = _uiaProvider.CacheRequest;
@@ -95,7 +118,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         var focusedId = UIAEventSubscriber.TryGetRuntimeId(focused);
         if (_documentRoot is not null && _documentRuntimeId is not null && _capturedIds.Contains(RuntimeIdKey(focusedId)))
         {
-            _eventSink.Post(new FocusInDocumentEvent(DateTimeOffset.UtcNow, _documentRuntimeId, focusedId));
+            _eventSink.Post(new FocusInDocumentEvent(DateTimeOffset.UtcNow, _documentRuntimeId, focusedId, focusSequence));
             return;
         }
 
@@ -112,7 +135,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         {
             // Same document (the cursor follows focus via FocusChangedEvent.RuntimeId), possibly
             // an element the buffer doesn't contain yet: browse keys apply again
-            _eventSink.Post(new FocusInDocumentEvent(DateTimeOffset.UtcNow, _documentRuntimeId, focusedId));
+            _eventSink.Post(new FocusInDocumentEvent(DateTimeOffset.UtcNow, _documentRuntimeId, focusedId, focusSequence));
             return;
         }
 

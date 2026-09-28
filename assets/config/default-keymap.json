@@ -44,6 +44,8 @@
     { "modifiers": "None",        "vkCode": 163, "mode": "Any",    "command": "StopSpeech", "passThrough": true },
     { "modifiers": "Insert",      "vkCode": 118, "mode": "Any",    "command": "ElementsList" },
     { "modifiers": "Insert",      "vkCode": 38,  "mode": "Any",    "command": "ReadCurrentLine" },
-    { "modifiers": "Insert|Ctrl", "vkCode": 38,  "mode": "Any",    "command": "ReadCurrentWord" }
+    { "modifiers": "Insert|Ctrl", "vkCode": 38,  "mode": "Any",    "command": "ReadCurrentWord" },
+    { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },
+    { "modifiers": "Insert|Ctrl", "vkCode": 83,  "mode": "Any",    "command": "RunSetup" }
   ]
 }

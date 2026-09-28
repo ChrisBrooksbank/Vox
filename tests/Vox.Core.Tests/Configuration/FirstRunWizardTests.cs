@@ -522,4 +522,57 @@ public class FirstRunWizardTests : IDisposable
         hook.SimulateKeyDown(0x1B);
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
     }
+
+    // -------------------------------------------------------------------------
+    // Round 6: current voice and early exit
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task VoiceStep_StartsAtTheVoiceSpeaking_AndEnterKeepsIt()
+    {
+        var (wizard, hook, engine, monitor, _) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var spoken = new List<string>();
+        engine.Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Returns((Utterance u, CancellationToken _) => { lock (spoken) spoken.Add(u.Text); return Task.CompletedTask; });
+        engine.SetupGet(e => e.CurrentVoice).Returns("Voice Two");
+
+        var wizardTask = wizard.RunAsync();
+        foreach (var vk in new[] { 0x0D, 0x0D, 0x0D }) // welcome, rate, voice (keep)
+        {
+            await Task.Delay(80);
+            hook.SimulateKeyDown(vk);
+        }
+        await Task.Delay(80);
+        hook.SimulateKeyDown(0x1B); // leave the wizard
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        lock (spoken)
+            Assert.Contains(spoken, t => t.Contains("Current voice: Voice Two"));
+        engine.Verify(e => e.SetVoice(It.Is<string>(v => v.StartsWith("Voice"))), Times.Never);
+        Assert.Null(monitor.CurrentValue.VoiceName);
+    }
+
+    [Fact]
+    public async Task EscapeWhilePreviewingRate_RestoresTheSavedRate()
+    {
+        var (wizard, hook, engine, monitor, _) = CreateWizard(
+            new VoxSettings { FirstRunCompleted = false, SpeechRateWpm = 200 });
+        var rates = new List<int>();
+        engine.Setup(e => e.SetRate(It.IsAny<int>())).Callback((int r) => { lock (rates) rates.Add(r); });
+
+        var wizardTask = wizard.RunAsync();
+        foreach (var vk in new[] { 0x0D, 0x26, 0x1B }) // welcome, Up (preview 210), Escape
+        {
+            await Task.Delay(80);
+            hook.SimulateKeyDown(vk);
+        }
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        lock (rates)
+        {
+            Assert.Contains(210, rates);
+            Assert.Equal(200, rates[^1]);
+        }
+        Assert.Equal(200, monitor.CurrentValue.SpeechRateWpm);
+    }
 }

@@ -70,7 +70,7 @@ public sealed class FirstRunWizard
             bool proceed = await RunWelcomeStepAsync(cancellationToken);
             if (!proceed)
             {
-                await SpeakAsync("Setup skipped. You can re-run it from settings.", cancellationToken);
+                await SpeakAsync($"Setup skipped. You can run it again at any time with {RerunKeyDescription}.", cancellationToken);
                 settings = settings with { FirstRunCompleted = true };
                 _settingsMonitor.UpdateSettings(settings);
                 return;
@@ -107,7 +107,12 @@ public sealed class FirstRunWizard
         {
             // Escape, or nobody answered for a while: keep the choices made so far and stop
             _logger.LogInformation("First-run wizard ended early ({Reason})", ex.Message);
-            _settingsMonitor.UpdateSettings(_settingsMonitor.CurrentValue with { FirstRunCompleted = true });
+            var saved = _settingsMonitor.CurrentValue with { FirstRunCompleted = true };
+            _settingsMonitor.UpdateSettings(saved);
+
+            // A rate or voice that was only being previewed must not stay in use
+            _speechEngine.SetRate(saved.SpeechRateWpm);
+            _speechEngine.SetVoice(saved.VoiceName ?? string.Empty);
             try
             {
                 await SpeakAsync("Setup ended. Your choices so far are saved.", cancellationToken);
@@ -132,6 +137,10 @@ public sealed class FirstRunWizard
     /// so it can never hold the keyboard indefinitely.
     /// </summary>
     public TimeSpan InactivityTimeout { get; set; } = TimeSpan.FromMinutes(2);
+
+    /// <summary>How the key that runs setup again is spoken (RunSetup in the keymap: modifier+Ctrl+S).</summary>
+    private string RerunKeyDescription =>
+        (_settingsMonitor.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert") + " Control S";
 
     private bool _exitOnEscape;
 
@@ -210,16 +219,14 @@ public sealed class FirstRunWizard
             return settings;
         }
 
+        // Start at the voice actually speaking: the configured one, else the engine's default
+        var current = !string.IsNullOrEmpty(settings.VoiceName) ? settings.VoiceName : _speechEngine.CurrentVoice;
         int currentIndex = 0;
-        if (!string.IsNullOrEmpty(settings.VoiceName))
+        for (int i = 0; i < voices.Count; i++)
         {
-            var idx = -1;
-            for (int i = 0; i < voices.Count; i++)
-            {
-                if (voices[i] == settings.VoiceName) { idx = i; break; }
-            }
-            if (idx >= 0) currentIndex = idx;
+            if (voices[i] == current) { currentIndex = i; break; }
         }
+        int initialIndex = currentIndex;
 
         var key = await PromptAsync(
             $"Step 2 of 5: Voice selection. {voices.Count} voices available. " +
@@ -241,8 +248,13 @@ public sealed class FirstRunWizard
             key = await WaitForKeyDownAsync(cancellationToken);
         }
 
-        settings = settings with { VoiceName = voices[currentIndex] };
-        _settingsMonitor.UpdateSettings(settings);
+        // Keeping the voice that was already speaking changes nothing (and saves nothing, so the
+        // default voice keeps following the engine's choice)
+        if (currentIndex != initialIndex)
+        {
+            settings = settings with { VoiceName = voices[currentIndex] };
+            _settingsMonitor.UpdateSettings(settings);
+        }
         await SpeakAsync($"Voice set to {voices[currentIndex]}.", cancellationToken);
         return settings;
     }
@@ -326,6 +338,7 @@ public sealed class FirstRunWizard
             $"Press {modifier} Space to toggle between browse and focus modes. " +
             $"Press {modifier} Down Arrow to read from the current position. " +
             "Press Control to stop speech at any time. " +
+            $"Press {modifier} Q twice to exit Vox, and {modifier} Control S to run this setup again. " +
             "Press Enter to continue.",
             cancellationToken);
 

@@ -34,6 +34,9 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_IsRequiredForFormPropertyId = 30025;
     internal const int UIA_LegacyIAccessibleStatePropertyId = 30100;
 
+    internal const uint ConnectionTimeoutMs = 2000;
+    internal const uint TransactionTimeoutMs = 4000;
+
     private readonly UIAThread _uiaThread;
     private readonly ILogger<UIAProvider> _logger;
 
@@ -59,6 +62,21 @@ public sealed class UIAProvider : IDisposable
         {
             _logger.LogDebug("Creating CUIAutomation8 on STA thread");
             _automation = new CUIAutomation8();
+
+            // A hung page must not hold the single UIA thread for UIA's default 20 s transaction
+            // timeout: give up after a few seconds and let later work run
+            if (_automation is IUIAutomation2 automation2)
+            {
+                try
+                {
+                    automation2.ConnectionTimeout = ConnectionTimeoutMs;
+                    automation2.TransactionTimeout = TransactionTimeoutMs;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Could not set UIA timeouts");
+                }
+            }
 
             _cacheRequest = _automation.CreateCacheRequest();
             _cacheRequest.AddProperty(UIA_NamePropertyId);

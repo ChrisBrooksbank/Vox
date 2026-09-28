@@ -277,11 +277,32 @@ public class LiveRegionRepeatTests
     }
 
     [Fact]
-    public void SameMessage_AfterAQuietGap_IsSpokenAgain()
+    public void AssertiveMessage_AfterAQuietGap_IsSpokenAgain()
+    {
+        var monitor = CreateMonitor();
+        monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Assertive, out _);
+        _now = _now.AddMilliseconds(LiveRegionMonitor.RepeatAfterMs + 100);
+
+        Assert.Equal("Saved", monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Assertive, out _));
+    }
+
+    [Fact]
+    public void PoliteRegionReRenderedWithSameText_IsNotRepeated()
+    {
+        var monitor = CreateMonitor();
+        monitor.Evaluate("r", "Connected", LiveRegionPoliteness.Polite, out _);
+        _now = _now.AddMilliseconds(LiveRegionMonitor.RepeatAfterMs * 3);
+
+        Assert.Null(monitor.Evaluate("r", "Connected", LiveRegionPoliteness.Polite, out _));
+    }
+
+    [Fact]
+    public void PoliteMessage_AfterClear_IsSpokenAgain()
     {
         var monitor = CreateMonitor();
         monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Polite, out _);
-        _now = _now.AddMilliseconds(LiveRegionMonitor.RepeatAfterMs + 100);
+        monitor.Evaluate("r", "", LiveRegionPoliteness.Polite, out _);
+        _now = _now.AddMilliseconds(600); // past the polite cooldown
 
         Assert.Equal("Saved", monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Polite, out _));
     }

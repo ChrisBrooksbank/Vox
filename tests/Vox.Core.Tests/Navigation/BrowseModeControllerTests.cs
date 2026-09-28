@@ -242,7 +242,7 @@ public class BrowseModeControllerTests : IDisposable
     {
         var doc = LoadDocument();
         var selection = new TaskCompletionSource<VBufferNode?>();
-        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>())).Returns(selection.Task);
+        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>(), It.IsAny<VBufferNode?>())).Returns(selection.Task);
 
         _controller.HandleCommand(NavigationCommand.ElementsList);
         Assert.False(_controller.IsDocumentActive);
@@ -321,7 +321,7 @@ public class BrowseModeControllerTests : IDisposable
         var doc = LoadDocument(focusedId: [4]);
         _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
         var selection = new TaskCompletionSource<VBufferNode?>();
-        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>())).Returns(selection.Task);
+        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>(), It.IsAny<VBufferNode?>())).Returns(selection.Task);
 
         _controller.HandleCommand(NavigationCommand.ElementsList);
 
@@ -601,7 +601,7 @@ public class BrowseModeControllerTests : IDisposable
         var doc = LoadDocument(focusedId: [4]);
         _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
         var selection = new TaskCompletionSource<VBufferNode?>();
-        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>())).Returns(selection.Task);
+        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>(), It.IsAny<VBufferNode?>())).Returns(selection.Task);
         _controller.HandleCommand(NavigationCommand.ElementsList);
         selection.SetResult(doc.FindByRuntimeId([2]));
         var deadline = DateTime.UtcNow.AddSeconds(2);
@@ -623,7 +623,7 @@ public class BrowseModeControllerTests : IDisposable
     {
         LoadDocument();
         var selection = new TaskCompletionSource<VBufferNode?>();
-        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>())).Returns(selection.Task);
+        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>(), It.IsAny<VBufferNode?>())).Returns(selection.Task);
         _controller.HandleCommand(NavigationCommand.ElementsList);
         selection.SetResult(new VBufferNode { UIARuntimeId = [999], Name = "Gone" });
         var deadline = DateTime.UtcNow.AddSeconds(2);
@@ -1025,5 +1025,91 @@ public class BrowseModeControllerTests : IDisposable
 
         await WaitForSpeech(u => u.Text == "Prices, table, Apples");
         Assert.Same(doc.FindByRuntimeId([3]), _quickNav.CurrentNode);
+    }
+
+    // -------------------------------------------------------------------------
+    // Round 6 fixes
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void FocusMovingOntoAPageMenuItem_EntersFocusMode()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Actions", ControlType = "Button" });
+        var menu = new MockElement { RuntimeId = [3], ControlType = "Menu", AriaRole = "menu" };
+        menu.AddChild(new MockElement { RuntimeId = [4], Name = "Delete", ControlType = "MenuItem", AriaRole = "menuitem" });
+        root.AddChild(menu);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Actions", "Button", RuntimeId: [2]));
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Delete", "MenuItem", AriaRole: "menuitem", RuntimeId: [4]));
+
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public void FocusInDocumentReport_ForTheLatestFocusChange_ReactivatesEvenForAnotherElement()
+    {
+        LoadDocument();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Dialog", "Group", RuntimeId: [901]));
+        Assert.False(_controller.IsDocumentActive);
+
+        // The tracker read focus itself and found a descendant of the event's element
+        _controller.HandleFocusInDocument(new FocusInDocumentEvent(DateTimeOffset.UtcNow, [1], [902], _controller.FocusSequence));
+
+        Assert.True(_controller.IsDocumentActive);
+    }
+
+    [Fact]
+    public void FocusInDocumentReport_ForAnEarlierFocusChange_IsIgnored()
+    {
+        LoadDocument();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "OK", "Button", RuntimeId: [901]));
+        var earlier = _controller.FocusSequence;
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Address", "Edit", RuntimeId: [900]));
+
+        _controller.HandleFocusInDocument(new FocusInDocumentEvent(DateTimeOffset.UtcNow, [1], [901], earlier));
+
+        Assert.False(_controller.IsDocumentActive);
+    }
+
+    [Fact]
+    public async Task Quit_NeedsASecondPress()
+    {
+        int quits = 0;
+        _controller.QuitRequested += (_, _) => quits++;
+
+        _controller.HandleCommand(NavigationCommand.Quit);
+        await WaitForSpeech(u => u.Text == "Press Insert Q again to exit Vox");
+        Assert.Equal(0, quits);
+
+        _controller.HandleCommand(NavigationCommand.Quit);
+        Assert.Equal(1, quits);
+    }
+
+    [Fact]
+    public void RunSetup_RaisesSetupRequested()
+    {
+        int requests = 0;
+        _controller.SetupRequested += (_, _) => requests++;
+
+        _controller.HandleCommand(NavigationCommand.RunSetup);
+
+        Assert.Equal(1, requests);
+    }
+
+    [Fact]
+    public async Task ElementsList_IsGivenTheCursorsElement()
+    {
+        var doc = LoadDocument(focusedId: [4]);
+        VBufferNode? passed = null;
+        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>(), It.IsAny<VBufferNode?>()))
+            .Callback((VBufferDocument _, VBufferNode? current) => passed = current)
+            .Returns(Task.FromResult<VBufferNode?>(null));
+
+        _controller.HandleCommand(NavigationCommand.ElementsList);
+        await Task.Delay(50);
+
+        Assert.Same(doc.FindByRuntimeId([4]), passed);
     }
 }
