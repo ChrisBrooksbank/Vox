@@ -51,7 +51,13 @@ public static class ServiceRegistration
             var keyMapPath = Path.Combine(
                 AppContext.BaseDirectory,
                 "assets", "config", "default-keymap.json");
-            return KeyMap.LoadFromFile(keyMapPath);
+            var keyMap = KeyMap.LoadFromFileOrBuiltIn(keyMapPath, out var error);
+            if (error is not null)
+            {
+                sp.GetRequiredService<ILogger<KeyMap>>().LogError(error,
+                    "Could not load keymap from {Path}; using the built-in default keymap", keyMapPath);
+            }
+            return keyMap;
         });
         services.AddSingleton<KeyInputDispatcher>(sp =>
         {

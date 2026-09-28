@@ -155,4 +155,62 @@ public sealed class SettingsManagerTests : IDisposable
         Assert.True(settings.AudioCuesEnabled);
         Assert.False(settings.FirstRunCompleted);
     }
+
+    // -------------------------------------------------------------------------
+    // Reload robustness and atomic save
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void TryLoadUserSettings_InvalidJson_ReturnsFalse()
+    {
+        var manager = CreateManager();
+        File.WriteAllText(manager.UserSettingsPath, "{ \"SpeechRateWpm\": ");
+
+        Assert.False(manager.TryLoadUserSettings(out _));
+    }
+
+    [Fact]
+    public void Save_LeavesNoTemporaryFile_AndRoundTrips()
+    {
+        var manager = CreateManager();
+
+        manager.Save(new VoxSettings { SpeechRateWpm = 333 });
+
+        Assert.False(File.Exists(manager.UserSettingsPath + ".tmp"));
+        Assert.True(manager.TryLoadUserSettings(out var loaded));
+        Assert.Equal(333, loaded.SpeechRateWpm);
+    }
+
+    [Fact]
+    public async Task Monitor_InvalidFileOnDisk_KeepsCurrentSettings()
+    {
+        var manager = CreateManager();
+        manager.Save(new VoxSettings { SpeechRateWpm = 310, FirstRunCompleted = true });
+        using var monitor = new SettingsMonitor(manager, NullLogger<SettingsMonitor>.Instance);
+        Assert.Equal(310, monitor.CurrentValue.SpeechRateWpm);
+
+        await Task.Delay(600); // past the programmatic-save suppression window
+        File.WriteAllText(manager.UserSettingsPath, "{ \"SpeechRateWpm\": ");
+        await Task.Delay(600);
+
+        Assert.Equal(310, monitor.CurrentValue.SpeechRateWpm);
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+    }
+
+    [Fact]
+    public async Task Monitor_ValidExternalEdit_IsApplied()
+    {
+        var manager = CreateManager();
+        manager.Save(new VoxSettings { SpeechRateWpm = 310 });
+        using var monitor = new SettingsMonitor(manager, NullLogger<SettingsMonitor>.Instance);
+
+        await Task.Delay(600);
+        File.WriteAllText(manager.UserSettingsPath, "{ \"SpeechRateWpm\": 280 }");
+
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        while (monitor.CurrentValue.SpeechRateWpm != 280 && DateTime.UtcNow < deadline)
+            await Task.Delay(50);
+
+        Assert.Equal(280, monitor.CurrentValue.SpeechRateWpm);
+    }
 }

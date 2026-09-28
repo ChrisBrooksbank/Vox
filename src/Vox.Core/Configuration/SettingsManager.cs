@@ -50,23 +50,40 @@ public sealed class SettingsManager
     {
         if (File.Exists(_userSettingsPath))
         {
-            try
-            {
-                var json = File.ReadAllText(_userSettingsPath);
-                var settings = JsonSerializer.Deserialize<VoxSettings>(json, JsonOptions);
-                if (settings is not null)
-                {
-                    _logger.LogInformation("Loaded settings from {Path}", _userSettingsPath);
-                    return settings;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to load user settings from {Path}, falling back to defaults", _userSettingsPath);
-            }
+            if (TryLoadUserSettings(out var settings))
+                return settings;
+            _logger.LogWarning("Failed to load user settings from {Path}, falling back to defaults", _userSettingsPath);
         }
 
         return LoadDefaults();
+    }
+
+    /// <summary>
+    /// Reads the user settings file. Returns false (without falling back to defaults) if the file
+    /// is missing, unreadable or not valid JSON — e.g. while an editor is part-way through saving it.
+    /// </summary>
+    public bool TryLoadUserSettings(out VoxSettings settings)
+    {
+        settings = new VoxSettings();
+        try
+        {
+            if (!File.Exists(_userSettingsPath))
+                return false;
+
+            var json = File.ReadAllText(_userSettingsPath);
+            var loaded = JsonSerializer.Deserialize<VoxSettings>(json, JsonOptions);
+            if (loaded is null)
+                return false;
+
+            _logger.LogInformation("Loaded settings from {Path}", _userSettingsPath);
+            settings = loaded;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not read user settings from {Path}", _userSettingsPath);
+            return false;
+        }
     }
 
     /// <summary>
@@ -79,8 +96,12 @@ public sealed class SettingsManager
             var dir = Path.GetDirectoryName(_userSettingsPath)!;
             Directory.CreateDirectory(dir);
 
+            // Write to a temporary file and swap it in, so a crash mid-write can't leave a
+            // truncated settings file behind
             var json = JsonSerializer.Serialize(settings, JsonOptions);
-            File.WriteAllText(_userSettingsPath, json);
+            var tempPath = _userSettingsPath + ".tmp";
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, _userSettingsPath, overwrite: true);
             _logger.LogInformation("Saved settings to {Path}", _userSettingsPath);
         }
         catch (Exception ex)
@@ -173,11 +194,13 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
             Directory.CreateDirectory(dir);
             _watcher = new FileSystemWatcher(dir, Path.GetFileName(path))
             {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
                 EnableRaisingEvents = true
             };
             _watcher.Changed += OnFileChanged;
             _watcher.Created += OnFileChanged;
+            // Many editors (and Save above) write a temporary file and rename it over the original
+            _watcher.Renamed += OnFileChanged;
         }
         catch (Exception ex)
         {
@@ -198,7 +221,13 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
 
         try
         {
-            var reloaded = _manager.Load();
+            // Keep the current settings if the file can't be read right now (half-written by an
+            // editor, a typo, deleted): falling back to defaults would reset everything live
+            if (!_manager.TryLoadUserSettings(out var reloaded))
+            {
+                _logger.LogWarning("Settings file changed but could not be read; keeping current settings");
+                return;
+            }
             _current = reloaded;
             _logger.LogInformation("Settings reloaded from file change");
             Action<VoxSettings, string?>[] snapshot;

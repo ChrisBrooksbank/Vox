@@ -635,4 +635,39 @@ public class VBufferBuilderTests
         for (int i = 1; i < doc.AllNodes.Count; i++)
             Assert.True(doc.AllNodes[i - 1].TextRange.Start <= doc.AllNodes[i].TextRange.Start);
     }
+
+    [Fact]
+    public void Build_InlineTextAndLinks_ShareOneLine()
+    {
+        // <p>Read the <a>docs</a> first</p><p>Next paragraph</p>
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var p1 = new MockElement { RuntimeId = [2], ControlType = "Group" };
+        p1.AddChild(new MockElement { RuntimeId = [3], Name = "Read the" });
+        var link = new MockElement { RuntimeId = [4], Name = "docs", ControlType = "Hyperlink" };
+        link.AddChild(new MockElement { RuntimeId = [5], Name = "docs" });
+        p1.AddChild(link);
+        p1.AddChild(new MockElement { RuntimeId = [6], Name = "first" });
+        var p2 = new MockElement { RuntimeId = [7], ControlType = "Group" };
+        p2.AddChild(new MockElement { RuntimeId = [8], Name = "Next paragraph" });
+        root.AddChild(p1);
+        root.AddChild(p2);
+
+        var doc = Builder.Build(root);
+
+        Assert.Equal("Read the docs first\nNext paragraph\n", doc.FlatText);
+        // Offsets are unchanged: the link text still maps to the link's text node
+        Assert.Equal([5], doc.FindNodeAtOffset(9)!.UIARuntimeId);
+    }
+
+    [Fact]
+    public void Build_HeadingFollowedByText_StaysOnSeparateLines()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Title", AriaRole = "heading", HeadingLevel = 1 });
+        root.AddChild(new MockElement { RuntimeId = [3], Name = "Body text" });
+
+        var doc = Builder.Build(root);
+
+        Assert.Equal("Title\nBody text\n", doc.FlatText);
+    }
 }

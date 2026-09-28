@@ -47,17 +47,12 @@ public sealed class AnnouncementBuilder
             Append(sb, node.Name);
         }
 
-        // Control type — "link", "button", "edit"
-        if (profile.AnnounceControlType && !string.IsNullOrWhiteSpace(node.ControlType))
+        // Control type — "link", "button", "edit" (structural types such as Text are not spoken)
+        if (profile.AnnounceControlType)
         {
-            // Avoid redundancy: don't announce "Heading" as a control type when heading level was already announced
-            bool headingAlreadyAnnounced = profile.AnnounceHeadingLevel && node.IsHeading;
-            bool isHeadingControlType = node.ControlType.Equals("Heading", StringComparison.OrdinalIgnoreCase);
-
-            if (!(headingAlreadyAnnounced && isHeadingControlType))
-            {
-                Append(sb, node.ControlType.ToLowerInvariant());
-            }
+            var controlType = ControlTypeNames.ToSpoken(node.ControlType);
+            if (controlType is not null)
+                Append(sb, controlType);
         }
 
         // Visited state — "visited"
@@ -80,6 +75,24 @@ public sealed class AnnouncementBuilder
 
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Builds the spoken text for a focus change, using the same rules as virtual buffer nodes.
+    /// </summary>
+    public string Build(Pipeline.FocusChangedEvent focus, VerbosityProfile profile, bool announceVisitedLinks) =>
+        Build(new VBufferNode
+        {
+            Name = focus.ElementName,
+            ControlType = focus.ControlType,
+            AriaRole = focus.AriaRole ?? string.Empty,
+            HeadingLevel = focus.HeadingLevel,
+            LandmarkType = focus.LandmarkType ?? string.Empty,
+            IsLink = focus.IsLink,
+            IsVisited = focus.IsVisited,
+            IsRequired = focus.IsRequired,
+            IsExpandable = focus.IsExpandable,
+            IsExpanded = focus.IsExpanded,
+        }, profile, announceVisitedLinks);
 
     /// <summary>
     /// Convenience overload: looks up the built-in profile for the given level.

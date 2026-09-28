@@ -93,6 +93,29 @@ public sealed class KeyStateTracker
         return isKeyDown ? before : Current;
     }
 
+    /// <summary>
+    /// Clears any Shift/Ctrl/Alt the tracker believes is held but <paramref name="isPhysicallyDown"/>
+    /// reports as released. Key-ups can be missed while the secure desktop (Ctrl+Alt+Del, UAC, lock
+    /// screen) has input, which would otherwise leave a modifier stuck "down".
+    /// </summary>
+    public void Reconcile(Func<int, bool> isPhysicallyDown)
+    {
+        if (_leftShift && !isPhysicallyDown(VK_LSHIFT)) _leftShift = false;
+        if (_rightShift && !isPhysicallyDown(VK_RSHIFT)) _rightShift = false;
+        if (_leftCtrl && !isPhysicallyDown(VK_LCONTROL)) _leftCtrl = false;
+        if (_rightCtrl && !isPhysicallyDown(VK_RCONTROL)) _rightCtrl = false;
+        if (_leftAlt && !isPhysicallyDown(VK_LMENU)) _leftAlt = false;
+        if (_rightAlt && !isPhysicallyDown(VK_RMENU)) _rightAlt = false;
+    }
+
+    /// <summary>Forgets all held keys (e.g. after a session switch).</summary>
+    public void Reset()
+    {
+        _leftShift = _rightShift = _leftCtrl = _rightCtrl = _leftAlt = _rightAlt = false;
+        _screenReaderModifier = false;
+        _capsLockDown = false;
+    }
+
     /// <summary>True for any Shift/Ctrl/Alt virtual key (generic or left/right specific).</summary>
     public static bool IsModifierKey(int vkCode) =>
         vkCode is VK_SHIFT or VK_CONTROL or VK_MENU

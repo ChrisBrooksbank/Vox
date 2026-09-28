@@ -75,7 +75,7 @@ public sealed class NavigationManager
     /// </summary>
     public void HandleFocusChanged(FocusChangedEvent evt)
     {
-        if (_currentMode == InteractionMode.Focus && !IsFormFieldControlType(evt.ControlType))
+        if (_currentMode == InteractionMode.Focus && !FormControls.IsFormField(evt.ControlType, evt.AriaRole))
         {
             SwitchTo(InteractionMode.Browse, "focus left form field");
         }
@@ -107,6 +107,19 @@ public sealed class NavigationManager
         _pipeline.Post(new ModeChangedEvent(DateTimeOffset.UtcNow, mode, reason));
     }
 
+    /// <summary>
+    /// Sets the mode without announcing it (e.g. when a new document gets focus).
+    /// Still raises <see cref="ModeChanged"/> so key handling stays in sync.
+    /// </summary>
+    public void ResetMode(InteractionMode mode)
+    {
+        if (_currentMode == mode) return;
+
+        _currentMode = mode;
+        _logger.LogDebug("Mode reset to {Mode}", mode);
+        ModeChanged?.Invoke(this, mode);
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -118,10 +131,6 @@ public sealed class NavigationManager
     public static bool IsEditField(VBufferNode? node)
     {
         if (node is null) return false;
-        return node.ControlType is "Edit" or "ComboBox" or "Spinner" or "Slider" or "List";
+        return FormControls.NeedsFocusMode(node.ControlType, node.AriaRole);
     }
-
-    private static bool IsFormFieldControlType(string controlType) =>
-        controlType is "Edit" or "ComboBox" or "CheckBox" or "RadioButton"
-                    or "Spinner" or "Slider" or "List" or "ListItem";
 }

@@ -34,8 +34,22 @@ public sealed class IncrementalUpdater
     public VBufferDocument ApplyUpdate(
         VBufferDocument document,
         int[] changedRuntimeId,
-        IVBufferElement? newSubtreeRoot)
+        IVBufferElement? newSubtreeRoot) =>
+        ApplyUpdate(document, changedRuntimeId, newSubtreeRoot, out _);
+
+    /// <summary>
+    /// Applies an incremental update and reports, in <paramref name="recaptureRuntimeId"/>, an
+    /// ancestor whose own text may now be wrong. A node emits its Name only when no descendant has
+    /// text, so when the changed subtree goes from having text to none (or back) the nearest named
+    /// ancestor must be captured again. Null when no follow-up is needed.
+    /// </summary>
+    public VBufferDocument ApplyUpdate(
+        VBufferDocument document,
+        int[] changedRuntimeId,
+        IVBufferElement? newSubtreeRoot,
+        out int[]? recaptureRuntimeId)
     {
+        recaptureRuntimeId = null;
         var oldSubtreeRoot = document.FindByRuntimeId(changedRuntimeId);
         if (oldSubtreeRoot is null)
             return document;
@@ -90,6 +104,9 @@ public sealed class IncrementalUpdater
             oldFlatText[oldTextEnd..];
 
         int textDelta = newSubtreeText.Length - oldTextLen;
+
+        if ((oldTextLen > 0) != (newSubtreeText.Length > 0))
+            recaptureRuntimeId = FindNamedAncestor(oldSubtreeRoot)?.UIARuntimeId;
 
         // Merged document order, as (source node, text offset shift) pairs.
         var merged = new List<(VBufferNode Source, int Shift)>(
@@ -159,6 +176,17 @@ public sealed class IncrementalUpdater
                 stack.Push(current.Children[i]);
         }
         return result;
+    }
+
+    /// <summary>Nearest ancestor whose Name would be emitted if it had no text descendants.</summary>
+    private static VBufferNode? FindNamedAncestor(VBufferNode node)
+    {
+        for (var ancestor = node.Parent; ancestor is not null; ancestor = ancestor.Parent)
+        {
+            if (!string.IsNullOrEmpty(ancestor.Name) && !VBufferBuilder.IsContainerControlType(ancestor.ControlType))
+                return ancestor;
+        }
+        return null;
     }
 
     /// <summary>

@@ -38,8 +38,13 @@ public sealed class BrowseModeController
     private VBufferCursor? _sayAllCursor;
     private bool _modalOpen;
     private bool _documentActive;
+    private FocusChangedEvent? _lastFocus;
     private int[]? _lastFocusedRuntimeId;
     private int[]? _ignoreFocusReturnTo;
+
+    private const int UIA_NamePropertyId = 30005;
+    private const int UIA_ExpandCollapseStatePropertyId = 30070;
+    private const int UIA_ValueValuePropertyId = 30045;
 
     public BrowseModeController(
         SpeechQueue speechQueue,
@@ -97,6 +102,22 @@ public sealed class BrowseModeController
                 return;
 
             case NavigationCommand.SayAll:
+            case NavigationCommand.ElementsList:
+            case NavigationCommand.ReadCurrentLine:
+            case NavigationCommand.ReadCurrentWord:
+            case NavigationCommand.ToggleMode:
+                // These only apply to web documents; say so rather than silently eating the key
+                if (_quickNavHandler.CurrentDocument is null || _cursor is null)
+                {
+                    Speak("Not in a document");
+                    return;
+                }
+                break;
+        }
+
+        switch (command)
+        {
+            case NavigationCommand.SayAll:
                 StartSayAll();
                 return;
 
@@ -105,13 +126,11 @@ public sealed class BrowseModeController
                 return;
 
             case NavigationCommand.ReadCurrentLine:
-                if (_cursor is not null)
-                    Speak(LineText(_cursor.ReadCurrentLine()));
+                Speak(LineText(_cursor!.ReadCurrentLine()));
                 return;
 
             case NavigationCommand.ReadCurrentWord:
-                if (_cursor is not null)
-                    Speak(LineText(_cursor.ReadCurrentWord()));
+                Speak(LineText(_cursor!.ReadCurrentWord()));
                 return;
         }
 
@@ -166,7 +185,13 @@ public sealed class BrowseModeController
 
     public void HandleFocusChanged(FocusChangedEvent focus)
     {
-        _navigationManager.HandleFocusChanged(focus);
+        // Never echo what is typed into a password field
+        _typingEchoHandler.PasswordMode = focus.IsPassword;
+        _lastFocus = focus;
+
+        // Focus moving around Vox's own Elements List must not move the cursor or change mode
+        if (_modalOpen)
+            return;
 
         var runtimeId = focus.RuntimeId;
         if (runtimeId is null || runtimeId.Length == 0)
@@ -180,10 +205,61 @@ public sealed class BrowseModeController
 
         _lastFocusedRuntimeId = runtimeId;
 
-        // The virtual cursor follows system focus within the document
+        // Modes only matter inside the active document: auto-switch and follow focus only there
         var node = _quickNavHandler.CurrentDocument?.FindByRuntimeId(runtimeId);
-        if (node is not null)
-            MoveTo(node);
+        if (node is null)
+            return;
+
+        _navigationManager.HandleFocusChanged(focus);
+        MoveTo(node);
+    }
+
+    /// <summary>
+    /// Announces state changes of the focused element: expanded/collapsed, and value or name
+    /// changes of non-text controls (e.g. arrowing through a collapsed combo box).
+    /// </summary>
+    public void HandlePropertyChanged(PropertyChangedEvent evt)
+    {
+        var focus = _lastFocus;
+        if (focus?.RuntimeId is null || !focus.RuntimeId.AsSpan().SequenceEqual(evt.RuntimeId))
+            return;
+
+        switch (evt.PropertyId)
+        {
+            case UIA_ExpandCollapseStatePropertyId:
+                var state = evt.NewValue is IConvertible c ? c.ToInt32(null) : -1;
+                var text = state switch
+                {
+                    0 => "collapsed",
+                    1 => "expanded",
+                    2 => "partially expanded",
+                    _ => null,
+                };
+                if (text is not null)
+                    Speak(text);
+                break;
+
+            case UIA_ValueValuePropertyId:
+            case UIA_NamePropertyId:
+                // Text controls change value on every keystroke; typing echo covers those
+                if (focus.ControlType is "Edit" or "Document")
+                    return;
+                if (evt.NewValue is string value && !string.IsNullOrWhiteSpace(value))
+                    Speak(value);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Announces an item selected without a focus change (e.g. list selection following arrows).
+    /// </summary>
+    public void HandleElementSelected(ElementSelectedEvent evt)
+    {
+        // Selections that also moved focus were already announced by the focus event
+        if (_lastFocus?.RuntimeId is { } focused && focused.AsSpan().SequenceEqual(evt.RuntimeId))
+            return;
+        if (!string.IsNullOrWhiteSpace(evt.Name))
+            Speak(evt.Name);
     }
 
     // -------------------------------------------------------------------------
@@ -196,6 +272,9 @@ public sealed class BrowseModeController
 
         var document = evt.Document;
         _quickNavHandler.SetDocument(document);
+
+        // A new (or no) document starts in Browse mode; nothing to announce
+        _navigationManager.ResetMode(InteractionMode.Browse);
 
         if (document is null)
         {
@@ -218,9 +297,18 @@ public sealed class BrowseModeController
         if (document is null || _cursor is null)
             return;
 
-        var updated = _incrementalUpdater.ApplyUpdate(document, evt.RuntimeId, evt.NewSubtree);
+        var updated = _incrementalUpdater.ApplyUpdate(document, evt.RuntimeId, evt.NewSubtree, out var recaptureHint);
         if (ReferenceEquals(updated, document))
+        {
+            // A changed element the buffer doesn't know about: re-capture the whole document
+            if (evt.NewSubtree is not null && document.FindByRuntimeId(evt.RuntimeId) is null)
+                _documentActions.RequestRecapture(null);
             return;
+        }
+
+        // An ancestor's text depends on whether this subtree has text; refresh it too
+        if (recaptureHint is not null)
+            _documentActions.RequestRecapture(recaptureHint);
 
         // Keep the user's position: same element if it still exists, else the same offset
         var currentId = _quickNavHandler.CurrentNode?.UIARuntimeId;
@@ -267,6 +355,9 @@ public sealed class BrowseModeController
     {
         _quickNavHandler.CurrentNode = node;
         _cursor?.MoveTo(node.TextRange.Start);
+
+        // The cursor has moved on: Say All's last position no longer applies
+        _sayAllCursor = null;
     }
 
     private void StartSayAll()
@@ -288,11 +379,11 @@ public sealed class BrowseModeController
     private void StopSayAll()
     {
         var sayAllCursor = _sayAllCursor;
-        if (sayAllCursor is null)
-            return;
-
         _sayAllCursor = null;
         _sayAllController.Cancel();
+
+        if (sayAllCursor is null)
+            return;
 
         // Leave the virtual cursor where reading stopped
         var readNode = sayAllCursor.CurrentNode;

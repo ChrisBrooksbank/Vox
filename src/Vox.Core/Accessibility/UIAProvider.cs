@@ -25,6 +25,8 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_IsKeyboardFocusablePropertyId = 30009;
     internal const int UIA_FrameworkIdPropertyId = 30024;
     internal const int UIA_HeadingLevelPropertyId = 30173;
+    internal const int UIA_IsPasswordPropertyId = 30019;
+    internal const int UIA_ValueValuePropertyId = 30045;
 
     private readonly UIAThread _uiaThread;
     private readonly ILogger<UIAProvider> _logger;
@@ -65,6 +67,7 @@ public sealed class UIAProvider : IDisposable
             _cacheRequest.AddProperty(UIA_HeadingLevelPropertyId);
             _cacheRequest.AddProperty(UIA_FrameworkIdPropertyId);
             _cacheRequest.AddProperty(UIA_ProcessIdPropertyId);
+            _cacheRequest.AddProperty(UIA_IsPasswordPropertyId);
 
             _subtreeCacheRequest = CreateSubtreeRequest(_automation);
             _liveRegionCacheRequest = CreateLiveRegionRequest(_automation);

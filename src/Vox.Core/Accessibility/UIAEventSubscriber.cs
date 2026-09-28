@@ -23,10 +23,13 @@ public sealed class UIAEventSubscriber :
     // UIA event IDs
     private const int UIA_LiveRegionChangedEventId = 20024;
     private const int UIA_NotificationEventId = 20035;
+    private const int UIA_SelectionItem_ElementSelectedEventId = 20012;
+    private const int UIA_AsyncContentLoadedEventId = 20023;
 
     // UIA property IDs for PropertyChanged subscriptions
     private const int UIA_NamePropertyId = 30005;
     private const int UIA_ExpandCollapseStatePropertyId = 30070;
+    private const int UIA_ValueValuePropertyId = 30045;
 
     private readonly UIAThread _uiaThread;
     private readonly UIAProvider _uiaProvider;
@@ -110,6 +113,8 @@ public sealed class UIAEventSubscriber :
             {
                 automation.RemoveStructureChangedEventHandler(_documentScope, this);
                 automation.RemovePropertyChangedEventHandler(_documentScope, this);
+                automation.RemoveAutomationEventHandler(UIA_SelectionItem_ElementSelectedEventId, _documentScope, this);
+                automation.RemoveAutomationEventHandler(UIA_AsyncContentLoadedEventId, _documentScope, this);
             }
             catch (Exception ex)
             {
@@ -127,7 +132,14 @@ public sealed class UIAEventSubscriber :
                 documentRoot, TreeScope.TreeScope_Subtree, null, this);
             automation.AddPropertyChangedEventHandler(
                 documentRoot, TreeScope.TreeScope_Subtree, null, this,
-                new[] { UIA_NamePropertyId, UIA_ExpandCollapseStatePropertyId });
+                new[] { UIA_NamePropertyId, UIA_ExpandCollapseStatePropertyId, UIA_ValueValuePropertyId });
+            // Selection changes that don't move focus (e.g. list items, collapsed combo boxes)
+            automation.AddAutomationEventHandler(
+                UIA_SelectionItem_ElementSelectedEventId, documentRoot, TreeScope.TreeScope_Subtree,
+                _uiaProvider.CacheRequest, this);
+            // Content finished loading: the document is re-captured
+            automation.AddAutomationEventHandler(
+                UIA_AsyncContentLoadedEventId, documentRoot, TreeScope.TreeScope_Element, null, this);
             _documentScope = documentRoot;
         }
         catch (Exception ex)
@@ -172,7 +184,8 @@ public sealed class UIAEventSubscriber :
                 IsRequired: isRequired,
                 IsExpanded: isExpanded,
                 IsExpandable: isExpandable,
-                RuntimeId: TryGetRuntimeId(sender)
+                RuntimeId: TryGetRuntimeId(sender),
+                IsPassword: TryGetValue(sender, () => sender.CachedIsPassword != 0)
             ));
         }
         catch (Exception ex)
@@ -250,6 +263,20 @@ public sealed class UIAEventSubscriber :
             if (eventId == UIA_LiveRegionChangedEventId)
             {
                 HandleLiveRegionChanged(sender);
+            }
+            else if (eventId == UIA_SelectionItem_ElementSelectedEventId)
+            {
+                _eventSink.Post(new ElementSelectedEvent(
+                    Timestamp: DateTimeOffset.UtcNow,
+                    RuntimeId: TryGetRuntimeId(sender),
+                    Name: TryGetCachedString(sender, () => sender.CachedName) ?? string.Empty));
+            }
+            else if (eventId == UIA_AsyncContentLoadedEventId)
+            {
+                // Treated as a structure change of the document itself (full re-capture)
+                var id = TryGetRuntimeId(sender);
+                if (id.Length > 0)
+                    _eventSink.Post(new StructureChangedEvent(DateTimeOffset.UtcNow, id));
             }
             else if (eventId == UIA_NotificationEventId)
             {

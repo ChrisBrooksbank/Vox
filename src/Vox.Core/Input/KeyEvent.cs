@@ -24,4 +24,21 @@ public readonly struct KeyEvent
 
     /// <summary>True when Caps Lock is toggled on (and CapsLock is not the screen reader modifier).</summary>
     public bool CapsLockOn { get; init; }
+
+    /// <summary>
+    /// The suppression filter's decision for this key, made on the hook thread when the key was pressed
+    /// (for key-ups: the decision made for the matching key-down).
+    /// </summary>
+    public KeyDecision Decision { get; init; }
+}
+
+/// <summary>
+/// Result of <see cref="IKeyboardHook.SuppressionFilter"/>: whether to swallow the key, plus an opaque
+/// <paramref name="Context"/> the filter's owner can use to act on the key later exactly as decided
+/// at press time (e.g. the interaction mode used to resolve it). 0 means "no context".
+/// </summary>
+public readonly record struct KeyDecision(bool Suppress, int Context = 0)
+{
+    public static KeyDecision Pass => default;
+    public static KeyDecision Swallow => new(true);
 }

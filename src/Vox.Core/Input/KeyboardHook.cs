@@ -48,6 +48,11 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
     [DllImport("user32.dll")]
     private static extern short GetKeyState(int nVirtKey);
 
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
+    private static readonly Func<int, bool> IsPhysicallyDown = vk => (GetAsyncKeyState(vk) & 0x8000) != 0;
+
     private delegate nint LowLevelKeyboardProc(int nCode, nint wParam, nint lParam);
 
     // Win32 message pump functions
@@ -85,8 +90,11 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
 
     private readonly ILogger<KeyboardHook> _logger;
     private readonly KeyStateTracker _keyState = new();
-    // Key-downs that were swallowed, so the matching key-up is swallowed too (indexed by vkCode)
-    private readonly bool[] _suppressedKeys = new bool[256];
+    // Filter decision for each key currently down, so the matching key-up is treated the same
+    // way (swallowed if the key-down was) and carries the same decision (indexed by vkCode)
+    private readonly KeyDecision[] _keyDecisions = new KeyDecision[256];
+    // Set from the session-switch event thread; applied on the hook thread
+    private volatile bool _resetRequested;
     private Channel<KeyEvent> _channel = CreateChannel();
     private nint _hookHandle;
     private LowLevelKeyboardProc? _hookCallback; // Keep reference to prevent GC
@@ -97,7 +105,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
 
     public event EventHandler<KeyEvent>? KeyPressed;
 
-    public Func<KeyEvent, bool>? SuppressionFilter { get; set; }
+    public Func<KeyEvent, KeyDecision>? SuppressionFilter { get; set; }
 
     public ModifierKey ScreenReaderModifier
     {
@@ -155,6 +163,12 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         hookReady.Wait(); // Wait for hook to be installed before returning
         hookReady.Dispose();
 
+        if (_hookHandle != nint.Zero)
+        {
+            try { Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitch; }
+            catch (Exception ex) { _logger.LogDebug(ex, "Session switch notifications unavailable"); }
+        }
+
         if (_hookHandle == nint.Zero)
         {
             // Installation failed: stop the consumer and report it to the caller
@@ -175,7 +189,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         _hookThreadId = GetCurrentThreadId();
 
         _hookCallback = HookCallback;
-        Array.Clear(_suppressedKeys);
+        Array.Clear(_keyDecisions);
         _keyState.SetCapsLockState((GetKeyState(VK_CAPITAL) & 0x0001) != 0);
         var hMod = GetModuleHandle(null);
         _hookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, _hookCallback, hMod, 0);
@@ -221,6 +235,9 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         if (_hookHandle == nint.Zero)
             return;
 
+        try { Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitch; }
+        catch { /* not subscribed */ }
+
         // Post WM_QUIT to the hook thread's message pump to make it exit cleanly
         if (_hookThreadId != 0)
         {
@@ -256,6 +273,18 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                 var kbStruct = *(KBDLLHOOKSTRUCT*)lParam;
                 var vkCode = (int)kbStruct.vkCode;
 
+                if (_resetRequested)
+                {
+                    // Session switch (lock/unlock): key-ups may have been missed
+                    _resetRequested = false;
+                    _keyState.Reset();
+                    Array.Clear(_keyDecisions);
+                }
+
+                // Clear modifiers whose key-up was missed on the secure desktop (one syscall per key)
+                if (isKeyDown && !KeyStateTracker.IsModifierKey(vkCode))
+                    _keyState.Reconcile(IsPhysicallyDown);
+
                 var modifiers = _keyState.Process(vkCode, isKeyDown, out bool isScreenReaderModifier);
 
                 var evt = new KeyEvent
@@ -267,24 +296,27 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                     CapsLockOn = _keyState.ScreenReaderModifier != ModifierKey.CapsLock && _keyState.CapsLockOn
                 };
 
-                bool suppress;
+                KeyDecision decision;
                 var slot = vkCode & 0xFF;
                 if (isScreenReaderModifier)
                 {
                     // The screen reader modifier never reaches applications
-                    suppress = true;
+                    decision = KeyDecision.Swallow;
                 }
                 else if (isKeyDown)
                 {
-                    suppress = ShouldSuppress(evt);
-                    _suppressedKeys[slot] = suppress;
+                    decision = Decide(evt);
+                    _keyDecisions[slot] = decision;
                 }
                 else
                 {
-                    // Swallow the key-up only if its key-down was swallowed
-                    suppress = _suppressedKeys[slot];
-                    _suppressedKeys[slot] = false;
+                    // A key-up gets its key-down's decision (swallowed only if the key-down was)
+                    decision = _keyDecisions[slot];
+                    _keyDecisions[slot] = default;
                 }
+
+                bool suppress = decision.Suppress;
+                evt = evt with { Decision = decision };
 
                 _channel.Writer.TryWrite(evt);
 
@@ -296,10 +328,10 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         return CallNextHookEx(_hookHandle, nCode, wParam, lParam);
     }
 
-    private bool ShouldSuppress(KeyEvent evt)
+    private KeyDecision Decide(KeyEvent evt)
     {
         var filter = SuppressionFilter;
-        if (filter is null) return false;
+        if (filter is null) return KeyDecision.Pass;
         try
         {
             return filter(evt);
@@ -307,9 +339,12 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         catch
         {
             // Never let an exception escape into the native hook chain
-            return false;
+            return KeyDecision.Pass;
         }
     }
+
+    private void OnSessionSwitch(object? sender, Microsoft.Win32.SessionSwitchEventArgs e) =>
+        _resetRequested = true;
 
     private void ConsumeEvents(Channel<KeyEvent> channel, CancellationToken token)
     {

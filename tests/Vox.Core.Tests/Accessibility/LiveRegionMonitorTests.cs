@@ -175,4 +175,75 @@ public class LiveRegionMonitorTests
         var result = monitor.ShouldAnnounce("src1", "Hello", LiveRegionPoliteness.Assertive);
         Assert.True(result);
     }
+
+    // -------------------------------------------------------------------------
+    // Deferred polite updates, additions, bounded tracking
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Evaluate_PoliteWithinCooldown_IsHeldAndFlushedLater()
+    {
+        var time = DateTimeOffset.UtcNow;
+        var monitor = new LiveRegionMonitor(() => time);
+
+        Assert.Equal("Loading", monitor.Evaluate("src", "Loading", LiveRegionPoliteness.Polite, out _));
+
+        time = time.AddMilliseconds(200);
+        Assert.Null(monitor.Evaluate("src", "Done", LiveRegionPoliteness.Polite, out var retry));
+        Assert.Equal(TimeSpan.FromMilliseconds(300), retry);
+
+        // Too early: still cooling down
+        Assert.Null(monitor.FlushPending("src", out var retryAgain));
+        Assert.True(retryAgain > TimeSpan.Zero);
+
+        time = time.AddMilliseconds(300);
+        Assert.Equal("Done", monitor.FlushPending("src", out _));
+        Assert.Null(monitor.FlushPending("src", out _));
+    }
+
+    [Fact]
+    public void Evaluate_AppendedText_AnnouncesOnlyTheAddition()
+    {
+        var monitor = new LiveRegionMonitor();
+
+        monitor.Evaluate("chat", "Alice: hi", LiveRegionPoliteness.Assertive, out _);
+        var added = monitor.Evaluate("chat", "Alice: hi Bob: hello", LiveRegionPoliteness.Assertive, out _);
+
+        Assert.Equal("Bob: hello", added);
+    }
+
+    [Fact]
+    public void Evaluate_ExtendedWordIsAChange_NotAnAddition()
+    {
+        var monitor = new LiveRegionMonitor();
+
+        monitor.Evaluate("count", "1", LiveRegionPoliteness.Assertive, out _);
+        Assert.Equal("12", monitor.Evaluate("count", "12", LiveRegionPoliteness.Assertive, out _));
+    }
+
+    [Fact]
+    public void Evaluate_AdditionsDuringCooldown_Accumulate()
+    {
+        var time = DateTimeOffset.UtcNow;
+        var monitor = new LiveRegionMonitor(() => time);
+
+        monitor.Evaluate("log", "a", LiveRegionPoliteness.Polite, out _);
+        time = time.AddMilliseconds(100);
+        monitor.Evaluate("log", "a b", LiveRegionPoliteness.Polite, out _);
+        monitor.Evaluate("log", "a b c", LiveRegionPoliteness.Polite, out _);
+
+        time = time.AddMilliseconds(500);
+        Assert.Equal("b c", monitor.FlushPending("log", out _));
+    }
+
+    [Fact]
+    public void TrackedSources_AreBounded()
+    {
+        var monitor = new LiveRegionMonitor();
+
+        for (int i = 0; i < LiveRegionMonitor.MaxSources + 50; i++)
+            monitor.Evaluate($"src{i}", "text", LiveRegionPoliteness.Assertive, out _);
+
+        Assert.Equal(LiveRegionMonitor.MaxSources, monitor.TrackedSourceCount);
+    }
 }

@@ -216,4 +216,33 @@ public class KeyMapTests
         Assert.True(map.TryResolve(KeyModifiers.None, 0x46, InteractionMode.Browse, out var form));
         Assert.Equal(NavigationCommand.NextFormField, form);
     }
+
+    [Fact]
+    public void LoadBuiltIn_MatchesDefaultKeymapFile()
+    {
+        var keymapPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "assets", "config", "default-keymap.json");
+
+        Assert.Equal(KeyMap.LoadFromFile(keymapPath).Count, KeyMap.LoadBuiltIn().Count);
+    }
+
+    [Fact]
+    public void LoadFromFileOrBuiltIn_MissingOrInvalidFile_FallsBackAndReportsError()
+    {
+        var missing = KeyMap.LoadFromFileOrBuiltIn(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json"), out var missingError);
+        Assert.NotNull(missingError);
+        Assert.True(missing.Count > 0);
+
+        var invalidPath = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(invalidPath, "{ not json");
+            var invalid = KeyMap.LoadFromFileOrBuiltIn(invalidPath, out var invalidError);
+            Assert.NotNull(invalidError);
+            Assert.True(invalid.Count > 0);
+        }
+        finally
+        {
+            File.Delete(invalidPath);
+        }
+    }
 }

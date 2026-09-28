@@ -58,7 +58,7 @@ public sealed class FirstRunWizard
 
         // Keep the wizard's keys away from whatever application has focus
         var previousFilter = _keyboardHook.SuppressionFilter;
-        _keyboardHook.SuppressionFilter = IsWizardKey;
+        _keyboardHook.SuppressionFilter = e => IsWizardKey(e) ? KeyDecision.Swallow : KeyDecision.Pass;
 
         try
         {

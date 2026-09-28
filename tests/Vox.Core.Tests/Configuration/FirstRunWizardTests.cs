@@ -53,7 +53,7 @@ public class FirstRunWizardTests : IDisposable
     {
         public event EventHandler<KeyEvent>? KeyPressed;
 
-        public Func<KeyEvent, bool>? SuppressionFilter { get; set; }
+        public Func<KeyEvent, KeyDecision>? SuppressionFilter { get; set; }
         public ModifierKey ScreenReaderModifier { get; set; }
 
         public void Install() { }
@@ -443,16 +443,16 @@ public class FirstRunWizardTests : IDisposable
     {
         var (wizard, hook, _, _, _) = CreateWizard(
             new VoxSettings { FirstRunCompleted = false });
-        Func<KeyEvent, bool> original = _ => false;
+        Func<KeyEvent, KeyDecision> original = _ => KeyDecision.Pass;
         hook.SuppressionFilter = original;
 
         var wizardTask = wizard.RunAsync();
         await Task.Delay(50);
 
         var filter = hook.SuppressionFilter!;
-        Assert.True(filter(new KeyEvent { VkCode = 0x0D, IsKeyDown = true }));  // Enter
-        Assert.True(filter(new KeyEvent { VkCode = 0x26, IsKeyDown = true }));  // Up
-        Assert.False(filter(new KeyEvent { VkCode = 0x09, IsKeyDown = true })); // Tab
+        Assert.True(filter(new KeyEvent { VkCode = 0x0D, IsKeyDown = true }).Suppress);  // Enter
+        Assert.True(filter(new KeyEvent { VkCode = 0x26, IsKeyDown = true }).Suppress);  // Up
+        Assert.False(filter(new KeyEvent { VkCode = 0x09, IsKeyDown = true }).Suppress); // Tab
 
         hook.SimulateKeyDown(0x1B);
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
