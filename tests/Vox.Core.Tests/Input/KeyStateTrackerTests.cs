@@ -71,4 +71,29 @@ public class KeyStateTrackerTests
         tracker.Process(KeyStateTracker.VK_CAPITAL, false, out _);
         Assert.False(tracker.CapsLockOn);
     }
+
+    [Fact]
+    public void Reconcile_ClearsModifiersNotPhysicallyDown()
+    {
+        var tracker = new KeyStateTracker();
+        tracker.Process(KeyStateTracker.VK_LCONTROL, true, out _);
+        tracker.Process(KeyStateTracker.VK_LMENU, true, out _);
+
+        // Ctrl+Alt+Del: the key-ups happened on the secure desktop; only Alt is still held
+        tracker.Reconcile(vk => vk == KeyStateTracker.VK_LMENU);
+
+        Assert.Equal(KeyModifiers.Alt, tracker.Current);
+    }
+
+    [Fact]
+    public void Reset_ClearsEverythingIncludingScreenReaderModifier()
+    {
+        var tracker = new KeyStateTracker();
+        tracker.Process(KeyStateTracker.VK_INSERT, true, out _);
+        tracker.Process(KeyStateTracker.VK_RSHIFT, true, out _);
+
+        tracker.Reset();
+
+        Assert.Equal(KeyModifiers.None, tracker.Current);
+    }
 }

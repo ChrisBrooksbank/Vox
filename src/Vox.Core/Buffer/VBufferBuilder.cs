@@ -69,7 +69,7 @@ public sealed class VBufferBuilder
     private static readonly HashSet<string> FocusableControlTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "Button", "CheckBox", "ComboBox", "Edit", "Hyperlink",
-        "ListItem", "MenuItem", "RadioButton", "Slider", "Spinner",
+        "MenuItem", "RadioButton", "Slider", "Spinner",
         "Tab", "TabItem", "TreeItem",
     };
 
@@ -136,8 +136,60 @@ public sealed class VBufferBuilder
             }
         }
 
+        JoinInlineRuns(allNodes, flatText);
         return (allNodes, flatText.ToString());
     }
+
+    /// <summary>
+    /// Puts runs of inline siblings on one line: "Read the " + link "docs" + " first" becomes
+    /// "Read the docs first" instead of three lines. Each run member except the last has its
+    /// trailing '\n' replaced by a space — the same length, so no text offsets change.
+    ///
+    /// Inline means a leaf Text node or a link (UIA exposes no CSS display type, so this is a
+    /// heuristic: block elements such as paragraphs and headings have children or a heading level).
+    /// </summary>
+    private static void JoinInlineRuns(List<VBufferNode> nodes, StringBuilder flatText)
+    {
+        // Exclusive end of each node's whole subtree text (nodes are in pre-order, Ids = indices)
+        var subtreeEnd = new int[nodes.Count];
+        for (int i = nodes.Count - 1; i >= 0; i--)
+        {
+            var node = nodes[i];
+            int end = node.TextRange.End;
+            foreach (var child in node.Children)
+                end = Math.Max(end, subtreeEnd[child.Id]);
+            subtreeEnd[i] = end;
+        }
+
+        foreach (var parent in nodes)
+        {
+            VBufferNode? previousInRun = null;
+            foreach (var child in parent.Children)
+            {
+                bool hasText = subtreeEnd[child.Id] > child.TextRange.Start;
+                if (!IsInline(child))
+                {
+                    previousInRun = null;
+                    continue;
+                }
+                if (!hasText)
+                    continue;
+
+                // Join the previous inline sibling's line onto this one
+                if (previousInRun is not null)
+                {
+                    int newline = subtreeEnd[previousInRun.Id] - 1;
+                    if (newline >= 0 && flatText[newline] == '\n')
+                        flatText[newline] = ' ';
+                }
+                previousInRun = child;
+            }
+        }
+    }
+
+    private static bool IsInline(VBufferNode node) =>
+        node.HeadingLevel == 0 && !node.IsLandmark &&
+        ((node.ControlType == "Text" && node.Children.Count == 0) || node.ControlType == "Hyperlink");
 
     private readonly record struct Frame(
         IVBufferElement Element,
@@ -217,6 +269,11 @@ public sealed class VBufferBuilder
             : (textStart, flatText.Length);
     }
 
+    /// <summary>Control types that never contribute their own Name to the flat text.</summary>
+    internal static bool IsContainerControlType(string controlType) =>
+        controlType is "Document" or "Group" or "Pane" or "Window" or "Custom"
+            or "ToolBar" or "Menu" or "MenuBar" or "StatusBar" or "TitleBar";
+
     private static void AppendNodeText(IVBufferElement element, StringBuilder flatText)
     {
         var name = element.Name;
@@ -224,11 +281,7 @@ public sealed class VBufferBuilder
 
         // Only leaf-like elements contribute text (not container elements like Document/Group/Pane)
         // We include text from: Text, Heading (via ariaRole), Link, Button, Edit, Image (alt text), etc.
-        var ct = element.ControlType;
-        var isContainer = ct is "Document" or "Group" or "Pane" or "Window" or "Custom"
-                          or "ToolBar" or "Menu" or "MenuBar" or "StatusBar" or "TitleBar";
-
-        if (isContainer) return;
+        if (IsContainerControlType(element.ControlType)) return;
 
         flatText.Append(name);
         flatText.Append('\n');

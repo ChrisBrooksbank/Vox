@@ -36,6 +36,8 @@ public sealed class ScreenReaderService : IHostedService
     private readonly ILogger<ScreenReaderService> _logger;
 
     private IDisposable? _settingsSubscription;
+    private VoxSettings? _appliedSettings;
+    private readonly object _settingsLock = new();
 
     public ScreenReaderService(
         ISpeechEngine speechEngine,
@@ -78,9 +80,6 @@ public sealed class ScreenReaderService : IHostedService
         // Initialize UIA on the dedicated STA thread
         await _uiaProvider.InitializeAsync();
 
-        // Subscribe to UIA events (focus, live regions, notifications)
-        await _uiaEventSubscriber.SubscribeAsync();
-
         // Apply settings now and whenever they change (wizard, settings.json edits)
         ApplySettings(_settings.CurrentValue);
         _settingsSubscription = _settings.OnChange((s, _) => ApplySettings(s));
@@ -88,12 +87,16 @@ public sealed class ScreenReaderService : IHostedService
         // Install the low-level keyboard hook (needed before wizard for key input)
         bool hookInstalled = TryInstallKeyboardHook();
 
-        // Check if first run wizard needs to run (before starting normal pipeline)
+        // Run the first-run wizard before subscribing to UIA events: focus announcements are
+        // Interrupt speech and would cut off the wizard's prompts
         if (hookInstalled && !_settings.CurrentValue.FirstRunCompleted)
         {
             _logger.LogInformation("First run not completed — starting wizard");
             await _firstRunWizard.RunAsync(cancellationToken);
         }
+
+        // Subscribe to UIA events (focus, live regions, notifications)
+        await _uiaEventSubscriber.SubscribeAsync();
 
         // Wire pipeline events (all raised on the pipeline thread)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
@@ -103,6 +106,8 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.DocumentChangedProcessed += OnDocumentChangedProcessed;
         _eventPipeline.SubtreeChangedProcessed += OnSubtreeChangedProcessed;
         _eventPipeline.ElementsListClosedProcessed += OnElementsListClosedProcessed;
+        _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
+        _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
         _navigationManager.ModeChanged += OnModeChanged;
@@ -140,6 +145,8 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.DocumentChangedProcessed -= OnDocumentChangedProcessed;
         _eventPipeline.SubtreeChangedProcessed -= OnSubtreeChangedProcessed;
         _eventPipeline.ElementsListClosedProcessed -= OnElementsListClosedProcessed;
+        _eventPipeline.PropertyChangedProcessed -= OnPropertyChangedProcessed;
+        _eventPipeline.ElementSelectedProcessed -= OnElementSelectedProcessed;
         _navigationManager.ModeChanged -= OnModeChanged;
         _browseModeController.DocumentActiveChanged -= OnDocumentActiveChanged;
         _settingsSubscription?.Dispose();
@@ -171,13 +178,27 @@ public sealed class ScreenReaderService : IHostedService
         }
     }
 
+    /// <summary>
+    /// Applies only the settings that changed since last time. Called on the settings-change
+    /// thread (file watcher or wizard), possibly while speech is playing, so the engine is not
+    /// touched needlessly.
+    /// </summary>
     private void ApplySettings(VoxSettings settings)
     {
-        _speechEngine.SetRate(settings.SpeechRateWpm);
-        if (!string.IsNullOrEmpty(settings.VoiceName))
-            _speechEngine.SetVoice(settings.VoiceName);
-        _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
-        _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
+        lock (_settingsLock)
+        {
+            var previous = _appliedSettings;
+            _appliedSettings = settings;
+
+            if (previous is null || previous.SpeechRateWpm != settings.SpeechRateWpm)
+                _speechEngine.SetRate(settings.SpeechRateWpm);
+            if (!string.IsNullOrEmpty(settings.VoiceName) && previous?.VoiceName != settings.VoiceName)
+                _speechEngine.SetVoice(settings.VoiceName);
+            if (previous is null || previous.AudioCuesEnabled != settings.AudioCuesEnabled)
+                _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
+            if (previous is null || previous.ModifierKey != settings.ModifierKey)
+                _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
+        }
     }
 
     private void OnRawKeyReceived(object? sender, RawKeyEvent e) =>
@@ -203,6 +224,20 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnElementsListClosedProcessed(object? sender, ElementsListClosedEvent e) =>
         _browseModeController.HandleElementsListClosed(e);
+
+    private void OnPropertyChangedProcessed(object? sender, PropertyChangedEvent e)
+    {
+        _browseModeController.HandlePropertyChanged(e);
+
+        // Expanding or collapsing changes the element's own state in the buffer
+        if (e.PropertyId == UIA_ExpandCollapseStatePropertyId)
+            _documentTracker.OnStructureChanged(e.RuntimeId);
+    }
+
+    private const int UIA_ExpandCollapseStatePropertyId = 30070;
+
+    private void OnElementSelectedProcessed(object? sender, ElementSelectedEvent e) =>
+        _browseModeController.HandleElementSelected(e);
 
     private void OnModeChanged(object? sender, InteractionMode mode) =>
         _keyInputDispatcher.SetMode(mode);

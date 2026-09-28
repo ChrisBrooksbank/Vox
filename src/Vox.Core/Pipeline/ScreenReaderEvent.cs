@@ -17,7 +17,8 @@ public record FocusChangedEvent(
     bool IsRequired = false,
     bool IsExpanded = false,
     bool IsExpandable = false,
-    int[]? RuntimeId = null
+    int[]? RuntimeId = null,
+    bool IsPassword = false
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(
@@ -34,6 +35,15 @@ public record LiveRegionChangedEvent(
     string Text,
     LiveRegionPoliteness Politeness,
     string? SourceId = null
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// A polite live region's cooldown has ended; announce whatever was held back for it.
+/// Posted by the pipeline itself.
+/// </summary>
+public record LiveRegionFlushEvent(
+    DateTimeOffset Timestamp,
+    string SourceId
 ) : ScreenReaderEvent(Timestamp);
 
 public enum InteractionMode { Browse, Focus }
@@ -107,4 +117,13 @@ public record SubtreeChangedEvent(
 public record ElementsListClosedEvent(
     DateTimeOffset Timestamp,
     VBufferNode? SelectedNode
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// An item in the active document was selected (UIA SelectionItem_ElementSelected).
+/// </summary>
+public record ElementSelectedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId,
+    string Name
 ) : ScreenReaderEvent(Timestamp);

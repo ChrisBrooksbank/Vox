@@ -62,6 +62,35 @@ public sealed class KeyMap
     }
 
     /// <summary>
+    /// Loads the default keymap embedded in Vox.Core (a copy of assets/config/default-keymap.json).
+    /// </summary>
+    public static KeyMap LoadBuiltIn()
+    {
+        using var stream = typeof(KeyMap).Assembly.GetManifestResourceStream("Vox.Core.default-keymap.json")
+            ?? throw new InvalidOperationException("Built-in keymap resource is missing.");
+        using var reader = new StreamReader(stream);
+        return LoadFromJson(reader.ReadToEnd());
+    }
+
+    /// <summary>
+    /// Loads a KeyMap from <paramref name="filePath"/>, falling back to the built-in keymap (and
+    /// reporting why through <paramref name="error"/>) if the file is missing or invalid.
+    /// </summary>
+    public static KeyMap LoadFromFileOrBuiltIn(string filePath, out Exception? error)
+    {
+        try
+        {
+            error = null;
+            return LoadFromFile(filePath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
+        {
+            error = ex;
+            return LoadBuiltIn();
+        }
+    }
+
+    /// <summary>
     /// Loads a KeyMap from a JSON string.
     /// </summary>
     public static KeyMap LoadFromJson(string json)

@@ -264,4 +264,55 @@ public class KeyInputDispatcherTests
         dispatcher.Stop();
         Assert.Null(hookMock.Object.SuppressionFilter);
     }
+
+    // -------------------------------------------------------------------------
+    // Press-time decisions and command key-ups
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void KeyDown_UsesModeFromPressTimeDecision()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildMultiMap());
+
+        // Hook decided while in Browse mode...
+        var decision = dispatcher.Decide(new KeyEvent { VkCode = 72, IsKeyDown = true });
+        Assert.True(decision.Suppress);
+
+        // ...but the mode changed before the consumer thread processed the key
+        dispatcher.SetMode(InteractionMode.Focus);
+        fireKey(new KeyEvent { VkCode = 72, IsKeyDown = true, Decision = decision });
+
+        var cmd = Assert.IsType<NavigationCommandEvent>(Assert.Single(sink.Posted));
+        Assert.Equal(NavigationCommand.NextHeading, cmd.Command);
+    }
+
+    [Fact]
+    public void KeyDown_PassedThroughInFocusMode_StaysTypingAfterSwitchToBrowse()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildMultiMap());
+        dispatcher.SetMode(InteractionMode.Focus);
+
+        var decision = dispatcher.Decide(new KeyEvent { VkCode = 72, IsKeyDown = true });
+        Assert.False(decision.Suppress);
+
+        dispatcher.SetMode(InteractionMode.Browse);
+        fireKey(new KeyEvent { VkCode = 72, IsKeyDown = true, Decision = decision });
+
+        Assert.IsType<RawKeyEvent>(Assert.Single(sink.Posted));
+    }
+
+    [Fact]
+    public void KeyUp_OfCommandKey_IsNotPostedAsRawKey()
+    {
+        var (_, sink, fireKey) = Create(BuildMultiMap());
+
+        fireKey(new KeyEvent { VkCode = 72, IsKeyDown = true });
+        fireKey(new KeyEvent { VkCode = 72, IsKeyDown = false });
+        fireKey(new KeyEvent { VkCode = 65, IsKeyDown = false }); // ordinary key-up still posted
+
+        Assert.Equal(2, sink.Posted.Count);
+        Assert.IsType<NavigationCommandEvent>(sink.Posted[0]);
+        var raw = Assert.IsType<RawKeyEvent>(sink.Posted[1]);
+        Assert.Equal(65, raw.Key.VkCode);
+    }
 }

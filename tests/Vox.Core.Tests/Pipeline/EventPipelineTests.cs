@@ -300,4 +300,26 @@ public class EventPipelineTests : IDisposable
         lock (raised)
             Assert.Equal(["document", "subtree", "structure", "elements"], raised);
     }
+
+    [Fact]
+    public async Task LiveRegion_PoliteUpdateDuringCooldown_IsAnnouncedAfterIt()
+    {
+        var now = DateTimeOffset.UtcNow;
+        _pipeline.Post(new LiveRegionChangedEvent(now, "Loading", LiveRegionPoliteness.Polite, "5,6"));
+        _pipeline.Post(new LiveRegionChangedEvent(now, "Done", LiveRegionPoliteness.Polite, "5,6"));
+
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        while (DateTime.UtcNow < deadline)
+        {
+            lock (_spokenUtterances)
+                if (_spokenUtterances.Any(u => u.Text == "Done")) break;
+            await Task.Delay(20);
+        }
+
+        lock (_spokenUtterances)
+        {
+            Assert.Contains(_spokenUtterances, u => u.Text == "Loading");
+            Assert.Contains(_spokenUtterances, u => u.Text == "Done");
+        }
+    }
 }

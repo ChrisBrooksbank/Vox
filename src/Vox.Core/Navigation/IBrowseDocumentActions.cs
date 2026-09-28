@@ -13,4 +13,10 @@ public interface IBrowseDocumentActions
     /// Returns false if the element could not be found or activated.
     /// </summary>
     Task<bool> ActivateAsync(VBufferNode node);
+
+    /// <summary>
+    /// Asks for the subtree with <paramref name="runtimeId"/> (or the whole document when null)
+    /// to be captured again and delivered as a SubtreeChangedEvent.
+    /// </summary>
+    void RequestRecapture(int[]? runtimeId);
 }

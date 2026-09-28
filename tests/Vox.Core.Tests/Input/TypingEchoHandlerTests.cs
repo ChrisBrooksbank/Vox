@@ -242,16 +242,17 @@ public class TypingEchoHandlerTests
         handler.HandleKeyEvent(KeyUp(0x49)); // 'i'
         handler.HandleKeyEvent(KeyUp(0x20)); // Space
 
-        // Expect: 'h', 'i', 'hi' (word), 'Space' (boundary char)
+        // Expect: 'h', 'i', 'Space' (boundary char), 'hi' (word). The boundary comes first because
+        // character echoes interrupt speech while the word queues after it.
         Assert.Equal(4, sink.Events.Count);
         Assert.Equal("h", sink.Events[0].Text);
         Assert.False(sink.Events[0].IsWord);
         Assert.Equal("i", sink.Events[1].Text);
         Assert.False(sink.Events[1].IsWord);
-        Assert.Equal("hi", sink.Events[2].Text);
-        Assert.True(sink.Events[2].IsWord);
-        Assert.Equal("Space", sink.Events[3].Text);
-        Assert.False(sink.Events[3].IsWord);
+        Assert.Equal("Space", sink.Events[2].Text);
+        Assert.False(sink.Events[2].IsWord);
+        Assert.Equal("hi", sink.Events[3].Text);
+        Assert.True(sink.Events[3].IsWord);
     }
 
     // -------------------------------------------------------------------------
@@ -348,5 +349,37 @@ public class TypingEchoHandlerTests
     {
         var mods = shift ? KeyModifiers.Shift : KeyModifiers.None;
         Assert.Equal(expected, TypingEchoHandler.VkCodeToChar(0x41, mods, caps));
+    }
+
+    [Fact]
+    public void PasswordMode_EchoesStar_AndNeverSpeaksWords()
+    {
+        var sink = new ListSink();
+        var handler = new TypingEchoHandler(sink, () => TypingEchoMode.Both,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<TypingEchoHandler>.Instance)
+        {
+            PasswordMode = true
+        };
+
+        handler.HandleKeyEvent(ModKeyUp(0x41, KeyModifiers.None)); // a
+        handler.HandleKeyEvent(ModKeyUp(0x42, KeyModifiers.None)); // b
+        handler.HandleKeyEvent(ModKeyUp(0x20, KeyModifiers.None)); // space
+
+        Assert.Equal(["star", "star", "star"], sink.Echoes.Select(e => e.Text));
+        Assert.DoesNotContain(sink.Echoes, e => e.IsWord);
+    }
+
+    [Fact]
+    public void WordBoundary_EchoesBoundaryBeforeWord()
+    {
+        var sink = new ListSink();
+        var handler = new TypingEchoHandler(sink, () => TypingEchoMode.Both,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<TypingEchoHandler>.Instance);
+
+        handler.HandleKeyEvent(ModKeyUp(0x48, KeyModifiers.None)); // h
+        handler.HandleKeyEvent(ModKeyUp(0x49, KeyModifiers.None)); // i
+        handler.HandleKeyEvent(ModKeyUp(0x20, KeyModifiers.None)); // space
+
+        Assert.Equal(["h", "i", "Space", "hi"], sink.Echoes.Select(e => e.Text));
     }
 }

@@ -25,6 +25,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     private const int UIA_LegacyIAccessiblePatternId = 10018;
     private const int MaxAncestorDepth = 64;
     private const int StructureDebounceMs = 300;
+    private const int StructureMaxWaitMs = 1000;
     private const int FullRecaptureThreshold = 20;
 
     private static readonly HashSet<string> WebFrameworks = new(StringComparer.OrdinalIgnoreCase)
@@ -47,6 +48,8 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     // Pending structure changes, keyed by runtime id string (guarded by _pendingLock)
     private readonly object _pendingLock = new();
     private readonly Dictionary<string, int[]> _pendingChanges = new();
+    private bool _fullRecapturePending;
+    private long _firstPendingTick;
     private readonly System.Threading.Timer _debounceTimer;
     private bool _disposed;
 
@@ -129,14 +132,17 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     private void LoadDocument(IUIAutomationElement document, int[] documentId, int[] focusedId)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        var cached = document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
-        var snapshot = UIAElementSnapshot.Capture(cached);
-        var buffer = new VBufferBuilder().Build(snapshot);
 
+        // Subscribe to the document's changes before capturing it, so nothing that changes in
+        // between is missed (a duplicate update is harmless; a missed one is not)
         _documentRoot = document;
         _documentRuntimeId = documentId;
         ClearPendingChanges();
         _eventSubscriber.SetDocumentScope(document);
+
+        var cached = document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
+        var snapshot = UIAElementSnapshot.Capture(cached);
+        var buffer = new VBufferBuilder().Build(snapshot);
 
         _logger.LogInformation("Virtual buffer built: {Nodes} nodes in {Ms}ms", buffer.AllNodes.Count, sw.ElapsedMilliseconds);
         _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, buffer, focusedId));
@@ -157,7 +163,8 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
 
     /// <summary>
     /// Queues a structure change for re-capture. Changes are debounced so bursts of events
-    /// (common while pages load) produce one update per element.
+    /// (common while pages load) produce one update per element, but never wait more than
+    /// <see cref="StructureMaxWaitMs"/> so pages that change constantly still get updated.
     /// </summary>
     public void OnStructureChanged(int[] runtimeId)
     {
@@ -167,8 +174,37 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         {
             if (_disposed) return;
             _pendingChanges[string.Join(",", runtimeId)] = runtimeId;
-            _debounceTimer.Change(StructureDebounceMs, Timeout.Infinite);
+            ScheduleFlush();
         }
+    }
+
+    public void RequestRecapture(int[]? runtimeId)
+    {
+        if (runtimeId is not null)
+        {
+            OnStructureChanged(runtimeId);
+            return;
+        }
+
+        lock (_pendingLock)
+        {
+            if (_disposed) return;
+            _fullRecapturePending = true;
+            ScheduleFlush();
+        }
+    }
+
+    // Caller holds _pendingLock
+    private void ScheduleFlush()
+    {
+        var now = Environment.TickCount64;
+        bool firstPending = _firstPendingTick == 0;
+        if (firstPending)
+            _firstPendingTick = now;
+
+        var waited = now - _firstPendingTick;
+        var due = Math.Max(0, Math.Min(StructureDebounceMs, StructureMaxWaitMs - waited));
+        _debounceTimer.Change(due, Timeout.Infinite);
     }
 
     private void ClearPendingChanges()
@@ -176,6 +212,8 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         lock (_pendingLock)
         {
             _pendingChanges.Clear();
+            _fullRecapturePending = false;
+            _firstPendingTick = 0;
         }
     }
 
@@ -184,30 +222,46 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         _ = RunOnUiaThread(() =>
         {
             List<int[]> changes;
+            bool full;
             lock (_pendingLock)
             {
                 changes = _pendingChanges.Values.ToList();
+                full = _fullRecapturePending;
                 _pendingChanges.Clear();
+                _fullRecapturePending = false;
+                _firstPendingTick = 0;
             }
 
             var root = _documentRoot;
             var rootId = _documentRuntimeId;
-            if (root is null || rootId is null || changes.Count == 0)
+            if (root is null || rootId is null || (changes.Count == 0 && !full))
                 return;
 
             // Many changes, or a change to the document itself: re-capture the whole document
-            if (changes.Count > FullRecaptureThreshold || changes.Any(c => c.AsSpan().SequenceEqual(rootId)))
+            if (full || changes.Count > FullRecaptureThreshold || changes.Any(c => c.AsSpan().SequenceEqual(rootId)))
             {
                 var cached = root.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
                 _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, rootId, UIAElementSnapshot.Capture(cached)));
                 return;
             }
 
+            var walker = _uiaProvider.Automation.ControlViewWalker;
             foreach (var runtimeId in changes)
             {
                 var element = FindInDocument(root, runtimeId, _uiaProvider.SubtreeCacheRequest);
-                var snapshot = element is null ? null : UIAElementSnapshot.Capture(element);
-                _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, runtimeId, snapshot));
+                if (element is null)
+                {
+                    // The element is gone
+                    _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, runtimeId, null));
+                    continue;
+                }
+
+                // Raw-view containers (e.g. Chromium generic divs) are not in the buffer: capture
+                // the nearest control-view element instead, which the buffer does contain
+                var normalized = TryGet(() => walker.NormalizeElementBuildCache(element, _uiaProvider.SubtreeCacheRequest)) ?? element;
+                var snapshot = UIAElementSnapshot.Capture(normalized);
+                var changedId = snapshot.RuntimeId.Length > 0 ? snapshot.RuntimeId : runtimeId;
+                _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, changedId, snapshot));
             }
         }, "updating virtual buffer");
     }

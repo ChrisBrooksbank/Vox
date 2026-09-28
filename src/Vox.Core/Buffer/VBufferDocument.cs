@@ -25,7 +25,7 @@ public sealed class VBufferDocument
     /// <summary>All nodes where IsLink is true, in document order.</summary>
     public IReadOnlyList<VBufferNode> Links { get; }
 
-    /// <summary>All form-field nodes (Edit, ComboBox, CheckBox, RadioButton, Spinner, ListItem with IsRequired, etc.), in document order.</summary>
+    /// <summary>All form-field nodes (see <see cref="FormControls.IsFormField"/>, plus required or expandable nodes), in document order.</summary>
     public IReadOnlyList<VBufferNode> FormFields { get; }
 
     /// <summary>All landmark nodes (nav, main, banner, contentinfo, search, complementary, form, region), in document order.</summary>
@@ -37,11 +37,6 @@ public sealed class VBufferDocument
     // Fast lookup tables
     private readonly Dictionary<string, VBufferNode> _byRuntimeId;
     private readonly VBufferNode[] _allNodesArray;
-
-    private static readonly HashSet<string> FormFieldControlTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Edit", "ComboBox", "CheckBox", "RadioButton", "Spinner", "Slider", "List", "ListItem"
-    };
 
     public VBufferDocument(
         string flatText,
@@ -135,7 +130,7 @@ public sealed class VBufferDocument
     }
 
     private static bool IsFormField(VBufferNode node) =>
-        FormFieldControlTypes.Contains(node.ControlType) ||
+        FormControls.IsFormField(node.ControlType, node.AriaRole) ||
         node.IsRequired ||
         node.IsExpandable;
 

@@ -94,6 +94,7 @@ public sealed class ElementsListDialog : Form
             IntegralHeight = false,
         };
         _listBox.KeyDown += OnListKeyDown;
+        _listBox.KeyPress += OnListKeyPress;
         _listBox.DoubleClick += OnJump;
         mainPanel.Controls.Add(_listBox, 0, 1);
 
@@ -156,6 +157,9 @@ public sealed class ElementsListDialog : Form
 
         // ---- Initial population ---------------------------------------------
         RefreshList();
+
+        // Start in the list (not the tab strip) so arrows browse items and typing filters
+        ActiveControl = _listBox;
     }
 
     // -------------------------------------------------------------------------
@@ -273,6 +277,20 @@ public sealed class ElementsListDialog : Form
             TryJump();
             e.Handled = true;
         }
+    }
+
+    /// <summary>
+    /// Typing a character in the list moves it to the filter box, so "type to filter" works
+    /// wherever focus is (ListBox's own first-letter search is replaced).
+    /// </summary>
+    private void OnListKeyPress(object? sender, KeyPressEventArgs e)
+    {
+        if (char.IsControl(e.KeyChar))
+            return;
+
+        _filterBox.Focus();
+        _filterBox.AppendText(e.KeyChar.ToString());
+        e.Handled = true;
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

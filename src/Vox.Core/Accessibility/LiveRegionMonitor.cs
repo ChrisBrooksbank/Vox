@@ -3,24 +3,31 @@ using Vox.Core.Pipeline;
 namespace Vox.Core.Accessibility;
 
 /// <summary>
-/// Maintains a dictionary of last-known text per live region source and implements:
-/// - Diff detection: only announces when text has changed
-/// - Polite throttling: at most 1 announcement per 500ms per source
+/// Decides what to say for live region updates:
+/// - Diff detection: unchanged text is not announced; when text was appended to the previous
+///   text (a chat log, a status log) only the added part is announced (aria-relevant="additions")
+/// - Polite throttling: at most 1 announcement per 500ms per source. Updates inside the cooldown
+///   are not dropped — the latest is kept and announced when the cooldown ends (<see cref="FlushPending"/>)
 /// - Assertive bypass: assertive regions are always announced immediately
+/// - Bounded memory: at most <see cref="MaxSources"/> regions are tracked (least recently seen evicted)
 /// </summary>
 public sealed class LiveRegionMonitor
 {
     private const int PoliteCooldownMs = 500;
+    public const int MaxSources = 256;
 
-    // sourceId -> last known text
-    private readonly Dictionary<string, string> _lastKnownText = new();
+    private sealed class RegionState
+    {
+        public string LastText = string.Empty;
+        public DateTimeOffset? LastPoliteAnnouncement;
+        public string? Pending;
+        public long LastSeen;
+    }
 
-    // sourceId -> timestamp of last polite announcement
-    private readonly Dictionary<string, DateTimeOffset> _lastPoliteAnnouncement = new();
-
+    private readonly Dictionary<string, RegionState> _regions = new();
     private readonly object _lock = new();
-
     private readonly Func<DateTimeOffset> _clock;
+    private long _sequence;
 
     public LiveRegionMonitor() : this(() => DateTimeOffset.UtcNow) { }
 
@@ -32,46 +39,102 @@ public sealed class LiveRegionMonitor
         _clock = clock;
     }
 
+    /// <summary>Number of regions currently tracked.</summary>
+    public int TrackedSourceCount
+    {
+        get { lock (_lock) return _regions.Count; }
+    }
+
     /// <summary>
-    /// Processes a live region update. Returns true if the event should be announced.
+    /// Processes a live region update. Returns true if something should be announced now.
+    /// </summary>
+    public bool ShouldAnnounce(string? sourceId, string text, LiveRegionPoliteness politeness) =>
+        Evaluate(sourceId, text, politeness, out _) is not null;
+
+    /// <summary>
+    /// Processes a live region update and returns the text to announce now, or null.
+    /// When a polite update is held back by the cooldown, <paramref name="retryAfter"/> says when
+    /// to call <see cref="FlushPending"/> for this source.
     /// </summary>
     /// <param name="sourceId">Unique identifier for the live region element (e.g. "1,2,3" from RuntimeId).</param>
     /// <param name="text">Current text content of the live region.</param>
     /// <param name="politeness">Politeness level of the live region.</param>
-    public bool ShouldAnnounce(string? sourceId, string text, LiveRegionPoliteness politeness)
+    public string? Evaluate(string? sourceId, string text, LiveRegionPoliteness politeness, out TimeSpan retryAfter)
     {
+        retryAfter = TimeSpan.Zero;
+
         // If no sourceId, we can't track state — always announce
         if (string.IsNullOrEmpty(sourceId))
-            return !string.IsNullOrWhiteSpace(text);
+            return string.IsNullOrWhiteSpace(text) ? null : text;
 
         lock (_lock)
         {
-            // Diff: skip if text hasn't changed
-            if (_lastKnownText.TryGetValue(sourceId, out var last) && last == text)
-                return false;
+            var region = GetRegion(sourceId);
 
-            // Text has changed — update last known
-            _lastKnownText[sourceId] = text;
+            // Diff: skip if text hasn't changed
+            if (region.LastText == text)
+                return null;
+
+            bool isAddition = IsAddition(region.LastText, text);
+            var announcement = isAddition ? text[region.LastText.Length..].Trim() : text;
+            region.LastText = text;
 
             // Empty text is not interesting
-            if (string.IsNullOrWhiteSpace(text))
-                return false;
+            if (string.IsNullOrWhiteSpace(announcement))
+                return null;
 
             // Assertive: immediate, no throttle
             if (politeness == LiveRegionPoliteness.Assertive)
-                return true;
+                return announcement;
 
-            // Polite: throttle to 1 per 500ms
+            // Polite: throttle to 1 per 500ms, keeping what arrives during the cooldown
             var now = _clock();
-            if (_lastPoliteAnnouncement.TryGetValue(sourceId, out var lastAnnounced))
+            if (region.LastPoliteAnnouncement is { } last)
             {
-                var elapsed = now - lastAnnounced;
-                if (elapsed.TotalMilliseconds < PoliteCooldownMs)
-                    return false;
+                var remaining = TimeSpan.FromMilliseconds(PoliteCooldownMs) - (now - last);
+                if (remaining > TimeSpan.Zero)
+                {
+                    region.Pending = isAddition && region.Pending is not null
+                        ? region.Pending + " " + announcement
+                        : announcement;
+                    retryAfter = remaining;
+                    return null;
+                }
             }
 
-            _lastPoliteAnnouncement[sourceId] = now;
-            return true;
+            region.LastPoliteAnnouncement = now;
+            region.Pending = null;
+            return announcement;
+        }
+    }
+
+    /// <summary>
+    /// Returns the text held back for <paramref name="sourceId"/> once its cooldown has passed, or null
+    /// (nothing pending, or still cooling down — in which case <paramref name="retryAfter"/> is set).
+    /// </summary>
+    public string? FlushPending(string sourceId, out TimeSpan retryAfter)
+    {
+        retryAfter = TimeSpan.Zero;
+        lock (_lock)
+        {
+            if (!_regions.TryGetValue(sourceId, out var region) || region.Pending is null)
+                return null;
+
+            var now = _clock();
+            if (region.LastPoliteAnnouncement is { } last)
+            {
+                var remaining = TimeSpan.FromMilliseconds(PoliteCooldownMs) - (now - last);
+                if (remaining > TimeSpan.Zero)
+                {
+                    retryAfter = remaining;
+                    return null;
+                }
+            }
+
+            var pending = region.Pending;
+            region.Pending = null;
+            region.LastPoliteAnnouncement = now;
+            return pending;
         }
     }
 
@@ -82,8 +145,47 @@ public sealed class LiveRegionMonitor
     {
         lock (_lock)
         {
-            _lastKnownText.Clear();
-            _lastPoliteAnnouncement.Clear();
+            _regions.Clear();
         }
+    }
+
+    /// <summary>
+    /// True when <paramref name="text"/> is <paramref name="previous"/> with more text appended at a
+    /// word boundary (so "1" → "12" is a change, not an addition of "2").
+    /// </summary>
+    private static bool IsAddition(string previous, string text) =>
+        previous.Length > 0
+        && text.Length > previous.Length
+        && text.StartsWith(previous, StringComparison.Ordinal)
+        && (char.IsWhiteSpace(text[previous.Length]) || char.IsWhiteSpace(previous[^1]));
+
+    // Caller holds _lock
+    private RegionState GetRegion(string sourceId)
+    {
+        if (!_regions.TryGetValue(sourceId, out var region))
+        {
+            if (_regions.Count >= MaxSources)
+                EvictLeastRecentlySeen();
+            region = new RegionState();
+            _regions[sourceId] = region;
+        }
+        region.LastSeen = ++_sequence;
+        return region;
+    }
+
+    private void EvictLeastRecentlySeen()
+    {
+        string? oldestKey = null;
+        long oldest = long.MaxValue;
+        foreach (var (key, state) in _regions)
+        {
+            if (state.LastSeen < oldest)
+            {
+                oldest = state.LastSeen;
+                oldestKey = key;
+            }
+        }
+        if (oldestKey is not null)
+            _regions.Remove(oldestKey);
     }
 }

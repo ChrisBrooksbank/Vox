@@ -26,6 +26,11 @@ public sealed class KeyInputDispatcher
     private volatile InteractionMode _currentMode = InteractionMode.Browse;
     private volatile bool _documentActive;
 
+    // Keys whose key-down was dispatched as a command; their key-ups are dropped so a key that
+    // changed the mode (e.g. Enter entering Focus mode) is not then echoed as typing.
+    // Only touched on the hook consumer thread.
+    private readonly bool[] _commandKeysDown = new bool[256];
+
     public KeyInputDispatcher(
         IKeyboardHook hook,
         KeyMap keyMap,
@@ -44,7 +49,7 @@ public sealed class KeyInputDispatcher
     public void Start()
     {
         _hook.KeyPressed += OnKeyPressed;
-        _hook.SuppressionFilter = ShouldSuppress;
+        _hook.SuppressionFilter = Decide;
         _logger.LogDebug("KeyInputDispatcher started");
     }
 
@@ -87,34 +92,54 @@ public sealed class KeyInputDispatcher
 
     /// <summary>
     /// Suppression filter run on the keyboard hook thread for each key-down.
-    /// Returns true when the key is bound to a command (and not marked passThrough).
+    /// Swallows keys bound to a command (unless marked passThrough) and records the mode used,
+    /// so the command is later resolved exactly as it was when the key was pressed.
     /// Only a read-only dictionary lookup — safe for the &lt; 1ms hook budget.
     /// </summary>
-    public bool ShouldSuppress(KeyEvent evt)
+    public KeyDecision Decide(KeyEvent evt)
     {
         if (!evt.IsKeyDown)
-            return false;
+            return KeyDecision.Pass;
 
-        return _keyMap.TryResolve(evt.Modifiers, evt.VkCode, EffectiveMode, out _, out var passThrough)
+        var mode = EffectiveMode;
+        bool suppress = _keyMap.TryResolve(evt.Modifiers, evt.VkCode, mode, out _, out var passThrough)
             && !passThrough;
+        return new KeyDecision(suppress, EncodeMode(mode));
     }
+
+    /// <summary>True when <see cref="Decide"/> would swallow the key.</summary>
+    public bool ShouldSuppress(KeyEvent evt) => Decide(evt).Suppress;
+
+    private static int EncodeMode(InteractionMode mode) => (int)mode + 1;
 
     private void OnKeyPressed(object? sender, KeyEvent evt)
     {
-        // Only dispatch on key-down events; key-up events are passed through as RawKeyEvent
-        // so TypingEchoHandler can process them.
+        var slot = evt.VkCode & 0xFF;
+
         if (evt.IsKeyDown)
         {
-            var mode = EffectiveMode;
+            // Resolve with the mode the hook used when the key was pressed, so the swallow
+            // decision and the command always agree even if the mode changed since
+            var mode = evt.Decision.Context > 0
+                ? (InteractionMode)(evt.Decision.Context - 1)
+                : EffectiveMode;
+
             if (_keyMap.TryResolve(evt.Modifiers, evt.VkCode, mode, out var command))
             {
                 _logger.LogDebug(
                     "Key {VkCode} with {Modifiers} in {Mode} -> {Command}",
                     evt.VkCode, evt.Modifiers, mode, command);
 
+                _commandKeysDown[slot] = true;
                 _pipeline.Post(new NavigationCommandEvent(DateTimeOffset.UtcNow, command));
                 return;
             }
+        }
+        else if (_commandKeysDown[slot])
+        {
+            // Key-up of a command key: not typing
+            _commandKeysDown[slot] = false;
+            return;
         }
 
         // No command mapping found (or key-up): forward as RawKeyEvent for typing echo etc.

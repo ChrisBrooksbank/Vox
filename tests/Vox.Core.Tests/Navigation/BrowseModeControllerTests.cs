@@ -71,7 +71,9 @@ public class BrowseModeControllerTests : IDisposable
         var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
         root.AddChild(new MockElement { RuntimeId = [2], Name = "Welcome", AriaRole = "heading", AriaProperties = "level=1" });
         root.AddChild(new MockElement { RuntimeId = [3], Name = "Intro text" });
-        root.AddChild(new MockElement { RuntimeId = [4], Name = "Read more", ControlType = "Hyperlink" });
+        var paragraph = new MockElement { RuntimeId = [6], ControlType = "Group" };
+        paragraph.AddChild(new MockElement { RuntimeId = [4], Name = "Read more", ControlType = "Hyperlink" });
+        root.AddChild(paragraph);
         root.AddChild(new MockElement { RuntimeId = [5], Name = "Search", ControlType = "Edit" });
         return new VBufferBuilder().Build(root);
     }
@@ -295,5 +297,169 @@ public class BrowseModeControllerTests : IDisposable
         Assert.Contains("A much longer introduction", doc.FlatText);
         Assert.Same(doc.FindByRuntimeId([4]), _quickNav.CurrentNode);
         Assert.Equal(doc.FindByRuntimeId([4])!.TextRange.Start, _controller.Cursor!.TextOffset);
+    }
+
+    // -------------------------------------------------------------------------
+    // Round 2 fixes
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void PasswordField_EchoesStarsInsteadOfCharacters()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(
+            DateTimeOffset.UtcNow, "Password", "Edit", RuntimeId: [9], IsPassword: true));
+
+        _controller.HandleRawKey(KeyUp(0x41));
+
+        var echo = Assert.Single(_sink.OfType<TypingEchoEvent>());
+        Assert.Equal("star", echo.Text);
+    }
+
+    [Fact]
+    public async Task ElementsList_FocusEventsDuringAndAfterDialog_DoNotUndoJump()
+    {
+        var doc = LoadDocument(focusedId: [4]);
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
+        var selection = new TaskCompletionSource<VBufferNode?>();
+        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>())).Returns(selection.Task);
+
+        _controller.HandleCommand(NavigationCommand.ElementsList);
+
+        // Focus moves into the dialog's list...
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Elements", "List", RuntimeId: [99, 1]));
+        selection.SetResult(doc.FindByRuntimeId([2]));
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (_sink.OfType<ElementsListClosedEvent>().Count == 0 && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+        _controller.HandleElementsListClosed(_sink.OfType<ElementsListClosedEvent>()[0]);
+
+        // ...then returns to the link that was focused before the dialog opened
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
+
+        Assert.Same(doc.FindByRuntimeId([2]), _quickNav.CurrentNode);
+        Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public async Task SayAll_FinishedEarlier_DoesNotPullCursorBackAfterFocusMove()
+    {
+        var doc = LoadDocument();
+        _controller.HandleCommand(NavigationCommand.SayAll);
+
+        // Let Say All read to the end
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (!_spoken.Any(u => u.Text.Contains("Search")) && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+        await Task.Delay(100);
+
+        // User moves focus to the link, then navigates to the next form field from there
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
+        _controller.HandleCommand(NavigationCommand.ReadCurrentLine);
+
+        await WaitForSpeech(u => u.Text == "Read more");
+        Assert.Same(doc.FindByRuntimeId([4]), _quickNav.CurrentNode);
+    }
+
+    [Theory]
+    [InlineData(NavigationCommand.SayAll)]
+    [InlineData(NavigationCommand.ReadCurrentLine)]
+    [InlineData(NavigationCommand.ElementsList)]
+    [InlineData(NavigationCommand.ToggleMode)]
+    public async Task DocumentCommand_WithoutDocument_SaysNotInADocument(NavigationCommand command)
+    {
+        _controller.HandleCommand(command);
+
+        await WaitForSpeech(u => u.Text == "Not in a document");
+        Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public void FocusOutsideDocument_DoesNotSwitchMode()
+    {
+        LoadDocument();
+        _navigationManager.SwitchTo(InteractionMode.Focus);
+
+        // Focus moves to another application's control (not in the buffer)
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Notepad", "Document", RuntimeId: [500]));
+
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public void DocumentChanged_ResetsToBrowseModeSilently()
+    {
+        LoadDocument();
+        _navigationManager.SwitchTo(InteractionMode.Focus);
+        var posted = _sink.OfType<ModeChangedEvent>().Count;
+
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, null));
+
+        Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+        Assert.Equal(posted, _sink.OfType<ModeChangedEvent>().Count);
+    }
+
+    [Fact]
+    public async Task PropertyChanged_OnFocusedElement_AnnouncesExpandedAndValue()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Menu", "Button", RuntimeId: [7]));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30070, 1));
+        await WaitForSpeech(u => u.Text == "expanded");
+
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Size", "ComboBox", RuntimeId: [8]));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [8], 30045, "Large"));
+        await WaitForSpeech(u => u.Text == "Large");
+    }
+
+    [Fact]
+    public async Task PropertyChanged_ValueOfEditOrOtherElement_IsNotAnnounced()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Name", "Edit", RuntimeId: [7]));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30045, "typed text"));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [8], 30070, 1));
+
+        await Task.Delay(200);
+        lock (_spoken)
+        {
+            Assert.DoesNotContain(_spoken, u => u.Text == "typed text");
+            Assert.DoesNotContain(_spoken, u => u.Text == "expanded");
+        }
+    }
+
+    [Fact]
+    public async Task ElementSelected_WithoutFocusChange_IsAnnounced()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Fruit", "List", RuntimeId: [7]));
+
+        _controller.HandleElementSelected(new ElementSelectedEvent(DateTimeOffset.UtcNow, [7, 2], "Banana"));
+
+        await WaitForSpeech(u => u.Text == "Banana");
+    }
+
+    [Fact]
+    public void SubtreeChanged_UnknownElement_RequestsFullRecapture()
+    {
+        LoadDocument();
+
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(
+            DateTimeOffset.UtcNow, [777], new MockElement { RuntimeId = [777], Name = "New" }));
+
+        _actions.Verify(a => a.RequestRecapture(null), Times.Once);
+    }
+
+    [Fact]
+    public void SubtreeChanged_TextAppearsUnderNamedAncestor_RequestsAncestorRecapture()
+    {
+        // Button "Submit" with an empty child: the button emits its own name
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var button = new MockElement { RuntimeId = [2], Name = "Submit", ControlType = "Button" };
+        button.AddChild(new MockElement { RuntimeId = [3], Name = "" });
+        root.AddChild(button);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        // The child gains text: the button must no longer emit its own name
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(
+            DateTimeOffset.UtcNow, [3], new MockElement { RuntimeId = [3], Name = "Send" }));
+
+        _actions.Verify(a => a.RequestRecapture(It.Is<int[]>(id => id.SequenceEqual(new[] { 2 }))), Times.Once);
     }
 }

@@ -437,4 +437,28 @@ public class IncrementalUpdaterTests
             Assert.Same(result.AllNodes[i], result.AllNodes[i - 1].NextInOrder);
         }
     }
+
+    [Fact]
+    public void ApplyUpdate_TextFlipUnderNamedAncestor_ReportsAncestorForRecapture()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var button = new MockElement { RuntimeId = [2], Name = "Submit", ControlType = "Button" };
+        button.AddChild(new MockElement { RuntimeId = [3], Name = "" });
+        root.AddChild(button);
+        var doc = new VBufferBuilder().Build(root);
+
+        Updater.ApplyUpdate(doc, [3], new MockElement { RuntimeId = [3], Name = "Send" }, out var hint);
+
+        Assert.Equal([2], hint);
+    }
+
+    [Fact]
+    public void ApplyUpdate_TextChangeWithoutFlip_NeedsNoRecapture()
+    {
+        var doc = BuildBaseDocument();
+
+        Updater.ApplyUpdate(doc, [2], new MockElement { RuntimeId = [2], Name = "Hello", AriaRole = "heading" }, out var hint);
+
+        Assert.Null(hint);
+    }
 }

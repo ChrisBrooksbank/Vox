@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
+using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.Audio;
+using Vox.Core.Configuration;
+using Vox.Core.Navigation;
 using Vox.Core.Speech;
 
 namespace Vox.Core.Pipeline;
@@ -21,6 +24,8 @@ public sealed class EventPipeline : IEventSink, IDisposable
     private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly ILogger<EventPipeline> _logger;
     private readonly LiveRegionMonitor _liveRegionMonitor;
+    private readonly AnnouncementBuilder _announcementBuilder;
+    private readonly IOptionsMonitor<VoxSettings>? _settings;
     private readonly Channel<ScreenReaderEvent> _channel;
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _processingTask;
@@ -31,12 +36,16 @@ public sealed class EventPipeline : IEventSink, IDisposable
         SpeechQueue speechQueue,
         IAudioCuePlayer audioCuePlayer,
         ILogger<EventPipeline> logger,
-        LiveRegionMonitor? liveRegionMonitor = null)
+        LiveRegionMonitor? liveRegionMonitor = null,
+        AnnouncementBuilder? announcementBuilder = null,
+        IOptionsMonitor<VoxSettings>? settings = null)
     {
         _speechQueue = speechQueue;
         _audioCuePlayer = audioCuePlayer;
         _logger = logger;
         _liveRegionMonitor = liveRegionMonitor ?? new LiveRegionMonitor();
+        _announcementBuilder = announcementBuilder ?? new AnnouncementBuilder();
+        _settings = settings;
 
         _channel = Channel.CreateUnbounded<ScreenReaderEvent>(new UnboundedChannelOptions
         {
@@ -64,6 +73,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// Subscribe to this for auto-mode-switching in NavigationManager.
     /// </summary>
     public event EventHandler<FocusChangedEvent>? FocusChangedProcessed;
+
+    /// <summary>Raised when a PropertyChangedEvent is processed.</summary>
+    public event EventHandler<PropertyChangedEvent>? PropertyChangedProcessed;
+
+    /// <summary>Raised when an ElementSelectedEvent is processed.</summary>
+    public event EventHandler<ElementSelectedEvent>? ElementSelectedProcessed;
 
     /// <summary>Raised when a StructureChangedEvent is processed (for virtual buffer updates).</summary>
     public event EventHandler<StructureChangedEvent>? StructureChangedProcessed;
@@ -162,6 +177,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     await HandleLiveRegionAsync(liveRegion, token).ConfigureAwait(false);
                     break;
 
+                case LiveRegionFlushEvent liveRegionFlush:
+                    await HandleLiveRegionFlushAsync(liveRegionFlush, token).ConfigureAwait(false);
+                    break;
+
                 case ModeChangedEvent modeChanged:
                     await HandleModeChangedAsync(modeChanged, token).ConfigureAwait(false);
                     break;
@@ -188,6 +207,11 @@ public sealed class EventPipeline : IEventSink, IDisposable
                 case PropertyChangedEvent propertyChanged:
                     _logger.LogDebug("PropertyChanged: PropertyId={PropertyId}, NewValue={NewValue}",
                         propertyChanged.PropertyId, propertyChanged.NewValue);
+                    PropertyChangedProcessed?.Invoke(this, propertyChanged);
+                    break;
+
+                case ElementSelectedEvent elementSelected:
+                    ElementSelectedProcessed?.Invoke(this, elementSelected);
                     break;
 
                 case StructureChangedEvent structureChanged:
@@ -246,16 +270,42 @@ public sealed class EventPipeline : IEventSink, IDisposable
         if (string.IsNullOrWhiteSpace(liveRegion.Text) || liveRegion.Politeness == LiveRegionPoliteness.Off)
             return;
 
-        // Diff against last text and throttle polite updates per region
-        if (!_liveRegionMonitor.ShouldAnnounce(liveRegion.SourceId, liveRegion.Text, liveRegion.Politeness))
+        // Diff against last text (announcing only additions) and throttle polite updates per region
+        var text = _liveRegionMonitor.Evaluate(liveRegion.SourceId, liveRegion.Text, liveRegion.Politeness, out var retryAfter);
+        if (retryAfter > TimeSpan.Zero && liveRegion.SourceId is not null)
+            ScheduleLiveRegionFlush(liveRegion.SourceId, retryAfter);
+        if (text is null)
             return;
 
         var priority = liveRegion.Politeness == LiveRegionPoliteness.Assertive
             ? SpeechPriority.High
             : SpeechPriority.Low;
 
-        var utterance = new Utterance(liveRegion.Text, priority);
+        var utterance = new Utterance(text, priority);
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+    }
+
+    private async Task HandleLiveRegionFlushAsync(LiveRegionFlushEvent flush, CancellationToken token)
+    {
+        var text = _liveRegionMonitor.FlushPending(flush.SourceId, out var retryAfter);
+        if (retryAfter > TimeSpan.Zero)
+            ScheduleLiveRegionFlush(flush.SourceId, retryAfter);
+        if (text is null)
+            return;
+
+        await _speechQueue.EnqueueAsync(new Utterance(text, SpeechPriority.Low), token).ConfigureAwait(false);
+    }
+
+    /// <summary>Posts a <see cref="LiveRegionFlushEvent"/> once a polite region's cooldown ends.</summary>
+    private void ScheduleLiveRegionFlush(string sourceId, TimeSpan delay)
+    {
+        _ = Task.Delay(delay, _cts.Token).ContinueWith(
+            t =>
+            {
+                if (!t.IsCanceled)
+                    Post(new LiveRegionFlushEvent(DateTimeOffset.UtcNow, sourceId));
+            },
+            TaskScheduler.Default);
     }
 
     private async Task HandleModeChangedAsync(ModeChangedEvent modeChanged, CancellationToken token)
@@ -287,36 +337,18 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     private async Task HandleTypingEchoAsync(TypingEchoEvent typingEcho, CancellationToken token)
     {
-        var utterance = new Utterance(typingEcho.Text, SpeechPriority.High);
+        // Each typed character cuts off whatever is being said (as NVDA does); a completed word
+        // is queued after the boundary character echoed just before it
+        var priority = typingEcho.IsWord ? SpeechPriority.High : SpeechPriority.Interrupt;
+        var utterance = new Utterance(typingEcho.Text, priority);
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
     }
 
-    private static string BuildFocusAnnouncement(FocusChangedEvent focus)
+    private string BuildFocusAnnouncement(FocusChangedEvent focus)
     {
-        var parts = new List<string>();
-
-        if (focus.HeadingLevel > 0)
-            parts.Add($"Heading level {focus.HeadingLevel}");
-
-        if (!string.IsNullOrEmpty(focus.LandmarkType))
-            parts.Add(focus.LandmarkType);
-
-        if (!string.IsNullOrEmpty(focus.ElementName))
-            parts.Add(focus.ElementName);
-
-        if (!string.IsNullOrEmpty(focus.ControlType))
-            parts.Add(focus.ControlType);
-
-        if (focus.IsVisited)
-            parts.Add("visited");
-
-        if (focus.IsRequired)
-            parts.Add("required");
-
-        if (focus.IsExpandable)
-            parts.Add(focus.IsExpanded ? "expanded" : "collapsed");
-
-        return string.Join(", ", parts);
+        var settings = _settings?.CurrentValue ?? new VoxSettings();
+        return _announcementBuilder.Build(
+            focus, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
     }
 
     public void Dispose()

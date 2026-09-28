@@ -59,6 +59,22 @@ public sealed class TypingEchoHandler
         0x2E, // Delete
     };
 
+    /// <summary>
+    /// True while a password field has focus: characters are echoed as "star" and never buffered
+    /// or spoken as words. Set by focus tracking on the pipeline thread (the same thread that
+    /// calls <see cref="HandleKeyEvent"/>).
+    /// </summary>
+    public bool PasswordMode
+    {
+        get => _passwordMode;
+        set
+        {
+            _passwordMode = value;
+            if (value) _wordBuffer.Clear();
+        }
+    }
+    private volatile bool _passwordMode;
+
     public TypingEchoHandler(
         IEventSink pipeline,
         Func<TypingEchoMode> getMode,
@@ -110,6 +126,14 @@ public sealed class TypingEchoHandler
         if (ch == '\0')
             return; // Non-printable key (arrows, F-keys, etc.)
 
+        if (PasswordMode)
+        {
+            // Never reveal password characters, and never collect them into a word
+            if (mode == TypingEchoMode.Characters || mode == TypingEchoMode.Both)
+                _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, "star", IsWord: false));
+            return;
+        }
+
         // Append to rolling word buffer
         _wordBuffer.Append(ch);
 
@@ -124,6 +148,18 @@ public sealed class TypingEchoHandler
 
     private void HandleWordBoundary(int vkCode, TypingEchoMode mode)
     {
+        // Echo the boundary character first: character echoes interrupt speech, while the word
+        // (spoken at High priority) queues after it instead of being cut off by it
+        if (mode == TypingEchoMode.Characters || mode == TypingEchoMode.Both)
+        {
+            var boundaryName = PasswordMode && vkCode != 0x0D ? "star" : BoundaryName(vkCode);
+            if (!string.IsNullOrEmpty(boundaryName))
+            {
+                _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, boundaryName, IsWord: false));
+                _logger.LogDebug("TypingEcho boundary char: {Char}", boundaryName);
+            }
+        }
+
         // Speak the word that was accumulated before this boundary
         if ((mode == TypingEchoMode.Words || mode == TypingEchoMode.Both)
             && _wordBuffer.Length > 0)
@@ -134,35 +170,25 @@ public sealed class TypingEchoHandler
         }
 
         _wordBuffer.Clear();
-
-        // Also echo the boundary character itself if in character mode
-        if (mode == TypingEchoMode.Characters || mode == TypingEchoMode.Both)
-        {
-            var boundaryName = vkCode switch
-            {
-                0x0D => "Return",
-                0x20 => "Space",
-                0xBC => "comma",
-                0xBE => "period",
-                0xBF => "slash",
-                0xBA => "semicolon",
-                0xDE => "quote",
-                0xDB => "open bracket",
-                0xDD => "close bracket",
-                0xDC => "backslash",
-                0xBD => "hyphen",
-                0xBB => "equals",
-                0xC0 => "backtick",
-                _ => string.Empty
-            };
-
-            if (!string.IsNullOrEmpty(boundaryName))
-            {
-                _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, boundaryName, IsWord: false));
-                _logger.LogDebug("TypingEcho boundary char: {Char}", boundaryName);
-            }
-        }
     }
+
+    private static string BoundaryName(int vkCode) => vkCode switch
+    {
+        0x0D => "Return",
+        0x20 => "Space",
+        0xBC => "comma",
+        0xBE => "period",
+        0xBF => "slash",
+        0xBA => "semicolon",
+        0xDE => "quote",
+        0xDB => "open bracket",
+        0xDD => "close bracket",
+        0xDC => "backslash",
+        0xBD => "hyphen",
+        0xBB => "equals",
+        0xC0 => "backtick",
+        _ => string.Empty
+    };
 
     /// <summary>
     /// Maps a virtual key code to its printable character, considering shift and Caps Lock state.
