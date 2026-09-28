@@ -638,15 +638,47 @@ public sealed class BrowseModeController
     {
         var focus = _lastFocus;
         var role = focus?.AriaRole?.Trim().ToLowerInvariant();
+        bool isMenu = focus is not null && (focus.ControlType == "Menu" || role == "menu");
+        bool isMenuItem = focus is not null
+            && (focus.ControlType == "MenuItem" || role is "menuitem" or "menuitemcheckbox" or "menuitemradio");
+
+        // Escape belongs to the page only while a popup is open: an expanded combo box or menu
+        // item, a popup menu itself, or an item inside one. A menu bar item (many sites use
+        // role=menubar for plain navigation) or a closed menu's button must let Escape leave
+        // Focus mode, or the user is stuck in it
         bool popupOpen = focus is not null &&
-            (((focus.ControlType == "ComboBox" || role == "combobox") && _focusedExpanded)
-             || focus.ControlType is "Menu" or "MenuItem"
-             || role is "menu" or "menuitem" or "menuitemcheckbox" or "menuitemradio");
+            (((focus.ControlType == "ComboBox" || role == "combobox" || isMenuItem) && _focusedExpanded)
+             || isMenu
+             || (isMenuItem && IsInPopupMenu(focus)));
 
         if (popupOpen == _escapeGoesToPage)
             return;
         _escapeGoesToPage = popupOpen;
         EscapeGoesToPageChanged?.Invoke(this, popupOpen);
+    }
+
+    /// <summary>
+    /// Whether a focused menu item is inside a popup menu (its nearest menu-like ancestor is a
+    /// menu, not a menu bar). An item the buffer doesn't contain counts as in a popup: popups
+    /// are usually added to the page after it was captured.
+    /// </summary>
+    private bool IsInPopupMenu(FocusChangedEvent focus)
+    {
+        if (focus.RuntimeId is not { Length: > 0 } id)
+            return true;
+        var node = _quickNavHandler.CurrentDocument?.FindByRuntimeId(id);
+        if (node is null)
+            return true;
+
+        for (var n = node.Parent; n is not null; n = n.Parent)
+        {
+            var role = n.AriaRole?.Trim().ToLowerInvariant();
+            if (n.ControlType == "MenuBar" || role == "menubar")
+                return false;
+            if (n.ControlType == "Menu" || role == "menu")
+                return true;
+        }
+        return false;
     }
 
     private static int ToInt(object? value) => value is IConvertible c ? c.ToInt32(null) : -1;
@@ -929,7 +961,8 @@ public sealed class BrowseModeController
             table, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
         if (string.IsNullOrWhiteSpace(text))
             text = "table";
-        if (_cursor is not null && table.TextRange.Start < _cursor.Document.FlatText.Length)
+        // Only a table with text of its own: an empty one's range sits at the following content
+        if (_cursor is not null && table.TextRange.Start < _cursor.Document.FlatText.Length && SubtreeHasText(table))
         {
             ApplyCursorSettings(_cursor);
             var firstLine = _cursor.ReadCurrentLine();
@@ -937,6 +970,18 @@ public sealed class BrowseModeController
                 text = $"{text}, {firstLine}";
         }
         Speak(text);
+    }
+
+    private static bool SubtreeHasText(VBufferNode node)
+    {
+        if (node.HasText)
+            return true;
+        foreach (var child in node.Children)
+        {
+            if (SubtreeHasText(child))
+                return true;
+        }
+        return false;
     }
 
     // User navigation always interrupts whatever is being spoken

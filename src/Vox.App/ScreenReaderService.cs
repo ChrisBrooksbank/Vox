@@ -286,8 +286,9 @@ public sealed class ScreenReaderService : IHostedService
         try
         {
             _sayAllController.Cancel();
-            _speechQueue.CancelAll();
             _keyInputDispatcher.Stop();
+            // Page speech (focus, live regions, notifications) must not talk over the wizard
+            _speechQueue.Suspend();
             await _firstRunWizard.RunAsync(_lifetime.ApplicationStopping).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -296,6 +297,7 @@ public sealed class ScreenReaderService : IHostedService
         }
         finally
         {
+            _speechQueue.Resume();
             if (!_lifetime.ApplicationStopping.IsCancellationRequested)
                 _keyInputDispatcher.Start();
             Interlocked.Exchange(ref _setupRunning, 0);

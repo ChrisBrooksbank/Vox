@@ -179,7 +179,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         VBufferDocument buffer;
         try
         {
-            var cached = document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
+            var cached = _uiaProvider.WithDocumentCaptureTimeout(() => document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
             var snapshot = UIAElementSnapshot.Capture(cached);
             buffer = new VBufferBuilder().Build(snapshot);
             _capturedIds.Clear();
@@ -317,7 +317,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             // Many changes, or a change to the document itself: re-capture the whole document
             if (full || changes.Count > FullRecaptureThreshold || changes.Any(c => c.AsSpan().SequenceEqual(rootId)))
             {
-                var cached = root.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
+                var cached = _uiaProvider.WithDocumentCaptureTimeout(() => root.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
                 var rootSnapshot = UIAElementSnapshot.Capture(cached);
                 RememberIds(rootSnapshot);
                 _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, rootId, rootSnapshot, rootId));
