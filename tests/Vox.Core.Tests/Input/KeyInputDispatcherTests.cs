@@ -302,6 +302,23 @@ public class KeyInputDispatcherTests
     }
 
     [Fact]
+    public void Escape_UsesPopupStateFromPressTime()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildEscapeMap());
+        dispatcher.SetMode(InteractionMode.Focus);
+
+        // Swallowed as "leave Focus mode" when pressed...
+        var decision = dispatcher.Decide(new KeyEvent { VkCode = 27, IsKeyDown = true });
+        Assert.True(decision.Suppress);
+
+        // ...then a popup opened before the consumer thread handled it: still leaves Focus mode
+        dispatcher.SetEscapeGoesToPage(true);
+        fireKey(new KeyEvent { VkCode = 27, IsKeyDown = true, Decision = decision });
+
+        Assert.Equal(NavigationCommand.ExitFocusMode, Assert.IsType<NavigationCommandEvent>(Assert.Single(sink.Posted)).Command);
+    }
+
+    [Fact]
     public void ShouldSuppress_BrowseKey_InFocusMode_ReturnsFalse()
     {
         var (dispatcher, _, _) = Create(BuildMultiMap());

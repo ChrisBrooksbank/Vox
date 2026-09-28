@@ -22,6 +22,48 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
 
     private const int VK_CAPITAL = 0x14; // CapsLock
 
+    // dwExtraInfo on keys Vox injects itself, so the hook lets them through untouched
+    private const nuint VoxInjectedMarker = 0x566F78; // "Vox"
+    private const uint INPUT_KEYBOARD = 1;
+    private const uint KEYEVENTF_KEYUP = 0x0002;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public nuint dwExtraInfo;
+    }
+
+    // INPUT: the union includes MOUSEINPUT (its largest member) so the struct size and the
+    // union's alignment match Windows on both 32- and 64-bit
+    [StructLayout(LayoutKind.Sequential)]
+    private struct INPUT
+    {
+        public uint type;
+        public InputUnion u;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct InputUnion
+    {
+        [FieldOffset(0)] public MOUSEINPUT mi;
+        [FieldOffset(0)] public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx, dy;
+        public uint mouseData, dwFlags, time;
+        public nuint dwExtraInfo;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct KBDLLHOOKSTRUCT
     {
@@ -110,7 +152,36 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
     public ModifierKey ScreenReaderModifier
     {
         get => _keyState.ScreenReaderModifier;
-        set => _keyState.ScreenReaderModifier = value;
+        set
+        {
+            bool becomingCapsLock = value == ModifierKey.CapsLock && _keyState.ScreenReaderModifier != ModifierKey.CapsLock;
+            _keyState.ScreenReaderModifier = value;
+
+            // Once CapsLock is the screen reader key every press is swallowed, so a Caps Lock that
+            // is on at this moment could never be turned off again: turn it off now
+            if (becomingCapsLock && (GetKeyState(VK_CAPITAL) & 0x0001) != 0)
+                PressCapsLockOnce();
+        }
+    }
+
+    /// <summary>Toggles Caps Lock with an injected press that the hook passes through.</summary>
+    private void PressCapsLockOnce()
+    {
+        try
+        {
+            var inputs = new[]
+            {
+                new INPUT { type = INPUT_KEYBOARD, u = new InputUnion { ki = new KEYBDINPUT { wVk = VK_CAPITAL, dwExtraInfo = VoxInjectedMarker } } },
+                new INPUT { type = INPUT_KEYBOARD, u = new InputUnion { ki = new KEYBDINPUT { wVk = VK_CAPITAL, dwFlags = KEYEVENTF_KEYUP, dwExtraInfo = VoxInjectedMarker } } },
+            };
+            if (SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>()) != inputs.Length)
+                _logger.LogWarning("Could not turn Caps Lock off (SendInput error {Error})", Marshal.GetLastWin32Error());
+            _keyState.SetCapsLockState(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not turn Caps Lock off");
+        }
     }
 
     public KeyboardHook(ILogger<KeyboardHook> logger)
@@ -272,6 +343,10 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
             {
                 var kbStruct = *(KBDLLHOOKSTRUCT*)lParam;
                 var vkCode = (int)kbStruct.vkCode;
+
+                // Keys Vox injected itself (e.g. turning Caps Lock off) go straight through
+                if (kbStruct.dwExtraInfo == VoxInjectedMarker)
+                    return CallNextHookEx(_hookHandle, nCode, wParam, lParam);
 
                 if (_resetRequested)
                 {

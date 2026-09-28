@@ -58,7 +58,7 @@ public sealed class NavigationManager
                 // Auto-switch to Focus mode if activating an edit field
                 if (IsEditField(currentNode))
                 {
-                    SwitchTo(InteractionMode.Focus, "activated edit field");
+                    SwitchTo(InteractionMode.Focus, "activated edit field", announce: false);
                 }
                 return false; // Let the activation proceed
 
@@ -81,7 +81,7 @@ public sealed class NavigationManager
     {
         if (_currentMode == InteractionMode.Focus && !FormControls.IsFormField(evt.ControlType, evt.AriaRole))
         {
-            SwitchTo(InteractionMode.Browse, "focus left form field");
+            SwitchTo(InteractionMode.Browse, "focus left form field", announce: false);
         }
     }
 
@@ -100,7 +100,11 @@ public sealed class NavigationManager
     /// Switches to the specified mode and posts a ModeChangedEvent (the pipeline plays the cue).
     /// No-op if already in the requested mode.
     /// </summary>
-    public void SwitchTo(InteractionMode mode, string? reason = null)
+    /// <param name="announce">
+    /// True to speak the new mode (user toggles); false for automatic switches, which only play
+    /// the cue so they don't talk over the field announcement that caused them.
+    /// </param>
+    public void SwitchTo(InteractionMode mode, string? reason = null, bool announce = true)
     {
         if (_currentMode == mode) return;
 
@@ -108,7 +112,7 @@ public sealed class NavigationManager
         _logger.LogInformation("Mode changed to {Mode} ({Reason})", mode, reason ?? "unknown");
 
         ModeChanged?.Invoke(this, mode);
-        _pipeline.Post(new ModeChangedEvent(DateTimeOffset.UtcNow, mode, reason));
+        _pipeline.Post(new ModeChangedEvent(DateTimeOffset.UtcNow, mode, reason, announce));
     }
 
     /// <summary>

@@ -50,10 +50,16 @@ public record LiveRegionFlushEvent(
 
 public enum InteractionMode { Browse, Focus }
 
+/// <summary>
+/// The browse/focus mode changed. The mode cue always plays; <paramref name="Announce"/> says
+/// whether the new mode is also spoken (user toggles) or not (automatic switches, whose cue must
+/// not talk over the announcement of the field that caused them).
+/// </summary>
 public record ModeChangedEvent(
     DateTimeOffset Timestamp,
     InteractionMode NewMode,
-    string? Reason = null
+    string? Reason = null,
+    bool Announce = true
 ) : ScreenReaderEvent(Timestamp);
 
 public record TypingEchoEvent(

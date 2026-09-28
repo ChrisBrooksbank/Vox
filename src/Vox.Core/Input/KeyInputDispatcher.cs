@@ -27,10 +27,13 @@ public sealed class KeyInputDispatcher
     private volatile bool _documentActive;
     private volatile bool _escapeGoesToPage;
 
-    // Resolution contexts carried in KeyDecision.Context (0 = no decision)
+    // Resolution contexts carried in KeyDecision.Context (0 = no decision). The low bits hold the
+    // context; EscapeToPageFlag records whether Escape belonged to the page at press time.
     private const int BrowseContext = 1;
     private const int FocusContext = 2;
     private const int OutsideDocumentContext = 3;
+    private const int ContextMask = 0x3;
+    private const int EscapeToPageFlag = 0x4;
 
     // Keys whose key-down was dispatched as a command; their key-ups are dropped so a key that
     // changed the mode (e.g. Enter entering Focus mode) is not then echoed as typing.
@@ -123,7 +126,8 @@ public sealed class KeyInputDispatcher
             return KeyDecision.Pass;
 
         var context = CurrentContext;
-        bool found = TryResolve(evt, context, out _, out var passThrough);
+        bool escapeToPage = _escapeGoesToPage;
+        bool found = TryResolve(evt, context, escapeToPage, out _, out var passThrough);
         bool suppress = found && !passThrough;
 
         if (!found)
@@ -138,7 +142,7 @@ public sealed class KeyInputDispatcher
                 suppress = true;
         }
 
-        return new KeyDecision(suppress, context);
+        return new KeyDecision(suppress, context | (escapeToPage ? EscapeToPageFlag : 0));
     }
 
     /// <summary>True when <see cref="Decide"/> would swallow the key.</summary>
@@ -154,7 +158,8 @@ public sealed class KeyInputDispatcher
         || vk is >= 0xDB and <= 0xDF
         || vk == 0xE2;
 
-    private bool TryResolve(KeyEvent evt, int context, out NavigationCommand command, out bool passThrough)
+    private bool TryResolve(KeyEvent evt, int context, bool escapeToPage,
+        out NavigationCommand command, out bool passThrough)
     {
         bool found = context == OutsideDocumentContext
             ? _keyMap.TryResolveOutsideDocument(evt.Modifiers, evt.VkCode, out command, out passThrough)
@@ -163,7 +168,7 @@ public sealed class KeyInputDispatcher
                 out command, out passThrough);
 
         // Escape closes an open popup rather than leaving Focus mode
-        if (found && command == NavigationCommand.ExitFocusMode && _escapeGoesToPage)
+        if (found && command == NavigationCommand.ExitFocusMode && escapeToPage)
             found = false;
 
         return found;
@@ -175,11 +180,14 @@ public sealed class KeyInputDispatcher
 
         if (evt.IsKeyDown)
         {
-            // Resolve in the context the hook used when the key was pressed, so the swallow
-            // decision and the command always agree even if the mode changed since
-            var context = evt.Decision.Context > 0 ? evt.Decision.Context : CurrentContext;
+            // Resolve exactly as the hook did when the key was pressed (context and whether Escape
+            // belonged to the page), so the swallow decision and the command always agree even if
+            // the mode or a popup changed since
+            bool decided = evt.Decision.Context > 0;
+            var context = decided ? evt.Decision.Context & ContextMask : CurrentContext;
+            bool escapeToPage = decided ? (evt.Decision.Context & EscapeToPageFlag) != 0 : _escapeGoesToPage;
 
-            if (TryResolve(evt, context, out var command, out _))
+            if (TryResolve(evt, context, escapeToPage, out var command, out _))
             {
                 _logger.LogDebug(
                     "Key {VkCode} with {Modifiers} in context {Context} -> {Command}",

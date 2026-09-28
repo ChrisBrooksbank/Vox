@@ -44,7 +44,10 @@ public sealed class TypingEchoHandler
     private const int VK_RETURN = 0x0D;
     private const int VK_BACK = 0x08;
 
-    private readonly Func<KeyEvent, char> _charMapper;
+    private readonly Func<KeyEvent, TypedChar> _charMapper;
+
+    // Accent from a dead key, waiting to combine with the next character (e.g. '^' + 'e' = 'ê')
+    private char? _pendingDeadKey;
 
     // Modifiers and Caps Lock at each key's key-down: echo happens on key-up, when the user may
     // already have released Shift (a capital) or Ctrl (a shortcut)
@@ -76,12 +79,12 @@ public sealed class TypingEchoHandler
         IEventSink pipeline,
         Func<TypingEchoMode> getMode,
         ILogger<TypingEchoHandler> logger,
-        Func<KeyEvent, char>? charMapper = null)
+        Func<KeyEvent, TypedChar>? charMapper = null)
     {
         _pipeline = pipeline;
         _getMode = getMode;
         _logger = logger;
-        _charMapper = charMapper ?? (e => VkCodeToChar(e.VkCode, e.Modifiers, e.CapsLockOn));
+        _charMapper = charMapper ?? (e => (TypedChar)VkCodeToChar(e.VkCode, e.Modifiers, e.CapsLockOn));
     }
 
     /// <summary>Forgets the partly typed word (focus or caret moved elsewhere).</summary>
@@ -126,20 +129,39 @@ public sealed class TypingEchoHandler
             _seenDown[slot] = false;
         }
 
-        // Shortcuts (Ctrl+S, Alt+F, Insert+…) don't type anything
-        if ((evt.Modifiers & (KeyModifiers.Ctrl | KeyModifiers.Alt | KeyModifiers.Insert)) != 0)
+        // Shortcuts (Ctrl+S, Alt+F, Insert+…) don't type anything. Ctrl+Alt together is AltGr,
+        // which types characters on many layouts; it counts as a shortcut only if it types nothing.
+        bool ctrl = (evt.Modifiers & KeyModifiers.Ctrl) != 0;
+        bool alt = (evt.Modifiers & KeyModifiers.Alt) != 0;
+        bool altGr = ctrl && alt;
+        if ((evt.Modifiers & KeyModifiers.Insert) != 0 || ((ctrl || alt) && !altGr))
             return;
 
-        if (evt.VkCode == VK_RETURN)
+        if (evt.VkCode == VK_RETURN && !altGr)
         {
+            _pendingDeadKey = null;
             HandleWordBoundary("Return", mode);
             return;
         }
 
         // The character this key types in the user's keyboard layout
-        var ch = _charMapper(evt);
+        var typed = _charMapper(evt);
+        if (typed.IsDeadKey)
+        {
+            // Nothing is typed yet: the accent combines with the next character
+            _pendingDeadKey = typed.Char;
+            return;
+        }
+
+        var ch = typed.Char;
         if (ch == '\0')
-            return; // Non-printable key (arrows, F-keys, etc.)
+            return; // Non-printable key (arrows, F-keys, etc.), or an AltGr shortcut
+
+        if (_pendingDeadKey is { } accent)
+        {
+            _pendingDeadKey = null;
+            ch = ComposeWithDeadKey(accent, ch);
+        }
 
         // Space and punctuation end a word
         if (ch == ' ' || char.IsPunctuation(ch) || char.IsSymbol(ch))
@@ -166,6 +188,34 @@ public sealed class TypingEchoHandler
             _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, charText, IsWord: false));
             _logger.LogDebug("TypingEcho char: {Char}", charText);
         }
+    }
+
+    /// <summary>
+    /// The character typed after dead key <paramref name="accent"/>: the precomposed letter when
+    /// one exists ('^' + 'e' → 'ê'), the accent itself after Space, otherwise the plain character.
+    /// </summary>
+    public static char ComposeWithDeadKey(char accent, char ch)
+    {
+        if (ch == ' ')
+            return accent;
+
+        char? combining = accent switch
+        {
+            '^' => '\u0302',
+            '´' or '\'' => '\u0301',
+            '`' => '\u0300',
+            '¨' or '"' => '\u0308',
+            '~' => '\u0303',
+            '¸' => '\u0327',
+            'ˇ' => '\u030C',
+            '°' or '˚' => '\u030A',
+            _ => null,
+        };
+        if (combining is null)
+            return ch;
+
+        var composed = string.Concat(ch, combining.Value).Normalize(System.Text.NormalizationForm.FormC);
+        return composed.Length == 1 ? composed[0] : ch;
     }
 
     private void HandleWordBoundary(string boundaryName, TypingEchoMode mode)
@@ -197,6 +247,10 @@ public sealed class TypingEchoHandler
     /// </summary>
     public static char VkCodeToChar(int vkCode, KeyModifiers modifiers, bool capsLockOn = false)
     {
+        // The US layout has no AltGr characters: Ctrl/Alt combinations type nothing
+        if ((modifiers & (KeyModifiers.Ctrl | KeyModifiers.Alt)) != 0)
+            return '\0';
+
         bool shift = (modifiers & KeyModifiers.Shift) != 0;
 
         // A-Z keys (VK 65–90): Caps Lock inverts the case Shift gives

@@ -116,6 +116,7 @@ public sealed class UIAProvider : IDisposable
         var request = automation.CreateCacheRequest();
         request.AddProperty(UIA_NamePropertyId);
         request.AddProperty(UIA_LiveSettingPropertyId);
+        request.AddProperty(UIA_ProcessIdPropertyId);
         request.TreeScope = TreeScope.TreeScope_Subtree;
         request.TreeFilter = automation.ControlViewCondition;
         return request;

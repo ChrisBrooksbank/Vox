@@ -317,6 +317,11 @@ public sealed class UIAEventSubscriber :
         if (politeness == LiveRegionPoliteness.Off)
             return;
 
+        // Live regions in background applications must not talk over the one the user is using
+        var senderProcess = TryGetValue(sender, () => sender.CachedProcessId, -1);
+        if (!IsForegroundProcess(senderProcess))
+            return;
+
         var text = GetLiveRegionText(sender);
 
         var runtimeId = TryGetRuntimeId(sender);

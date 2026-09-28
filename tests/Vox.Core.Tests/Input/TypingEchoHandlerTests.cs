@@ -478,4 +478,63 @@ public class TypingEchoHandlerTests
 
         Assert.Equal("quote", Assert.Single(sink.Echoes).Text);
     }
+
+    // -------------------------------------------------------------------------
+    // Round 4: AltGr and dead keys
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void AltGrCharacter_IsEchoedAndBuffered()
+    {
+        var sink = new ListSink();
+        // German layout: AltGr (Ctrl+Alt) + Q types '@'
+        var handler = new TypingEchoHandler(sink, () => TypingEchoMode.Both,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<TypingEchoHandler>.Instance,
+            e => e.VkCode == 0x51 && (e.Modifiers & KeyModifiers.Ctrl) != 0 && (e.Modifiers & KeyModifiers.Alt) != 0
+                ? '@' : TypingEchoHandler.VkCodeToChar(e.VkCode, e.Modifiers, e.CapsLockOn));
+
+        handler.HandleKeyEvent(ModKeyUp(0x51, KeyModifiers.Ctrl | KeyModifiers.Alt));
+
+        Assert.Equal("at", Assert.Single(sink.Echoes).Text);
+    }
+
+    [Fact]
+    public void CtrlAltShortcutTypingNothing_IsNotEchoed()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Both);
+
+        handler.HandleKeyEvent(KeyUp(0x54, KeyModifiers.Ctrl | KeyModifiers.Alt)); // Ctrl+Alt+T (US: nothing)
+        handler.HandleKeyEvent(KeyUp(0x20));
+
+        Assert.Equal(["Space"], sink.Events.Select(e => e.Text));
+    }
+
+    [Fact]
+    public void DeadKey_CombinesWithNextLetter()
+    {
+        var sink = new ListSink();
+        // French layout: the ^ key is a dead key
+        var handler = new TypingEchoHandler(sink, () => TypingEchoMode.Both,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<TypingEchoHandler>.Instance,
+            e => e.VkCode == 0xDD ? new TypedChar('^', IsDeadKey: true)
+                : TypingEchoHandler.VkCodeToChar(e.VkCode, e.Modifiers, e.CapsLockOn));
+
+        handler.HandleKeyEvent(ModKeyUp(0xDD, KeyModifiers.None)); // ^ (dead)
+        handler.HandleKeyEvent(ModKeyUp(0x45, KeyModifiers.None)); // e
+        handler.HandleKeyEvent(ModKeyUp(0x20, KeyModifiers.None));
+
+        Assert.Equal(["ê", "Space", "ê"], sink.Echoes.Select(e => e.Text));
+    }
+
+    [Theory]
+    [InlineData('^', 'e', 'ê')]
+    [InlineData('´', 'a', 'á')]
+    [InlineData('¨', 'u', 'ü')]
+    [InlineData('~', 'n', 'ñ')]
+    [InlineData('^', ' ', '^')]
+    [InlineData('^', 'x', 'x')]
+    public void ComposeWithDeadKey(char accent, char ch, char expected)
+    {
+        Assert.Equal(expected, TypingEchoHandler.ComposeWithDeadKey(accent, ch));
+    }
 }
