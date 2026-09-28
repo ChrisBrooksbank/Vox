@@ -374,3 +374,102 @@ public class VBufferCursorTests
         mock.Verify(p => p.Play(It.IsAny<string>()), Times.Never);
     }
 }
+
+public class VBufferCursorLineLengthTests
+{
+    private static VBufferCursor CursorFor(string flatText, int maxLineLength = 20)
+    {
+        var root = new VBufferNode { Id = 0, UIARuntimeId = [1], ControlType = "Document", TextRange = (0, flatText.Length) };
+        var doc = new VBufferDocument(flatText, root, [root]);
+        return new VBufferCursor(doc, new Moq.Mock<Vox.Core.Audio.IAudioCuePlayer>().Object) { MaxLineLength = maxLineLength };
+    }
+
+    // 44 characters of words, then a short line
+    private const string Text = "alpha beta gamma delta epsilon zeta eta theta\nshort\n";
+
+    [Fact]
+    public void LongLine_IsReadInPiecesAtWordBoundaries()
+    {
+        var cursor = CursorFor(Text);
+
+        Assert.Equal("alpha beta gamma", cursor.ReadCurrentLine());
+        Assert.Equal("delta epsilon zeta", cursor.NextLine());
+        Assert.Equal("eta theta", cursor.NextLine());
+        Assert.Equal("short", cursor.NextLine());
+    }
+
+    [Fact]
+    public void PrevLine_WalksBackThroughThePieces()
+    {
+        var cursor = CursorFor(Text);
+        cursor.NextLine(); cursor.NextLine(); cursor.NextLine(); // "short"
+
+        Assert.Equal("eta theta", cursor.PrevLine());
+        Assert.Equal("delta epsilon zeta", cursor.PrevLine());
+        Assert.Equal("alpha beta gamma", cursor.PrevLine());
+        Assert.Null(cursor.PrevLine());
+    }
+
+    [Fact]
+    public void ZeroMaxLength_KeepsWholeLines()
+    {
+        var cursor = CursorFor(Text, maxLineLength: 0);
+
+        Assert.Equal("alpha beta gamma delta epsilon zeta eta theta", cursor.ReadCurrentLine());
+        Assert.Equal("short", cursor.NextLine());
+    }
+
+    [Fact]
+    public void OneLongWord_IsSplitAtTheLimit()
+    {
+        var cursor = CursorFor(new string('x', 30) + "\n", maxLineLength: 20);
+
+        Assert.Equal(new string('x', 20), cursor.ReadCurrentLine());
+        Assert.Equal(new string('x', 10), cursor.NextLine());
+    }
+
+    [Fact]
+    public void HomeAndEnd_StayWithinThePiece()
+    {
+        var cursor = CursorFor(Text);
+        cursor.NextLine(); // "delta epsilon zeta"
+
+        Assert.Equal('a', cursor.EndOfLine());
+        Assert.Equal("delta epsilon zeta".Length - 1, cursor.TextOffset - Text.IndexOf("delta"));
+        Assert.Equal('d', cursor.StartOfLine());
+        Assert.Equal(Text.IndexOf("delta"), cursor.TextOffset);
+    }
+
+    [Fact]
+    public void EmptyLine_HomeAndEndReturnNull()
+    {
+        var cursor = CursorFor("a\n\nb\n");
+        cursor.NextLine(); // blank line
+
+        Assert.Null(cursor.EndOfLine());
+        Assert.Null(cursor.StartOfLine());
+    }
+
+    [Fact]
+    public void Paragraphs_SkipBlankLinesAndPieces()
+    {
+        var cursor = CursorFor("alpha beta gamma delta epsilon zeta\n\nsecond\nthird\n");
+
+        Assert.Equal("second", cursor.NextParagraph());
+        Assert.Equal("third", cursor.NextParagraph());
+        Assert.Null(cursor.NextParagraph());
+        Assert.Equal("second", cursor.PrevParagraph());
+        Assert.Equal("alpha beta gamma delta epsilon zeta", cursor.PrevParagraph());
+        Assert.Null(cursor.PrevParagraph());
+    }
+
+    [Fact]
+    public void TopAndBottom()
+    {
+        var cursor = CursorFor(Text);
+
+        Assert.Equal("short", cursor.BottomOfDocument());
+        Assert.Equal("alpha beta gamma", cursor.TopOfDocument());
+        Assert.Equal(0, cursor.TextOffset);
+    }
+}

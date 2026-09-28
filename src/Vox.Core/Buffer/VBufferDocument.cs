@@ -34,6 +34,9 @@ public sealed class VBufferDocument
     /// <summary>All nodes where IsFocusable is true, in document order.</summary>
     public IReadOnlyList<VBufferNode> FocusableElements { get; }
 
+    /// <summary>Tables and grids, in document order.</summary>
+    public IReadOnlyList<VBufferNode> Tables { get; }
+
     // Fast lookup tables
     private readonly Dictionary<string, VBufferNode> _byRuntimeId;
     private readonly VBufferNode[] _allNodesArray;
@@ -54,6 +57,7 @@ public sealed class VBufferDocument
         var formFields = new List<VBufferNode>();
         var landmarks = new List<VBufferNode>();
         var focusable = new List<VBufferNode>();
+        var tables = new List<VBufferNode>();
         _byRuntimeId = new Dictionary<string, VBufferNode>(allNodes.Count);
 
         foreach (var node in allNodes)
@@ -63,6 +67,7 @@ public sealed class VBufferDocument
             if (IsFormField(node)) formFields.Add(node);
             if (node.IsLandmark) landmarks.Add(node);
             if (node.IsFocusable) focusable.Add(node);
+            if (IsTable(node)) tables.Add(node);
 
             var key = RuntimeIdKey(node.UIARuntimeId);
             _byRuntimeId[key] = node;
@@ -73,6 +78,7 @@ public sealed class VBufferDocument
         FormFields = formFields;
         Landmarks = landmarks;
         FocusableElements = focusable;
+        Tables = tables;
     }
 
     /// <summary>
@@ -128,6 +134,11 @@ public sealed class VBufferDocument
 
         return null;
     }
+
+    /// <summary>True for tables and grids (UIA Table/DataGrid, or ARIA table/grid/treegrid).</summary>
+    public static bool IsTable(VBufferNode node) =>
+        node.ControlType is "Table" or "DataGrid"
+        || node.AriaRole?.Trim().ToLowerInvariant() is "table" or "grid" or "treegrid";
 
     private static bool IsFormField(VBufferNode node) =>
         FormControls.IsFormField(node.ControlType, node.AriaRole) ||

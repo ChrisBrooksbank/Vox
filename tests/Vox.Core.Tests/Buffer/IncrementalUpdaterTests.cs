@@ -463,3 +463,41 @@ public class IncrementalUpdaterTests
         Assert.Null(hint);
     }
 }
+
+public class IncrementalUpdaterLineEndTests
+{
+    [Fact]
+    public void RemovingTheLastLinkOfARun_DoesNotJoinTheParagraphOntoTheNextBlock()
+    {
+        // Paragraph: "Read the " + link "docs"; then a separate heading
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var paragraph = new MockElement { RuntimeId = [2], ControlType = "Group" };
+        paragraph.AddChild(new MockElement { RuntimeId = [3], Name = "Read the" });
+        paragraph.AddChild(new MockElement { RuntimeId = [4], Name = "docs", ControlType = "Hyperlink" });
+        root.AddChild(paragraph);
+        root.AddChild(new MockElement { RuntimeId = [5], Name = "Next", AriaRole = "heading", AriaProperties = "level=2" });
+        var doc = new VBufferBuilder().Build(root);
+        Assert.Equal("Read the docs\nNext\n", doc.FlatText);
+
+        var updated = new IncrementalUpdater().ApplyUpdate(doc, [4], null);
+
+        Assert.Equal("Read the\nNext\n", updated.FlatText);
+    }
+
+    [Fact]
+    public void ReplacingALinkInARun_KeepsTheRunJoined()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var paragraph = new MockElement { RuntimeId = [2], ControlType = "Group" };
+        paragraph.AddChild(new MockElement { RuntimeId = [3], Name = "Read the" });
+        paragraph.AddChild(new MockElement { RuntimeId = [4], Name = "docs", ControlType = "Hyperlink" });
+        paragraph.AddChild(new MockElement { RuntimeId = [6], Name = "first" });
+        root.AddChild(paragraph);
+        var doc = new VBufferBuilder().Build(root);
+
+        var updated = new IncrementalUpdater().ApplyUpdate(doc, [4],
+            new MockElement { RuntimeId = [4], Name = "guide", ControlType = "Hyperlink" });
+
+        Assert.Equal("Read the guide first\n", updated.FlatText);
+    }
+}

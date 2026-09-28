@@ -172,8 +172,9 @@ public sealed class UIAEventSubscriber :
             var (headingLevel, isLandmark, landmarkType, isLink) = ParseAriaRole(ariaRole, ariaProps);
             if (uiaHeadingLevel > 0)
                 headingLevel = Math.Min(uiaHeadingLevel, 6);
-            var isVisited = ParseAriaPropertyBool(ariaProps, "visited");
-            var isRequired = ParseAriaPropertyBool(ariaProps, "required");
+            var isVisited = UIAElementSnapshot.ReadIsVisited(sender) || ParseAriaPropertyBool(ariaProps, "visited");
+            var isRequired = UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_IsRequiredForFormPropertyId) == true
+                || ParseAriaPropertyBool(ariaProps, "required");
             var (isExpandable, isExpanded) = Vox.Core.Buffer.ControlState.Expansion(
                 UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_ExpandCollapseStatePropertyId),
                 ariaProps, controlType);
@@ -193,7 +194,9 @@ public sealed class UIAEventSubscriber :
                 RuntimeId: TryGetRuntimeId(sender),
                 IsPassword: TryGetValue(sender, () => sender.CachedIsPassword != 0),
                 ToggleState: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_ToggleStatePropertyId),
-                IsSelected: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_SelectionItemIsSelectedPropertyId)
+                IsSelected: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_SelectionItemIsSelectedPropertyId),
+                Value: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_ValueValuePropertyId),
+                IsValueReadOnly: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_ValueIsReadOnlyPropertyId)
             ));
         }
         catch (Exception ex)
@@ -327,11 +330,12 @@ public sealed class UIAEventSubscriber :
         var runtimeId = TryGetRuntimeId(sender);
         var sourceId = runtimeId.Length > 0 ? string.Join(",", runtimeId) : null;
 
-        if (!string.IsNullOrWhiteSpace(text))
+        // Cleared regions are posted too: the monitor must see the region go empty, or the same
+        // message set again afterwards would look like a duplicate
         {
             _eventSink.Post(new LiveRegionChangedEvent(
                 Timestamp: DateTimeOffset.UtcNow,
-                Text: text,
+                Text: text ?? string.Empty,
                 Politeness: politeness,
                 SourceId: sourceId
             ));

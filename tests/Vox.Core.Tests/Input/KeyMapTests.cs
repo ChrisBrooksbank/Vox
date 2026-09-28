@@ -263,3 +263,29 @@ public class KeyMapTests
         Assert.False(map.TryResolveOutsideDocument(KeyModifiers.None, 27, out _, out _));
     }
 }
+
+public class DefaultKeyMapReadingKeysTests
+{
+    private static readonly KeyMap Map = KeyMap.LoadBuiltIn();
+
+    [Theory]
+    [InlineData(KeyModifiers.Ctrl, 39, NavigationCommand.NextWord)]
+    [InlineData(KeyModifiers.Ctrl, 37, NavigationCommand.PrevWord)]
+    [InlineData(KeyModifiers.Ctrl, 40, NavigationCommand.NextParagraph)]
+    [InlineData(KeyModifiers.Ctrl, 38, NavigationCommand.PrevParagraph)]
+    [InlineData(KeyModifiers.None, 36, NavigationCommand.StartOfLine)]
+    [InlineData(KeyModifiers.None, 35, NavigationCommand.EndOfLine)]
+    [InlineData(KeyModifiers.Ctrl, 36, NavigationCommand.TopOfDocument)]
+    [InlineData(KeyModifiers.Ctrl, 35, NavigationCommand.BottomOfDocument)]
+    public void BrowseModeReadingKeys_FollowNvda(KeyModifiers modifiers, int vk, NavigationCommand expected)
+    {
+        Assert.True(Map.TryResolve(modifiers, vk, InteractionMode.Browse, out var command));
+        Assert.Equal(expected, command);
+    }
+
+    [Theory]
+    [InlineData(KeyModifiers.None, 36)]
+    [InlineData(KeyModifiers.Ctrl, 39)]
+    public void ReadingKeys_ReachTheControlInFocusMode(KeyModifiers modifiers, int vk) =>
+        Assert.False(Map.TryResolve(modifiers, vk, InteractionMode.Focus, out _));
+}

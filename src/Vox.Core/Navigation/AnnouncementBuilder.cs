@@ -55,6 +55,13 @@ public sealed class AnnouncementBuilder
                 Append(sb, controlType);
         }
 
+        // Value — the text in a text box, a combo box's selection ("Country, combo box, France")
+        var value = FormControls.SpokenValue(node);
+        if (value is not null)
+        {
+            Append(sb, value);
+        }
+
         // Visited state — "visited"
         if (announceVisitedLinks && profile.AnnounceVisitedState && node.IsLink && node.IsVisited)
         {
@@ -109,6 +116,8 @@ public sealed class AnnouncementBuilder
             IsExpanded = focus.IsExpanded,
             ToggleState = focus.ToggleState,
             IsSelected = focus.IsSelected,
+            Value = focus.Value ?? string.Empty,
+            IsPassword = focus.IsPassword,
         }, profile, announceVisitedLinks);
 
     /// <summary>Spoken text for a UIA ToggleState, or null when not a toggle.</summary>

@@ -42,6 +42,18 @@ public interface IVBufferElement
     /// <summary>UIA SelectionItem.IsSelected, or null when the element isn't selectable.</summary>
     bool? IsSelected => null;
 
+    /// <summary>UIA Value.Value (the text in a text box, a combo box's selection, a slider's value).</summary>
+    string Value => string.Empty;
+
+    /// <summary>True for password fields, whose value must never be read.</summary>
+    bool IsPassword => false;
+
+    /// <summary>True for a visited link (LegacyIAccessible STATE_SYSTEM_TRAVERSED).</summary>
+    bool IsVisited => false;
+
+    /// <summary>True for a required form field (UIA IsRequiredForForm).</summary>
+    bool IsRequired => false;
+
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
 }
@@ -223,8 +235,8 @@ public sealed class VBufferBuilder
         var isLink = IsLinkElement(ariaRole, element.ControlType);
 
         // Parse ARIA properties
-        var isVisited  = ParseAriaPropertyBool(ariaProps, "visited");
-        var isRequired = ParseAriaPropertyBool(ariaProps, "required");
+        var isVisited  = element.IsVisited || ParseAriaPropertyBool(ariaProps, "visited");
+        var isRequired = element.IsRequired || ParseAriaPropertyBool(ariaProps, "required");
         var (isExpandable, isExpanded) = ControlState.Expansion(element.ExpandCollapseState, ariaProps, element.ControlType);
 
         // Determine focusability
@@ -248,6 +260,8 @@ public sealed class VBufferBuilder
             IsExpanded = isExpanded,
             ToggleState = element.ToggleState,
             IsSelected = element.IsSelected,
+            Value = element.Value ?? string.Empty,
+            IsPassword = element.IsPassword,
             IsFocusable = isFocusable,
             Parent = parent,
         };
@@ -271,7 +285,7 @@ public sealed class VBufferBuilder
     {
         bool descendantsHaveText = flatText.Length > textStart;
         if (!descendantsHaveText)
-            AppendNodeText(element, flatText);
+            AppendNodeText(element, node, flatText);
 
         node.TextRange = descendantsHaveText
             ? (textStart, textStart)
@@ -283,16 +297,21 @@ public sealed class VBufferBuilder
         controlType is "Document" or "Group" or "Pane" or "Window" or "Custom"
             or "ToolBar" or "Menu" or "MenuBar" or "StatusBar" or "TitleBar";
 
-    private static void AppendNodeText(IVBufferElement element, StringBuilder flatText)
+    private static void AppendNodeText(IVBufferElement element, VBufferNode node, StringBuilder flatText)
     {
-        var name = element.Name;
-        if (string.IsNullOrEmpty(name)) return;
-
         // Only leaf-like elements contribute text (not container elements like Document/Group/Pane)
         // We include text from: Text, Heading (via ariaRole), Link, Button, Edit, Image (alt text), etc.
         if (IsContainerControlType(element.ControlType)) return;
 
-        flatText.Append(name);
+        // A form field reads as its label followed by its value ("Search hello"): Chromium's
+        // inputs have no text child holding what was typed or selected
+        var text = element.Name ?? string.Empty;
+        var value = FormControls.SpokenValue(node);
+        if (value is not null)
+            text = string.IsNullOrEmpty(text) ? value : $"{text} {value}";
+        if (string.IsNullOrEmpty(text)) return;
+
+        flatText.Append(text);
         flatText.Append('\n');
     }
 

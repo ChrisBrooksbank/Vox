@@ -119,22 +119,27 @@ public sealed class SpeechQueue : IDisposable
         var token = _cts.Token;
         var reader = _channel.Reader;
 
+        // Utterances waiting to be spoken, in arrival order. Kept across iterations: after each
+        // spoken group newly queued items are merged in and the order is recomputed, so a High
+        // utterance overtakes Low/Normal ones that were queued before it.
+        var pending = new List<QueuedUtterance>();
+
         try
         {
             while (!token.IsCancellationRequested)
             {
                 // Wait for at least one utterance
-                if (!await reader.WaitToReadAsync(token).ConfigureAwait(false))
+                if (pending.Count == 0 && !await reader.WaitToReadAsync(token).ConfigureAwait(false))
                     break;
 
                 // Drain all pending utterances
-                var pending = new List<QueuedUtterance>();
+                int before = pending.Count;
                 while (reader.TryRead(out var u))
                     pending.Add(u);
 
                 // Coalesce Normal-priority utterances: wait for more within window
                 // (not for awaited utterances such as Say All lines, which arrive one at a time)
-                if (pending.Count == 1 && pending[0].Utterance.Priority == SpeechPriority.Normal
+                if (before == 0 && pending.Count == 1 && pending[0].Utterance.Priority == SpeechPriority.Normal
                     && pending[0].Completion is null)
                 {
                     await Task.Delay(CoalescingWindowMs, token).ConfigureAwait(false);
@@ -147,7 +152,7 @@ public sealed class SpeechQueue : IDisposable
                 if (pending.Count == 0)
                     continue;
 
-                // Sort by priority (lower enum value = higher priority); stable for equal priority
+                // Highest priority first (lower enum value = higher priority); stable for equal priority
                 var ordered = pending
                     .Select((item, index) => (item, index))
                     .OrderBy(x => x.item.Utterance.Priority)
@@ -155,18 +160,20 @@ public sealed class SpeechQueue : IDisposable
                     .Select(x => x.item)
                     .ToList();
 
-                foreach (var group in CoalesceUtterances(ordered))
+                // Speak one group, then look at the queue again
+                var group = CoalesceUtterances(ordered)[0];
+                foreach (var item in group)
+                    pending.Remove(item);
+
+                token.ThrowIfCancellationRequested();
+
+                if (group.All(IsStale))
                 {
-                    token.ThrowIfCancellationRequested();
-
-                    if (group.All(IsStale))
-                    {
-                        Complete(group, spoken: false);
-                        continue;
-                    }
-
-                    await SpeakGroupAsync(group, token).ConfigureAwait(false);
+                    Complete(group, spoken: false);
+                    continue;
                 }
+
+                await SpeakGroupAsync(group, token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -176,6 +183,10 @@ public sealed class SpeechQueue : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error in SpeechQueue processing");
+        }
+        finally
+        {
+            Complete(pending, spoken: false);
         }
     }
 

@@ -34,6 +34,35 @@ public static class FormControls
     };
 
     /// <summary>True for form controls (F / Shift+F navigation, staying in Focus mode).</summary>
+    // Controls whose value is part of what they are (the text in a text box, the chosen option)
+    private static readonly HashSet<string> ValueControlTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Edit", "ComboBox", "Spinner", "Slider", "ProgressBar"
+    };
+
+    private static readonly HashSet<string> ValueRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "textbox", "searchbox", "combobox", "spinbutton", "slider", "progressbar"
+    };
+
+    /// <summary>True for controls whose value is spoken with them (text boxes, combo boxes, sliders).</summary>
+    public static bool ShowsValue(string controlType, string? ariaRole) =>
+        ValueControlTypes.Contains(controlType) || IsRole(ValueRoles, ariaRole);
+
+    /// <summary>
+    /// The value to speak for <paramref name="node"/>, or null: not a value control, a password
+    /// field (never read), empty, or the same as the name.
+    /// </summary>
+    public static string? SpokenValue(VBufferNode node)
+    {
+        if (node.IsPassword || !ShowsValue(node.ControlType, node.AriaRole))
+            return null;
+        var value = node.Value?.Trim();
+        if (string.IsNullOrEmpty(value) || string.Equals(value, node.Name?.Trim(), StringComparison.Ordinal))
+            return null;
+        return value;
+    }
+
     public static bool IsFormField(string controlType, string? ariaRole) =>
         FormControlTypes.Contains(controlType) || IsRole(FormRoles, ariaRole);
 

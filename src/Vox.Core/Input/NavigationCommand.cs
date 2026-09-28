@@ -39,5 +39,11 @@ public enum NavigationCommand
     PrevHeadingLevel4,
     PrevHeadingLevel5,
     PrevHeadingLevel6,
-    ExitFocusMode
+    ExitFocusMode,
+    StartOfLine,
+    EndOfLine,
+    TopOfDocument,
+    BottomOfDocument,
+    NextParagraph,
+    PrevParagraph
 }

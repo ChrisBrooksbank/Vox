@@ -416,4 +416,18 @@ public class EventPipelineTests : IDisposable
         lock (_spokenUtterances)
             Assert.Equal(["30 percent"], _spokenUtterances.Select(u => u.Text));
     }
+
+    [Fact]
+    public async Task LiveRegion_SameTextAfterBeingCleared_IsSpokenAgain()
+    {
+        var now = DateTimeOffset.UtcNow;
+        _pipeline.Post(new LiveRegionChangedEvent(now, "Item added", LiveRegionPoliteness.Assertive, "9,9"));
+        _pipeline.Post(new LiveRegionChangedEvent(now, "", LiveRegionPoliteness.Assertive, "9,9"));
+        _pipeline.Post(new LiveRegionChangedEvent(now, "Item added", LiveRegionPoliteness.Assertive, "9,9"));
+
+        await Task.Delay(300);
+
+        lock (_spokenUtterances)
+            Assert.Equal(2, _spokenUtterances.Count(u => u.Text == "Item added"));
+    }
 }

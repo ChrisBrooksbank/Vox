@@ -173,6 +173,8 @@ public sealed class IncrementalUpdater
         // The re-captured subtree ends its text in '\n' again; re-join inline runs so a changed
         // link doesn't split its paragraph into lines (same-length replacements, offsets unchanged)
         var joined = new System.Text.StringBuilder(newFlatText);
+        if (oldSubtreeRoot.Parent is not null && copies.TryGetValue(oldSubtreeRoot.Parent, out var spliceParent))
+            RestoreLineEnds(spliceParent, joined);
         VBufferBuilder.JoinInlineRuns(allNewNodes, joined);
 
         return new IncrementalUpdateResult(
@@ -185,6 +187,33 @@ public sealed class IncrementalUpdater
     // -------------------------------------------------------------------------
 
     /// <summary>Collects all nodes in the subtree rooted at <paramref name="node"/> in pre-order.</summary>
+    /// <summary>
+    /// Every node's text ends in '\n' when built; joining inline runs turns some into spaces.
+    /// Around a splice the runs may have changed (the last link of a paragraph removed), so the
+    /// line ends of the siblings at the splice point and of each ancestor level are restored
+    /// before the runs are joined again — otherwise a paragraph could run into the next block.
+    /// </summary>
+    private static void RestoreLineEnds(VBufferNode spliceParent, System.Text.StringBuilder text)
+    {
+        for (var parent = spliceParent; parent is not null; parent = parent.Parent)
+        {
+            foreach (var child in parent.Children)
+            {
+                int end = SubtreeTextEnd(child);
+                if (end > child.TextRange.Start && end <= text.Length && text[end - 1] == ' ')
+                    text[end - 1] = '\n';
+            }
+        }
+    }
+
+    private static int SubtreeTextEnd(VBufferNode node)
+    {
+        int end = node.TextRange.End;
+        foreach (var child in node.Children)
+            end = Math.Max(end, SubtreeTextEnd(child));
+        return end;
+    }
+
     private static List<VBufferNode> CollectSubtree(VBufferNode node)
     {
         var result = new List<VBufferNode>();

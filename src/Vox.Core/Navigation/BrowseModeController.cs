@@ -46,6 +46,9 @@ public sealed class BrowseModeController
     private bool _escapeGoesToPage;
     private long? _fullRecaptureRequestedAt;
     private int[]? _documentFocusedRuntimeId;
+    // Focus is on an element the buffer doesn't contain (the address bar, another app, or a new
+    // part of the page): browse keys are off until the tracker says focus is in the document
+    private bool _focusOutsideDocument;
 
     // Reading position and mode per document, so returning to a page resumes where the user was
     private const int RememberedDocuments = 8;
@@ -164,6 +167,7 @@ public sealed class BrowseModeController
                 return;
 
             case NavigationCommand.ReadCurrentLine:
+                ApplyCursorSettings(_cursor!);
                 Speak(LineText(_cursor!.ReadCurrentLine()));
                 return;
 
@@ -204,7 +208,10 @@ public sealed class BrowseModeController
             if (node is not null)
             {
                 _cursor?.MoveTo(node.TextRange.Start);
-                Announce(node);
+                if (VBufferDocument.IsTable(node))
+                    AnnounceTable(node);
+                else
+                    Announce(node);
             }
         }
     }
@@ -261,8 +268,23 @@ public sealed class BrowseModeController
         // Modes only matter inside the active document: auto-switch and follow focus only there
         var node = _quickNavHandler.CurrentDocument?.FindByRuntimeId(runtimeId);
         if (node is null)
+        {
+            // Probably left the page (Ctrl+L, F6, Alt+Tab). Stop treating keys as browse commands
+            // at once, rather than after the tracker has walked the new focus's ancestors:
+            // letters typed into the address bar must not be swallowed meanwhile
+            if (_quickNavHandler.CurrentDocument is not null && !_focusOutsideDocument)
+            {
+                _focusOutsideDocument = true;
+                UpdateDocumentActive();
+            }
             return;
+        }
         _documentFocusedRuntimeId = runtimeId;
+        if (_focusOutsideDocument)
+        {
+            _focusOutsideDocument = false;
+            UpdateDocumentActive();
+        }
 
         if (focusMoved)
         {
@@ -336,15 +358,43 @@ public sealed class BrowseModeController
 
             case UIA_ValueValuePropertyId:
             case UIA_NamePropertyId:
-                // Text controls change value on every keystroke; typing echo covers those
-                if (focus.ControlType is "Edit" or "Document")
+                // Text controls change value on every keystroke; typing echo covers those. That
+                // includes editable combo boxes (autocomplete and search boxes, role=combobox)
+                if (focus.ControlType is "Edit" or "Document" || focus.IsValueReadOnly == false)
                     return;
+                if (evt.PropertyId == UIA_ValueValuePropertyId && evt.NewValue is string newValue)
+                    _lastFocus = focus with { Value = newValue };
                 // Values interrupt, so rapid arrowing through a combo box speaks only the latest
                 if (evt.NewValue is string value && !string.IsNullOrWhiteSpace(value))
-                    Speak(value);
+                    SpeakSelectionText(value);
                 break;
         }
     }
+
+    // What the last selection or value change of the focused control said, and when: a collapsed
+    // combo box reports each arrow press both as an option selected and as its value changing
+    private string? _lastSelectionText;
+    private long _lastSelectionTick;
+    private const int DuplicateSelectionMs = 300;
+
+    private void SpeakSelectionText(string text)
+    {
+        var now = Environment.TickCount64;
+        bool duplicate = string.Equals(text.Trim(), _lastSelectionText, StringComparison.Ordinal)
+            && now - _lastSelectionTick < DuplicateSelectionMs;
+        _lastSelectionText = text.Trim();
+        _lastSelectionTick = now;
+        if (!duplicate)
+            Speak(text);
+    }
+
+    /// <summary>
+    /// True for property changes that alter what the buffer holds for the element (expanded,
+    /// checked, selected, name, value), so the element must be re-captured.
+    /// </summary>
+    public static bool ChangesBufferText(int propertyId) => propertyId is
+        UIA_ExpandCollapseStatePropertyId or UIA_ToggleToggleStatePropertyId or
+        UIA_SelectionItemIsSelectedPropertyId or UIA_NamePropertyId or UIA_ValueValuePropertyId;
 
     /// <summary>
     /// Announces an item selected without a focus change (e.g. list selection following arrows).
@@ -355,7 +405,7 @@ public sealed class BrowseModeController
         if (_lastFocus?.RuntimeId is { } focused && focused.AsSpan().SequenceEqual(evt.RuntimeId))
             return;
         if (!string.IsNullOrWhiteSpace(evt.Name))
-            Speak(evt.Name);
+            SpeakSelectionText(evt.Name);
     }
 
     // -------------------------------------------------------------------------
@@ -376,6 +426,7 @@ public sealed class BrowseModeController
         _navigationManager.ResetMode(InteractionMode.Browse);
 
         _documentFocusedRuntimeId = null;
+        _focusOutsideDocument = false;
 
         if (document is null)
         {
@@ -410,6 +461,25 @@ public sealed class BrowseModeController
             }
         }
 
+        UpdateDocumentActive();
+    }
+
+    /// <summary>
+    /// The tracker found the focused element inside the current document (e.g. a dialog added
+    /// since the last capture): browse keys apply again.
+    /// </summary>
+    public void HandleFocusInDocument(FocusInDocumentEvent evt)
+    {
+        var document = _quickNavHandler.CurrentDocument;
+        if (!_focusOutsideDocument || document is null)
+            return;
+        if (!evt.DocumentRuntimeId.AsSpan().SequenceEqual(document.Root.UIARuntimeId))
+            return;
+        // A report about an earlier focus must not re-enable keys after focus has moved on
+        if (_lastFocusedRuntimeId is null || !_lastFocusedRuntimeId.AsSpan().SequenceEqual(evt.FocusedRuntimeId))
+            return;
+
+        _focusOutsideDocument = false;
         UpdateDocumentActive();
     }
 
@@ -519,7 +589,7 @@ public sealed class BrowseModeController
 
     private void UpdateDocumentActive()
     {
-        bool active = _quickNavHandler.CurrentDocument is not null && !_modalOpen;
+        bool active = _quickNavHandler.CurrentDocument is not null && !_modalOpen && !_focusOutsideDocument;
         if (active == _documentActive)
             return;
 
@@ -651,6 +721,7 @@ public sealed class BrowseModeController
         // Say All reads with its own cursor so document updates on this thread never race it;
         // the main cursor catches up when reading stops.
         _sayAllCursor = new VBufferCursor(document, _audioCuePlayer) { PlayCues = false };
+        ApplyCursorSettings(_sayAllCursor);
         _sayAllCursor.MoveTo(_cursor.TextOffset);
         _sayAllController.Start(_sayAllCursor);
     }
@@ -732,11 +803,15 @@ public sealed class BrowseModeController
     private static bool IsCaretCommand(NavigationCommand command) => command is
         NavigationCommand.NextLine or NavigationCommand.PrevLine or
         NavigationCommand.NextWord or NavigationCommand.PrevWord or
-        NavigationCommand.NextChar or NavigationCommand.PrevChar;
+        NavigationCommand.NextChar or NavigationCommand.PrevChar or
+        NavigationCommand.StartOfLine or NavigationCommand.EndOfLine or
+        NavigationCommand.TopOfDocument or NavigationCommand.BottomOfDocument or
+        NavigationCommand.NextParagraph or NavigationCommand.PrevParagraph;
 
     private void MoveCaret(NavigationCommand command)
     {
         if (_cursor is null) return;
+        ApplyCursorSettings(_cursor);
 
         string? text = command switch
         {
@@ -746,6 +821,12 @@ public sealed class BrowseModeController
             NavigationCommand.PrevWord => _cursor.PrevWord(),
             NavigationCommand.NextChar => CharText(_cursor.NextChar()),
             NavigationCommand.PrevChar => CharText(_cursor.PrevChar()),
+            NavigationCommand.StartOfLine => _cursor.StartOfLine() is { } first ? CharText(first) : "blank",
+            NavigationCommand.EndOfLine => _cursor.EndOfLine() is { } last ? CharText(last) : "blank",
+            NavigationCommand.TopOfDocument => LineText(_cursor.TopOfDocument()),
+            NavigationCommand.BottomOfDocument => LineText(_cursor.BottomOfDocument()),
+            NavigationCommand.NextParagraph => LineTextOrNull(_cursor.NextParagraph()),
+            NavigationCommand.PrevParagraph => LineTextOrNull(_cursor.PrevParagraph()),
             _ => null,
         };
 
@@ -782,6 +863,10 @@ public sealed class BrowseModeController
         return null;
     }
 
+    // Settings are read at use time, so a changed line length applies at once
+    private void ApplyCursorSettings(VBufferCursor cursor) =>
+        cursor.MaxLineLength = Math.Max(0, _settings.CurrentValue.MaxLineLength);
+
     private static string? LineTextOrNull(string? line) => line is null ? null : LineText(line);
 
     private static string LineText(string line) => string.IsNullOrWhiteSpace(line) ? "blank" : line;
@@ -795,6 +880,24 @@ public sealed class BrowseModeController
             node, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
         if (!string.IsNullOrWhiteSpace(text))
             Speak(text);
+    }
+
+    /// <summary>"Prices, table" followed by the table's first line (its first cell or caption).</summary>
+    private void AnnounceTable(VBufferNode table)
+    {
+        var settings = _settings.CurrentValue;
+        var text = _announcementBuilder.Build(
+            table, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
+        if (string.IsNullOrWhiteSpace(text))
+            text = "table";
+        if (_cursor is not null && table.TextRange.Start < _cursor.Document.FlatText.Length)
+        {
+            ApplyCursorSettings(_cursor);
+            var firstLine = _cursor.ReadCurrentLine();
+            if (!string.IsNullOrWhiteSpace(firstLine))
+                text = $"{text}, {firstLine}";
+        }
+        Speak(text);
     }
 
     // User navigation always interrupts whatever is being spoken

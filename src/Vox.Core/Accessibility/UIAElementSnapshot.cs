@@ -27,6 +27,10 @@ public sealed class UIAElementSnapshot : IVBufferElement
     public int? ExpandCollapseState { get; init; }
     public int? ToggleState { get; init; }
     public bool? IsSelected { get; init; }
+    public string Value { get; init; } = string.Empty;
+    public bool IsPassword { get; init; }
+    public bool IsVisited { get; init; }
+    public bool IsRequired { get; init; }
 
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;
 
@@ -72,7 +76,25 @@ public sealed class UIAElementSnapshot : IVBufferElement
         ExpandCollapseState = ReadCachedInt(element, UIAProvider.UIA_ExpandCollapseStatePropertyId),
         ToggleState = ReadCachedInt(element, UIAProvider.UIA_ToggleStatePropertyId),
         IsSelected = ReadCachedBool(element, UIAProvider.UIA_SelectionItemIsSelectedPropertyId),
+        Value = ReadCachedString(element, UIAProvider.UIA_ValueValuePropertyId) ?? string.Empty,
+        IsPassword = Try(() => element.CachedIsPassword != 0),
+        IsVisited = ReadIsVisited(element),
+        IsRequired = ReadCachedBool(element, UIAProvider.UIA_IsRequiredForFormPropertyId) == true,
     };
+
+    /// <summary>A cached string property, or null when not supported.</summary>
+    internal static string? ReadCachedString(IUIAutomationElement element, int propertyId) =>
+        Try(() => element.GetCachedPropertyValue(propertyId)) as string;
+
+    private const int STATE_SYSTEM_TRAVERSED = 0x800000;
+
+    /// <summary>Visited link: the cached LegacyIAccessible state has STATE_SYSTEM_TRAVERSED.</summary>
+    internal static bool ReadIsVisited(IUIAutomationElement element) =>
+        ReadCachedInt(element, UIAProvider.UIA_LegacyIAccessibleStatePropertyId) is { } state
+        && IsTraversed(state);
+
+    /// <summary>True when a LegacyIAccessible state value marks a visited link.</summary>
+    public static bool IsTraversed(int legacyState) => (legacyState & STATE_SYSTEM_TRAVERSED) != 0;
 
     /// <summary>
     /// A cached int property, or null when the element doesn't support it (UIA returns its

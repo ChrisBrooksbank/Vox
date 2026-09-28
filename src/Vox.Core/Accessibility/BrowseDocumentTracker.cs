@@ -92,8 +92,12 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
 
         // Focus moving within the loaded document (the common case, every Tab): no need to walk
         // the ancestor chain, one cross-process call per level, to find the document again
-        if (_documentRoot is not null && _capturedIds.Contains(RuntimeIdKey(UIAEventSubscriber.TryGetRuntimeId(focused))))
+        var focusedId = UIAEventSubscriber.TryGetRuntimeId(focused);
+        if (_documentRoot is not null && _documentRuntimeId is not null && _capturedIds.Contains(RuntimeIdKey(focusedId)))
+        {
+            _eventSink.Post(new FocusInDocumentEvent(DateTimeOffset.UtcNow, _documentRuntimeId, focusedId));
             return;
+        }
 
         var document = FindWebDocument(automation, focused, cacheRequest);
         if (document is null)
@@ -105,9 +109,14 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
 
         var documentId = UIAEventSubscriber.TryGetRuntimeId(document);
         if (_documentRuntimeId is not null && documentId.AsSpan().SequenceEqual(_documentRuntimeId))
-            return; // Same document: the cursor follows focus via FocusChangedEvent.RuntimeId
+        {
+            // Same document (the cursor follows focus via FocusChangedEvent.RuntimeId), possibly
+            // an element the buffer doesn't contain yet: browse keys apply again
+            _eventSink.Post(new FocusInDocumentEvent(DateTimeOffset.UtcNow, _documentRuntimeId, focusedId));
+            return;
+        }
 
-        LoadDocument(document, documentId, UIAEventSubscriber.TryGetRuntimeId(focused));
+        LoadDocument(document, documentId, focusedId);
     }
 
     /// <summary>

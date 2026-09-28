@@ -30,5 +30,7 @@ public record VoxSettings
     public bool AudioCuesEnabled { get; init; } = true;
     public bool AnnounceVisitedLinks { get; init; } = true;
     public ModifierKey ModifierKey { get; init; } = ModifierKey.Insert;
+    /// <summary>Browse-mode lines longer than this are split at a word boundary (0 = never).</summary>
+    public int MaxLineLength { get; init; } = 100;
     public bool FirstRunCompleted { get; init; } = false;
 }

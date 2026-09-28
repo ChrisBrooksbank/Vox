@@ -48,6 +48,12 @@ public sealed class VBufferNode
     /// <summary>Whether a selectable element (radio button, tab, list item) is selected, or null.</summary>
     public bool? IsSelected { get; init; }
 
+    /// <summary>UIA Value.Value: a text box's text, a combo box's selection, a slider's value.</summary>
+    public string Value { get; init; } = string.Empty;
+
+    /// <summary>True for a password field (its value is never spoken).</summary>
+    public bool IsPassword { get; init; }
+
     /// <summary>True if this element can receive keyboard focus.</summary>
     public bool IsFocusable { get; init; }
 
@@ -103,6 +109,8 @@ public sealed class VBufferNode
         IsExpanded = IsExpanded,
         ToggleState = ToggleState,
         IsSelected = IsSelected,
+        Value = Value,
+        IsPassword = IsPassword,
         IsFocusable = IsFocusable,
         TextRange = textRange,
     };

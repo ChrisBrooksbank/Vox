@@ -14,11 +14,14 @@ namespace Vox.Core.Accessibility;
 public sealed class LiveRegionMonitor
 {
     private const int PoliteCooldownMs = 500;
+    // Identical text arriving again after this long is a new announcement, not a duplicate event
+    public const int RepeatAfterMs = 1500;
     public const int MaxSources = 256;
 
     private sealed class RegionState
     {
         public string LastText = string.Empty;
+        public DateTimeOffset? LastTextAt;
         public DateTimeOffset? LastPoliteAnnouncement;
         public string? Pending;
         public long LastSeen;
@@ -71,9 +74,24 @@ public sealed class LiveRegionMonitor
         {
             var region = GetRegion(sourceId);
 
-            // Diff: skip if text hasn't changed
+            var now = _clock();
+
+            // Diff: skip if text hasn't changed — unless it arrives again after a while, which
+            // means the page announced the same message again ("Saved", "Item added to cart").
+            // A cleared region (empty text) is recorded too, so the next identical text is new.
             if (region.LastText == text)
-                return null;
+            {
+                bool repeat = text.Length > 0 && region.LastTextAt is { } at
+                    && now - at >= TimeSpan.FromMilliseconds(RepeatAfterMs);
+                if (!repeat)
+                {
+                    // Duplicate events keep it a duplicate: only a quiet gap makes a repeat
+                    region.LastTextAt = now;
+                    return null;
+                }
+                region.LastText = string.Empty;
+            }
+            region.LastTextAt = now;
 
             bool isAddition = IsAddition(region.LastText, text);
             var announcement = isAddition ? text[region.LastText.Length..].Trim() : text;
@@ -88,7 +106,6 @@ public sealed class LiveRegionMonitor
                 return announcement;
 
             // Polite: throttle to 1 per 500ms, keeping what arrives during the cooldown
-            var now = _clock();
             if (region.LastPoliteAnnouncement is { } last)
             {
                 var remaining = TimeSpan.FromMilliseconds(PoliteCooldownMs) - (now - last);

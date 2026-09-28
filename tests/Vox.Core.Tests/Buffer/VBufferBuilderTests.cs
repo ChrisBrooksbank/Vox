@@ -706,3 +706,66 @@ public class VBufferBuilderTests
         Assert.Equal(3, result.TextDelta);
     }
 }
+
+public class VBufferBuilderValueTests
+{
+    private static VBufferDocument Build(params IVBufferElement[] children)
+    {
+        var root = new ValueElement { RuntimeId = [1], ControlType = "Document" };
+        root.Children.AddRange(children);
+        return new VBufferBuilder().Build(root);
+    }
+
+    [Fact]
+    public void FilledInEdit_ReadsLabelThenValue()
+    {
+        var doc = Build(new ValueElement { RuntimeId = [2], Name = "Search", ControlType = "Edit", Value = "hello" });
+
+        Assert.Equal("Search hello\n", doc.FlatText);
+        Assert.Equal("Search", doc.FindByRuntimeId([2])!.Name);
+        Assert.Equal("hello", doc.FindByRuntimeId([2])!.Value);
+    }
+
+    [Fact]
+    public void PasswordValue_IsNotInTheBuffer()
+    {
+        var doc = Build(new ValueElement { RuntimeId = [2], Name = "Password", ControlType = "Edit", Value = "hunter2", IsPassword = true });
+
+        Assert.Equal("Password\n", doc.FlatText);
+    }
+
+    [Fact]
+    public void UnlabelledComboBox_ReadsItsValue()
+    {
+        var doc = Build(new ValueElement { RuntimeId = [2], ControlType = "ComboBox", Value = "France" });
+
+        Assert.Equal("France\n", doc.FlatText);
+    }
+
+    [Fact]
+    public void UiaVisitedAndRequired_AreUsed()
+    {
+        var doc = Build(
+            new ValueElement { RuntimeId = [2], Name = "Home", ControlType = "Hyperlink", IsVisited = true },
+            new ValueElement { RuntimeId = [3], Name = "Email", ControlType = "Edit", IsRequired = true });
+
+        Assert.True(doc.FindByRuntimeId([2])!.IsVisited);
+        Assert.True(doc.FindByRuntimeId([3])!.IsRequired);
+    }
+
+    private sealed class ValueElement : IVBufferElement
+    {
+        public int[] RuntimeId { get; set; } = [];
+        public string Name { get; set; } = string.Empty;
+        public string ControlType { get; set; } = "Text";
+        public string AriaRole { get; set; } = string.Empty;
+        public string AriaProperties { get; set; } = string.Empty;
+        public bool IsFocusable { get; set; }
+        public string Value { get; set; } = string.Empty;
+        public bool IsPassword { get; set; }
+        public bool IsVisited { get; set; }
+        public bool IsRequired { get; set; }
+        public List<IVBufferElement> Children { get; } = new();
+        public IReadOnlyList<IVBufferElement> GetChildren() => Children;
+    }
+}

@@ -204,3 +204,64 @@ public class SpeechQueueTests
         Assert.Null(ex);
     }
 }
+
+public class SpeechQueueReorderingTests
+{
+    /// <summary>Engine whose utterances finish only when the test releases them.</summary>
+    private sealed class GatedEngine : ISpeechEngine
+    {
+        private readonly object _lock = new();
+        private TaskCompletionSource? _current;
+        public List<string> Started { get; } = new();
+        public bool IsSpeaking => false;
+
+        public async Task SpeakAsync(Utterance utterance, CancellationToken cancellationToken = default)
+        {
+            var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (_lock) { Started.Add(utterance.Text); _current = gate; }
+            using (cancellationToken.Register(() => gate.TrySetCanceled()))
+                await gate.Task;
+        }
+
+        public void Release() { lock (_lock) _current?.TrySetResult(); }
+        public int StartedCount { get { lock (_lock) return Started.Count; } }
+        public List<string> Snapshot() { lock (_lock) return Started.ToList(); }
+
+        public void Cancel() { }
+        public void SetRate(int wpm) { }
+        public void SetVoice(string voiceName) { }
+        public IReadOnlyList<string> GetAvailableVoices() => [];
+    }
+
+    private static async Task WaitUntil(Func<bool> condition, int timeoutMs = 2000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (!condition() && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+    }
+
+    [Fact]
+    public async Task HighUtterance_OvertakesLowOnesQueuedBeforeIt()
+    {
+        var engine = new GatedEngine();
+        using var queue = new SpeechQueue(engine, NullLogger<SpeechQueue>.Instance);
+
+        queue.Enqueue(new Utterance("first", SpeechPriority.Low));
+        await WaitUntil(() => engine.StartedCount == 1);
+
+        // Two polite updates queue up while "first" is being spoken
+        queue.Enqueue(new Utterance("low a", SpeechPriority.Low));
+        queue.Enqueue(new Utterance("low b", SpeechPriority.Low));
+        engine.Release(); // "first" done; "low a" starts
+        await WaitUntil(() => engine.StartedCount == 2);
+
+        queue.Enqueue(new Utterance("urgent", SpeechPriority.High));
+        engine.Release(); // "low a" done
+        await WaitUntil(() => engine.StartedCount == 3);
+        engine.Release();
+        await WaitUntil(() => engine.StartedCount == 4);
+        engine.Release();
+
+        Assert.Equal(["first", "low a", "urgent", "low b"], engine.Snapshot());
+    }
+}

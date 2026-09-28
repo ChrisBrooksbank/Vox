@@ -247,3 +247,54 @@ public class LiveRegionMonitorTests
         Assert.Equal(LiveRegionMonitor.MaxSources, monitor.TrackedSourceCount);
     }
 }
+
+public class LiveRegionRepeatTests
+{
+    private DateTimeOffset _now = new(2026, 9, 28, 12, 0, 0, TimeSpan.Zero);
+
+    private LiveRegionMonitor CreateMonitor() => new(() => _now);
+
+    [Fact]
+    public void SameMessage_AfterRegionWasCleared_IsSpokenAgain()
+    {
+        var monitor = CreateMonitor();
+        Assert.Equal("Saved", monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Assertive, out _));
+
+        Assert.Null(monitor.Evaluate("r", "", LiveRegionPoliteness.Assertive, out _));
+        _now = _now.AddMilliseconds(100);
+
+        Assert.Equal("Saved", monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Assertive, out _));
+    }
+
+    [Fact]
+    public void SameMessage_WithinRepeatInterval_IsADuplicate()
+    {
+        var monitor = CreateMonitor();
+        monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Assertive, out _);
+        _now = _now.AddMilliseconds(LiveRegionMonitor.RepeatAfterMs / 2);
+
+        Assert.Null(monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Assertive, out _));
+    }
+
+    [Fact]
+    public void SameMessage_AfterAQuietGap_IsSpokenAgain()
+    {
+        var monitor = CreateMonitor();
+        monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Polite, out _);
+        _now = _now.AddMilliseconds(LiveRegionMonitor.RepeatAfterMs + 100);
+
+        Assert.Equal("Saved", monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Polite, out _));
+    }
+
+    [Fact]
+    public void RepeatedDuplicateEvents_NeverBecomeARepeat()
+    {
+        var monitor = CreateMonitor();
+        monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Assertive, out _);
+        for (int i = 0; i < 5; i++)
+        {
+            _now = _now.AddMilliseconds(LiveRegionMonitor.RepeatAfterMs / 2);
+            Assert.Null(monitor.Evaluate("r", "Saved", LiveRegionPoliteness.Assertive, out _));
+        }
+    }
+}

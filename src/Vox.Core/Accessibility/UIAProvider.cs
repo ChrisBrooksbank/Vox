@@ -30,6 +30,9 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_ExpandCollapseStatePropertyId = 30070;
     internal const int UIA_ToggleStatePropertyId = 30086;
     internal const int UIA_SelectionItemIsSelectedPropertyId = 30079;
+    internal const int UIA_ValueIsReadOnlyPropertyId = 30046;
+    internal const int UIA_IsRequiredForFormPropertyId = 30025;
+    internal const int UIA_LegacyIAccessibleStatePropertyId = 30100;
 
     private readonly UIAThread _uiaThread;
     private readonly ILogger<UIAProvider> _logger;
@@ -93,18 +96,26 @@ public sealed class UIAProvider : IDisposable
         request.AddProperty(UIA_AriaPropertiesPropertyId);
         request.AddProperty(UIA_IsKeyboardFocusablePropertyId);
         request.AddProperty(UIA_HeadingLevelPropertyId);
+        request.AddProperty(UIA_IsPasswordPropertyId);
         AddStateProperties(request);
         request.TreeScope = TreeScope.TreeScope_Subtree;
         request.TreeFilter = automation.ControlViewCondition;
         return request;
     }
 
-    /// <summary>Expand/collapse, toggle (checked) and selection state.</summary>
+    /// <summary>
+    /// Expand/collapse, toggle (checked) and selection state, the value (and whether it is
+    /// editable), required, and the legacy state bits (visited links).
+    /// </summary>
     private static void AddStateProperties(IUIAutomationCacheRequest request)
     {
         request.AddProperty(UIA_ExpandCollapseStatePropertyId);
         request.AddProperty(UIA_ToggleStatePropertyId);
         request.AddProperty(UIA_SelectionItemIsSelectedPropertyId);
+        request.AddProperty(UIA_ValueValuePropertyId);
+        request.AddProperty(UIA_ValueIsReadOnlyPropertyId);
+        request.AddProperty(UIA_IsRequiredForFormPropertyId);
+        request.AddProperty(UIA_LegacyIAccessibleStatePropertyId);
     }
 
     /// <summary>

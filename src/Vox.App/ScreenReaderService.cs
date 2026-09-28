@@ -105,6 +105,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.StructureChangedProcessed += OnStructureChangedProcessed;
         _eventPipeline.DocumentChangedProcessed += OnDocumentChangedProcessed;
         _eventPipeline.SubtreeChangedProcessed += OnSubtreeChangedProcessed;
+        _eventPipeline.FocusInDocumentProcessed += OnFocusInDocumentProcessed;
         _eventPipeline.ElementsListClosedProcessed += OnElementsListClosedProcessed;
         _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
@@ -146,6 +147,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.StructureChangedProcessed -= OnStructureChangedProcessed;
         _eventPipeline.DocumentChangedProcessed -= OnDocumentChangedProcessed;
         _eventPipeline.SubtreeChangedProcessed -= OnSubtreeChangedProcessed;
+        _eventPipeline.FocusInDocumentProcessed -= OnFocusInDocumentProcessed;
         _eventPipeline.ElementsListClosedProcessed -= OnElementsListClosedProcessed;
         _eventPipeline.PropertyChangedProcessed -= OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed -= OnElementSelectedProcessed;
@@ -196,8 +198,9 @@ public sealed class ScreenReaderService : IHostedService
 
             if (previous is null || previous.SpeechRateWpm != settings.SpeechRateWpm)
                 _speechEngine.SetRate(settings.SpeechRateWpm);
-            if (!string.IsNullOrEmpty(settings.VoiceName) && previous?.VoiceName != settings.VoiceName)
-                _speechEngine.SetVoice(settings.VoiceName);
+            // A cleared voice goes back to the default one (at startup there is nothing to undo)
+            if (previous is null ? !string.IsNullOrEmpty(settings.VoiceName) : previous.VoiceName != settings.VoiceName)
+                _speechEngine.SetVoice(settings.VoiceName ?? string.Empty);
             if (previous is null || previous.AudioCuesEnabled != settings.AudioCuesEnabled)
                 _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
             if (previous is null || previous.ModifierKey != settings.ModifierKey)
@@ -226,6 +229,9 @@ public sealed class ScreenReaderService : IHostedService
     private void OnSubtreeChangedProcessed(object? sender, SubtreeChangedEvent e) =>
         _browseModeController.HandleSubtreeChanged(e);
 
+    private void OnFocusInDocumentProcessed(object? sender, FocusInDocumentEvent e) =>
+        _browseModeController.HandleFocusInDocument(e);
+
     private void OnElementsListClosedProcessed(object? sender, ElementsListClosedEvent e) =>
         _browseModeController.HandleElementsListClosed(e);
 
@@ -233,12 +239,11 @@ public sealed class ScreenReaderService : IHostedService
     {
         _browseModeController.HandlePropertyChanged(e);
 
-        // Expanding or collapsing changes the element's own state in the buffer
-        if (e.PropertyId == UIA_ExpandCollapseStatePropertyId)
+        // State, name and value changes alter what the buffer says about the element (Chromium
+        // raises no StructureChanged for them): re-capture it. The tracker debounces bursts.
+        if (BrowseModeController.ChangesBufferText(e.PropertyId))
             _documentTracker.OnStructureChanged(e.RuntimeId);
     }
-
-    private const int UIA_ExpandCollapseStatePropertyId = 30070;
 
     private void OnElementSelectedProcessed(object? sender, ElementSelectedEvent e) =>
         _browseModeController.HandleElementSelected(e);

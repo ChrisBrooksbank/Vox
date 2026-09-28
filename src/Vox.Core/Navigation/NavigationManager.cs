@@ -75,13 +75,14 @@ public sealed class NavigationManager
 
     /// <summary>
     /// Processes a FocusChangedEvent for auto-mode-switching.
-    /// When focus moves to a non-form element while in Focus mode, auto-switch to Browse mode.
+    /// When focus moves to an element that doesn't need Focus mode (a link, button, check box or
+    /// radio button) while in Focus mode, auto-switch to Browse mode, as NVDA does.
     /// </summary>
     public void HandleFocusChanged(FocusChangedEvent evt)
     {
-        if (_currentMode == InteractionMode.Focus && !FormControls.IsFormField(evt.ControlType, evt.AriaRole))
+        if (_currentMode == InteractionMode.Focus && !FormControls.NeedsFocusMode(evt.ControlType, evt.AriaRole))
         {
-            SwitchTo(InteractionMode.Browse, "focus left form field", announce: false);
+            SwitchTo(InteractionMode.Browse, "focus left edit field", announce: false);
         }
     }
 
