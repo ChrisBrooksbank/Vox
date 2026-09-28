@@ -93,9 +93,15 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
             tcs.TrySetCanceled(cancellationToken);
         });
 
+        // Check-and-submit atomically with CancelAllPrompts (same lock): if the registration
+        // above already ran (or is running) on another thread, this sees the cancellation and
+        // skips submitting — otherwise the prompt could be queued with SAPI just after the
+        // cancel-all runs, so it would be spoken anyway despite the caller's token being
+        // cancelled and having already observed a TaskCanceledException.
         lock (_synthLock)
         {
-            _synthesizer.SpeakAsync(prompt);
+            if (!cancellationToken.IsCancellationRequested)
+                _synthesizer.SpeakAsync(prompt);
         }
 
         try

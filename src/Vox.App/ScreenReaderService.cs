@@ -41,6 +41,22 @@ public sealed class ScreenReaderService : IHostedService
     private VoxSettings? _appliedSettings;
     private readonly object _settingsLock = new();
 
+    // Tasks spawned fire-and-forget from event handlers (which can't be awaited directly) that
+    // touch UIA objects. StopAsync drains these before disposing _documentTracker,
+    // _uiaEventSubscriber and _uiaProvider, so a handler still in flight during shutdown can't
+    // race the dispose calls and use an already-released UIA object.
+    private readonly List<Task> _backgroundTasks = new();
+    private readonly object _backgroundTasksLock = new();
+
+    private void TrackBackground(Task task)
+    {
+        lock (_backgroundTasksLock) { _backgroundTasks.Add(task); }
+        task.ContinueWith(t =>
+        {
+            lock (_backgroundTasksLock) { _backgroundTasks.Remove(t); }
+        }, TaskScheduler.Default);
+    }
+
     public ScreenReaderService(
         ISpeechEngine speechEngine,
         SpeechQueue speechQueue,
@@ -128,7 +144,7 @@ public sealed class ScreenReaderService : IHostedService
         _keyInputDispatcher.Start();
 
         // Pick up a browser that already has focus
-        _ = _documentTracker.OnFocusChangedAsync();
+        TrackBackground(_documentTracker.OnFocusChangedAsync());
 
         // Announce startup
         _speechQueue.Enqueue(new Utterance(
@@ -167,6 +183,17 @@ public sealed class ScreenReaderService : IHostedService
 
         // Stop Say All if running
         _sayAllController.Cancel();
+
+        // No more FocusChangedProcessed handlers can fire past the unsubscribe above, so this is
+        // a fixed snapshot: wait for any OnFocusChangedAsync calls still in flight before releasing
+        // the UIA objects they use.
+        Task[] pending;
+        lock (_backgroundTasksLock) { pending = _backgroundTasks.ToArray(); }
+        if (pending.Length > 0)
+        {
+            try { await Task.WhenAll(pending).WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Timed out waiting for background UIA work to finish before shutdown"); }
+        }
 
         // Stop pending buffer updates, then release UIA (both run on the STA thread in order)
         _documentTracker.Dispose();
@@ -225,7 +252,7 @@ public sealed class ScreenReaderService : IHostedService
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
     {
         _browseModeController.HandleFocusChanged(e);
-        _ = _documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence);
+        TrackBackground(_documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence));
     }
 
     private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>

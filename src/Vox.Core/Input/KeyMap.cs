@@ -57,21 +57,53 @@ public sealed class KeyMap
     /// <summary>
     /// Loads a KeyMap from the given JSON file path.
     /// </summary>
-    public static KeyMap LoadFromFile(string filePath)
+    public static KeyMap LoadFromFile(string filePath) => LoadFromFile(filePath, out _);
+
+    /// <summary>
+    /// Loads a KeyMap from the given JSON file path, also reporting any entries that were
+    /// skipped because of an unrecognized modifier, command or mode name.
+    /// </summary>
+    public static KeyMap LoadFromFile(string filePath, out IReadOnlyList<string> warnings)
     {
         var json = File.ReadAllText(filePath);
-        return LoadFromJson(json);
+        return LoadFromJson(json, out warnings);
     }
 
     /// <summary>
     /// Loads the default keymap embedded in Vox.Core (a copy of assets/config/default-keymap.json).
     /// </summary>
-    public static KeyMap LoadBuiltIn()
+    public static KeyMap LoadBuiltIn() => LoadBuiltIn(out _);
+
+    /// <summary>
+    /// Loads the built-in keymap, also reporting any entries that were skipped because of an
+    /// unrecognized modifier, command or mode name.
+    /// </summary>
+    public static KeyMap LoadBuiltIn(out IReadOnlyList<string> warnings)
     {
         using var stream = typeof(KeyMap).Assembly.GetManifestResourceStream("Vox.Core.default-keymap.json")
             ?? throw new InvalidOperationException("Built-in keymap resource is missing.");
         using var reader = new StreamReader(stream);
-        return LoadFromJson(reader.ReadToEnd());
+        return LoadFromJson(reader.ReadToEnd(), out warnings);
+    }
+
+    /// <summary>
+    /// Loads a KeyMap from <paramref name="filePath"/>, falling back to the built-in keymap (and
+    /// reporting why through <paramref name="error"/>) if the file is missing or invalid. Also
+    /// reports any entries — in whichever keymap was actually loaded — that were skipped because
+    /// of an unrecognized modifier, command or mode name.
+    /// </summary>
+    public static KeyMap LoadFromFileOrBuiltIn(string filePath, out Exception? error, out IReadOnlyList<string> warnings)
+    {
+        try
+        {
+            error = null;
+            return LoadFromFile(filePath, out warnings);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
+        {
+            error = ex;
+            return LoadBuiltIn(out warnings);
+        }
     }
 
     /// <summary>
@@ -79,23 +111,19 @@ public sealed class KeyMap
     /// reporting why through <paramref name="error"/>) if the file is missing or invalid.
     /// </summary>
     public static KeyMap LoadFromFileOrBuiltIn(string filePath, out Exception? error)
-    {
-        try
-        {
-            error = null;
-            return LoadFromFile(filePath);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
-        {
-            error = ex;
-            return LoadBuiltIn();
-        }
-    }
+        => LoadFromFileOrBuiltIn(filePath, out error, out _);
 
     /// <summary>
     /// Loads a KeyMap from a JSON string.
     /// </summary>
-    public static KeyMap LoadFromJson(string json)
+    public static KeyMap LoadFromJson(string json) => LoadFromJson(json, out _);
+
+    /// <summary>
+    /// Loads a KeyMap from a JSON string, also reporting any entries that were skipped because of
+    /// an unrecognized modifier, command or mode name (a typo in the JSON otherwise fails silently:
+    /// the key simply does nothing, with no indication why).
+    /// </summary>
+    public static KeyMap LoadFromJson(string json, out IReadOnlyList<string> warnings)
     {
         var options = new JsonSerializerOptions
         {
@@ -108,13 +136,20 @@ public sealed class KeyMap
             ?? throw new InvalidOperationException("Failed to deserialize keymap JSON.");
 
         var map = new KeyMap();
+        var warningList = new List<string>();
         foreach (var entry in file.Bindings)
         {
             if (!TryParseModifiers(entry.Modifiers, out var modifiers))
+            {
+                warningList.Add($"Binding for vkCode {entry.VkCode}: unrecognized modifiers '{entry.Modifiers}' — skipped.");
                 continue;
+            }
 
             if (!Enum.TryParse<NavigationCommand>(entry.Command, ignoreCase: true, out var command))
+            {
+                warningList.Add($"Binding for vkCode {entry.VkCode}: unrecognized command '{entry.Command}' — skipped.");
                 continue;
+            }
 
             var binding = new Binding(command, entry.PassThrough);
             if (string.Equals(entry.Mode, "Any", StringComparison.OrdinalIgnoreCase))
@@ -127,8 +162,13 @@ public sealed class KeyMap
             {
                 map._bindings[new KeyMapKey(modifiers, entry.VkCode, mode)] = binding;
             }
+            else
+            {
+                warningList.Add($"Binding for vkCode {entry.VkCode}: unrecognized mode '{entry.Mode}' — skipped.");
+            }
         }
 
+        warnings = warningList;
         return map;
     }
 

@@ -80,8 +80,9 @@ public sealed class AnnouncementBuilder
             Append(sb, node.IsExpanded ? "expanded" : "collapsed");
         }
 
-        // Checked / selected state — essential, so announced at every verbosity with state info
-        if (profile.AnnounceExpandedState)
+        // Checked / selected state — essential, so announced at every verbosity regardless of
+        // AnnounceExpandedState (which only governs the unrelated expanded/collapsed field above;
+        // a profile that turns that off must not also silence whether a checkbox is checked)
         {
             var toggle = ToggleStateText(node.ToggleState);
             if (toggle is not null)
