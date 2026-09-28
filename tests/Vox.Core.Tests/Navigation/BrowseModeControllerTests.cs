@@ -680,4 +680,144 @@ public class BrowseModeControllerTests : IDisposable
 
         await WaitForSpeech(u => u.Text == "Docs, link");
     }
+
+    // -------------------------------------------------------------------------
+    // Round 4 fixes
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void AutomaticFocusMode_PlaysCueOnly()
+    {
+        LoadDocument();
+
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "Edit", RuntimeId: [5]));
+
+        var modeChange = Assert.Single(_sink.OfType<ModeChangedEvent>());
+        Assert.Equal(InteractionMode.Focus, modeChange.NewMode);
+        Assert.False(modeChange.Announce);
+    }
+
+    [Fact]
+    public void RepeatedFocusOnSameField_DoesNotUndoEscape()
+    {
+        LoadDocument();
+        var focusOnEdit = new FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "Edit", RuntimeId: [5]);
+        _controller.HandleFocusChanged(focusOnEdit);
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+
+        _controller.HandleCommand(NavigationCommand.ExitFocusMode); // Escape
+        Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+
+        // Chromium repeats the focus event for the same element
+        _controller.HandleFocusChanged(focusOnEdit with { Timestamp = DateTimeOffset.UtcNow });
+
+        Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public void ReturningToPageWithFocusInEditField_ResumesFocusMode()
+    {
+        LoadDocument();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "Edit", RuntimeId: [5]));
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+
+        // Alt+Tab away: focus goes to another app, the document is unloaded
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Mail", "Window", RuntimeId: [900]));
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, null));
+
+        // Back: focus returns to the edit field before the document is re-captured
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "Edit", RuntimeId: [5]));
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, BuildDocument(), [5]));
+
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public void FreshLoadWithAutofocusedField_StaysInBrowseMode()
+    {
+        LoadDocument(focusedId: [5]); // never visited before
+
+        Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public async Task StateChangeAfterFocus_IsQueuedNotInterrupting_AndRedundantOnesSkipped()
+    {
+        // Arrowing onto an unselected item, which then becomes selected
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Banana", "ListItem", RuntimeId: [7], IsSelected: false));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30079, true));
+        var selected = await WaitForSpeech(u => u.Text == "selected");
+        Assert.Equal(SpeechPriority.High, selected.Priority);
+
+        // An item whose focus event already said "selected": the matching change adds nothing
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Cherry", "ListItem", RuntimeId: [8], IsSelected: true));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [8], 30079, true));
+        await Task.Delay(150);
+
+        lock (_spoken) Assert.Single(_spoken, u => u.Text == "selected");
+    }
+
+    [Fact]
+    public void ReturningToChangedPage_RestoresPositionWithinTheSameElement()
+    {
+        var doc = LoadDocument(focusedId: [3]);
+        int introStart = doc.FindByRuntimeId([3])!.TextRange.Start;
+        _controller.Cursor!.MoveTo(introStart + 5);
+
+        var rootB = new MockElement { RuntimeId = [50], ControlType = "Document" };
+        rootB.AddChild(new MockElement { RuntimeId = [51], Name = "Other page" });
+        LoadCustom(rootB);
+
+        // Page A came back with a much longer heading before the intro text
+        var rootA = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        rootA.AddChild(new MockElement { RuntimeId = [2], Name = "Welcome to the new and improved site", AriaRole = "heading", AriaProperties = "level=1" });
+        rootA.AddChild(new MockElement { RuntimeId = [3], Name = "Intro text" });
+        LoadCustom(rootA, focusedId: [1]);
+
+        var newIntroStart = _quickNav.CurrentDocument!.FindByRuntimeId([3])!.TextRange.Start;
+        Assert.Equal(newIntroStart + 5, _controller.Cursor!.TextOffset);
+        Assert.Equal([3], _quickNav.CurrentNode!.UIARuntimeId);
+    }
+
+    [Fact]
+    public async Task UnansweredFullRecapture_CanBeRequestedAgainAfterInterval()
+    {
+        _controller.FullRecaptureRetryInterval = TimeSpan.FromMilliseconds(100);
+        LoadDocument();
+        var unknown = new MockElement { RuntimeId = [777], Name = "New" };
+
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(DateTimeOffset.UtcNow, [777], unknown, DocumentRuntimeId: [1]));
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(DateTimeOffset.UtcNow, [777], unknown, DocumentRuntimeId: [1]));
+        _actions.Verify(a => a.RequestRecapture(null), Times.Once);
+
+        await Task.Delay(150); // the first re-capture never replied
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(DateTimeOffset.UtcNow, [777], unknown, DocumentRuntimeId: [1]));
+
+        _actions.Verify(a => a.RequestRecapture(null), Times.Exactly(2));
+    }
+
+    [Theory]
+    [InlineData(0xA0)] // Left Shift
+    [InlineData(0x2D)] // Insert (screen reader key)
+    public async Task BareModifierPress_DoesNotStopSayAll(int vk)
+    {
+        // Slow speech so Say All is still reading when the key arrives
+        _engine
+            .Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Returns((Utterance _, CancellationToken ct) => Task.Delay(2000, ct));
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.SayAll);
+        await Task.Delay(100);
+
+        _controller.HandleRawKey(new RawKeyEvent(DateTimeOffset.UtcNow, new KeyEvent { VkCode = vk, IsKeyDown = true }));
+
+        var sayAll = typeof(BrowseModeController)
+            .GetField("_sayAllController", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .GetValue(_controller) as SayAllController;
+        Assert.True(sayAll!.IsReading);
+
+        _controller.HandleRawKey(new RawKeyEvent(DateTimeOffset.UtcNow, new KeyEvent { VkCode = 0x41, IsKeyDown = true }));
+        await Task.Delay(50);
+        Assert.False(sayAll.IsReading);
+    }
 }

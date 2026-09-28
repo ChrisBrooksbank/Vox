@@ -333,8 +333,13 @@ public sealed class EventPipeline : IEventSink, IDisposable
         var cueName = modeChanged.NewMode == InteractionMode.Browse ? "browse_mode" : "focus_mode";
         _audioCuePlayer.Play(cueName);
 
+        // Automatic switches are signalled by the cue alone
+        if (!modeChanged.Announce)
+            return;
+
+        // Queued rather than Interrupt, so it never cuts off a focus announcement in progress
         var modeText = modeChanged.NewMode == InteractionMode.Browse ? "Browse mode" : "Focus mode";
-        var utterance = new Utterance(modeText, SpeechPriority.Interrupt);
+        var utterance = new Utterance(modeText, SpeechPriority.High);
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
     }
 
@@ -351,13 +356,19 @@ public sealed class EventPipeline : IEventSink, IDisposable
     private const int NotificationCoalesceMs = 150;
 
     /// <summary>
-    /// Speaks application notifications (toasts, "download complete", ...) from the foreground
-    /// application. Important ones are High priority, others Low. For the "most recent" kinds,
+    /// Speaks application notifications (toasts, "download complete", ...). Important ones are
+    /// High priority and spoken from any process; others are Low and only from the foreground app. For the "most recent" kinds,
     /// a burst of notifications with the same activity id speaks only the last.
     /// </summary>
     private async Task HandleNotificationAsync(NotificationEvent notification, CancellationToken token)
     {
-        if (!notification.IsFromForeground || string.IsNullOrWhiteSpace(notification.NotificationText))
+        if (string.IsNullOrWhiteSpace(notification.NotificationText))
+            return;
+
+        // Important notifications are spoken whoever raises them: system notifications (toasts,
+        // flyouts) never come from the foreground app. Others only from the app in use.
+        bool important = notification.Processing is 0 or 1;
+        if (!notification.IsFromForeground && !important)
             return;
 
         var priority = notification.Processing is 0 or 1 ? SpeechPriority.High : SpeechPriority.Low;

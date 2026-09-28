@@ -90,6 +90,11 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         if (TryGet(() => focused.CachedProcessId) == _ownProcessId)
             return;
 
+        // Focus moving within the loaded document (the common case, every Tab): no need to walk
+        // the ancestor chain, one cross-process call per level, to find the document again
+        if (_documentRoot is not null && _capturedIds.Contains(RuntimeIdKey(UIAEventSubscriber.TryGetRuntimeId(focused))))
+            return;
+
         var document = FindWebDocument(automation, focused, cacheRequest);
         if (document is null)
         {
@@ -145,6 +150,8 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             var cached = document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
             var snapshot = UIAElementSnapshot.Capture(cached);
             buffer = new VBufferBuilder().Build(snapshot);
+            _capturedIds.Clear();
+            RememberIds(snapshot);
         }
         catch (Exception ex)
         {
@@ -153,6 +160,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             // document". Drop the old buffer and try once more shortly.
             _logger.LogWarning(ex, "Could not capture web document");
             _eventSubscriber.SetDocumentScope(null);
+            _capturedIds.Clear();
             _documentRoot = null;
             _documentRuntimeId = null;
             _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, null));
@@ -186,6 +194,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
 
     private void UnloadDocument()
     {
+        _capturedIds.Clear();
         _documentRoot = null;
         _documentRuntimeId = null;
         ClearPendingChanges();
@@ -277,7 +286,9 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             if (full || changes.Count > FullRecaptureThreshold || changes.Any(c => c.AsSpan().SequenceEqual(rootId)))
             {
                 var cached = root.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
-                _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, rootId, UIAElementSnapshot.Capture(cached), rootId));
+                var rootSnapshot = UIAElementSnapshot.Capture(cached);
+                RememberIds(rootSnapshot);
+                _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, rootId, rootSnapshot, rootId));
                 return;
             }
 
@@ -296,6 +307,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
                 // the nearest control-view element instead, which the buffer does contain
                 var normalized = TryGet(() => walker.NormalizeElementBuildCache(element, _uiaProvider.SubtreeCacheRequest)) ?? element;
                 var snapshot = UIAElementSnapshot.Capture(normalized);
+                RememberIds(snapshot);
                 var changedId = snapshot.RuntimeId.Length > 0 ? snapshot.RuntimeId : runtimeId;
 
                 // Ancestors let the buffer splice an element it doesn't know yet (e.g. added
@@ -304,6 +316,26 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
                 _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, changedId, snapshot, rootId, ancestors));
             }
         }, "updating virtual buffer");
+    }
+
+    // Runtime ids of every element captured from the current document (UIA thread only). Ids of
+    // removed elements linger harmlessly: they can't receive focus.
+    private readonly HashSet<string> _capturedIds = new();
+
+    private static string RuntimeIdKey(int[] runtimeId) => string.Join(",", runtimeId);
+
+    private void RememberIds(IVBufferElement root)
+    {
+        var stack = new Stack<IVBufferElement>();
+        stack.Push(root);
+        while (stack.Count > 0)
+        {
+            var element = stack.Pop();
+            if (element.RuntimeId.Length > 0)
+                _capturedIds.Add(RuntimeIdKey(element.RuntimeId));
+            foreach (var child in element.GetChildren())
+                stack.Push(child);
+        }
     }
 
     private const int MaxAncestorIds = 16;

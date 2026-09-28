@@ -226,7 +226,7 @@ public class EventPipelineTests : IDisposable
     }
 
     [Fact]
-    public async Task ModeChanged_ToBrowse_EnqueuesInterruptPrioritySpeech()
+    public async Task ModeChanged_ToBrowse_IsQueuedNotInterrupting()
     {
         var now = DateTimeOffset.UtcNow;
         _pipeline.Post(new ModeChangedEvent(now, InteractionMode.Browse));
@@ -237,8 +237,49 @@ public class EventPipelineTests : IDisposable
         {
             var utterance = _spokenUtterances.FirstOrDefault(u => u.Text.Contains("Browse"));
             Assert.NotNull(utterance);
-            Assert.Equal(SpeechPriority.Interrupt, utterance!.Priority);
+            // Queued after whatever is being said (e.g. a focus announcement), never cutting it off
+            Assert.Equal(SpeechPriority.High, utterance!.Priority);
         }
+    }
+
+    [Fact]
+    public async Task ModeChanged_Automatic_PlaysCueWithoutSpeech()
+    {
+        _pipeline.Post(new ModeChangedEvent(DateTimeOffset.UtcNow, InteractionMode.Focus, "focus moved to edit field", Announce: false));
+
+        await Task.Delay(300);
+
+        lock (_playedCues) Assert.Contains("focus_mode", _playedCues);
+        lock (_spokenUtterances) Assert.DoesNotContain(_spokenUtterances, u => u.Text.Contains("Focus mode"));
+    }
+
+    [Fact]
+    public async Task FocusOnEditField_AnnouncementIsNotCutOffByAutomaticModeSwitch()
+    {
+        // What the controller does inside FocusChangedProcessed: switch mode automatically
+        _pipeline.FocusChangedProcessed += (_, _) =>
+            _pipeline.Post(new ModeChangedEvent(DateTimeOffset.UtcNow, InteractionMode.Focus, Announce: false));
+
+        _pipeline.Post(new FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "Edit"));
+
+        await Task.Delay(300);
+
+        _engineMock.Verify(e => e.Cancel(), Times.Once); // only the focus announcement's own interrupt
+        lock (_spokenUtterances)
+        {
+            Assert.Contains(_spokenUtterances, u => u.Text == "Search, edit");
+            Assert.DoesNotContain(_spokenUtterances, u => u.Text.Contains("Focus mode"));
+        }
+    }
+
+    [Fact]
+    public async Task ImportantNotification_FromBackgroundProcess_IsSpoken()
+    {
+        _pipeline.Post(new NotificationEvent(DateTimeOffset.UtcNow, "toast", "New message from Sam", Processing: 0, IsFromForeground: false));
+
+        await Task.Delay(300);
+
+        lock (_spokenUtterances) Assert.Contains(_spokenUtterances, u => u.Text == "New message from Sam");
     }
 
     // -------------------------------------------------------------------------
@@ -350,7 +391,7 @@ public class EventPipelineTests : IDisposable
     {
         var now = DateTimeOffset.UtcNow;
         _pipeline.Post(new NotificationEvent(now, "a", "Download complete", Processing: 0));
-        _pipeline.Post(new NotificationEvent(now, "b", "Background app", Processing: 2, IsFromForeground: false));
+        _pipeline.Post(new NotificationEvent(now, "b", "Background app", Processing: 2, IsFromForeground: false)); // not important
 
         await Task.Delay(300);
 
