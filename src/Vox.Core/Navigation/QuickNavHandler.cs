@@ -104,9 +104,8 @@ public sealed class QuickNavHandler
             NavigationCommand.NextFormField   => FindNext(_document.FormFields, _ => true),
             NavigationCommand.PrevFormField   => FindPrev(_document.FormFields, _ => true),
 
-            // Tables are not yet indexed in VBufferDocument; play boundary
-            NavigationCommand.NextTable       => PlayBoundaryAndReturnNull(),
-            NavigationCommand.PrevTable       => PlayBoundaryAndReturnNull(),
+            NavigationCommand.NextTable       => FindNext(_document.Tables, _ => true),
+            NavigationCommand.PrevTable       => FindPrev(_document.Tables, _ => true),
 
             NavigationCommand.NextFocusable   => FindNext(_document.FocusableElements, _ => true),
             NavigationCommand.PrevFocusable   => FindPrev(_document.FocusableElements, _ => true),
@@ -277,9 +276,4 @@ public sealed class QuickNavHandler
         return -1;
     }
 
-    private VBufferNode? PlayBoundaryAndReturnNull()
-    {
-        _audioCuePlayer.Play("boundary");
-        return null;
-    }
 }

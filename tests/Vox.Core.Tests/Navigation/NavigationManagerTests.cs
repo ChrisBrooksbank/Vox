@@ -224,3 +224,36 @@ public class NavigationManagerTests
         Assert.Equal([InteractionMode.Focus], modes);
     }
 }
+
+public class NavigationManagerSymmetricSwitchTests
+{
+    private sealed class NullSink : IEventSink { public void Post(ScreenReaderEvent evt) { } }
+
+    [Theory]
+    [InlineData("CheckBox", null)]
+    [InlineData("RadioButton", null)]
+    [InlineData("Button", null)]
+    [InlineData("Custom", "switch")]
+    public void FocusMovingFromEditToControlNotNeedingFocusMode_ReturnsToBrowse(string controlType, string? role)
+    {
+        var manager = new NavigationManager(new NullSink(), Microsoft.Extensions.Logging.Abstractions.NullLogger<NavigationManager>.Instance);
+        manager.SwitchTo(InteractionMode.Focus);
+
+        manager.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Option", controlType, AriaRole: role));
+
+        Assert.Equal(InteractionMode.Browse, manager.CurrentMode);
+    }
+
+    [Theory]
+    [InlineData("ComboBox", null)]
+    [InlineData("ListItem", "option")]
+    public void FocusMovingToControlNeedingFocusMode_StaysInFocus(string controlType, string? role)
+    {
+        var manager = new NavigationManager(new NullSink(), Microsoft.Extensions.Logging.Abstractions.NullLogger<NavigationManager>.Instance);
+        manager.SwitchTo(InteractionMode.Focus);
+
+        manager.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Option", controlType, AriaRole: role));
+
+        Assert.Equal(InteractionMode.Focus, manager.CurrentMode);
+    }
+}

@@ -820,4 +820,210 @@ public class BrowseModeControllerTests : IDisposable
         await Task.Delay(50);
         Assert.False(sayAll.IsReading);
     }
+
+    // -------------------------------------------------------------------------
+    // Round 5 fixes
+    // -------------------------------------------------------------------------
+
+    private const int UIA_NamePropertyId = 30005;
+    private const int UIA_ValueValuePropertyId = 30045;
+    private const int UIA_ToggleToggleStatePropertyId = 30086;
+
+    private List<string> SpokenTexts()
+    {
+        lock (_spoken) return _spoken.Select(u => u.Text).ToList();
+    }
+
+    [Fact]
+    public async Task EditableComboBoxValueChange_IsNotSpoken()
+    {
+        LoadDocument();
+        var focus = new FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "ComboBox", RuntimeId: [70], IsValueReadOnly: false);
+        _controller.HandleFocusChanged(focus);
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [70], UIA_ValueValuePropertyId, "new"));
+        await Task.Delay(150);
+
+        Assert.DoesNotContain("new", SpokenTexts());
+    }
+
+    [Fact]
+    public async Task ReadOnlyComboBoxValueChange_IsSpoken()
+    {
+        LoadDocument();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Fruit", "ComboBox", RuntimeId: [71], IsValueReadOnly: true));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [71], UIA_ValueValuePropertyId, "Banana"));
+
+        await WaitForSpeech(u => u.Text == "Banana");
+    }
+
+    [Fact]
+    public async Task OptionSelectedAndValueChange_SpeakTheOptionOnce()
+    {
+        LoadDocument();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Fruit", "ComboBox", RuntimeId: [71]));
+
+        _controller.HandleElementSelected(new ElementSelectedEvent(DateTimeOffset.UtcNow, [72], "Banana"));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [71], UIA_ValueValuePropertyId, "Banana"));
+        await WaitForSpeech(u => u.Text == "Banana");
+        await Task.Delay(150);
+
+        Assert.Single(SpokenTexts(), t => t == "Banana");
+    }
+
+    [Theory]
+    [InlineData(UIA_ToggleToggleStatePropertyId, true)]
+    [InlineData(30079, true)]  // SelectionItemIsSelected
+    [InlineData(30070, true)]  // ExpandCollapseState
+    [InlineData(UIA_NamePropertyId, true)]
+    [InlineData(UIA_ValueValuePropertyId, true)]
+    [InlineData(30010, false)] // IsEnabled
+    public void ChangesBufferText_CoversStateNameAndValue(int propertyId, bool expected) =>
+        Assert.Equal(expected, BrowseModeController.ChangesBufferText(propertyId));
+
+    [Fact]
+    public async Task ToggledCheckBox_ReadsNewStateAfterRecapture()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        root.AddChild(new MockElement { RuntimeId = [3], Name = "Subscribe", ControlType = "CheckBox", ToggleState = 0 });
+        var doc = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+
+        // The re-captured check box is now checked
+        var updated = new MockElement { RuntimeId = [3], Name = "Subscribe", ControlType = "CheckBox", ToggleState = 1 };
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(DateTimeOffset.UtcNow, [3], updated, DocumentRuntimeId: [1]));
+
+        _controller.HandleCommand(NavigationCommand.NextFormField);
+        await WaitForSpeech(u => u.Text.Contains("Subscribe"));
+        Assert.Contains(SpokenTexts(), t => t.Contains("Subscribe") && t.Contains("checked") && !t.Contains("not checked"));
+    }
+
+    [Fact]
+    public void FocusLeavingDocument_DeactivatesBrowseKeysAtOnce_KeepingPosition()
+    {
+        var doc = LoadDocument(focusedId: [4]);
+        var offset = _controller.Cursor!.TextOffset;
+
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Address and search bar", "Edit", RuntimeId: [900]));
+
+        Assert.False(_controller.IsDocumentActive);
+        Assert.Same(doc, _quickNav.CurrentDocument);
+        Assert.Equal(offset, _controller.Cursor!.TextOffset);
+    }
+
+    [Fact]
+    public void FocusInDocumentReport_ReactivatesBrowseKeys()
+    {
+        LoadDocument();
+        // A dialog added since the capture: not in the buffer, but in the same document
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "OK", "Button", RuntimeId: [901]));
+        Assert.False(_controller.IsDocumentActive);
+
+        _controller.HandleFocusInDocument(new FocusInDocumentEvent(DateTimeOffset.UtcNow, [1], [901]));
+
+        Assert.True(_controller.IsDocumentActive);
+    }
+
+    [Fact]
+    public void StaleFocusInDocumentReport_DoesNotReactivate()
+    {
+        LoadDocument();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "OK", "Button", RuntimeId: [901]));
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Address", "Edit", RuntimeId: [900]));
+
+        // The report about the earlier focus arrives after focus moved on
+        _controller.HandleFocusInDocument(new FocusInDocumentEvent(DateTimeOffset.UtcNow, [1], [901]));
+
+        Assert.False(_controller.IsDocumentActive);
+    }
+
+    [Fact]
+    public void FocusReturningIntoDocument_Reactivates()
+    {
+        LoadDocument();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Address", "Edit", RuntimeId: [900]));
+        Assert.False(_controller.IsDocumentActive);
+
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
+
+        Assert.True(_controller.IsDocumentActive);
+    }
+
+    private VBufferDocument LoadLongParagraphDocument()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = string.Join(" ", Enumerable.Repeat("word", 40)) }); // 199 chars
+        root.AddChild(new MockElement { RuntimeId = [3], Name = "Next paragraph", AriaRole = "heading", AriaProperties = "level=2" });
+        var doc = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+        return doc;
+    }
+
+    [Fact]
+    public async Task LongParagraph_IsReadInLinesOfTheConfiguredLength()
+    {
+        _settings = _settings with { MaxLineLength = 50 };
+        LoadLongParagraphDocument();
+
+        _controller.HandleCommand(NavigationCommand.ReadCurrentLine);
+
+        var line = await WaitForSpeech(u => u.Text.StartsWith("word"));
+        Assert.True(line.Text.Length <= 50, line.Text);
+    }
+
+    [Fact]
+    public async Task NextParagraph_SkipsTheRestOfALongParagraph()
+    {
+        LoadLongParagraphDocument();
+
+        _controller.HandleCommand(NavigationCommand.NextParagraph);
+
+        await WaitForSpeech(u => u.Text.StartsWith("Next paragraph"));
+    }
+
+    [Fact]
+    public async Task EndAndHome_MoveWithinTheLine()
+    {
+        LoadDocument(); // "Welcome" first
+
+        _controller.HandleCommand(NavigationCommand.EndOfLine);
+        await WaitForSpeech(u => u.Text == "e");
+        Assert.Equal(6, _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.StartOfLine);
+        await WaitForSpeech(u => u.Text.StartsWith("W, heading level 1"));
+        Assert.Equal(0, _controller.Cursor!.TextOffset);
+    }
+
+    [Fact]
+    public async Task BottomAndTopOfDocument()
+    {
+        LoadDocument();
+
+        _controller.HandleCommand(NavigationCommand.BottomOfDocument);
+        await WaitForSpeech(u => u.Text.Contains("Search"));
+
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        await WaitForSpeech(u => u.Text.Contains("Welcome"));
+        Assert.Equal(0, _controller.Cursor!.TextOffset);
+    }
+
+    [Fact]
+    public async Task NextTable_MovesToTheTableAndReadsItsFirstLine()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        var table = new MockElement { RuntimeId = [3], Name = "Prices", ControlType = "Table" };
+        table.AddChild(new MockElement { RuntimeId = [4], Name = "Apples" });
+        root.AddChild(table);
+        var doc = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+
+        _controller.HandleCommand(NavigationCommand.NextTable);
+
+        await WaitForSpeech(u => u.Text == "Prices, table, Apples");
+        Assert.Same(doc.FindByRuntimeId([3]), _quickNav.CurrentNode);
+    }
 }

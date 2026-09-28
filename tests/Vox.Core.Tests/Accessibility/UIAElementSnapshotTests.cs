@@ -24,3 +24,14 @@ public class UIAElementSnapshotTests
         Assert.Equal(0, UIAElementSnapshot.HeadingLevelFromUia("80052"));
     }
 }
+
+public class LegacyStateTests
+{
+    [Theory]
+    [InlineData(0x800000, true)]    // STATE_SYSTEM_TRAVERSED
+    [InlineData(0x800004, true)]
+    [InlineData(0x100000, false)]   // focusable only
+    [InlineData(0, false)]
+    public void IsTraversed_ReadsVisitedBit(int state, bool expected) =>
+        Assert.Equal(expected, UIAElementSnapshot.IsTraversed(state));
+}

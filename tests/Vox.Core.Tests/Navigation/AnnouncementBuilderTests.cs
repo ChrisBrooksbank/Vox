@@ -250,3 +250,44 @@ public class AnnouncementBuilderTests
         return count;
     }
 }
+
+public class ValueAnnouncementTests
+{
+    private readonly AnnouncementBuilder _builder = new();
+    private static readonly VerbosityProfile Profile = VerbosityProfile.For(VerbosityLevel.Beginner);
+
+    [Fact]
+    public void ComboBox_AnnouncesItsSelectedValue()
+    {
+        var focus = new Vox.Core.Pipeline.FocusChangedEvent(DateTimeOffset.UtcNow, "Country", "ComboBox", Value: "France");
+        Assert.StartsWith("Country, combo box, France", _builder.Build(focus, Profile, true));
+    }
+
+    [Fact]
+    public void Edit_AnnouncesItsText()
+    {
+        var focus = new Vox.Core.Pipeline.FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "Edit", Value: "hello");
+        Assert.Equal("Search, edit, hello", _builder.Build(focus, Profile, true));
+    }
+
+    [Fact]
+    public void PasswordValue_IsNeverAnnounced()
+    {
+        var focus = new Vox.Core.Pipeline.FocusChangedEvent(DateTimeOffset.UtcNow, "Password", "Edit", IsPassword: true, Value: "hunter2");
+        Assert.DoesNotContain("hunter2", _builder.Build(focus, Profile, true));
+    }
+
+    [Fact]
+    public void ValueEqualToName_IsNotRepeated()
+    {
+        var node = new VBufferNode { Name = "50%", ControlType = "Slider", Value = "50%" };
+        Assert.Equal("50%, slider", _builder.Build(node, Profile));
+    }
+
+    [Fact]
+    public void ButtonValue_IsNotAnnounced()
+    {
+        var node = new VBufferNode { Name = "Go", ControlType = "Button", Value = "ignored" };
+        Assert.Equal("Go, button", _builder.Build(node, Profile));
+    }
+}

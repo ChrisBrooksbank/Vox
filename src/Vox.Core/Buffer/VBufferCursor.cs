@@ -44,6 +44,9 @@ public sealed class VBufferCursor
     /// <summary>Current absolute offset into FlatText.</summary>
     public int TextOffset => _offset;
 
+    /// <summary>The document the cursor moves over.</summary>
+    public VBufferDocument Document => _document;
+
     /// <summary>Node that covers the current offset (may be null for empty document).</summary>
     public VBufferNode? CurrentNode => _document.FindNodeAtOffset(_offset);
 
@@ -161,10 +164,19 @@ public sealed class VBufferCursor
 
     // -------------------------------------------------------------------------
     // Line movement
+    //
+    // A "line" is a run of text up to '\n' (one block after inline runs are joined), split
+    // further at a word boundary when longer than MaxLineLength, as NVDA does, so a long
+    // paragraph is read a line at a time. A "paragraph" is a whole '\n'-terminated run.
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Move to the start of the next line (after the next '\n').
+    /// Lines longer than this are split at the last word boundary before it (0 = never split).
+    /// </summary>
+    public int MaxLineLength { get; set; } = 100;
+
+    /// <summary>
+    /// Move to the start of the next line.
     /// Returns the line text, or null if at end.
     /// </summary>
     public string? NextLine()
@@ -175,12 +187,20 @@ public sealed class VBufferCursor
         if (_offset >= len)
             return HandleBoundaryString(atEnd: true, BoundaryUnit.Line);
 
-        // Find end of current line
-        int nlPos = text.IndexOf('\n', _offset);
-        if (nlPos < 0 || nlPos == len - 1)
+        int lineEnd = LineEndAt(_offset);
+        int hardEnd = HardLineEnd(_offset);
+        if (lineEnd < hardEnd)
+        {
+            // The next piece of a long line
+            _offset = lineEnd;
+            return ReadLineAt(_offset);
+        }
+
+        // hardEnd is the '\n' ending this line
+        if (hardEnd >= len - 1)
             return HandleBoundaryString(atEnd: true, BoundaryUnit.Line);
 
-        _offset = nlPos + 1;
+        _offset = hardEnd + 1;
         return ReadLineAt(_offset);
     }
 
@@ -197,9 +217,88 @@ public sealed class VBufferCursor
         if (currentLineStart == 0)
             return HandleBoundaryString(atEnd: false, BoundaryUnit.Line);
 
-        // currentLineStart - 1 is the '\n' that ends the previous line
+        // currentLineStart - 1 is the '\n' ending the previous line, or the end of the previous
+        // piece of the same long line
         _offset = LineStartAt(currentLineStart - 1);
         return ReadLineAt(_offset);
+    }
+
+    /// <summary>Moves to the start of the current line and returns the character there, or null if empty.</summary>
+    public char? StartOfLine()
+    {
+        _offset = LineStartAt(_offset);
+        return CharAtCursor();
+    }
+
+    /// <summary>Moves to the last character of the current line and returns it, or null if the line is empty.</summary>
+    public char? EndOfLine()
+    {
+        int start = LineStartAt(_offset);
+        int end = LineEndAt(_offset);
+        string text = _document.FlatText;
+        // Stay off the '\n' and any trailing space a long line was split after
+        while (end > start && char.IsWhiteSpace(text[end - 1]))
+            end--;
+        _offset = end > start ? end - 1 : start;
+        return CharAtCursor();
+    }
+
+    /// <summary>Moves to the start of the document and returns its first line.</summary>
+    public string TopOfDocument()
+    {
+        _offset = 0;
+        return ReadLineAt(0);
+    }
+
+    /// <summary>Moves to the start of the last line and returns it.</summary>
+    public string BottomOfDocument()
+    {
+        string text = _document.FlatText;
+        if (text.Length == 0)
+            return string.Empty;
+        _offset = LineStartAt(text.Length - 1);
+        return ReadLineAt(_offset);
+    }
+
+    /// <summary>
+    /// Move to the start of the next paragraph (the next '\n'-terminated run containing text).
+    /// Returns its text, or null at the end.
+    /// </summary>
+    public string? NextParagraph()
+    {
+        string text = _document.FlatText;
+        int pos = HardLineEnd(_offset) + 1;
+        while (pos < text.Length)
+        {
+            var paragraph = ReadParagraphAt(pos);
+            if (!string.IsNullOrWhiteSpace(paragraph))
+            {
+                _offset = pos;
+                return paragraph;
+            }
+            pos = HardLineEnd(pos) + 1;
+        }
+        return HandleBoundaryString(atEnd: true, BoundaryUnit.Paragraph);
+    }
+
+    /// <summary>
+    /// Move to the start of the previous paragraph containing text.
+    /// Returns its text, or null at the start.
+    /// </summary>
+    public string? PrevParagraph()
+    {
+        int start = HardLineStart(_offset);
+        while (start > 0)
+        {
+            start = HardLineStart(start - 1);
+            var paragraph = ReadParagraphAt(start);
+            if (!string.IsNullOrWhiteSpace(paragraph))
+            {
+                _offset = start;
+                return paragraph;
+            }
+        }
+        return HandleBoundaryString(atEnd: false, BoundaryUnit.Paragraph);
     }
 
     // -------------------------------------------------------------------------
@@ -211,9 +310,69 @@ public sealed class VBufferCursor
     {
         string text = _document.FlatText;
         pos = Math.Clamp(pos, 0, text.Length);
+        int hardStart = HardLineStart(pos);
+        int hardEnd = HardLineEnd(hardStart);
+
+        // Walk the pieces of a long line to the one containing pos
+        int start = hardStart;
+        while (true)
+        {
+            int end = PieceEnd(start, hardEnd);
+            if (pos < end || end >= hardEnd)
+                return start;
+            start = end;
+        }
+    }
+
+    /// <summary>Exclusive end of the line containing <paramref name="pos"/> (its '\n' or the end of a piece).</summary>
+    private int LineEndAt(int pos)
+    {
+        int start = LineStartAt(pos);
+        return PieceEnd(start, HardLineEnd(start));
+    }
+
+    /// <summary>Start of the '\n'-terminated run containing <paramref name="pos"/>.</summary>
+    private int HardLineStart(int pos)
+    {
+        string text = _document.FlatText;
+        pos = Math.Clamp(pos, 0, text.Length);
         if (pos == 0) return 0;
         // The '\n' at the end of a line belongs to that line, so search strictly before pos
         return text.LastIndexOf('\n', pos - 1) + 1;
+    }
+
+    /// <summary>Index of the '\n' ending the run containing <paramref name="pos"/>, or the text length.</summary>
+    private int HardLineEnd(int pos)
+    {
+        string text = _document.FlatText;
+        if (pos >= text.Length) return text.Length;
+        int end = text.IndexOf('\n', pos);
+        return end < 0 ? text.Length : end;
+    }
+
+    /// <summary>
+    /// End of the piece of a line starting at <paramref name="start"/>: the line end, or for a
+    /// line longer than <see cref="MaxLineLength"/>, just after the last space within the limit.
+    /// </summary>
+    private int PieceEnd(int start, int hardEnd)
+    {
+        int max = MaxLineLength;
+        if (max <= 0 || hardEnd - start <= max)
+            return hardEnd;
+
+        string text = _document.FlatText;
+        for (int i = start + max; i > start; i--)
+        {
+            if (char.IsWhiteSpace(text[i - 1]))
+                return i;
+        }
+        return start + max; // one very long word: split it
+    }
+
+    private char? CharAtCursor()
+    {
+        string text = _document.FlatText;
+        return _offset < text.Length && text[_offset] != '\n' ? text[_offset] : null;
     }
 
     /// <summary>Returns the text of the whole line containing the cursor.</summary>
@@ -232,14 +391,23 @@ public sealed class VBufferCursor
         return ReadWordAt(start);
     }
 
-    /// <summary>Returns the text of the line starting at <paramref name="pos"/>.</summary>
+    /// <summary>
+    /// Returns the text from <paramref name="pos"/> to the end of its line (without the '\n').
+    /// </summary>
     public string ReadLineAt(int pos)
     {
         string text = _document.FlatText;
         if (pos >= text.Length) return string.Empty;
-        int end = text.IndexOf('\n', pos);
-        if (end < 0) end = text.Length;
-        return text.Substring(pos, end - pos);
+        int end = LineEndAt(pos);
+        return text.Substring(pos, Math.Max(0, end - pos)).TrimEnd(' ');
+    }
+
+    /// <summary>Returns the whole paragraph ('\n'-terminated run) starting at <paramref name="pos"/>.</summary>
+    private string ReadParagraphAt(int pos)
+    {
+        string text = _document.FlatText;
+        if (pos >= text.Length) return string.Empty;
+        return text.Substring(pos, HardLineEnd(pos) - pos);
     }
 
     /// <summary>Returns the word text starting at <paramref name="pos"/>.</summary>
@@ -269,7 +437,7 @@ public sealed class VBufferCursor
         return null;
     }
 
-    private enum BoundaryUnit { Word, Line }
+    private enum BoundaryUnit { Word, Line, Paragraph }
 
     private string? HandleBoundaryString(bool atEnd, BoundaryUnit unit)
     {
@@ -291,6 +459,10 @@ public sealed class VBufferCursor
             // Start of the last line
             _offset = LineStartAt(text.Length - 1);
         }
+        else if (unit == BoundaryUnit.Paragraph)
+        {
+            _offset = HardLineStart(text.Length - 1);
+        }
         else
         {
             // Start of the last word
@@ -300,7 +472,12 @@ public sealed class VBufferCursor
             _offset = pos;
         }
 
-        return unit == BoundaryUnit.Line ? ReadLineAt(_offset) : ReadWordAt(_offset);
+        return unit switch
+        {
+            BoundaryUnit.Line => ReadLineAt(_offset),
+            BoundaryUnit.Paragraph => ReadParagraphAt(_offset),
+            _ => ReadWordAt(_offset),
+        };
     }
 
     private void PlayCue(string cue)

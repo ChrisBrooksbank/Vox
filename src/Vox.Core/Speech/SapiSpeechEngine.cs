@@ -19,6 +19,8 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
     // so SpeakCompleted handlers can never deadlock against a call holding it.
     private readonly object _synthLock = new();
     private volatile bool _isSpeaking;
+    // The voice chosen at startup, restored when the voice setting is cleared
+    private readonly string? _defaultVoiceName;
 
     // Supported WPM range (matches the first-run wizard)
     private const int MinWpm = 150;
@@ -44,6 +46,7 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
 
         // Select OneCore voice if available
         SelectOneCoreVoice();
+        _defaultVoiceName = TryGetCurrentVoiceName();
 
         // Warm up the engine to avoid first-utterance delay
         _synthesizer.Volume = 0;
@@ -137,8 +140,16 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         return Math.Clamp((int)Math.Round(rate), MinSapiRate, MaxSapiRate);
     }
 
+    /// <summary>Selects <paramref name="voiceName"/>; empty means the default voice chosen at startup.</summary>
     public void SetVoice(string voiceName)
     {
+        if (string.IsNullOrWhiteSpace(voiceName))
+        {
+            if (_defaultVoiceName is null)
+                return;
+            voiceName = _defaultVoiceName;
+        }
+
         try
         {
             lock (_synthLock)
@@ -162,6 +173,12 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
                 .Select(v => v.VoiceInfo.Name)
                 .ToList();
         }
+    }
+
+    private string? TryGetCurrentVoiceName()
+    {
+        try { return _synthesizer.Voice?.Name; }
+        catch { return null; }
     }
 
     private void SelectOneCoreVoice()

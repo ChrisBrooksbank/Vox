@@ -537,4 +537,50 @@ public class TypingEchoHandlerTests
     {
         Assert.Equal(expected, TypingEchoHandler.ComposeWithDeadKey(accent, ch));
     }
+
+    // -------------------------------------------------------------------------
+    // Round 5: Delete and dead keys across focus changes
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Delete_ClearsTheWordInsteadOfTrimmingItsEnd()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Words);
+        foreach (var vk in new[] { 0x43, 0x41, 0x54 }) // "cat"
+            handler.HandleKeyEvent(KeyUp(vk));
+
+        handler.HandleKeyEvent(KeyDown(0x2E)); // Delete (forwards: "cat" is no longer known)
+        handler.HandleKeyEvent(KeyUp(0x20));
+
+        Assert.DoesNotContain(sink.Events, e => e.IsWord);
+    }
+
+    [Fact]
+    public void Backspace_StillTrimsTheWord()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Words);
+        foreach (var vk in new[] { 0x43, 0x41, 0x54 }) // "cat"
+            handler.HandleKeyEvent(KeyUp(vk));
+
+        handler.HandleKeyEvent(KeyDown(0x08));
+        handler.HandleKeyEvent(KeyUp(0x20));
+
+        Assert.Equal("ca", Assert.Single(sink.Events, e => e.IsWord).Text);
+    }
+
+    [Fact]
+    public void PendingDeadKey_IsForgottenWhenTheWordResets()
+    {
+        var sink = new ListSink();
+        var handler = new TypingEchoHandler(sink, () => TypingEchoMode.Characters,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<TypingEchoHandler>.Instance,
+            e => e.VkCode == 0xDD ? new TypedChar('^', IsDeadKey: true)
+                : TypingEchoHandler.VkCodeToChar(e.VkCode, e.Modifiers, e.CapsLockOn));
+
+        handler.HandleKeyEvent(ModKeyUp(0xDD, KeyModifiers.None)); // ^ (dead) in one field
+        handler.ResetWord();                                        // focus moved
+        handler.HandleKeyEvent(ModKeyUp(0x45, KeyModifiers.None)); // e
+
+        Assert.Equal(["e"], sink.Echoes.Select(e => e.Text));
+    }
 }

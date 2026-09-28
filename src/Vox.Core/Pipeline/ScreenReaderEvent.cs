@@ -20,7 +20,9 @@ public record FocusChangedEvent(
     int[]? RuntimeId = null,
     bool IsPassword = false,
     int? ToggleState = null,
-    bool? IsSelected = null
+    bool? IsSelected = null,
+    string? Value = null,
+    bool? IsValueReadOnly = null
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(
@@ -124,6 +126,16 @@ public record DocumentChangedEvent(
     DateTimeOffset Timestamp,
     VBufferDocument? Document,
     int[]? FocusedRuntimeId = null
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// Posted by the document tracker when the focused element turned out to be inside the current
+/// document although the buffer may not contain it yet (e.g. a newly added dialog).
+/// </summary>
+public record FocusInDocumentEvent(
+    DateTimeOffset Timestamp,
+    int[] DocumentRuntimeId,
+    int[] FocusedRuntimeId
 ) : ScreenReaderEvent(Timestamp);
 
 /// <summary>

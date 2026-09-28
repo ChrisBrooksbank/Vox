@@ -25,12 +25,6 @@ public sealed class TypingEchoHandler
     // Rolling buffer for word echo – stores chars since last word boundary
     private readonly System.Text.StringBuilder _wordBuffer = new();
 
-    // VK codes that delete content (Backspace)
-    private static readonly HashSet<int> DeleteVkCodes = new()
-    {
-        0x08, // Backspace
-        0x2E, // Delete
-    };
 
     // Keys that move the caret or focus: a new word starts wherever the user types next
     private static readonly HashSet<int> CaretMovementVkCodes = new()
@@ -43,6 +37,7 @@ public sealed class TypingEchoHandler
 
     private const int VK_RETURN = 0x0D;
     private const int VK_BACK = 0x08;
+    private const int VK_DELETE = 0x2E;
 
     private readonly Func<KeyEvent, TypedChar> _charMapper;
 
@@ -88,7 +83,11 @@ public sealed class TypingEchoHandler
     }
 
     /// <summary>Forgets the partly typed word (focus or caret moved elsewhere).</summary>
-    public void ResetWord() => _wordBuffer.Clear();
+    public void ResetWord()
+    {
+        _wordBuffer.Clear();
+        _pendingDeadKey = null; // an accent pressed in one field must not reach the next
+    }
 
     /// <summary>
     /// Processes a RawKeyEvent. Should be called for every RawKeyEvent coming through the pipeline.
@@ -115,8 +114,10 @@ public sealed class TypingEchoHandler
 
             if (evt.VkCode == VK_BACK && (evt.Modifiers & KeyModifiers.Ctrl) != 0)
                 _wordBuffer.Clear(); // Ctrl+Backspace deletes the whole word
-            else if (DeleteVkCodes.Contains(evt.VkCode) && _wordBuffer.Length > 0)
+            else if (evt.VkCode == VK_BACK && _wordBuffer.Length > 0)
                 _wordBuffer.Remove(_wordBuffer.Length - 1, 1);
+            else if (evt.VkCode == VK_DELETE)
+                _wordBuffer.Clear(); // deletes after the caret: the word being typed is no longer known
             else if (CaretMovementVkCodes.Contains(evt.VkCode))
                 _wordBuffer.Clear();
             return;

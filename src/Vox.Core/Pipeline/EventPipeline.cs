@@ -92,6 +92,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// <summary>Raised when a DocumentChangedEvent is processed.</summary>
     public event EventHandler<DocumentChangedEvent>? DocumentChangedProcessed;
 
+    /// <summary>Raised when a FocusInDocumentEvent is processed.</summary>
+    public event EventHandler<FocusInDocumentEvent>? FocusInDocumentProcessed;
+
     /// <summary>Raised when a SubtreeChangedEvent is processed.</summary>
     public event EventHandler<SubtreeChangedEvent>? SubtreeChangedProcessed;
 
@@ -233,6 +236,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     DocumentChangedProcessed?.Invoke(this, documentChanged);
                     break;
 
+                case FocusInDocumentEvent focusInDocument:
+                    FocusInDocumentProcessed?.Invoke(this, focusInDocument);
+                    break;
+
                 case SubtreeChangedEvent subtreeChanged:
                     SubtreeChangedProcessed?.Invoke(this, subtreeChanged);
                     break;
@@ -286,8 +293,16 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     private async Task HandleLiveRegionAsync(LiveRegionChangedEvent liveRegion, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(liveRegion.Text) || liveRegion.Politeness == LiveRegionPoliteness.Off)
+        if (liveRegion.Politeness == LiveRegionPoliteness.Off)
             return;
+
+        // An emptied region is recorded (so the same message set again is spoken), never spoken
+        if (string.IsNullOrWhiteSpace(liveRegion.Text))
+        {
+            if (liveRegion.SourceId is not null)
+                _liveRegionMonitor.Evaluate(liveRegion.SourceId, string.Empty, liveRegion.Politeness, out _);
+            return;
+        }
 
         // Diff against last text (announcing only additions) and throttle polite updates per region
         var text = _liveRegionMonitor.Evaluate(liveRegion.SourceId, liveRegion.Text, liveRegion.Politeness, out var retryAfter);

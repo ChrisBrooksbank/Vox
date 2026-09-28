@@ -6,5 +6,6 @@
   "AudioCuesEnabled": true,
   "AnnounceVisitedLinks": true,
   "ModifierKey": "Insert",
+  "MaxLineLength": 100,
   "FirstRunCompleted": false
 }

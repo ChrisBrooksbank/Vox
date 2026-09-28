@@ -2,6 +2,21 @@
 
 This is a fifth static review, of `master` at `2c027f8`, done on 2026-09-28 after the round-4 fixes were merged. It looks beyond the mode and focus machinery of earlier rounds, at what is actually spoken for form controls, how the buffer stays current after the user changes something, key handling while focus moves between the page and the rest of the browser, and the speech queue. The baseline is 576 tests passing on Linux, plus 14 that need Windows. Items marked **(verify)** depend on Windows, UIA, Chromium or SAPI behaviour and need confirming on Windows.
 
+## Status (2026-09-28)
+
+All 15 tasks are implemented, with regression tests for the testable parts (643 tests pass on Linux, 67 of them new; the 14 that need Windows are unchanged). The **(verify)** items, and the code that only runs on Windows, still need checking on Windows with Chrome or Edge: the `ValueValue`/`ValueIsReadOnly`, `IsRequiredForForm` and `LegacyIAccessibleState` values Chromium reports; the `FocusInDocumentEvent` path; the re-capture on state, name and value changes; and the default-voice reset.
+
+Where the implementation made a specific choice:
+- Task 1: a form field's value is spoken after its control type and read in the buffer as "label value". Values are shown for Edit, ComboBox, Spinner, Slider and ProgressBar, and the matching ARIA roles. They are skipped when equal to the name, and never shown for password fields.
+- Task 2: value changes are ignored when the focused element's value is editable (`ValueIsReadOnly == false`). Unknown counts as read-only, so it is spoken, except for Edit and Document.
+- Task 3: `Value` changes also trigger a re-capture, so browse mode reads what was typed. The tracker's debounce limits this to about one capture per second while typing.
+- Task 5: identical text is a new announcement after 1.5 s of quiet. Duplicate events inside that window restart the window.
+- Task 6: Ctrl+Up/Down move by paragraph (a whole `'\n'`-terminated run with text), as in NVDA. Home/End speak the character reached; Ctrl+Home/End speak the line.
+- Task 7: `MaxLineLength` is a setting (default 100, 0 turns splitting off) and is read at use time.
+- Task 8: NVDA behaviour. Focus mode is left for any focused control that doesn't need it.
+- Task 12: a selection or value change repeating the text spoken for the focused control in the last 300 ms is skipped.
+- Task 15: T/Shift+T announce "name, table" and the table's first line.
+
 Tasks use the `IMPLEMENTATION_PLAN.md` checkbox format and are ordered by severity. Each fix needs a regression test in `tests/Vox.Core.Tests/` where the code is testable.
 
 ## P0 — Common flows broken
@@ -14,16 +29,16 @@ Neither `FocusChangedEvent` nor `IVBufferElement` carries the UIA `ValueValue` p
 - In Browse mode, arrowing or pressing F over a filled-in form reads only the labels. Chromium's plain `<input>` has no control-view text child, so the typed text isn't in the buffer at all.
 
 NVDA says "Country, combo box, United Kingdom" and "Search, edit, hello".
-- [ ] Add `UIA_ValueValuePropertyId` (30045) to the focus and subtree cache requests. Carry it as `Value` on `FocusChangedEvent`, `IVBufferElement`/`UIAElementSnapshot` and `VBufferNode`.
-- [ ] `AnnouncementBuilder`: after the control type (and states), append the value for Edit, ComboBox, Spinner, Slider and ProgressBar, and for the equivalent ARIA roles. Skip it when empty or equal to the name. Never read the value of a password field.
-- [ ] `VBufferBuilder`: emit a form field's value as its text (after the label) so line navigation reads it. Keep the value out of `Name`, so quick navigation and the Elements List still show the label.
-- [ ] Tests: focus announcement of a combo box with a value; an edit with a value; a password edit with a value (not spoken); buffer text for a labelled edit with a value.
+- [x] Add `UIA_ValueValuePropertyId` (30045) to the focus and subtree cache requests. Carry it as `Value` on `FocusChangedEvent`, `IVBufferElement`/`UIAElementSnapshot` and `VBufferNode`.
+- [x] `AnnouncementBuilder`: after the control type (and states), append the value for Edit, ComboBox, Spinner, Slider and ProgressBar, and for the equivalent ARIA roles. Skip it when empty or equal to the name. Never read the value of a password field.
+- [x] `VBufferBuilder`: emit a form field's value as its text (after the label) so line navigation reads it. Keep the value out of `Name`, so quick navigation and the Elements List still show the label.
+- [x] Tests: focus announcement of a combo box with a value; an edit with a value; a password edit with a value (not spoken); buffer text for a labelled edit with a value.
 
 ### 2. Typing in an autocomplete search box speaks the whole text after every key (verify)
 `HandlePropertyChanged` skips value changes only for `Edit` and `Document` (`BrowseModeController.cs:340`). A text input with `role="combobox"` is exposed by Chromium as a `ComboBox`, and that includes Google's and Bing's search boxes and most autocomplete fields. Its `ValueValue` changes on every keystroke, and each change is spoken at `Interrupt` over the typing echo, so typing "news" is heard as "n", "ne", "new", "news".
-- [ ] Add `UIA_ValueIsReadOnlyPropertyId` (30046) to the focus cache request and carry it on `FocusChangedEvent`. Treat a focused element whose value is editable like an Edit, and leave its value changes to typing echo. Keep speaking value changes of read-only combo boxes (`<select>`), sliders and spin buttons.
-- [ ] Test: a focused editable ComboBox value change is not spoken; a read-only ComboBox value change is.
-- [ ] (verify) the ControlType and `ValueIsReadOnly` Chromium reports for `<input role=combobox>` and for `<select>`.
+- [x] Add `UIA_ValueIsReadOnlyPropertyId` (30046) to the focus cache request and carry it on `FocusChangedEvent`. Treat a focused element whose value is editable like an Edit, and leave its value changes to typing echo. Keep speaking value changes of read-only combo boxes (`<select>`), sliders and spin buttons.
+- [x] Test: a focused editable ComboBox value change is not spoken; a read-only ComboBox value change is.
+- [x] (verify) the ControlType and `ValueIsReadOnly` Chromium reports for `<input role=combobox>` and for `<select>`.
 
 ## P1 — Wrong behaviour in common use
 
@@ -31,29 +46,29 @@ NVDA says "Country, combo box, United Kingdom" and "Search, edit, hello".
 Toggle and selection states are captured into the buffer (round 3), but a change to them only triggers speech. `ScreenReaderService.OnPropertyChangedProcessed` re-captures the element only for `ExpandCollapseState` (`ScreenReaderService.cs:237`), and Chromium raises no StructureChanged event for a state change.
 
 So after checking a box (Enter in Browse mode, or Space in Focus mode), arrowing back over it in Browse mode still says "not checked". Selecting a radio button leaves the old one reading "checked", and switching tabs leaves the old tab reading "selected". The same applies to `Name` changes of elements that aren't focused, such as a button whose label changes from "Play" to "Pause", or a counter.
-- [ ] Re-capture the changed element (`_documentTracker.OnStructureChanged`) for `ToggleToggleState`, `SelectionItemIsSelected` and `Name` changes too, not only `ExpandCollapseState`. The tracker's debounce and full-re-capture threshold already cover bursts.
-- [ ] Test: in `BrowseModeController`, a subtree update for a toggled check box changes what its announcement says. `ScreenReaderService` wiring is manual (verify on Windows).
+- [x] Re-capture the changed element (`_documentTracker.OnStructureChanged`) for `ToggleToggleState`, `SelectionItemIsSelected` and `Name` changes too, not only `ExpandCollapseState`. The tracker's debounce and full-re-capture threshold already cover bursts.
+- [x] Test: in `BrowseModeController`, a subtree update for a toggled check box changes what its announcement says. `ScreenReaderService` wiring is manual (verify on Windows).
 
 ### 4. Keys typed straight after leaving the page are swallowed or run browse commands
 The document stays "active" until the tracker has walked the new focus's ancestors and posted `DocumentChangedEvent(null)`. That path is: pipeline focus coalescing, a UIA-thread hop, up to 64 cross-process parent calls, and back through the pipeline. Until it completes, `KeyInputDispatcher` resolves keys in the Browse context (`KeyInputDispatcher.cs:140`).
 
 After Ctrl+L, Alt+D, F6 or Alt+Tab from a page in Browse mode, the first letters typed into the address bar or the other app are swallowed as "unbound typing keys". Bound keys (H, K, arrows, Space, Enter) run quick-nav commands against the page instead of reaching the new focus. `HandleFocusChanged` already knows focus has left the buffer (`BrowseModeController.cs:262`), but it returns without doing anything.
-- [ ] When a focus event's element is not in the current document, deactivate browse-mode key handling at once: raise `DocumentActiveChanged(false)` but keep the document and cursor.
-- [ ] Have the tracker post a small "focus is still in the current document" event from `DetectDocument`'s same-document paths (the `_capturedIds` shortcut and the same-runtime-id return). That event reactivates the document for elements the buffer doesn't contain yet, such as a newly added dialog.
-- [ ] Tests: document loaded, focus event for an element outside it → document inactive immediately, cursor kept. A later "still in document" event → active again, same position.
+- [x] When a focus event's element is not in the current document, deactivate browse-mode key handling at once: raise `DocumentActiveChanged(false)` but keep the document and cursor.
+- [x] Have the tracker post a small "focus is still in the current document" event from `DetectDocument`'s same-document paths (the `_capturedIds` shortcut and the same-runtime-id return). That event reactivates the document for elements the buffer doesn't contain yet, such as a newly added dialog.
+- [x] Tests: document loaded, focus event for an element outside it → document inactive immediately, cursor kept. A later "still in document" event → active again, same position.
 
 ### 5. A live region that repeats the same message is only spoken the first time
 `LiveRegionMonitor.Evaluate` drops text equal to the region's last text (`LiveRegionMonitor.cs:75`). Clearing the region never resets that last text: `UIAEventSubscriber` doesn't post empty text (`UIAEventSubscriber.cs:330`), and `EventPipeline` returns early for it before reaching the monitor (`EventPipeline.cs:289`). Pages commonly clear a status region and set the same text again to re-announce it ("Item added to cart", "Saved", "1 new message"). Vox speaks it once and then never again for that region.
-- [ ] Post live-region changes with empty text, and let the monitor record them as `LastText = ""` without speaking.
-- [ ] Also allow identical text again once a short interval has passed since it was last spoken (e.g. 1.5 s), because a fresh LiveRegionChanged event with the same text means the page announced it again.
-- [ ] Tests: "Saved", then "", then "Saved" → spoken twice. "Saved" twice within the interval → once. "Saved" twice beyond the interval → twice.
+- [x] Post live-region changes with empty text, and let the monitor record them as `LastText = ""` without speaking.
+- [x] Also allow identical text again once a short interval has passed since it was last spoken (e.g. 1.5 s), because a fresh LiveRegionChanged event with the same text means the page announced it again.
+- [x] Tests: "Saved", then "", then "Saved" → spoken twice. "Saved" twice within the interval → once. "Saved" twice beyond the interval → twice.
 
 ### 6. Standard NVDA reading keys are missing in Browse mode
 The keymap binds word movement to Ctrl+Down/Up (`default-keymap.json`). NVDA, whose conventions the project follows, uses Ctrl+Left/Right for words and Ctrl+Up/Down for paragraphs. Home, End, Ctrl+Home and Ctrl+End are not bound at all. They pass to the browser, which scrolls the page but leaves the virtual cursor where it was, so the next Down arrow reads from the old place. Ctrl+Left and Ctrl+Right do nothing.
-- [ ] Bind Ctrl+Right/Left to `NextWord`/`PrevWord`.
-- [ ] Add and bind `StartOfLine`/`EndOfLine` (Home/End) and `TopOfDocument`/`BottomOfDocument` (Ctrl+Home/Ctrl+End), implemented on `VBufferCursor`.
-- [ ] Decide what Ctrl+Up/Down do: `PrevParagraph`/`NextParagraph` (a line with text preceded by a blank line or a block boundary) as NVDA does, or keep them as word keys for compatibility.
-- [ ] Tests: keymap resolution for the new bindings; cursor movement for each new command, including boundary cues.
+- [x] Bind Ctrl+Right/Left to `NextWord`/`PrevWord`.
+- [x] Add and bind `StartOfLine`/`EndOfLine` (Home/End) and `TopOfDocument`/`BottomOfDocument` (Ctrl+Home/Ctrl+End), implemented on `VBufferCursor`.
+- [x] Ctrl+Up/Down move by paragraph (`PrevParagraph`/`NextParagraph`), as NVDA does.
+- [x] Tests: keymap resolution for the new bindings; cursor movement for each new command, including boundary cues.
 
 ## P2 — Smaller issues
 
