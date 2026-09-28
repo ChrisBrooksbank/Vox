@@ -1,7 +1,9 @@
+using System.ComponentModel;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Navigation;
@@ -12,7 +14,8 @@ namespace Vox.App;
 
 /// <summary>
 /// Main hosted service for the Vox screen reader.
-/// Initializes all subsystems and manages application lifecycle.
+/// Initializes all subsystems, wires pipeline events to their handlers and manages application lifecycle.
+/// Navigation logic lives in <see cref="BrowseModeController"/>; this class only connects components.
 /// </summary>
 public sealed class ScreenReaderService : IHostedService
 {
@@ -21,17 +24,18 @@ public sealed class ScreenReaderService : IHostedService
     private readonly EventPipeline _eventPipeline;
     private readonly IKeyboardHook _keyboardHook;
     private readonly KeyInputDispatcher _keyInputDispatcher;
-    private readonly TypingEchoHandler _typingEchoHandler;
     private readonly UIAProvider _uiaProvider;
     private readonly UIAEventSubscriber _uiaEventSubscriber;
+    private readonly BrowseDocumentTracker _documentTracker;
     private readonly NavigationManager _navigationManager;
-    private readonly QuickNavHandler _quickNavHandler;
+    private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
-    private readonly AnnouncementBuilder _announcementBuilder;
-    private readonly Vox.Core.Audio.IAudioCuePlayer _audioCuePlayer;
+    private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly FirstRunWizard _firstRunWizard;
     private readonly IOptionsMonitor<VoxSettings> _settings;
     private readonly ILogger<ScreenReaderService> _logger;
+
+    private IDisposable? _settingsSubscription;
 
     public ScreenReaderService(
         ISpeechEngine speechEngine,
@@ -39,14 +43,13 @@ public sealed class ScreenReaderService : IHostedService
         EventPipeline eventPipeline,
         IKeyboardHook keyboardHook,
         KeyInputDispatcher keyInputDispatcher,
-        TypingEchoHandler typingEchoHandler,
         UIAProvider uiaProvider,
         UIAEventSubscriber uiaEventSubscriber,
+        BrowseDocumentTracker documentTracker,
         NavigationManager navigationManager,
-        QuickNavHandler quickNavHandler,
+        BrowseModeController browseModeController,
         SayAllController sayAllController,
-        AnnouncementBuilder announcementBuilder,
-        Vox.Core.Audio.IAudioCuePlayer audioCuePlayer,
+        IAudioCuePlayer audioCuePlayer,
         FirstRunWizard firstRunWizard,
         IOptionsMonitor<VoxSettings> settings,
         ILogger<ScreenReaderService> logger)
@@ -56,13 +59,12 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline = eventPipeline;
         _keyboardHook = keyboardHook;
         _keyInputDispatcher = keyInputDispatcher;
-        _typingEchoHandler = typingEchoHandler;
         _uiaProvider = uiaProvider;
         _uiaEventSubscriber = uiaEventSubscriber;
+        _documentTracker = documentTracker;
         _navigationManager = navigationManager;
-        _quickNavHandler = quickNavHandler;
+        _browseModeController = browseModeController;
         _sayAllController = sayAllController;
-        _announcementBuilder = announcementBuilder;
         _audioCuePlayer = audioCuePlayer;
         _firstRunWizard = firstRunWizard;
         _settings = settings;
@@ -76,60 +78,78 @@ public sealed class ScreenReaderService : IHostedService
         // Initialize UIA on the dedicated STA thread
         await _uiaProvider.InitializeAsync();
 
-        // Subscribe to UIA events (focus, structure, live regions, etc.)
+        // Subscribe to UIA events (focus, live regions, notifications)
         await _uiaEventSubscriber.SubscribeAsync();
 
+        // Apply settings now and whenever they change (wizard, settings.json edits)
+        ApplySettings(_settings.CurrentValue);
+        _settingsSubscription = _settings.OnChange((s, _) => ApplySettings(s));
+
         // Install the low-level keyboard hook (needed before wizard for key input)
-        _keyboardHook.Install();
+        bool hookInstalled = TryInstallKeyboardHook();
 
         // Check if first run wizard needs to run (before starting normal pipeline)
-        if (!_settings.CurrentValue.FirstRunCompleted)
+        if (hookInstalled && !_settings.CurrentValue.FirstRunCompleted)
         {
             _logger.LogInformation("First run not completed — starting wizard");
             await _firstRunWizard.RunAsync(cancellationToken);
         }
 
-        // Apply speech settings
-        _speechEngine.SetRate(_settings.CurrentValue.SpeechRateWpm);
-        if (!string.IsNullOrEmpty(_settings.CurrentValue.VoiceName))
-            _speechEngine.SetVoice(_settings.CurrentValue.VoiceName);
-
-        // Start typing echo handler (subscribes to pipeline RawKeyEvents)
+        // Wire pipeline events (all raised on the pipeline thread)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
-
-        // Wire navigation components to pipeline events
         _eventPipeline.NavigationCommandReceived += OnNavigationCommandReceived;
         _eventPipeline.FocusChangedProcessed += OnFocusChangedProcessed;
+        _eventPipeline.StructureChangedProcessed += OnStructureChangedProcessed;
+        _eventPipeline.DocumentChangedProcessed += OnDocumentChangedProcessed;
+        _eventPipeline.SubtreeChangedProcessed += OnSubtreeChangedProcessed;
+        _eventPipeline.ElementsListClosedProcessed += OnElementsListClosedProcessed;
 
-        // Start key input dispatcher (subscribes to keyboard hook)
+        // Keep key resolution in sync with the browse/focus mode and document focus
+        _navigationManager.ModeChanged += OnModeChanged;
+        _browseModeController.DocumentActiveChanged += OnDocumentActiveChanged;
+        _keyInputDispatcher.SetMode(_navigationManager.CurrentMode);
+        _keyInputDispatcher.SetDocumentActive(_browseModeController.IsDocumentActive);
+
+        // Start key input dispatcher (subscribes to keyboard hook, installs key suppression)
         _keyInputDispatcher.Start();
 
+        // Pick up a browser that already has focus
+        _ = _documentTracker.OnFocusChangedAsync();
+
         // Announce startup
-        _speechQueue.Enqueue(new Utterance("Vox screen reader ready", SpeechPriority.Normal));
+        _speechQueue.Enqueue(new Utterance(
+            hookInstalled
+                ? "Vox screen reader ready"
+                : "Vox screen reader ready, but keyboard commands are unavailable. Try running Vox as administrator.",
+            SpeechPriority.Normal));
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Vox Screen Reader stopping");
 
-        // Uninstall keyboard hook first to stop new events
-        _keyboardHook.Uninstall();
-
-        // Stop key input dispatcher
+        // Stop key input first so no new commands arrive
         _keyInputDispatcher.Stop();
+        _keyboardHook.Uninstall();
 
         // Unsubscribe event handlers
         _eventPipeline.RawKeyReceived -= OnRawKeyReceived;
         _eventPipeline.NavigationCommandReceived -= OnNavigationCommandReceived;
         _eventPipeline.FocusChangedProcessed -= OnFocusChangedProcessed;
+        _eventPipeline.StructureChangedProcessed -= OnStructureChangedProcessed;
+        _eventPipeline.DocumentChangedProcessed -= OnDocumentChangedProcessed;
+        _eventPipeline.SubtreeChangedProcessed -= OnSubtreeChangedProcessed;
+        _eventPipeline.ElementsListClosedProcessed -= OnElementsListClosedProcessed;
+        _navigationManager.ModeChanged -= OnModeChanged;
+        _browseModeController.DocumentActiveChanged -= OnDocumentActiveChanged;
+        _settingsSubscription?.Dispose();
 
         // Stop Say All if running
         _sayAllController.Cancel();
 
-        // Dispose UIA event subscriber (unsubscribes from all UIA events)
+        // Stop pending buffer updates, then release UIA (both run on the STA thread in order)
+        _documentTracker.Dispose();
         _uiaEventSubscriber.Dispose();
-
-        // Dispose UIA provider (releases COM objects on STA thread)
         _uiaProvider.Dispose();
 
         _speechEngine.Cancel();
@@ -137,58 +157,56 @@ public sealed class ScreenReaderService : IHostedService
         await Task.CompletedTask;
     }
 
-    private void OnRawKeyReceived(object? sender, RawKeyEvent e)
+    private bool TryInstallKeyboardHook()
     {
-        _typingEchoHandler.HandleKeyEvent(e);
+        try
+        {
+            _keyboardHook.Install();
+            return true;
+        }
+        catch (Win32Exception ex)
+        {
+            _logger.LogError(ex, "Keyboard hook could not be installed; keyboard commands are disabled");
+            return false;
+        }
     }
 
-    private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e)
+    private void ApplySettings(VoxSettings settings)
     {
-        var command = e.Command;
-
-        // StopSpeech: cancel Say All and interrupt TTS
-        if (command == NavigationCommand.StopSpeech)
-        {
-            _sayAllController.Cancel();
-            _speechEngine.Cancel();
-            return;
-        }
-
-        // SayAll: start continuous reading from current document position
-        if (command == NavigationCommand.SayAll)
-        {
-            var doc = _quickNavHandler.CurrentDocument;
-            if (doc is not null)
-            {
-                var cursor = new Vox.Core.Buffer.VBufferCursor(doc, _audioCuePlayer);
-                _sayAllController.Start(cursor);
-            }
-            else
-            {
-                _logger.LogDebug("SayAll requested but no document is loaded");
-            }
-            return;
-        }
-
-        // Let NavigationManager decide if the command should be handled or blocked
-        bool handled = _navigationManager.HandleCommand(command, _quickNavHandler.CurrentNode);
-        if (handled) return;
-
-        // In Browse mode, pass quick-nav commands to QuickNavHandler
-        if (_navigationManager.CurrentMode == InteractionMode.Browse)
-        {
-            var node = _quickNavHandler.Handle(command);
-            if (node is not null)
-            {
-                var text = _announcementBuilder.Build(node, Vox.Core.Configuration.VerbosityLevel.Beginner);
-                if (!string.IsNullOrWhiteSpace(text))
-                    _speechQueue.Enqueue(new Utterance(text, SpeechPriority.High));
-            }
-        }
+        _speechEngine.SetRate(settings.SpeechRateWpm);
+        if (!string.IsNullOrEmpty(settings.VoiceName))
+            _speechEngine.SetVoice(settings.VoiceName);
+        _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
+        _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
     }
+
+    private void OnRawKeyReceived(object? sender, RawKeyEvent e) =>
+        _browseModeController.HandleRawKey(e);
+
+    private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e) =>
+        _browseModeController.HandleCommand(e.Command);
 
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
     {
-        _navigationManager.HandleFocusChanged(e);
+        _browseModeController.HandleFocusChanged(e);
+        _ = _documentTracker.OnFocusChangedAsync();
     }
+
+    private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>
+        _documentTracker.OnStructureChanged(e.RuntimeId);
+
+    private void OnDocumentChangedProcessed(object? sender, DocumentChangedEvent e) =>
+        _browseModeController.HandleDocumentChanged(e);
+
+    private void OnSubtreeChangedProcessed(object? sender, SubtreeChangedEvent e) =>
+        _browseModeController.HandleSubtreeChanged(e);
+
+    private void OnElementsListClosedProcessed(object? sender, ElementsListClosedEvent e) =>
+        _browseModeController.HandleElementsListClosed(e);
+
+    private void OnModeChanged(object? sender, InteractionMode mode) =>
+        _keyInputDispatcher.SetMode(mode);
+
+    private void OnDocumentActiveChanged(object? sender, bool active) =>
+        _keyInputDispatcher.SetDocumentActive(active);
 }

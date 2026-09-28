@@ -133,7 +133,9 @@ public sealed class SpeechQueue : IDisposable
                     pending.Add(u);
 
                 // Coalesce Normal-priority utterances: wait for more within window
-                if (pending.Count == 1 && pending[0].Utterance.Priority == SpeechPriority.Normal)
+                // (not for awaited utterances such as Say All lines, which arrive one at a time)
+                if (pending.Count == 1 && pending[0].Utterance.Priority == SpeechPriority.Normal
+                    && pending[0].Completion is null)
                 {
                     await Task.Delay(CoalescingWindowMs, token).ConfigureAwait(false);
                     while (reader.TryRead(out var extra))

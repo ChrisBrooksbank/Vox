@@ -25,31 +25,35 @@ The `Vox.App` build copies `assets/config/default-settings.json` and `default-ke
 
 ## Architecture
 
-Startup: `Program.cs` → generic host → `ServiceRegistration.RegisterServices` (all components are DI singletons) → `ScreenReaderService` (the single `IHostedService`), which initializes UIA, subscribes to UIA events, installs the keyboard hook, runs the first-run wizard if `FirstRunCompleted` is false, and wires pipeline events to navigation components.
+Startup: `Program.cs` → generic host → `ServiceRegistration.RegisterServices` (all components are DI singletons) → `ScreenReaderService` (the single `IHostedService`), which initializes UIA, subscribes to UIA events, applies settings (and re-applies them on change), installs the keyboard hook, runs the first-run wizard if `FirstRunCompleted` is false, and wires pipeline events to `BrowseModeController` and `BrowseDocumentTracker`. `ScreenReaderService` only connects components; navigation logic lives in `BrowseModeController` (Vox.Core, unit-tested).
 
 Event flow:
 
 ```
 KeyboardHook (WH_KEYBOARD_LL) ─> bounded channel ─> KeyInputDispatcher ─┐  (KeyMap lookup → NavigationCommandEvent or RawKeyEvent)
 UIAEventSubscriber (UIA callbacks) ──────────────────────────────────────┤
+BrowseDocumentTracker (UIA thread: DocumentChanged / SubtreeChanged) ────┤
                                                                          v
                                        EventPipeline: Channel<ScreenReaderEvent>, single reader
                                        - coalesces FocusChangedEvents within 30ms (keeps last)
                                        - speaks focus / live-region / mode / typing-echo events directly
-                                       - re-raises C# events: NavigationCommandReceived,
-                                         RawKeyReceived, FocusChangedProcessed
+                                       - re-raises C# events (NavigationCommandReceived, RawKeyReceived,
+                                         FocusChangedProcessed, DocumentChangedProcessed, ...)
                                                                          │
-            ScreenReaderService handlers ─> NavigationManager (Browse/Focus mode state machine)
-                                          ─> QuickNavHandler (H/K/D/F/T/1-6 over VBufferDocument indices)
-                                          ─> SayAllController, TypingEchoHandler, AnnouncementBuilder
+            ScreenReaderService handlers ─> BrowseModeController ─> NavigationManager (Browse/Focus mode)
+                                                                 ─> QuickNavHandler + shared VBufferCursor
+                                                                 ─> SayAllController, TypingEchoHandler,
+                                                                    AnnouncementBuilder, Elements List
                                                                          v
                                        SpeechQueue: Channel<Utterance> ─> ISpeechEngine (SapiSpeechEngine)
 ```
 
 - **Event types** are records deriving from `ScreenReaderEvent` in `Pipeline/ScreenReaderEvent.cs`. Producers post via `IEventSink.Post` (non-blocking `TryWrite`). To add a new event, add the record and a `case` in `EventPipeline.ProcessEventAsync`.
-- **SpeechQueue priorities**: `Interrupt > High > Normal > Low`. Any `Interrupt` in a drained batch cancels current speech and drops everything else except the last interrupt; Normal utterances within 50ms are concatenated. User navigation and focus changes use `Interrupt`/`High`; polite live regions use `Low`.
+- **SpeechQueue priorities**: `Interrupt > High > Normal > Low`. Enqueuing an `Interrupt` (or calling `CancelAll`) starts a new epoch: the utterance being spoken is cancelled immediately and anything queued earlier is dropped. Normal utterances within 50ms are concatenated. `EnqueueAndWaitAsync` completes when an utterance has been spoken (Say All uses it). User navigation and focus changes use `Interrupt`; polite live regions use `Low`.
+- **Key handling**: `KeyboardHook` tracks modifiers itself (the LL hook reports left/right VK codes) and asks `IKeyboardHook.SuppressionFilter` (set by `KeyInputDispatcher`) whether to swallow each key-down; bound keys are swallowed unless the keymap entry has `"passThrough": true`. `KeyModifiers.Insert` means the screen reader modifier (Insert or CapsLock per settings). Browse-mode bindings only apply while a web document has focus (`KeyInputDispatcher.EffectiveMode`); elsewhere keys resolve as Focus mode.
 - **UIA threading**: `UIAThread` owns a dedicated STA thread; every COM/UIA call must go through `UIAThread.RunAsync(...)` (bridged with `TaskCompletionSource`). UIA event handler callbacks in `UIAEventSubscriber` only post to the pipeline and return.
-- **Virtual buffer** (`Buffer/`): `VBufferBuilder` walks an `IVBufferElement` tree (abstraction over UIA elements, mockable in tests) into a `VBufferDocument` with a flat text string plus prebuilt indices (Headings, Links, FormFields, Landmarks, FocusableElements). `VBufferCursor` moves by line/word/char over that; `IncrementalUpdater` splices rebuilt subtrees on `StructureChanged`. Note: no UIA-backed `IVBufferElement` adapter exists yet and nothing in `Vox.App` calls `QuickNavHandler.SetDocument`, so the buffer is not yet built from live pages.
+- **Virtual buffer** (`Buffer/`): `VBufferBuilder` walks an `IVBufferElement` tree (abstraction over UIA elements, mockable in tests) into a `VBufferDocument` with a flat text string plus prebuilt indices (Headings, Links, FormFields, Landmarks, FocusableElements). A node emits its Name only if no descendant emitted text (avoids Chromium's duplicate link/heading text). `VBufferCursor` moves by line/word/char over that; `IncrementalUpdater` returns a new document (never mutates the old snapshot).
+- **Live pages**: on each focus change `BrowseDocumentTracker` (UIA thread) finds the outermost Chromium/Gecko `Document` ancestor, captures it with one cached `BuildUpdatedCache` call into a COM-free `UIAElementSnapshot` tree, builds the buffer and posts `DocumentChangedEvent`. StructureChanged events are scoped to that document, debounced, and re-captured as `SubtreeChangedEvent`s. Cross-thread results always come back as pipeline events so buffer/cursor state is only touched on the pipeline thread.
 - **Settings**: `SettingsManager` + `SettingsMonitor` expose `IOptionsMonitor<VoxSettings>`; read `CurrentValue` at use time for live reload. `VerbosityProfile` controls what `AnnouncementBuilder` includes per `VerbosityLevel`.
 - **Testability seams**: `ISpeechEngine`, `IKeyboardHook`, `IEventSink`, `IAudioCuePlayer`, `IVBufferElement`, and injectable clocks (e.g. `LiveRegionMonitor(Func<DateTimeOffset>)`). Tests mirror the `src/Vox.Core` folder layout under `tests/Vox.Core.Tests/`.
 

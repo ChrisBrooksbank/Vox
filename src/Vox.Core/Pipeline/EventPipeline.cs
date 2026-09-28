@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
+using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Speech;
 
@@ -10,14 +11,16 @@ namespace Vox.Core.Pipeline;
 /// SingleReader = true for performance.
 /// Coalescing: consecutive focus events within 30ms keep only the last.
 /// Routes events to speech queue with appropriate priority.
-/// LiveRegion assertive → High, polite → Low.
-/// ModeChanged → audio cue before speech.
+/// LiveRegion assertive → High, polite → Low, off → dropped; repeats and polite floods are
+/// filtered by LiveRegionMonitor.
+/// ModeChanged → audio cue before speech (the only place the mode cue is played).
 /// </summary>
 public sealed class EventPipeline : IEventSink, IDisposable
 {
     private readonly SpeechQueue _speechQueue;
     private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly ILogger<EventPipeline> _logger;
+    private readonly LiveRegionMonitor _liveRegionMonitor;
     private readonly Channel<ScreenReaderEvent> _channel;
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _processingTask;
@@ -27,11 +30,13 @@ public sealed class EventPipeline : IEventSink, IDisposable
     public EventPipeline(
         SpeechQueue speechQueue,
         IAudioCuePlayer audioCuePlayer,
-        ILogger<EventPipeline> logger)
+        ILogger<EventPipeline> logger,
+        LiveRegionMonitor? liveRegionMonitor = null)
     {
         _speechQueue = speechQueue;
         _audioCuePlayer = audioCuePlayer;
         _logger = logger;
+        _liveRegionMonitor = liveRegionMonitor ?? new LiveRegionMonitor();
 
         _channel = Channel.CreateUnbounded<ScreenReaderEvent>(new UnboundedChannelOptions
         {
@@ -59,6 +64,18 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// Subscribe to this for auto-mode-switching in NavigationManager.
     /// </summary>
     public event EventHandler<FocusChangedEvent>? FocusChangedProcessed;
+
+    /// <summary>Raised when a StructureChangedEvent is processed (for virtual buffer updates).</summary>
+    public event EventHandler<StructureChangedEvent>? StructureChangedProcessed;
+
+    /// <summary>Raised when a DocumentChangedEvent is processed.</summary>
+    public event EventHandler<DocumentChangedEvent>? DocumentChangedProcessed;
+
+    /// <summary>Raised when a SubtreeChangedEvent is processed.</summary>
+    public event EventHandler<SubtreeChangedEvent>? SubtreeChangedProcessed;
+
+    /// <summary>Raised when an ElementsListClosedEvent is processed.</summary>
+    public event EventHandler<ElementsListClosedEvent>? ElementsListClosedProcessed;
 
     public void Post(ScreenReaderEvent evt)
     {
@@ -176,6 +193,19 @@ public sealed class EventPipeline : IEventSink, IDisposable
                 case StructureChangedEvent structureChanged:
                     _logger.LogDebug("StructureChanged: RuntimeId={RuntimeId}",
                         structureChanged.RuntimeId is not null ? string.Join(",", structureChanged.RuntimeId) : "(null)");
+                    StructureChangedProcessed?.Invoke(this, structureChanged);
+                    break;
+
+                case DocumentChangedEvent documentChanged:
+                    DocumentChangedProcessed?.Invoke(this, documentChanged);
+                    break;
+
+                case SubtreeChangedEvent subtreeChanged:
+                    SubtreeChangedProcessed?.Invoke(this, subtreeChanged);
+                    break;
+
+                case ElementsListClosedEvent elementsListClosed:
+                    ElementsListClosedProcessed?.Invoke(this, elementsListClosed);
                     break;
 
                 default:
@@ -213,7 +243,11 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     private async Task HandleLiveRegionAsync(LiveRegionChangedEvent liveRegion, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(liveRegion.Text))
+        if (string.IsNullOrWhiteSpace(liveRegion.Text) || liveRegion.Politeness == LiveRegionPoliteness.Off)
+            return;
+
+        // Diff against last text and throttle polite updates per region
+        if (!_liveRegionMonitor.ShouldAnnounce(liveRegion.SourceId, liveRegion.Text, liveRegion.Politeness))
             return;
 
         var priority = liveRegion.Politeness == LiveRegionPoliteness.Assertive

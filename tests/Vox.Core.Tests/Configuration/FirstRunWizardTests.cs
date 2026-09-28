@@ -409,4 +409,54 @@ public class FirstRunWizardTests : IDisposable
         // Settings should be updated in-memory
         Assert.True(monitor.CurrentValue.FirstRunCompleted);
     }
+
+    // -------------------------------------------------------------------------
+    // Keys during prompts and key suppression
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task RunAsync_KeyPressedWhilePromptIsSpeaking_IsHandled()
+    {
+        var (wizard, hook, engine, monitor, _) = CreateWizard(
+            new VoxSettings { FirstRunCompleted = false });
+
+        // Speech that only ends when cancelled, like a long prompt
+        var speaking = new TaskCompletionSource();
+        engine
+            .Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Returns((Utterance u, CancellationToken _) =>
+                u.Text.StartsWith("Welcome") ? speaking.Task : Task.CompletedTask);
+        engine.Setup(e => e.Cancel()).Callback(() => speaking.TrySetCanceled());
+
+        var wizardTask = wizard.RunAsync();
+        await Task.Delay(50);
+        hook.SimulateKeyDown(0x1B); // Escape while the welcome prompt is still speaking
+
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+        engine.Verify(e => e.Cancel(), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task RunAsync_SuppressesOnlyWizardKeys_AndRestoresFilter()
+    {
+        var (wizard, hook, _, _, _) = CreateWizard(
+            new VoxSettings { FirstRunCompleted = false });
+        Func<KeyEvent, bool> original = _ => false;
+        hook.SuppressionFilter = original;
+
+        var wizardTask = wizard.RunAsync();
+        await Task.Delay(50);
+
+        var filter = hook.SuppressionFilter!;
+        Assert.True(filter(new KeyEvent { VkCode = 0x0D, IsKeyDown = true }));  // Enter
+        Assert.True(filter(new KeyEvent { VkCode = 0x26, IsKeyDown = true }));  // Up
+        Assert.False(filter(new KeyEvent { VkCode = 0x09, IsKeyDown = true })); // Tab
+
+        hook.SimulateKeyDown(0x1B);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Same(original, hook.SuppressionFilter);
+    }
 }

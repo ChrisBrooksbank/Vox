@@ -1,3 +1,4 @@
+using Vox.Core.Buffer;
 using Vox.Core.Input;
 
 namespace Vox.Core.Pipeline;
@@ -15,7 +16,8 @@ public record FocusChangedEvent(
     bool IsVisited = false,
     bool IsRequired = false,
     bool IsExpanded = false,
-    bool IsExpandable = false
+    bool IsExpandable = false,
+    int[]? RuntimeId = null
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(
@@ -58,6 +60,9 @@ public record RawKeyEvent(
     KeyEvent Key
 ) : ScreenReaderEvent(Timestamp);
 
+/// <summary>
+/// The children of the element with <paramref name="RuntimeId"/> changed (UIA StructureChanged sender).
+/// </summary>
 public record StructureChangedEvent(
     DateTimeOffset Timestamp,
     int[] RuntimeId
@@ -74,4 +79,32 @@ public record NotificationEvent(
     DateTimeOffset Timestamp,
     string? ActivityId,
     string? NotificationText
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// A web document gained focus (<paramref name="Document"/> is its new virtual buffer)
+/// or focus left web content (<paramref name="Document"/> is null).
+/// </summary>
+public record DocumentChangedEvent(
+    DateTimeOffset Timestamp,
+    VBufferDocument? Document,
+    int[]? FocusedRuntimeId = null
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// A subtree of the active document was re-captured after a structure change.
+/// <paramref name="NewSubtree"/> is null when the element no longer exists.
+/// </summary>
+public record SubtreeChangedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId,
+    IVBufferElement? NewSubtree
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// The Elements List dialog closed; <paramref name="SelectedNode"/> is null if it was cancelled.
+/// </summary>
+public record ElementsListClosedEvent(
+    DateTimeOffset Timestamp,
+    VBufferNode? SelectedNode
 ) : ScreenReaderEvent(Timestamp);

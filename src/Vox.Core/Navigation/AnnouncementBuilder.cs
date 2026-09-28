@@ -19,7 +19,13 @@ public sealed class AnnouncementBuilder
     /// Builds the spoken text for the given node at the given verbosity level.
     /// Returns an empty string if the node has no speakable content.
     /// </summary>
-    public string Build(VBufferNode node, VerbosityProfile profile)
+    public string Build(VBufferNode node, VerbosityProfile profile) =>
+        Build(node, profile, announceVisitedLinks: true);
+
+    /// <summary>
+    /// Builds the spoken text, additionally honouring the AnnounceVisitedLinks setting.
+    /// </summary>
+    public string Build(VBufferNode node, VerbosityProfile profile, bool announceVisitedLinks)
     {
         var sb = new StringBuilder();
 
@@ -55,7 +61,7 @@ public sealed class AnnouncementBuilder
         }
 
         // Visited state — "visited"
-        if (profile.AnnounceVisitedState && node.IsLink && node.IsVisited)
+        if (announceVisitedLinks && profile.AnnounceVisitedState && node.IsLink && node.IsVisited)
         {
             Append(sb, "visited");
         }

@@ -20,12 +20,19 @@ public sealed class UIAProvider : IDisposable
     private const int UIA_ItemStatusPropertyId = 30026;
     private const int UIA_LiveSettingPropertyId = 30135;
     private const int UIA_ClassNamePropertyId = 30012;
+    internal const int UIA_RuntimeIdPropertyId = 30000;
+    internal const int UIA_ProcessIdPropertyId = 30002;
+    internal const int UIA_IsKeyboardFocusablePropertyId = 30009;
+    internal const int UIA_FrameworkIdPropertyId = 30024;
+    internal const int UIA_HeadingLevelPropertyId = 30173;
 
     private readonly UIAThread _uiaThread;
     private readonly ILogger<UIAProvider> _logger;
 
     private IUIAutomation? _automation;
     private IUIAutomationCacheRequest? _cacheRequest;
+    private IUIAutomationCacheRequest? _subtreeCacheRequest;
+    private IUIAutomationCacheRequest? _liveRegionCacheRequest;
     private bool _disposed;
 
     public UIAProvider(UIAThread uiaThread, ILogger<UIAProvider> logger)
@@ -55,9 +62,73 @@ public sealed class UIAProvider : IDisposable
             _cacheRequest.AddProperty(UIA_ItemStatusPropertyId);
             _cacheRequest.AddProperty(UIA_LiveSettingPropertyId);
             _cacheRequest.AddProperty(UIA_ClassNamePropertyId);
+            _cacheRequest.AddProperty(UIA_HeadingLevelPropertyId);
+            _cacheRequest.AddProperty(UIA_FrameworkIdPropertyId);
+            _cacheRequest.AddProperty(UIA_ProcessIdPropertyId);
 
-            _logger.LogDebug("UIAProvider initialized with cache request for 9 properties");
+            _subtreeCacheRequest = CreateSubtreeRequest(_automation);
+            _liveRegionCacheRequest = CreateLiveRegionRequest(_automation);
+
+            _logger.LogDebug("UIAProvider initialized with cache requests");
         });
+    }
+
+    /// <summary>
+    /// Cache request for capturing a whole subtree (control view) in one cross-process call,
+    /// with every property the virtual buffer needs. Used with BuildUpdatedCache / FindFirstBuildCache.
+    /// </summary>
+    private static IUIAutomationCacheRequest CreateSubtreeRequest(IUIAutomation automation)
+    {
+        var request = automation.CreateCacheRequest();
+        request.AddProperty(UIA_NamePropertyId);
+        request.AddProperty(UIA_ControlTypePropertyId);
+        request.AddProperty(UIA_AriaRolePropertyId);
+        request.AddProperty(UIA_AriaPropertiesPropertyId);
+        request.AddProperty(UIA_IsKeyboardFocusablePropertyId);
+        request.AddProperty(UIA_HeadingLevelPropertyId);
+        request.TreeScope = TreeScope.TreeScope_Subtree;
+        request.TreeFilter = automation.ControlViewCondition;
+        return request;
+    }
+
+    /// <summary>
+    /// Cache request for LiveRegionChanged handlers: caches the region's subtree names so the
+    /// handler can read its text without further cross-process calls.
+    /// </summary>
+    private static IUIAutomationCacheRequest CreateLiveRegionRequest(IUIAutomation automation)
+    {
+        var request = automation.CreateCacheRequest();
+        request.AddProperty(UIA_NamePropertyId);
+        request.AddProperty(UIA_LiveSettingPropertyId);
+        request.TreeScope = TreeScope.TreeScope_Subtree;
+        request.TreeFilter = automation.ControlViewCondition;
+        return request;
+    }
+
+    /// <summary>
+    /// Cache request that captures a subtree for the virtual buffer. Must be used on the STA thread.
+    /// </summary>
+    public IUIAutomationCacheRequest SubtreeCacheRequest
+    {
+        get
+        {
+            if (_subtreeCacheRequest is null)
+                throw new InvalidOperationException("UIAProvider not initialized. Call InitializeAsync first.");
+            return _subtreeCacheRequest;
+        }
+    }
+
+    /// <summary>
+    /// Cache request for live region events (subtree names). Must be used on the STA thread.
+    /// </summary>
+    public IUIAutomationCacheRequest LiveRegionCacheRequest
+    {
+        get
+        {
+            if (_liveRegionCacheRequest is null)
+                throw new InvalidOperationException("UIAProvider not initialized. Call InitializeAsync first.");
+            return _liveRegionCacheRequest;
+        }
     }
 
     /// <summary>
@@ -99,6 +170,16 @@ public sealed class UIAProvider : IDisposable
             {
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(_cacheRequest);
                 _cacheRequest = null;
+            }
+            if (_subtreeCacheRequest is not null)
+            {
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(_subtreeCacheRequest);
+                _subtreeCacheRequest = null;
+            }
+            if (_liveRegionCacheRequest is not null)
+            {
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(_liveRegionCacheRequest);
+                _liveRegionCacheRequest = null;
             }
             if (_automation is not null)
             {
