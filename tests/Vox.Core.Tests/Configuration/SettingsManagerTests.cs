@@ -132,13 +132,12 @@ public sealed class SettingsManagerTests : IDisposable
     [Fact]
     public void DefaultSettingsJson_HasExpectedValues()
     {
-        // Validate the default-settings.json asset content matches spec
-        var assetPath = Path.Combine(
-            AppContext.BaseDirectory,
-            "assets", "config", "default-settings.json");
-
-        if (!File.Exists(assetPath))
-            return; // Asset not copied in test context — skip
+        // Validate the default-settings.json asset content matches spec. Resolve it from the repo
+        // root (found via the solution file) rather than AppContext.BaseDirectory: the test project
+        // doesn't copy assets/ to its output directory, so relying on the copy would let this test
+        // silently no-op instead of actually checking anything.
+        var assetPath = Path.Combine(FindRepoRoot(), "assets", "config", "default-settings.json");
+        Assert.True(File.Exists(assetPath), $"Expected asset at {assetPath}");
 
         var json = File.ReadAllText(assetPath);
         var settings = JsonSerializer.Deserialize<VoxSettings>(json, new JsonSerializerOptions
@@ -149,11 +148,23 @@ public sealed class SettingsManagerTests : IDisposable
 
         Assert.NotNull(settings);
         Assert.Equal(VerbosityLevel.Beginner, settings!.VerbosityLevel);
-        Assert.Equal(450, settings.SpeechRateWpm);
+        Assert.Equal(200, settings.SpeechRateWpm);
         Assert.Equal(TypingEchoMode.Both, settings.TypingEchoMode);
         Assert.Equal(ModifierKey.Insert, settings.ModifierKey);
         Assert.True(settings.AudioCuesEnabled);
         Assert.False(settings.FirstRunCompleted);
+    }
+
+    private static string FindRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Vox.sln")))
+            dir = dir.Parent;
+
+        if (dir is null)
+            throw new InvalidOperationException("Could not find repo root (Vox.sln) above " + AppContext.BaseDirectory);
+
+        return dir.FullName;
     }
 
     // -------------------------------------------------------------------------

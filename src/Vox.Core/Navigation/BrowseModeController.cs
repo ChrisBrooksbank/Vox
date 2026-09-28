@@ -562,7 +562,7 @@ public sealed class BrowseModeController
         {
             int within = Math.Max(0, oldOffset - oldNode.TextRange.Start);
             int newLength = node.TextRange.End - node.TextRange.Start;
-            newOffset = node.TextRange.Start + (newLength > 0 ? Math.Min(within, newLength - 1) : within);
+            newOffset = node.TextRange.Start + (newLength > 0 ? Math.Min(within, newLength - 1) : 0);
         }
         else if (oldOffset >= result.OldTextEnd)
         {

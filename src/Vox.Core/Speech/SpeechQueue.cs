@@ -29,6 +29,10 @@ public sealed class SpeechQueue : IDisposable
     private readonly object _speakLock = new();
     private CancellationTokenSource? _currentSpeechCts;
 
+    // Guards _suspended together with the enqueue methods' suspended-check + Prepare + write, so an
+    // Enqueue racing a Suspend() can't slip an utterance in after Suspend() has taken effect.
+    private readonly object _suspendLock = new();
+
     private sealed record QueuedUtterance(
         Utterance Utterance,
         long Epoch,
@@ -47,16 +51,24 @@ public sealed class SpeechQueue : IDisposable
         _processingTask = Task.Run(ProcessQueueAsync, _cts.Token);
     }
 
-    public async ValueTask EnqueueAsync(Utterance utterance, CancellationToken cancellationToken = default)
+    public ValueTask EnqueueAsync(Utterance utterance, CancellationToken cancellationToken = default)
     {
-        if (_suspended) return;
-        await _channel.Writer.WriteAsync(Prepare(utterance, null), cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_suspendLock)
+        {
+            if (_suspended) return ValueTask.CompletedTask;
+            _channel.Writer.TryWrite(Prepare(utterance, null));
+        }
+        return ValueTask.CompletedTask;
     }
 
     public void Enqueue(Utterance utterance)
     {
-        if (_suspended) return;
-        _channel.Writer.TryWrite(Prepare(utterance, null));
+        lock (_suspendLock)
+        {
+            if (_suspended) return;
+            _channel.Writer.TryWrite(Prepare(utterance, null));
+        }
     }
 
     private volatile bool _suspended;
@@ -71,12 +83,18 @@ public sealed class SpeechQueue : IDisposable
     /// </summary>
     public void Suspend()
     {
-        _suspended = true;
-        CancelAll();
+        lock (_suspendLock)
+        {
+            _suspended = true;
+            CancelAll();
+        }
     }
 
     /// <summary>Accepts utterances again after <see cref="Suspend"/>.</summary>
-    public void Resume() => _suspended = false;
+    public void Resume()
+    {
+        lock (_suspendLock) { _suspended = false; }
+    }
 
     /// <summary>
     /// Enqueues an utterance and returns a task that completes once it has been spoken.
@@ -92,8 +110,11 @@ public sealed class SpeechQueue : IDisposable
             completion.Task.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
         }
 
-        if (_suspended || !_channel.Writer.TryWrite(Prepare(utterance, completion)))
-            completion.TrySetCanceled();
+        lock (_suspendLock)
+        {
+            if (_suspended || !_channel.Writer.TryWrite(Prepare(utterance, completion)))
+                completion.TrySetCanceled();
+        }
 
         return completion.Task;
     }

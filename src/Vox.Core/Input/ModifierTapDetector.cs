@@ -25,7 +25,10 @@ public sealed class ModifierTapDetector
         if (isRepeat)
             return false;
 
-        if (_tapPending && nowMs - _tapEndedAt <= DoubleTapMs)
+        // nowMs/_tapEndedAt come from the hook's DWORD tick count (kbStruct.time), which wraps to
+        // zero every ~49.7 days; the unsigned cast keeps the elapsed-time comparison correct across
+        // that wraparound instead of producing a huge negative delta.
+        if (_tapPending && (uint)(nowMs - _tapEndedAt) <= DoubleTapMs)
         {
             _tapPending = false;
             _downClean = false;

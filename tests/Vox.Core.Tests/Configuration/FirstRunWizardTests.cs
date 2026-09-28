@@ -100,32 +100,18 @@ public class FirstRunWizardTests : IDisposable
         File.WriteAllText(tempPath, json);
 
         var logger = NullLogger<SettingsManager>.Instance;
-        var manager = new SettingsManager(logger, tempPath);
 
-        // Ensure UserSettingsPath doesn't exist so SettingsMonitor loads from tempPath
-        var userPath = SettingsManager.DefaultUserSettingsPath;
-        string? backupPath = null;
-        if (File.Exists(userPath))
-        {
-            backupPath = userPath + ".test_bak_" + Guid.NewGuid().ToString("N");
-            File.Move(userPath, backupPath);
-        }
+        // Use an isolated, never-existing user settings path instead of the real
+        // %APPDATA%/Vox/settings.json. SettingsMonitor's FileSystemWatcher watches
+        // UserSettingsPath for the life of the test: pointing it at the real path (even
+        // briefly, while moving it aside and back) races the watcher against whatever is
+        // on disk there and can reload the wizard's in-memory settings mid-test from an
+        // unrelated file.
+        var isolatedUserPath = Path.Combine(Path.GetTempPath(), "VoxWizardTests_" + Guid.NewGuid().ToString("N") + ".json");
+        var manager = new SettingsManager(logger, tempPath, isolatedUserPath);
 
-        SettingsMonitor monitor;
-        try
-        {
-            var monitorLogger = NullLogger<SettingsMonitor>.Instance;
-            monitor = new SettingsMonitor(manager, monitorLogger);
-        }
-        finally
-        {
-            // Restore if we moved it
-            if (backupPath != null && File.Exists(backupPath))
-            {
-                if (File.Exists(userPath)) File.Delete(userPath);
-                File.Move(backupPath, userPath);
-            }
-        }
+        var monitorLogger = NullLogger<SettingsMonitor>.Instance;
+        var monitor = new SettingsMonitor(manager, monitorLogger);
 
         var wizard = new FirstRunWizard(
             engineMock.Object,

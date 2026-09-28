@@ -34,18 +34,26 @@ public sealed class UIAThread : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, nameof(UIAThread));
 
         var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _workQueue.Add(() =>
+        try
         {
-            try
+            _workQueue.Add(() =>
             {
-                var result = func();
-                tcs.SetResult(result);
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-            }
-        });
+                try
+                {
+                    var result = func();
+                    tcs.SetResult(result);
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                }
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            // Dispose() completed the queue concurrently with this call
+            throw new ObjectDisposedException(nameof(UIAThread));
+        }
         return tcs.Task;
     }
 
