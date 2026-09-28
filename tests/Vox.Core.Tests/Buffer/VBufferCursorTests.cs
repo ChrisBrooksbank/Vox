@@ -299,4 +299,68 @@ public class VBufferCursorTests
         Assert.Equal("world", cursor.ReadWordAt(6));
         Assert.Equal("foo", cursor.ReadWordAt(12));
     }
+
+    // -------------------------------------------------------------------------
+    // PrevLine from mid-line, wrap targets, current line/word
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void PrevLine_FromMiddleOfLine_MovesToPreviousLine()
+    {
+        var (cursor, _) = MakeCursor("line1\nline2\nline3");
+        cursor.MoveTo(14); // inside "line3"
+
+        var line = cursor.PrevLine();
+
+        Assert.Equal("line2", line);
+        Assert.Equal(6, cursor.TextOffset);
+    }
+
+    [Fact]
+    public void PrevLine_FromMiddleOfFirstLine_PlaysBoundary()
+    {
+        var (cursor, mock) = MakeCursor("line1\nline2");
+        cursor.MoveTo(3);
+
+        Assert.Null(cursor.PrevLine());
+        mock.Verify(p => p.Play("boundary"), Times.Once);
+    }
+
+    [Fact]
+    public void PrevLine_OverEmptyLine_StopsOnIt()
+    {
+        var (cursor, _) = MakeCursor("a\n\nb");
+        cursor.MoveTo(3); // "b"
+
+        Assert.Equal("", cursor.PrevLine());
+        Assert.Equal(2, cursor.TextOffset);
+        Assert.Equal("a", cursor.PrevLine());
+    }
+
+    [Fact]
+    public void PrevLine_AtStart_WithWrap_MovesToStartOfLastLine()
+    {
+        var (cursor, _) = MakeCursor("line1\nline2\n", wrap: true);
+
+        Assert.Equal("line2", cursor.PrevLine());
+        Assert.Equal(6, cursor.TextOffset);
+    }
+
+    [Fact]
+    public void PrevWord_AtStart_WithWrap_ReturnsLastWord()
+    {
+        var (cursor, _) = MakeCursor("hello big world", wrap: true);
+
+        Assert.Equal("world", cursor.PrevWord());
+    }
+
+    [Fact]
+    public void ReadCurrentLine_And_Word_FromMidLine()
+    {
+        var (cursor, _) = MakeCursor("first line\nsecond line");
+        cursor.MoveTo(14); // "second" -> 'c'
+
+        Assert.Equal("second line", cursor.ReadCurrentLine());
+        Assert.Equal("second", cursor.ReadCurrentWord());
+    }
 }

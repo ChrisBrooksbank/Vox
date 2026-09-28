@@ -40,6 +40,7 @@ public class KeyInputDispatcherTests
         var sink = new CaptureSink();
         var dispatcher = new KeyInputDispatcher(
             hookMock.Object, keyMap, sink, NullLogger<KeyInputDispatcher>.Instance);
+        dispatcher.SetDocumentActive(true);
         dispatcher.Start();
 
         return (dispatcher, sink, evt => handler?.Invoke(hookMock.Object, evt));
@@ -180,5 +181,87 @@ public class KeyInputDispatcherTests
         fireKey(new KeyEvent { VkCode = 75, Modifiers = KeyModifiers.None, IsKeyDown = true });
         Assert.Single(sink.Posted);
         Assert.Equal(NavigationCommand.NextLink, ((NavigationCommandEvent)sink.Posted[0]).Command);
+    }
+
+    // -------------------------------------------------------------------------
+    // Effective mode, document activity and key suppression
+    // -------------------------------------------------------------------------
+
+    private static KeyMap BuildMultiMap() => KeyMap.LoadFromJson("""
+        {
+            "bindings": [
+                { "modifiers": "None",   "vkCode": 72,  "mode": "Browse", "command": "NextHeading" },
+                { "modifiers": "Insert", "vkCode": 32,  "mode": "Any",    "command": "ToggleMode" },
+                { "modifiers": "None",   "vkCode": 162, "mode": "Any",    "command": "StopSpeech", "passThrough": true }
+            ]
+        }
+        """);
+
+    [Fact]
+    public void KeyDown_BrowseBinding_InFocusMode_PostsRawKeyEvent()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildMultiMap());
+        dispatcher.SetMode(InteractionMode.Focus);
+
+        fireKey(new KeyEvent { VkCode = 72, IsKeyDown = true });
+
+        Assert.IsType<RawKeyEvent>(Assert.Single(sink.Posted));
+    }
+
+    [Fact]
+    public void KeyDown_BrowseBinding_WithoutActiveDocument_PostsRawKeyEvent()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildMultiMap());
+        dispatcher.SetDocumentActive(false);
+
+        fireKey(new KeyEvent { VkCode = 72, IsKeyDown = true });
+
+        Assert.Equal(InteractionMode.Focus, dispatcher.EffectiveMode);
+        Assert.IsType<RawKeyEvent>(Assert.Single(sink.Posted));
+    }
+
+    [Fact]
+    public void ShouldSuppress_BoundKey_ReturnsTrue()
+    {
+        var (dispatcher, _, _) = Create(BuildMultiMap());
+
+        Assert.True(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 72, IsKeyDown = true }));
+        Assert.True(dispatcher.ShouldSuppress(
+            new KeyEvent { VkCode = 32, Modifiers = KeyModifiers.Insert, IsKeyDown = true }));
+    }
+
+    [Fact]
+    public void ShouldSuppress_UnboundOrPassThroughKey_ReturnsFalse()
+    {
+        var (dispatcher, _, _) = Create(BuildMultiMap());
+
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 65, IsKeyDown = true }));
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 162, IsKeyDown = true }));
+    }
+
+    [Fact]
+    public void ShouldSuppress_BrowseKey_InFocusMode_ReturnsFalse()
+    {
+        var (dispatcher, _, _) = Create(BuildMultiMap());
+        dispatcher.SetMode(InteractionMode.Focus);
+
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 72, IsKeyDown = true }));
+        Assert.True(dispatcher.ShouldSuppress(
+            new KeyEvent { VkCode = 32, Modifiers = KeyModifiers.Insert, IsKeyDown = true }));
+    }
+
+    [Fact]
+    public void Start_InstallsSuppressionFilter_StopRemovesIt()
+    {
+        var hookMock = new Mock<IKeyboardHook>();
+        hookMock.SetupProperty(h => h.SuppressionFilter);
+        var dispatcher = new KeyInputDispatcher(
+            hookMock.Object, BuildMultiMap(), new CaptureSink(), NullLogger<KeyInputDispatcher>.Instance);
+
+        dispatcher.Start();
+        Assert.NotNull(hookMock.Object.SuppressionFilter);
+
+        dispatcher.Stop();
+        Assert.Null(hookMock.Object.SuppressionFilter);
     }
 }

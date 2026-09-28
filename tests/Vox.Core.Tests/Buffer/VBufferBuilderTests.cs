@@ -15,6 +15,7 @@ internal sealed class MockElement : IVBufferElement
     public string AriaRole { get; set; } = string.Empty;
     public string AriaProperties { get; set; } = string.Empty;
     public bool IsFocusable { get; set; }
+    public int HeadingLevel { get; set; }
 
     private readonly List<MockElement> _children = new();
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;
@@ -566,5 +567,72 @@ public class VBufferBuilderTests
     public void ParseAriaPropertyInt_Variants(string props, string key, int expected)
     {
         Assert.Equal(expected, VBufferBuilder.ParseAriaPropertyInt(props, key));
+    }
+
+    // -----------------------------------------------------------------------
+    // Heading level defaults and duplicate text
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void Build_HeadingRoleWithoutLevel_DefaultsToLevel2()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Title", AriaRole = "heading" });
+
+        var doc = Builder.Build(root);
+
+        var heading = Assert.Single(doc.Headings);
+        Assert.Equal(2, heading.HeadingLevel);
+    }
+
+    [Fact]
+    public void Build_UiaHeadingLevel_TakesPrecedenceOverAria()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Title", AriaRole = "heading", HeadingLevel = 3 });
+
+        var doc = Builder.Build(root);
+
+        Assert.Equal(3, Assert.Single(doc.Headings).HeadingLevel);
+    }
+
+    [Fact]
+    public void Build_LinkWithSameNamedTextChild_EmitsTextOnce()
+    {
+        // Chromium shape: Hyperlink "Foo" > Text "Foo"
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var link = new MockElement { RuntimeId = [2], Name = "Foo", ControlType = "Hyperlink" };
+        link.AddChild(new MockElement { RuntimeId = [3], Name = "Foo", ControlType = "Text" });
+        root.AddChild(link);
+
+        var doc = Builder.Build(root);
+
+        Assert.Equal("Foo\n", doc.FlatText);
+        // The link's own range is empty but positioned at its content
+        Assert.Equal((0, 0), doc.FindByRuntimeId([2])!.TextRange);
+        Assert.Equal((0, 4), doc.FindByRuntimeId([3])!.TextRange);
+    }
+
+    [Fact]
+    public void Build_NamedNodeWithoutTextDescendants_EmitsOwnName()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var button = new MockElement { RuntimeId = [2], Name = "Submit", ControlType = "Button" };
+        button.AddChild(new MockElement { RuntimeId = [3], Name = "", ControlType = "Image" });
+        root.AddChild(button);
+
+        var doc = Builder.Build(root);
+
+        Assert.Equal("Submit\n", doc.FlatText);
+        Assert.Same(doc.FindByRuntimeId([2]), doc.FindNodeAtOffset(0));
+    }
+
+    [Fact]
+    public void Build_TextRangeStarts_AreNonDecreasingInDocumentOrder()
+    {
+        var doc = Builder.Build(BuildSimpleTree());
+
+        for (int i = 1; i < doc.AllNodes.Count; i++)
+            Assert.True(doc.AllNodes[i - 1].TextRange.Start <= doc.AllNodes[i].TextRange.Start);
     }
 }

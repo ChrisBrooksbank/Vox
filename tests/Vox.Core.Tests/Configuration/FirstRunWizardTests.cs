@@ -53,6 +53,9 @@ public class FirstRunWizardTests : IDisposable
     {
         public event EventHandler<KeyEvent>? KeyPressed;
 
+        public Func<KeyEvent, bool>? SuppressionFilter { get; set; }
+        public ModifierKey ScreenReaderModifier { get; set; }
+
         public void Install() { }
         public void Uninstall() { }
 

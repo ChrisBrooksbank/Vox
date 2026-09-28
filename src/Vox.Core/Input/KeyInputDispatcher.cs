@@ -9,7 +9,12 @@ namespace Vox.Core.Input;
 /// echo and pass-through) to the EventPipeline.
 ///
 /// Also tracks InteractionMode so keymap lookup uses the correct mode.
-/// The mode is updated by calling SetMode (typically driven by ModeChangedEvent handling).
+/// The mode is updated by calling SetMode (driven by NavigationManager mode changes).
+/// Browse mode only applies while a web document is active (<see cref="SetDocumentActive"/>);
+/// everywhere else keys resolve as in Focus mode so typing in ordinary apps is untouched.
+///
+/// Installs <see cref="ShouldSuppress"/> as the hook's suppression filter so bound keys
+/// are consumed by Vox instead of also reaching the application.
 /// </summary>
 public sealed class KeyInputDispatcher
 {
@@ -19,6 +24,7 @@ public sealed class KeyInputDispatcher
     private readonly ILogger<KeyInputDispatcher> _logger;
 
     private volatile InteractionMode _currentMode = InteractionMode.Browse;
+    private volatile bool _documentActive;
 
     public KeyInputDispatcher(
         IKeyboardHook hook,
@@ -38,6 +44,7 @@ public sealed class KeyInputDispatcher
     public void Start()
     {
         _hook.KeyPressed += OnKeyPressed;
+        _hook.SuppressionFilter = ShouldSuppress;
         _logger.LogDebug("KeyInputDispatcher started");
     }
 
@@ -46,6 +53,7 @@ public sealed class KeyInputDispatcher
     /// </summary>
     public void Stop()
     {
+        _hook.SuppressionFilter = null;
         _hook.KeyPressed -= OnKeyPressed;
         _logger.LogDebug("KeyInputDispatcher stopped");
     }
@@ -64,13 +72,40 @@ public sealed class KeyInputDispatcher
     /// </summary>
     public InteractionMode CurrentMode => _currentMode;
 
+    /// <summary>
+    /// Sets whether a web document (virtual buffer) currently has focus.
+    /// </summary>
+    public void SetDocumentActive(bool active)
+    {
+        _documentActive = active;
+    }
+
+    /// <summary>
+    /// The mode used for keymap resolution: the current mode inside a web document, Focus elsewhere.
+    /// </summary>
+    public InteractionMode EffectiveMode => _documentActive ? _currentMode : InteractionMode.Focus;
+
+    /// <summary>
+    /// Suppression filter run on the keyboard hook thread for each key-down.
+    /// Returns true when the key is bound to a command (and not marked passThrough).
+    /// Only a read-only dictionary lookup — safe for the &lt; 1ms hook budget.
+    /// </summary>
+    public bool ShouldSuppress(KeyEvent evt)
+    {
+        if (!evt.IsKeyDown)
+            return false;
+
+        return _keyMap.TryResolve(evt.Modifiers, evt.VkCode, EffectiveMode, out _, out var passThrough)
+            && !passThrough;
+    }
+
     private void OnKeyPressed(object? sender, KeyEvent evt)
     {
         // Only dispatch on key-down events; key-up events are passed through as RawKeyEvent
         // so TypingEchoHandler can process them.
         if (evt.IsKeyDown)
         {
-            var mode = _currentMode;
+            var mode = EffectiveMode;
             if (_keyMap.TryResolve(evt.Modifiers, evt.VkCode, mode, out var command))
             {
                 _logger.LogDebug(

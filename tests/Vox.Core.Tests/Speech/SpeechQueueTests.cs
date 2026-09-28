@@ -92,6 +92,110 @@ public class SpeechQueueTests
         Assert.True(highIndex < lowIndex, $"High ({highIndex}) should come before Low ({lowIndex})");
     }
 
+    /// <summary>
+    /// Engine whose SpeakAsync blocks until its token is cancelled (or it is released).
+    /// </summary>
+    private sealed class BlockingEngine : ISpeechEngine
+    {
+        public List<string> Started { get; } = new();
+        public List<string> Cancelled { get; } = new();
+        public bool IsSpeaking => false;
+
+        public async Task SpeakAsync(Utterance utterance, CancellationToken cancellationToken = default)
+        {
+            lock (Started) Started.Add(utterance.Text);
+            try
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                lock (Cancelled) Cancelled.Add(utterance.Text);
+                throw;
+            }
+        }
+
+        public void Cancel() { }
+        public void SetRate(int wpm) { }
+        public void SetVoice(string voiceName) { }
+        public IReadOnlyList<string> GetAvailableVoices() => [];
+    }
+
+    private static async Task WaitUntil(Func<bool> condition, int timeoutMs = 2000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (!condition() && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+    }
+
+    [Fact]
+    public async Task Interrupt_WhileLongUtteranceSpeaking_CancelsItImmediately()
+    {
+        var engine = new BlockingEngine();
+        using var queue = new SpeechQueue(engine, NullLogger<SpeechQueue>.Instance);
+
+        queue.Enqueue(new Utterance("Long text", SpeechPriority.High));
+        await WaitUntil(() => { lock (engine.Started) return engine.Started.Contains("Long text"); });
+
+        queue.Enqueue(new Utterance("Focus moved", SpeechPriority.Interrupt));
+        await WaitUntil(() => { lock (engine.Started) return engine.Started.Contains("Focus moved"); });
+
+        lock (engine.Cancelled) Assert.Contains("Long text", engine.Cancelled);
+        lock (engine.Started) Assert.Contains("Focus moved", engine.Started);
+    }
+
+    [Fact]
+    public async Task Interrupt_DropsUtterancesQueuedBeforeIt()
+    {
+        var engine = new BlockingEngine();
+        using var queue = new SpeechQueue(engine, NullLogger<SpeechQueue>.Instance);
+
+        queue.Enqueue(new Utterance("Speaking", SpeechPriority.High));
+        await WaitUntil(() => { lock (engine.Started) return engine.Started.Count == 1; });
+
+        queue.Enqueue(new Utterance("Stale", SpeechPriority.Low));
+        queue.Enqueue(new Utterance("Now", SpeechPriority.Interrupt));
+        await WaitUntil(() => { lock (engine.Started) return engine.Started.Contains("Now"); });
+        await Task.Delay(100);
+
+        lock (engine.Started) Assert.DoesNotContain("Stale", engine.Started);
+    }
+
+    [Fact]
+    public async Task CancelAll_StopsCurrentAndFlushesPending()
+    {
+        var engine = new BlockingEngine();
+        using var queue = new SpeechQueue(engine, NullLogger<SpeechQueue>.Instance);
+
+        queue.Enqueue(new Utterance("One", SpeechPriority.High));
+        await WaitUntil(() => { lock (engine.Started) return engine.Started.Count == 1; });
+        var pending = queue.EnqueueAndWaitAsync(new Utterance("Two", SpeechPriority.High));
+
+        queue.CancelAll();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+        await Task.Delay(100);
+        lock (engine.Started) Assert.DoesNotContain("Two", engine.Started);
+        lock (engine.Cancelled) Assert.Contains("One", engine.Cancelled);
+    }
+
+    [Fact]
+    public async Task EnqueueAndWaitAsync_CompletesAfterSpeaking()
+    {
+        var spoken = new TaskCompletionSource();
+        _engineMock
+            .Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Returns(() => spoken.Task);
+
+        var task = _queue.EnqueueAndWaitAsync(new Utterance("Line", SpeechPriority.Normal));
+        await Task.Delay(150);
+        Assert.False(task.IsCompleted);
+
+        spoken.SetResult();
+        await task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.True(task.IsCompletedSuccessfully);
+    }
+
     [Fact]
     public void Dispose_DoesNotThrow()
     {

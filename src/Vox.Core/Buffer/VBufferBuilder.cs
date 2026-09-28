@@ -27,6 +27,12 @@ public interface IVBufferElement
     /// <summary>True if this element can receive keyboard focus.</summary>
     bool IsFocusable { get; }
 
+    /// <summary>
+    /// Heading level 1-9 from the UIA HeadingLevel property, or 0 when not exposed.
+    /// Takes precedence over ARIA-derived levels.
+    /// </summary>
+    int HeadingLevel => 0;
+
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
 }
@@ -75,22 +81,41 @@ public sealed class VBufferBuilder
     /// <returns>A fully-populated <see cref="VBufferDocument"/>.</returns>
     public VBufferDocument Build(IVBufferElement root)
     {
+        var (allNodes, flatText) = BuildSubtree(root);
+        return new VBufferDocument(flatText, allNodes[0], allNodes);
+    }
+
+    /// <summary>
+    /// Builds the nodes for a subtree in pre-order, with Ids and text offsets starting at 0 and
+    /// parent/child and document-order links set within the subtree. The root has no parent.
+    /// Shared with <see cref="IncrementalUpdater"/>.
+    /// </summary>
+    internal static (List<VBufferNode> Nodes, string FlatText) BuildSubtree(IVBufferElement root)
+    {
         var allNodes = new List<VBufferNode>(64);
         var flatText = new StringBuilder(256);
         int nextId = 0;
 
         VBufferNode? prevInOrder = null;
 
-        // Iterative pre-order DFS using explicit stack (avoids recursion overhead on large pages)
-        var stack = new Stack<(IVBufferElement Element, VBufferNode? Parent)>();
-        stack.Push((root, null));
+        // Iterative DFS with explicit enter/exit frames (avoids recursion on deep pages).
+        // Nodes are created on enter (pre-order); text is decided on exit, once we know
+        // whether any descendant contributed text.
+        var stack = new Stack<Frame>();
+        stack.Push(new Frame(root, null, null, 0));
 
         while (stack.Count > 0)
         {
-            var (element, parentNode) = stack.Pop();
+            var frame = stack.Pop();
 
-            var node = BuildNode(element, parentNode, nextId++, flatText);
+            if (frame.Node is not null)
+            {
+                // Exit: children have been processed
+                FinishNode(frame.Element, frame.Node, frame.TextStart, flatText);
+                continue;
+            }
 
+            var node = CreateNode(frame.Element, frame.Parent, nextId++);
             allNodes.Add(node);
 
             // Link doubly-linked document-order list
@@ -101,28 +126,34 @@ public sealed class VBufferBuilder
             }
             prevInOrder = node;
 
+            stack.Push(new Frame(frame.Element, frame.Parent, node, flatText.Length));
+
             // Push children in reverse order so we process them left-to-right
-            var children = element.GetChildren();
+            var children = frame.Element.GetChildren();
             for (int i = children.Count - 1; i >= 0; i--)
             {
-                stack.Push((children[i], node));
+                stack.Push(new Frame(children[i], node, null, 0));
             }
         }
 
-        return new VBufferDocument(flatText.ToString(), allNodes[0], allNodes);
+        return (allNodes, flatText.ToString());
     }
 
-    private static VBufferNode BuildNode(
-        IVBufferElement element,
-        VBufferNode? parent,
-        int id,
-        StringBuilder flatText)
+    private readonly record struct Frame(
+        IVBufferElement Element,
+        VBufferNode? Parent,
+        VBufferNode? Node,
+        int TextStart);
+
+    private static VBufferNode CreateNode(IVBufferElement element, VBufferNode? parent, int id)
     {
         var ariaRole = element.AriaRole;
         var ariaProps = element.AriaProperties;
 
         // Parse heading level
-        var headingLevel = ParseHeadingLevel(ariaRole, ariaProps, element.ControlType);
+        var headingLevel = element.HeadingLevel >= 1
+            ? Math.Min(element.HeadingLevel, 6)
+            : ParseHeadingLevel(ariaRole, ariaProps, element.ControlType);
 
         // Parse landmark type
         var landmarkType = ParseLandmarkType(ariaRole);
@@ -142,11 +173,6 @@ public sealed class VBufferBuilder
                           FocusableControlTypes.Contains(element.ControlType) ||
                           isLink;
 
-        // Compute text contribution: leaf text nodes and named interactive elements
-        var textStart = flatText.Length;
-        AppendNodeText(element, headingLevel, isLink, flatText);
-        var textEnd = flatText.Length;
-
         var node = new VBufferNode
         {
             Id = id,
@@ -162,7 +188,6 @@ public sealed class VBufferBuilder
             IsExpandable = isExpandable,
             IsExpanded = isExpanded,
             IsFocusable = isFocusable,
-            TextRange = (textStart, textEnd),
             Parent = parent,
         };
 
@@ -171,11 +196,28 @@ public sealed class VBufferBuilder
         return node;
     }
 
-    private static void AppendNodeText(
-        IVBufferElement element,
-        int headingLevel,
-        bool isLink,
-        StringBuilder flatText)
+    /// <summary>
+    /// Decides the node's own text once its descendants are built.
+    ///
+    /// A node contributes its Name only when no descendant contributed text: in Chromium's tree
+    /// a link or heading named "Foo" usually has a Text child also named "Foo", and emitting both
+    /// would duplicate the text. Container control types never contribute text.
+    ///
+    /// Nodes that contribute nothing get an empty range positioned where their content starts,
+    /// so TextRange.Start stays non-decreasing in document order.
+    /// </summary>
+    private static void FinishNode(IVBufferElement element, VBufferNode node, int textStart, StringBuilder flatText)
+    {
+        bool descendantsHaveText = flatText.Length > textStart;
+        if (!descendantsHaveText)
+            AppendNodeText(element, flatText);
+
+        node.TextRange = descendantsHaveText
+            ? (textStart, textStart)
+            : (textStart, flatText.Length);
+    }
+
+    private static void AppendNodeText(IVBufferElement element, StringBuilder flatText)
     {
         var name = element.Name;
         if (string.IsNullOrEmpty(name)) return;
@@ -196,21 +238,6 @@ public sealed class VBufferBuilder
     // Parsing helpers (mirrors UIAEventSubscriber helpers)
     // -------------------------------------------------------------------------
 
-    internal static int ParseHeadingLevel_Internal(string ariaRole, string ariaProps, string controlType) =>
-        ParseHeadingLevel(ariaRole, ariaProps, controlType);
-
-    internal static string ParseLandmarkType_Internal(string ariaRole) => ParseLandmarkType(ariaRole);
-
-    internal static bool IsLinkElement_Internal(string ariaRole, string controlType) =>
-        IsLinkElement(ariaRole, controlType);
-
-    internal static bool IsFocusableControlType(string controlType) =>
-        FocusableControlTypes.Contains(controlType);
-
-    internal static void AppendNodeText_Internal(IVBufferElement element, System.Text.StringBuilder flatText) =>
-        AppendNodeText(element, ParseHeadingLevel(element.AriaRole, element.AriaProperties, element.ControlType),
-            IsLinkElement(element.AriaRole, element.ControlType), flatText);
-
     private static int ParseHeadingLevel(string ariaRole, string ariaProps, string controlType)
     {
         if (string.IsNullOrEmpty(ariaRole))
@@ -222,7 +249,7 @@ public sealed class VBufferBuilder
         var role = ariaRole.Trim();
         return role.ToLowerInvariant() switch
         {
-            "heading" => ParseAriaPropertyInt(ariaProps, "level"),
+            "heading" => ParseHeadingLevelProperty(ariaProps),
             "h1" => 1,
             "h2" => 2,
             "h3" => 3,
@@ -231,6 +258,16 @@ public sealed class VBufferBuilder
             "h6" => 6,
             _ => 0
         };
+    }
+
+    /// <summary>
+    /// Heading level from aria "level" for role=heading. ARIA's default is 2 when absent or invalid;
+    /// levels above 6 are treated as 6 so they stay navigable.
+    /// </summary>
+    public static int ParseHeadingLevelProperty(string? ariaProps)
+    {
+        var level = ParseAriaPropertyInt(ariaProps ?? string.Empty, "level");
+        return level >= 1 ? Math.Min(level, 6) : 2;
     }
 
     private static string ParseLandmarkType(string ariaRole)

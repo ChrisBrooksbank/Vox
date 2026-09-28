@@ -32,5 +32,11 @@ public enum NavigationCommand
     StopSpeech,
     ElementsList,
     ReadCurrentLine,
-    ReadCurrentWord
+    ReadCurrentWord,
+    PrevHeadingLevel1,
+    PrevHeadingLevel2,
+    PrevHeadingLevel3,
+    PrevHeadingLevel4,
+    PrevHeadingLevel5,
+    PrevHeadingLevel6
 }
