@@ -171,6 +171,11 @@ public sealed class ElementsListDialog : Form
     {
         Application.EnableVisualStyles();
         using var dlg = new ElementsListDialog(document);
+        // Opened from a background thread in response to a global hotkey: make sure it
+        // comes to the front and takes keyboard focus.
+        dlg.StartPosition = FormStartPosition.CenterScreen;
+        dlg.TopMost = true;
+        dlg.Shown += (_, _) => dlg.Activate();
         var result = dlg.ShowDialog();
         return result == DialogResult.OK ? dlg.SelectedNode : null;
     }

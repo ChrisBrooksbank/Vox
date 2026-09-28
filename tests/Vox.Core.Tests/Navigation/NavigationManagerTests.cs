@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Vox.Core.Audio;
 using Vox.Core.Buffer;
 using Vox.Core.Input;
 using Vox.Core.Navigation;
@@ -11,11 +10,9 @@ namespace Vox.Core.Tests.Navigation;
 
 public class NavigationManagerTests
 {
-    private readonly Mock<IAudioCuePlayer> _audioCue = new();
     private readonly Mock<IEventSink> _pipeline = new();
 
     private NavigationManager CreateManager() => new(
-        _audioCue.Object,
         _pipeline.Object,
         NullLogger<NavigationManager>.Instance);
 
@@ -52,20 +49,20 @@ public class NavigationManagerTests
     }
 
     [Fact]
-    public void ToggleMode_PlaysAudioCue_FocusMode()
+    public void ToggleMode_PostsModeChanged_FocusMode()
     {
         var nm = CreateManager();
         nm.ToggleMode();
-        _audioCue.Verify(a => a.Play("focus_mode"), Times.Once);
+        _pipeline.Verify(p => p.Post(It.Is<ModeChangedEvent>(e => e.NewMode == InteractionMode.Focus)), Times.Once);
     }
 
     [Fact]
-    public void ToggleMode_PlaysAudioCue_BrowseMode()
+    public void ToggleMode_PostsModeChanged_BrowseMode()
     {
         var nm = CreateManager();
         nm.ToggleMode(); // -> Focus
         nm.ToggleMode(); // -> Browse
-        _audioCue.Verify(a => a.Play("browse_mode"), Times.Once);
+        _pipeline.Verify(p => p.Post(It.Is<ModeChangedEvent>(e => e.NewMode == InteractionMode.Browse)), Times.Once);
     }
 
     [Fact]
@@ -125,7 +122,7 @@ public class NavigationManagerTests
         nm.HandleCommand(NavigationCommand.ActivateElement, editNode);
 
         Assert.Equal(InteractionMode.Focus, nm.CurrentMode);
-        _audioCue.Verify(a => a.Play("focus_mode"), Times.Once);
+        _pipeline.Verify(p => p.Post(It.Is<ModeChangedEvent>(e => e.NewMode == InteractionMode.Focus)), Times.Once);
     }
 
     [Fact]
@@ -201,6 +198,29 @@ public class NavigationManagerTests
         nm.SwitchTo(InteractionMode.Browse); // already Browse
 
         _pipeline.Verify(p => p.Post(It.IsAny<ModeChangedEvent>()), Times.Never);
-        _audioCue.Verify(a => a.Play(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void HandleCommand_ActivateFocusableLink_DoesNotSwitchMode()
+    {
+        var nm = CreateManager();
+        var linkNode = new VBufferNode { ControlType = "Hyperlink", IsLink = true, IsFocusable = true };
+
+        nm.HandleCommand(NavigationCommand.ActivateElement, linkNode);
+
+        Assert.Equal(InteractionMode.Browse, nm.CurrentMode);
+    }
+
+    [Fact]
+    public void SwitchTo_RaisesModeChanged()
+    {
+        var nm = CreateManager();
+        var modes = new List<InteractionMode>();
+        nm.ModeChanged += (_, m) => modes.Add(m);
+
+        nm.SwitchTo(InteractionMode.Focus);
+        nm.SwitchTo(InteractionMode.Focus);
+
+        Assert.Equal([InteractionMode.Focus], modes);
     }
 }

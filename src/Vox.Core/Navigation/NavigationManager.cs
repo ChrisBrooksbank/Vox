@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Vox.Core.Audio;
 using Vox.Core.Buffer;
 using Vox.Core.Input;
 using Vox.Core.Pipeline;
@@ -13,29 +12,31 @@ namespace Vox.Core.Navigation;
 /// Focus mode: all keys pass through to the application except Insert+Space (ToggleMode).
 ///
 /// Auto-switch rules:
-///   - Enter pressed on an edit field while in Browse mode -> switch to Focus mode + play focus_mode.wav
-///   - Focus leaves a form field (FocusChangedEvent to non-form element) while in Focus mode -> switch to Browse mode + play browse_mode.wav
+///   - Enter pressed on an edit field while in Browse mode -> switch to Focus mode
+///   - Focus leaves a form field (FocusChangedEvent to non-form element) while in Focus mode -> switch to Browse mode
+///
+/// Each switch posts a ModeChangedEvent; the EventPipeline plays the mode cue and announces the mode.
 /// </summary>
 public sealed class NavigationManager
 {
-    private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly IEventSink _pipeline;
     private readonly ILogger<NavigationManager> _logger;
 
     private InteractionMode _currentMode = InteractionMode.Browse;
 
     public NavigationManager(
-        IAudioCuePlayer audioCuePlayer,
         IEventSink pipeline,
         ILogger<NavigationManager> logger)
     {
-        _audioCuePlayer = audioCuePlayer;
         _pipeline = pipeline;
         _logger = logger;
     }
 
     /// <summary>Current interaction mode.</summary>
     public InteractionMode CurrentMode => _currentMode;
+
+    /// <summary>Raised after the mode changes (used to keep key resolution in sync).</summary>
+    public event EventHandler<InteractionMode>? ModeChanged;
 
     /// <summary>
     /// Processes a NavigationCommandEvent. Returns true if the command was handled
@@ -92,7 +93,7 @@ public sealed class NavigationManager
     }
 
     /// <summary>
-    /// Switches to the specified mode, posting a ModeChangedEvent and playing the appropriate audio cue.
+    /// Switches to the specified mode and posts a ModeChangedEvent (the pipeline plays the cue).
     /// No-op if already in the requested mode.
     /// </summary>
     public void SwitchTo(InteractionMode mode, string? reason = null)
@@ -102,9 +103,7 @@ public sealed class NavigationManager
         _currentMode = mode;
         _logger.LogInformation("Mode changed to {Mode} ({Reason})", mode, reason ?? "unknown");
 
-        var cueName = mode == InteractionMode.Focus ? "focus_mode" : "browse_mode";
-        _audioCuePlayer.Play(cueName);
-
+        ModeChanged?.Invoke(this, mode);
         _pipeline.Post(new ModeChangedEvent(DateTimeOffset.UtcNow, mode, reason));
     }
 
@@ -112,10 +111,14 @@ public sealed class NavigationManager
     // Helpers
     // -------------------------------------------------------------------------
 
-    private static bool IsEditField(VBufferNode? node)
+    /// <summary>
+    /// True for controls that need keys passed through to be used (text entry, arrow-key controls).
+    /// Links, buttons, checkboxes etc. are activated from Browse mode without switching.
+    /// </summary>
+    public static bool IsEditField(VBufferNode? node)
     {
         if (node is null) return false;
-        return IsFormFieldControlType(node.ControlType) || node.IsFocusable;
+        return node.ControlType is "Edit" or "ComboBox" or "Spinner" or "Slider" or "List";
     }
 
     private static bool IsFormFieldControlType(string controlType) =>

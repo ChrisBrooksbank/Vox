@@ -57,9 +57,13 @@ dotnet run --project src/Vox.App
 | K / Shift+K | Next/previous link |
 | T / Shift+T | Next/previous table |
 | F / Shift+F | Next/previous form field |
-| 1-6 | Next heading at level 1-6 |
+| 1-6 / Shift+1-6 | Next/previous heading at level 1-6 |
+| D / Shift+D | Next/previous landmark |
 | Enter | Activate current element |
 | Insert+Space | Toggle browse/focus mode |
+| Insert+Down | Say all from the current position |
+| Insert+F7 | Elements list |
+| Ctrl | Stop speech |
 | Tab / Shift+Tab | Next/previous focusable element |
 
 ## Project Structure

@@ -41,6 +41,8 @@ public static class ServiceRegistration
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
         services.AddSingleton<LiveRegionMonitor>();
+        services.AddSingleton<BrowseDocumentTracker>();
+        services.AddSingleton<IBrowseDocumentActions>(sp => sp.GetRequiredService<BrowseDocumentTracker>());
 
         // Input
         services.AddSingleton<IKeyboardHook, KeyboardHook>();
@@ -75,6 +77,8 @@ public static class ServiceRegistration
         services.AddSingleton<QuickNavHandler>();
         services.AddSingleton<AnnouncementBuilder>();
         services.AddSingleton<SayAllController>();
+        services.AddSingleton<IElementsListPresenter, ElementsListPresenter>();
+        services.AddSingleton<BrowseModeController>();
 
         // Hosted service
         services.AddHostedService<ScreenReaderService>();

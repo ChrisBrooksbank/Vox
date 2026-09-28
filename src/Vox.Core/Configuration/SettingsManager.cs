@@ -40,6 +40,9 @@ public sealed class SettingsManager
         _userSettingsPath = userSettingsPath;
     }
 
+    /// <summary>Path of the user settings file this manager loads and saves.</summary>
+    public string UserSettingsPath => _userSettingsPath;
+
     /// <summary>
     /// Loads settings from the user settings file, falling back to defaults if not found or invalid.
     /// </summary>
@@ -161,13 +164,14 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
 
     private void StartWatching()
     {
-        var dir = Path.GetDirectoryName(SettingsManager.DefaultUserSettingsPath)!;
-        if (!Directory.Exists(dir))
-            return;
+        var path = _manager.UserSettingsPath;
+        var dir = Path.GetDirectoryName(path)!;
 
         try
         {
-            _watcher = new FileSystemWatcher(dir, "settings.json")
+            // Create the directory so external edits are picked up even on first run
+            Directory.CreateDirectory(dir);
+            _watcher = new FileSystemWatcher(dir, Path.GetFileName(path))
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
                 EnableRaisingEvents = true

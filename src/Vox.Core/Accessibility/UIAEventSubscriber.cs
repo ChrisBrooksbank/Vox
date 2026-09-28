@@ -7,6 +7,10 @@ namespace Vox.Core.Accessibility;
 /// <summary>
 /// Subscribes to UIA events and posts them to the event pipeline.
 /// All handler methods fire on UIA's background thread — they only post to channel and return immediately.
+///
+/// Focus, live region and notification events are desktop-wide. StructureChanged and
+/// PropertyChanged are scoped to the active web document (<see cref="SetDocumentScope"/>),
+/// since desktop-wide subscriptions to them are very noisy.
 /// </summary>
 public sealed class UIAEventSubscriber :
     IUIAutomationFocusChangedEventHandler,
@@ -31,6 +35,9 @@ public sealed class UIAEventSubscriber :
 
     private bool _subscribed;
     private bool _disposed;
+
+    // Element the structure/property handlers are registered on (STA thread only)
+    private IUIAutomationElement? _documentScope;
 
     public UIAEventSubscriber(
         UIAThread uiaThread,
@@ -57,28 +64,15 @@ public sealed class UIAEventSubscriber :
             // FocusChanged — desktop scope
             automation.AddFocusChangedEventHandler(_uiaProvider.CacheRequest, this);
 
-            // StructureChanged — desktop scope
-            automation.AddStructureChangedEventHandler(
-                automation.GetRootElement(),
-                TreeScope.TreeScope_Subtree,
-                null,
-                this);
+            // StructureChanged and PropertyChanged are registered per document (SetDocumentScope)
 
-            // PropertyChanged — Name and ExpandCollapseState — desktop scope
-            var propertyIds = new[] { UIA_NamePropertyId, UIA_ExpandCollapseStatePropertyId };
-            automation.AddPropertyChangedEventHandler(
-                automation.GetRootElement(),
-                TreeScope.TreeScope_Subtree,
-                null,
-                this,
-                propertyIds);
-
-            // LiveRegionChanged (event 20024) — desktop scope
+            // LiveRegionChanged (event 20024) — desktop scope; the cache request brings the
+            // region's subtree names so the handler never makes cross-process calls
             automation.AddAutomationEventHandler(
                 UIA_LiveRegionChangedEventId,
                 automation.GetRootElement(),
                 TreeScope.TreeScope_Subtree,
-                _uiaProvider.CacheRequest,
+                _uiaProvider.LiveRegionCacheRequest,
                 this);
 
             // Notification event (IUIAutomation5) — desktop scope
@@ -100,6 +94,48 @@ public sealed class UIAEventSubscriber :
         });
     }
 
+    /// <summary>
+    /// Moves the StructureChanged/PropertyChanged subscriptions to <paramref name="documentRoot"/>
+    /// (or removes them when null). Must be called on the UIA STA thread.
+    /// </summary>
+    public void SetDocumentScope(IUIAutomationElement? documentRoot)
+    {
+        if (!_subscribed || _disposed) return;
+
+        var automation = _uiaProvider.Automation;
+
+        if (_documentScope is not null)
+        {
+            try
+            {
+                automation.RemoveStructureChangedEventHandler(_documentScope, this);
+                automation.RemovePropertyChangedEventHandler(_documentScope, this);
+            }
+            catch (Exception ex)
+            {
+                // The old document may already be gone
+                _logger.LogDebug(ex, "Error removing document-scoped UIA handlers");
+            }
+            _documentScope = null;
+        }
+
+        if (documentRoot is null) return;
+
+        try
+        {
+            automation.AddStructureChangedEventHandler(
+                documentRoot, TreeScope.TreeScope_Subtree, null, this);
+            automation.AddPropertyChangedEventHandler(
+                documentRoot, TreeScope.TreeScope_Subtree, null, this,
+                new[] { UIA_NamePropertyId, UIA_ExpandCollapseStatePropertyId });
+            _documentScope = documentRoot;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to subscribe to document structure events");
+        }
+    }
+
     // -------------------------------------------------------------------------
     // IUIAutomationFocusChangedEventHandler
     // -------------------------------------------------------------------------
@@ -114,9 +150,11 @@ public sealed class UIAEventSubscriber :
             var controlType = ControlTypeIdToName(controlTypeId);
             var ariaRole = TryGetCachedString(sender, () => sender.CachedAriaRole);
             var ariaProps = TryGetCachedString(sender, () => sender.CachedAriaProperties);
-            var liveSetting = TryGetValue(sender, () => sender is IUIAutomationElement2 e2 ? (int)e2.CachedLiveSetting : 0);
+            var uiaHeadingLevel = UIAElementSnapshot.ReadHeadingLevel(sender);
 
             var (headingLevel, isLandmark, landmarkType, isLink) = ParseAriaRole(ariaRole, ariaProps);
+            if (uiaHeadingLevel > 0)
+                headingLevel = Math.Min(uiaHeadingLevel, 6);
             var isVisited = ParseAriaPropertyBool(ariaProps, "visited");
             var isRequired = ParseAriaPropertyBool(ariaProps, "required");
             var isExpanded = ParseAriaPropertyBool(ariaProps, "expanded");
@@ -133,7 +171,8 @@ public sealed class UIAEventSubscriber :
                 IsVisited: isVisited,
                 IsRequired: isRequired,
                 IsExpanded: isExpanded,
-                IsExpandable: isExpandable
+                IsExpandable: isExpandable,
+                RuntimeId: TryGetRuntimeId(sender)
             ));
         }
         catch (Exception ex)
@@ -159,7 +198,11 @@ public sealed class UIAEventSubscriber :
     {
         try
         {
-            var id = runtimeId is int[] intArray ? intArray : Array.Empty<int>();
+            // The sender is the element whose children changed (for ChildRemoved too: the parent);
+            // the runtimeId argument only identifies the removed child.
+            var id = TryGetRuntimeId(sender);
+            if (id.Length == 0)
+                id = runtimeId is int[] intArray ? intArray : Array.Empty<int>();
             _eventSink.Post(new StructureChangedEvent(
                 Timestamp: DateTimeOffset.UtcNow,
                 RuntimeId: id
@@ -227,30 +270,71 @@ public sealed class UIAEventSubscriber :
 
     private void HandleLiveRegionChanged(IUIAutomationElement sender)
     {
-        var name = TryGetCachedString(sender, () => sender.CachedName) ?? string.Empty;
-        var liveSetting = TryGetValue(sender, () => sender is IUIAutomationElement2 e2 ? (int)e2.CachedLiveSetting : 0);
-        var ariaProps = TryGetCachedString(sender, () => sender.CachedAriaProperties);
+        var liveSetting = TryGetValue(sender, () => sender is IUIAutomationElement2 e2 ? (int)e2.CachedLiveSetting : 1);
 
         // LiveSetting: 0=Off, 1=Polite, 2=Assertive
         var politeness = liveSetting switch
         {
             2 => LiveRegionPoliteness.Assertive,
-            1 => LiveRegionPoliteness.Polite,
+            0 => LiveRegionPoliteness.Off,
             _ => LiveRegionPoliteness.Polite
         };
+        if (politeness == LiveRegionPoliteness.Off)
+            return;
+
+        var text = GetLiveRegionText(sender);
 
         var runtimeId = TryGetRuntimeId(sender);
         var sourceId = runtimeId.Length > 0 ? string.Join(",", runtimeId) : null;
 
-        if (!string.IsNullOrWhiteSpace(name))
+        if (!string.IsNullOrWhiteSpace(text))
         {
             _eventSink.Post(new LiveRegionChangedEvent(
                 Timestamp: DateTimeOffset.UtcNow,
-                Text: name,
+                Text: text,
                 Politeness: politeness,
                 SourceId: sourceId
             ));
         }
+    }
+
+    /// <summary>
+    /// The region's Name, or — when empty, as is common for Chromium live region containers —
+    /// the names of its cached leaf descendants. Only reads the cache (no cross-process calls).
+    /// </summary>
+    private static string GetLiveRegionText(IUIAutomationElement region)
+    {
+        var name = TryGetCachedString(region, () => region.CachedName);
+        if (!string.IsNullOrWhiteSpace(name))
+            return name;
+
+        var parts = new List<string>();
+        var stack = new Stack<IUIAutomationElement>();
+        stack.Push(region);
+        while (stack.Count > 0)
+        {
+            var element = stack.Pop();
+            IUIAutomationElementArray? children;
+            try { children = element.GetCachedChildren(); }
+            catch { children = null; }
+
+            if (children is null || children.Length == 0)
+            {
+                if (!ReferenceEquals(element, region))
+                {
+                    var leafName = TryGetCachedString(element, () => element.CachedName);
+                    if (!string.IsNullOrWhiteSpace(leafName))
+                        parts.Add(leafName);
+                }
+                continue;
+            }
+
+            // Push in reverse to visit children in document order
+            for (int i = children.Length - 1; i >= 0; i--)
+                stack.Push(children.GetElement(i));
+        }
+
+        return string.Join(" ", parts);
     }
 
     // -------------------------------------------------------------------------
@@ -294,7 +378,7 @@ public sealed class UIAEventSubscriber :
         catch { return defaultValue; }
     }
 
-    private static int[] TryGetRuntimeId(IUIAutomationElement element)
+    internal static int[] TryGetRuntimeId(IUIAutomationElement element)
     {
         try
         {
@@ -304,7 +388,7 @@ public sealed class UIAEventSubscriber :
         catch { return Array.Empty<int>(); }
     }
 
-    private static string ControlTypeIdToName(int controlTypeId) => controlTypeId switch
+    internal static string ControlTypeIdToName(int controlTypeId) => controlTypeId switch
     {
         50000 => "Button",
         50001 => "Calendar",
@@ -361,7 +445,7 @@ public sealed class UIAEventSubscriber :
 
         var headingLevel = role switch
         {
-            "heading" => ParseAriaPropertyInt(ariaProps, "level"),
+            "heading" => Vox.Core.Buffer.VBufferBuilder.ParseHeadingLevelProperty(ariaProps),
             "h1" => 1,
             "h2" => 2,
             "h3" => 3,
@@ -409,25 +493,6 @@ public sealed class UIAEventSubscriber :
         return false;
     }
 
-    private static int ParseAriaPropertyInt(string? ariaProps, string key)
-    {
-        if (string.IsNullOrEmpty(ariaProps)) return 0;
-
-        foreach (var segment in ariaProps.Split(';', ','))
-        {
-            var sep = segment.IndexOf('=');
-            if (sep < 0) sep = segment.IndexOf(':');
-            if (sep < 0) continue;
-
-            var k = segment[..sep].Trim().ToLowerInvariant();
-            var v = segment[(sep + 1)..].Trim();
-
-            if (k == key.ToLowerInvariant() && int.TryParse(v, out var result))
-                return result;
-        }
-        return 0;
-    }
-
     public void Dispose()
     {
         if (_disposed) return;
@@ -443,6 +508,7 @@ public sealed class UIAEventSubscriber :
                 var automation = _uiaProvider.Automation;
                 automation.RemoveFocusChangedEventHandler(this);
                 automation.RemoveAllEventHandlers();
+                _documentScope = null;
                 _logger.LogDebug("UIAEventSubscriber: unsubscribed from all UIA events");
             }
             catch (Exception ex)

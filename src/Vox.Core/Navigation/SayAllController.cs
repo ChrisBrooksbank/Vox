@@ -9,11 +9,10 @@ namespace Vox.Core.Navigation;
 ///
 /// Behaviour:
 ///   - Starts reading from the current cursor position, one line at a time.
-///   - Speaks each line as a Normal-priority utterance via SpeechQueue.
-///   - Advances the cursor after each utterance.
+///   - Speaks each line as a Normal-priority utterance via SpeechQueue and waits for it to be
+///     spoken before advancing the cursor, so the cursor tracks what the user has heard.
 ///   - Stops when the end of the document is reached (boundary).
-///   - Any cancellation request (e.g. keypress) stops reading immediately
-///     via CancellationTokenSource.
+///   - Any cancellation request (e.g. keypress) stops reading immediately and flushes queued speech.
 /// </summary>
 public sealed class SayAllController
 {
@@ -48,15 +47,19 @@ public sealed class SayAllController
     }
 
     /// <summary>
-    /// Cancels continuous reading. No-op if not reading.
+    /// Cancels continuous reading and discards any speech it queued. No-op if not reading.
     /// </summary>
     public void Cancel()
     {
         if (_cts is not null)
         {
+            bool wasReading = IsReading;
             _cts.Cancel();
             _cts.Dispose();
             _cts = null;
+
+            if (wasReading)
+                _speechQueue.CancelAll();
         }
     }
 
@@ -106,11 +109,9 @@ public sealed class SayAllController
     {
         token.ThrowIfCancellationRequested();
 
+        // Wait until the line has actually been spoken. If it is interrupted (user navigation,
+        // StopSpeech) the task is cancelled and reading stops.
         var utterance = new Utterance(line, SpeechPriority.Normal);
-        await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
-
-        // Give the speech engine time to speak before advancing.
-        // We yield so cancellation can be observed between lines.
-        await Task.Yield();
+        await _speechQueue.EnqueueAndWaitAsync(utterance, token).ConfigureAwait(false);
     }
 }

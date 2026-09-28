@@ -368,4 +368,73 @@ public class IncrementalUpdaterTests
 
         Assert.Null(result.FindByRuntimeId([3]));
     }
+
+    // -----------------------------------------------------------------------
+    // Tree integrity and snapshot immutability
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public void ApplyUpdate_ReplaceChild_ParentListsNewRootExactlyOnce()
+    {
+        var doc = BuildBaseDocument();
+        var newEdit = new MockElement { RuntimeId = [5], Name = "Find", ControlType = "Edit" };
+
+        var result = Updater.ApplyUpdate(doc, [5], newEdit);
+
+        var nav = result.FindByRuntimeId([4])!;
+        var child = Assert.Single(nav.Children);
+        Assert.Equal("Find", child.Name);
+        Assert.Same(nav, child.Parent);
+    }
+
+    [Fact]
+    public void ApplyUpdate_IdsAreUniqueAndInDocumentOrder()
+    {
+        var doc = BuildBaseDocument();
+        var newNav = new MockElement { RuntimeId = [4], Name = "Nav", ControlType = "Group", AriaRole = "navigation" };
+        newNav.AddChild(new MockElement { RuntimeId = [6], Name = "Home", ControlType = "Hyperlink" });
+        newNav.AddChild(new MockElement { RuntimeId = [7], Name = "About", ControlType = "Hyperlink" });
+
+        var result = Updater.ApplyUpdate(doc, [4], newNav);
+
+        for (int i = 0; i < result.AllNodes.Count; i++)
+            Assert.Equal(i, result.AllNodes[i].Id);
+    }
+
+    [Fact]
+    public void ApplyUpdate_DoesNotModifyOriginalDocument()
+    {
+        var doc = BuildBaseDocument();
+        var originalText = doc.FlatText;
+        var originalRanges = doc.AllNodes.Select(n => n.TextRange).ToList();
+        var originalNavChildren = doc.FindByRuntimeId([4])!.Children.ToList();
+
+        var longer = new MockElement { RuntimeId = [2], Name = "A much longer welcome heading", ControlType = "Text", AriaRole = "heading", AriaProperties = "level=1" };
+        Updater.ApplyUpdate(doc, [2], longer);
+
+        Assert.Equal(originalText, doc.FlatText);
+        Assert.Equal(originalRanges, doc.AllNodes.Select(n => n.TextRange).ToList());
+        Assert.Equal(originalNavChildren, doc.FindByRuntimeId([4])!.Children.ToList());
+    }
+
+    [Fact]
+    public void ApplyUpdate_TreeLinksMatchDocumentOrder()
+    {
+        var doc = BuildBaseDocument();
+        var newLink = new MockElement { RuntimeId = [3], Name = "Go", ControlType = "Hyperlink" };
+
+        var result = Updater.ApplyUpdate(doc, [3], newLink);
+
+        Assert.Equal(3, result.Root.Children.Count); // H1, link, nav
+        Assert.All(result.AllNodes, n =>
+        {
+            if (n.Parent is not null) Assert.Contains(n, n.Parent.Children);
+            Assert.Contains(n, result.AllNodes);
+        });
+        for (int i = 1; i < result.AllNodes.Count; i++)
+        {
+            Assert.Same(result.AllNodes[i - 1], result.AllNodes[i].PrevInOrder);
+            Assert.Same(result.AllNodes[i], result.AllNodes[i - 1].NextInOrder);
+        }
+    }
 }

@@ -178,4 +178,42 @@ public class KeyMapTests
         Assert.True(resolved);
         Assert.Equal(NavigationCommand.PrevHeading, command);
     }
+
+    [Fact]
+    public void TryResolve_ReportsPassThrough()
+    {
+        var map = KeyMap.LoadFromJson("""
+            {
+                "bindings": [
+                    { "modifiers": "None", "vkCode": 162, "mode": "Any", "command": "StopSpeech", "passThrough": true },
+                    { "modifiers": "None", "vkCode": 72, "mode": "Browse", "command": "NextHeading" }
+                ]
+            }
+            """);
+
+        Assert.True(map.TryResolve(KeyModifiers.None, 162, InteractionMode.Focus, out var stop, out var stopPassThrough));
+        Assert.Equal(NavigationCommand.StopSpeech, stop);
+        Assert.True(stopPassThrough);
+
+        Assert.True(map.TryResolve(KeyModifiers.None, 72, InteractionMode.Browse, out _, out var headingPassThrough));
+        Assert.False(headingPassThrough);
+    }
+
+    [Fact]
+    public void DefaultKeymap_BindsStopSpeechToCtrl_AndShiftDigitsToPreviousHeadingLevel()
+    {
+        var keymapPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "assets", "config", "default-keymap.json");
+        var map = KeyMap.LoadFromFile(keymapPath);
+
+        Assert.True(map.TryResolve(KeyModifiers.None, 0xA2, InteractionMode.Browse, out var left, out var pass));
+        Assert.Equal(NavigationCommand.StopSpeech, left);
+        Assert.True(pass);
+        Assert.True(map.TryResolve(KeyModifiers.None, 0xA3, InteractionMode.Focus, out var right));
+        Assert.Equal(NavigationCommand.StopSpeech, right);
+
+        Assert.True(map.TryResolve(KeyModifiers.Shift, 0x32, InteractionMode.Browse, out var prev2));
+        Assert.Equal(NavigationCommand.PrevHeadingLevel2, prev2);
+        Assert.True(map.TryResolve(KeyModifiers.None, 0x46, InteractionMode.Browse, out var form));
+        Assert.Equal(NavigationCommand.NextFormField, form);
+    }
 }

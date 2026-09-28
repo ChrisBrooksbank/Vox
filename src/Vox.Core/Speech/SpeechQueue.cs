@@ -5,24 +5,40 @@ namespace Vox.Core.Speech;
 
 /// <summary>
 /// Priority-based speech queue backed by Channel&lt;Utterance&gt;.
-/// Interrupt cancels current speech immediately.
+///
+/// Interrupt handling: every Interrupt enqueue (and every <see cref="CancelAll"/>) starts a new
+/// "epoch". Utterances queued in an earlier epoch are dropped, and the utterance currently being
+/// spoken is cancelled immediately — the reader does not have to finish speaking first.
+///
 /// Coalescing: multiple Normal-priority utterances within 50ms window get concatenated.
 /// </summary>
 public sealed class SpeechQueue : IDisposable
 {
     private readonly ISpeechEngine _engine;
     private readonly ILogger<SpeechQueue> _logger;
-    private readonly Channel<Utterance> _channel;
+    private readonly Channel<QueuedUtterance> _channel;
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _processingTask;
 
     private const int CoalescingWindowMs = 50;
 
+    // Utterances with an epoch older than this are stale and must not be spoken.
+    private long _epoch;
+
+    // CTS for the utterance currently being spoken (guarded by _speakLock).
+    private readonly object _speakLock = new();
+    private CancellationTokenSource? _currentSpeechCts;
+
+    private sealed record QueuedUtterance(
+        Utterance Utterance,
+        long Epoch,
+        TaskCompletionSource? Completion);
+
     public SpeechQueue(ISpeechEngine engine, ILogger<SpeechQueue> logger)
     {
         _engine = engine;
         _logger = logger;
-        _channel = Channel.CreateUnbounded<Utterance>(new UnboundedChannelOptions
+        _channel = Channel.CreateUnbounded<QueuedUtterance>(new UnboundedChannelOptions
         {
             SingleReader = true,
             SingleWriter = false
@@ -33,13 +49,70 @@ public sealed class SpeechQueue : IDisposable
 
     public async ValueTask EnqueueAsync(Utterance utterance, CancellationToken cancellationToken = default)
     {
-        await _channel.Writer.WriteAsync(utterance, cancellationToken).ConfigureAwait(false);
+        await _channel.Writer.WriteAsync(Prepare(utterance, null), cancellationToken).ConfigureAwait(false);
     }
 
     public void Enqueue(Utterance utterance)
     {
-        _channel.Writer.TryWrite(utterance);
+        _channel.Writer.TryWrite(Prepare(utterance, null));
     }
+
+    /// <summary>
+    /// Enqueues an utterance and returns a task that completes once it has been spoken.
+    /// The task is cancelled if the utterance is interrupted, flushed by <see cref="CancelAll"/>,
+    /// or <paramref name="cancellationToken"/> fires.
+    /// </summary>
+    public Task EnqueueAndWaitAsync(Utterance utterance, CancellationToken cancellationToken = default)
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (cancellationToken.CanBeCanceled)
+        {
+            var registration = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+            completion.Task.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
+        }
+
+        if (!_channel.Writer.TryWrite(Prepare(utterance, completion)))
+            completion.TrySetCanceled();
+
+        return completion.Task;
+    }
+
+    /// <summary>
+    /// Stops current speech and discards everything queued so far.
+    /// </summary>
+    public void CancelAll()
+    {
+        Interlocked.Increment(ref _epoch);
+        CancelCurrentSpeech();
+        _engine.Cancel();
+    }
+
+    private QueuedUtterance Prepare(Utterance utterance, TaskCompletionSource? completion)
+    {
+        long epoch;
+        if (utterance.Priority == SpeechPriority.Interrupt)
+        {
+            // Everything queued before this interrupt is now stale; stop what is playing.
+            epoch = Interlocked.Increment(ref _epoch);
+            CancelCurrentSpeech();
+            _engine.Cancel();
+        }
+        else
+        {
+            epoch = Interlocked.Read(ref _epoch);
+        }
+        return new QueuedUtterance(utterance, epoch, completion);
+    }
+
+    private void CancelCurrentSpeech()
+    {
+        lock (_speakLock)
+        {
+            _currentSpeechCts?.Cancel();
+        }
+    }
+
+    private bool IsStale(QueuedUtterance item) => item.Epoch < Interlocked.Read(ref _epoch);
 
     private async Task ProcessQueueAsync()
     {
@@ -54,80 +127,45 @@ public sealed class SpeechQueue : IDisposable
                 if (!await reader.WaitToReadAsync(token).ConfigureAwait(false))
                     break;
 
-                // Drain all pending utterances and sort by priority
-                var pending = new List<Utterance>();
+                // Drain all pending utterances
+                var pending = new List<QueuedUtterance>();
                 while (reader.TryRead(out var u))
-                {
                     pending.Add(u);
+
+                // Coalesce Normal-priority utterances: wait for more within window
+                // (not for awaited utterances such as Say All lines, which arrive one at a time)
+                if (pending.Count == 1 && pending[0].Utterance.Priority == SpeechPriority.Normal
+                    && pending[0].Completion is null)
+                {
+                    await Task.Delay(CoalescingWindowMs, token).ConfigureAwait(false);
+                    while (reader.TryRead(out var extra))
+                        pending.Add(extra);
                 }
 
+                // Drop anything superseded by an Interrupt or CancelAll
+                DropStale(pending);
                 if (pending.Count == 0)
                     continue;
 
-                // If any Interrupt utterances, cancel current speech and drop everything
-                // below Interrupt priority — the user has moved on
-                Utterance? lastInterrupt = null;
-                foreach (var u in pending)
-                {
-                    if (u.Priority == SpeechPriority.Interrupt)
-                        lastInterrupt = u;
-                }
-                if (lastInterrupt is not null)
-                {
-                    _engine.Cancel();
-                    // Keep only the last Interrupt utterance (most recent focus/nav)
-                    pending.Clear();
-                    pending.Add(lastInterrupt);
-                }
-                else
-                {
-                    // Sort by priority (lower enum value = higher priority)
-                    pending.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+                // Sort by priority (lower enum value = higher priority); stable for equal priority
+                var ordered = pending
+                    .Select((item, index) => (item, index))
+                    .OrderBy(x => x.item.Utterance.Priority)
+                    .ThenBy(x => x.index)
+                    .Select(x => x.item)
+                    .ToList();
 
-                    // Coalesce Normal-priority utterances: wait for more within window
-                    // then concatenate consecutive Normal utterances
-                    if (pending.Count == 1 && pending[0].Priority == SpeechPriority.Normal)
-                    {
-                        await Task.Delay(CoalescingWindowMs, token).ConfigureAwait(false);
-                        while (reader.TryRead(out var extra))
-                        {
-                            pending.Add(extra);
-                        }
-                        pending.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-                    }
-                }
-
-                // Group consecutive Normal utterances and coalesce them
-                var toSpeak = CoalesceUtterances(pending);
-
-                foreach (var utterance in toSpeak)
+                foreach (var group in CoalesceUtterances(ordered))
                 {
-                    // Before speaking each utterance, check if new Interrupt arrived
-                    if (reader.TryPeek(out var peeked) && peeked.Priority == SpeechPriority.Interrupt)
-                    {
-                        _engine.Cancel();
-                        break; // Re-enter the main loop to process the new interrupt
-                    }
-
                     token.ThrowIfCancellationRequested();
-                    try
+
+                    if (group.All(IsStale))
                     {
-                        await _engine.SpeakAsync(utterance, token).ConfigureAwait(false);
+                        Complete(group, spoken: false);
+                        continue;
                     }
-                    catch (OperationCanceledException) when (token.IsCancellationRequested)
-                    {
-                        throw;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Speech was interrupted by a higher-priority utterance — normal operation
-                        _logger.LogDebug("Speech interrupted: {Text}", utterance.Text);
-                        break; // Stop processing remaining utterances
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error speaking utterance: {Text}", utterance.Text);
-                    }
+
+                    await SpeakGroupAsync(group, token).ConfigureAwait(false);
                 }
             }
         }
@@ -141,41 +179,105 @@ public sealed class SpeechQueue : IDisposable
         }
     }
 
-    private static List<Utterance> CoalesceUtterances(List<Utterance> utterances)
+    private void DropStale(List<QueuedUtterance> pending)
     {
-        var result = new List<Utterance>();
+        for (int i = pending.Count - 1; i >= 0; i--)
+        {
+            if (IsStale(pending[i]))
+            {
+                pending[i].Completion?.TrySetCanceled();
+                pending.RemoveAt(i);
+            }
+        }
+    }
+
+    private async Task SpeakGroupAsync(List<QueuedUtterance> group, CancellationToken token)
+    {
+        var first = group[0].Utterance;
+        var utterance = group.Count == 1
+            ? first
+            : new Utterance(string.Join(". ", group.Select(g => g.Utterance.Text)), first.Priority, first.SoundCue);
+        var epoch = group.Max(g => g.Epoch);
+
+        using var speechCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        lock (_speakLock)
+        {
+            _currentSpeechCts = speechCts;
+            // An interrupt may have arrived between the stale check and now
+            if (epoch < Interlocked.Read(ref _epoch))
+                speechCts.Cancel();
+        }
+
+        bool spoken = false;
+        try
+        {
+            speechCts.Token.ThrowIfCancellationRequested();
+            await _engine.SpeakAsync(utterance, speechCts.Token).ConfigureAwait(false);
+            spoken = true;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            Complete(group, spoken: false);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            // Interrupted by a higher-priority utterance or CancelAll — normal operation
+            _logger.LogDebug("Speech interrupted: {Text}", utterance.Text);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error speaking utterance: {Text}", utterance.Text);
+        }
+        finally
+        {
+            lock (_speakLock)
+            {
+                if (ReferenceEquals(_currentSpeechCts, speechCts))
+                    _currentSpeechCts = null;
+            }
+        }
+
+        Complete(group, spoken);
+    }
+
+    private static void Complete(List<QueuedUtterance> group, bool spoken)
+    {
+        foreach (var item in group)
+        {
+            if (spoken)
+                item.Completion?.TrySetResult();
+            else
+                item.Completion?.TrySetCanceled();
+        }
+    }
+
+    /// <summary>
+    /// Groups consecutive Normal utterances (to be spoken as one); every other utterance is its own group.
+    /// </summary>
+    private static List<List<QueuedUtterance>> CoalesceUtterances(List<QueuedUtterance> utterances)
+    {
+        var result = new List<List<QueuedUtterance>>();
         var i = 0;
 
         while (i < utterances.Count)
         {
-            var current = utterances[i];
-
-            if (current.Priority == SpeechPriority.Normal)
+            var group = new List<QueuedUtterance> { utterances[i] };
+            if (utterances[i].Utterance.Priority == SpeechPriority.Normal)
             {
-                // Collect consecutive Normal utterances
-                var texts = new List<string> { current.Text };
                 var j = i + 1;
-                while (j < utterances.Count && utterances[j].Priority == SpeechPriority.Normal)
+                while (j < utterances.Count && utterances[j].Utterance.Priority == SpeechPriority.Normal)
                 {
-                    texts.Add(utterances[j].Text);
+                    group.Add(utterances[j]);
                     j++;
-                }
-
-                if (texts.Count > 1)
-                {
-                    result.Add(new Utterance(string.Join(". ", texts), SpeechPriority.Normal, current.SoundCue));
-                }
-                else
-                {
-                    result.Add(current);
                 }
                 i = j;
             }
             else
             {
-                result.Add(current);
                 i++;
             }
+            result.Add(group);
         }
 
         return result;

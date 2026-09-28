@@ -240,4 +240,64 @@ public class EventPipelineTests : IDisposable
             Assert.Equal(SpeechPriority.Interrupt, utterance!.Priority);
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Live region filtering and browse events
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task LiveRegion_Off_IsNotSpoken()
+    {
+        _pipeline.Post(new LiveRegionChangedEvent(DateTimeOffset.UtcNow, "Hidden update", LiveRegionPoliteness.Off));
+
+        await Task.Delay(200);
+
+        lock (_spokenUtterances)
+            Assert.DoesNotContain(_spokenUtterances, u => u.Text.Contains("Hidden"));
+    }
+
+    [Fact]
+    public async Task LiveRegion_SameTextFromSameSource_IsSpokenOnce()
+    {
+        var now = DateTimeOffset.UtcNow;
+        _pipeline.Post(new LiveRegionChangedEvent(now, "3 new messages", LiveRegionPoliteness.Assertive, "1,2"));
+        _pipeline.Post(new LiveRegionChangedEvent(now, "3 new messages", LiveRegionPoliteness.Assertive, "1,2"));
+
+        await Task.Delay(300);
+
+        lock (_spokenUtterances)
+            Assert.Single(_spokenUtterances, u => u.Text == "3 new messages");
+    }
+
+    [Fact]
+    public async Task ModeChanged_PlaysCueOnce()
+    {
+        _pipeline.Post(new ModeChangedEvent(DateTimeOffset.UtcNow, InteractionMode.Focus));
+
+        await Task.Delay(200);
+
+        lock (_playedCues)
+            Assert.Single(_playedCues, c => c == "focus_mode");
+    }
+
+    [Fact]
+    public async Task BrowseEvents_AreRaisedToSubscribers()
+    {
+        var raised = new List<string>();
+        _pipeline.DocumentChangedProcessed += (_, _) => { lock (raised) raised.Add("document"); };
+        _pipeline.SubtreeChangedProcessed += (_, _) => { lock (raised) raised.Add("subtree"); };
+        _pipeline.StructureChangedProcessed += (_, _) => { lock (raised) raised.Add("structure"); };
+        _pipeline.ElementsListClosedProcessed += (_, _) => { lock (raised) raised.Add("elements"); };
+
+        var now = DateTimeOffset.UtcNow;
+        _pipeline.Post(new DocumentChangedEvent(now, null));
+        _pipeline.Post(new SubtreeChangedEvent(now, [1], null));
+        _pipeline.Post(new StructureChangedEvent(now, [1]));
+        _pipeline.Post(new ElementsListClosedEvent(now, null));
+
+        await Task.Delay(200);
+
+        lock (raised)
+            Assert.Equal(["document", "subtree", "structure", "elements"], raised);
+    }
 }

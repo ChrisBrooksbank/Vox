@@ -77,6 +77,28 @@ public sealed class VBufferNode
     /// </summary>
     public bool HasText => TextRange.End > TextRange.Start;
 
+    /// <summary>
+    /// Copies this node's properties into a new node with the given Id and text range.
+    /// Tree links (Parent, Children, PrevInOrder, NextInOrder) are not copied.
+    /// </summary>
+    public VBufferNode CloneDetached(int id, (int Start, int End) textRange) => new()
+    {
+        Id = id,
+        UIARuntimeId = UIARuntimeId,
+        Name = Name,
+        ControlType = ControlType,
+        AriaRole = AriaRole,
+        HeadingLevel = HeadingLevel,
+        LandmarkType = LandmarkType,
+        IsLink = IsLink,
+        IsVisited = IsVisited,
+        IsRequired = IsRequired,
+        IsExpandable = IsExpandable,
+        IsExpanded = IsExpanded,
+        IsFocusable = IsFocusable,
+        TextRange = textRange,
+    };
+
     public override string ToString() =>
         $"VBufferNode[{Id}] {ControlType} \"{Name}\"" +
         (IsHeading ? $" H{HeadingLevel}" : "") +

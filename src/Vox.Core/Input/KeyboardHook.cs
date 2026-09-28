@@ -1,13 +1,15 @@
 using Microsoft.Extensions.Logging;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
+using Vox.Core.Configuration;
 
 namespace Vox.Core.Input;
 
 /// <summary>
 /// Low-level keyboard hook using SetWindowsHookEx(WH_KEYBOARD_LL).
-/// Callback only posts a pre-allocated KeyEvent to a bounded channel (TryWrite) and returns immediately.
-/// Zero allocation, zero processing in the hook callback.
+/// Callback only updates modifier state, asks <see cref="SuppressionFilter"/> whether to swallow the key,
+/// posts a KeyEvent to a bounded channel (TryWrite) and returns immediately.
 /// A consumer thread reads from the channel and raises the KeyPressed event.
 /// </summary>
 public sealed class KeyboardHook : IKeyboardHook, IDisposable
@@ -18,10 +20,6 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
     private const int WM_SYSKEYDOWN = 0x0104;
     private const int WM_SYSKEYUP = 0x0105;
 
-    private const int VK_SHIFT = 0x10;
-    private const int VK_CONTROL = 0x11;
-    private const int VK_MENU = 0x12;  // Alt
-    private const int VK_INSERT = 0x2D;
     private const int VK_CAPITAL = 0x14; // CapsLock
 
     [StructLayout(LayoutKind.Sequential)]
@@ -86,7 +84,10 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
     }
 
     private readonly ILogger<KeyboardHook> _logger;
-    private readonly Channel<KeyEvent> _channel;
+    private readonly KeyStateTracker _keyState = new();
+    // Key-downs that were swallowed, so the matching key-up is swallowed too (indexed by vkCode)
+    private readonly bool[] _suppressedKeys = new bool[256];
+    private Channel<KeyEvent> _channel = CreateChannel();
     private nint _hookHandle;
     private LowLevelKeyboardProc? _hookCallback; // Keep reference to prevent GC
     private Thread? _consumerThread;
@@ -96,16 +97,26 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
 
     public event EventHandler<KeyEvent>? KeyPressed;
 
+    public Func<KeyEvent, bool>? SuppressionFilter { get; set; }
+
+    public ModifierKey ScreenReaderModifier
+    {
+        get => _keyState.ScreenReaderModifier;
+        set => _keyState.ScreenReaderModifier = value;
+    }
+
     public KeyboardHook(ILogger<KeyboardHook> logger)
     {
         _logger = logger;
-        _channel = Channel.CreateBounded<KeyEvent>(new BoundedChannelOptions(256)
+    }
+
+    private static Channel<KeyEvent> CreateChannel() =>
+        Channel.CreateBounded<KeyEvent>(new BoundedChannelOptions(256)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true,
             SingleWriter = false
         });
-    }
 
     public void Install()
     {
@@ -115,10 +126,16 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
             return;
         }
 
+        _cts.Dispose();
         _cts = new CancellationTokenSource();
 
+        // A fresh channel per install: Uninstall completes the previous one
+        _channel = CreateChannel();
+        var channel = _channel;
+        var token = _cts.Token;
+
         // Start consumer thread before installing hook
-        _consumerThread = new Thread(ConsumeEvents)
+        _consumerThread = new Thread(() => ConsumeEvents(channel, token))
         {
             IsBackground = true,
             Name = "KeyboardHookConsumer"
@@ -137,13 +154,29 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         _hookThread.Start();
         hookReady.Wait(); // Wait for hook to be installed before returning
         hookReady.Dispose();
+
+        if (_hookHandle == nint.Zero)
+        {
+            // Installation failed: stop the consumer and report it to the caller
+            var error = _installError;
+            _channel.Writer.TryComplete();
+            _consumerThread.Join(TimeSpan.FromSeconds(2));
+            _consumerThread = null;
+            _hookThread.Join(TimeSpan.FromSeconds(2));
+            _hookThread = null;
+            throw new Win32Exception(error, "Failed to install low-level keyboard hook (SetWindowsHookEx).");
+        }
     }
+
+    private int _installError;
 
     private void HookThreadProc(ManualResetEventSlim hookReady)
     {
         _hookThreadId = GetCurrentThreadId();
 
         _hookCallback = HookCallback;
+        Array.Clear(_suppressedKeys);
+        _keyState.SetCapsLockState((GetKeyState(VK_CAPITAL) & 0x0001) != 0);
         var hMod = GetModuleHandle(null);
         _hookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, _hookCallback, hMod, 0);
 
@@ -151,6 +184,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         {
             var error = Marshal.GetLastWin32Error();
             _logger.LogError("Failed to install keyboard hook. Win32 error: {Error}", error);
+            _installError = error;
             _cts.Cancel();
             hookReady.Set();
             return;
@@ -207,8 +241,9 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         _logger.LogInformation("Keyboard hook uninstalled");
     }
 
-    // This callback must complete in < 1ms. Only extract data and TryWrite to channel.
-    private nint HookCallback(int nCode, nint wParam, nint lParam)
+    // This callback must complete in < 1ms. Only update key state, consult the suppression
+    // filter (a dictionary lookup) and TryWrite to the channel.
+    private unsafe nint HookCallback(int nCode, nint wParam, nint lParam)
     {
         if (nCode >= 0)
         {
@@ -218,35 +253,67 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
 
             if (isKeyDown || isKeyUp)
             {
-                var kbStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+                var kbStruct = *(KBDLLHOOKSTRUCT*)lParam;
                 var vkCode = (int)kbStruct.vkCode;
 
-                // Read modifier state from key state table (fast, no allocation)
-                var modifiers = KeyModifiers.None;
-                if ((GetKeyState(VK_SHIFT) & 0x8000) != 0) modifiers |= KeyModifiers.Shift;
-                if ((GetKeyState(VK_CONTROL) & 0x8000) != 0) modifiers |= KeyModifiers.Ctrl;
-                if ((GetKeyState(VK_MENU) & 0x8000) != 0) modifiers |= KeyModifiers.Alt;
-                if ((GetKeyState(VK_INSERT) & 0x8000) != 0) modifiers |= KeyModifiers.Insert;
+                var modifiers = _keyState.Process(vkCode, isKeyDown, out bool isScreenReaderModifier);
 
                 var evt = new KeyEvent
                 {
                     VkCode = vkCode,
                     Modifiers = modifiers,
                     IsKeyDown = isKeyDown,
-                    Timestamp = kbStruct.time
+                    Timestamp = kbStruct.time,
+                    CapsLockOn = _keyState.ScreenReaderModifier != ModifierKey.CapsLock && _keyState.CapsLockOn
                 };
 
+                bool suppress;
+                var slot = vkCode & 0xFF;
+                if (isScreenReaderModifier)
+                {
+                    // The screen reader modifier never reaches applications
+                    suppress = true;
+                }
+                else if (isKeyDown)
+                {
+                    suppress = ShouldSuppress(evt);
+                    _suppressedKeys[slot] = suppress;
+                }
+                else
+                {
+                    // Swallow the key-up only if its key-down was swallowed
+                    suppress = _suppressedKeys[slot];
+                    _suppressedKeys[slot] = false;
+                }
+
                 _channel.Writer.TryWrite(evt);
+
+                if (suppress)
+                    return 1;
             }
         }
 
         return CallNextHookEx(_hookHandle, nCode, wParam, lParam);
     }
 
-    private void ConsumeEvents()
+    private bool ShouldSuppress(KeyEvent evt)
     {
-        var token = _cts.Token;
-        var reader = _channel.Reader;
+        var filter = SuppressionFilter;
+        if (filter is null) return false;
+        try
+        {
+            return filter(evt);
+        }
+        catch
+        {
+            // Never let an exception escape into the native hook chain
+            return false;
+        }
+    }
+
+    private void ConsumeEvents(Channel<KeyEvent> channel, CancellationToken token)
+    {
+        var reader = channel.Reader;
 
         try
         {

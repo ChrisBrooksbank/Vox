@@ -56,6 +56,10 @@ public sealed class FirstRunWizard
 
         _keyboardHook.KeyPressed += OnKeyPressed;
 
+        // Keep the wizard's keys away from whatever application has focus
+        var previousFilter = _keyboardHook.SuppressionFilter;
+        _keyboardHook.SuppressionFilter = IsWizardKey;
+
         try
         {
             var settings = _settingsMonitor.CurrentValue;
@@ -83,13 +87,13 @@ public sealed class FirstRunWizard
             settings = await RunModifierKeyStepAsync(settings, cancellationToken);
 
             // Step 6: Tutorial
-            await RunTutorialStepAsync(cancellationToken);
+            await RunTutorialStepAsync(settings, cancellationToken);
 
             // Step 7: Completion
             settings = settings with { FirstRunCompleted = true };
             _settingsMonitor.UpdateSettings(settings);
             await SpeakAsync(
-                "Setup complete. Press Insert F1 for help anytime. Welcome to Vox.",
+                "Setup complete. Welcome to Vox.",
                 cancellationToken);
 
             _logger.LogInformation("First-run wizard completed");
@@ -100,6 +104,7 @@ public sealed class FirstRunWizard
         }
         finally
         {
+            _keyboardHook.SuppressionFilter = previousFilter;
             _keyboardHook.KeyPressed -= OnKeyPressed;
         }
     }
@@ -110,25 +115,25 @@ public sealed class FirstRunWizard
 
     private async Task<bool> RunWelcomeStepAsync(CancellationToken cancellationToken)
     {
-        await SpeakAsync(
-            "Welcome to Vox screen reader. " +
-            "This guided setup will help you configure speech rate, voice, verbosity, and modifier key. " +
-            "Press Enter to begin, or Escape to skip setup.",
-            cancellationToken);
-
         // Timeout after 30 seconds — auto-skip if no user interaction
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
 
         try
         {
+            var key = await PromptAsync(
+                "Welcome to Vox screen reader. " +
+                "This guided setup will help you configure speech rate, voice, verbosity, and modifier key. " +
+                "Press Enter to begin, or Escape to skip setup.",
+                timeoutCts.Token);
+
             while (true)
             {
-                var key = await WaitForKeyDownAsync(timeoutCts.Token);
                 if (key.VkCode == VirtualKeys.Return)
                     return true;
                 if (key.VkCode == VirtualKeys.Escape)
                     return false;
+                key = await WaitForKeyDownAsync(timeoutCts.Token);
             }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -143,32 +148,23 @@ public sealed class FirstRunWizard
         int rate = settings.SpeechRateWpm;
         _speechEngine.SetRate(rate);
 
-        await SpeakAsync(
+        var key = await PromptAsync(
             $"Step 1 of 5: Speech rate. Current rate is {rate} words per minute. " +
             "Press Up to increase, Down to decrease, or Enter to accept.",
             cancellationToken);
 
-        while (true)
+        while (key.VkCode != VirtualKeys.Return)
         {
-            var key = await WaitForKeyDownAsync(cancellationToken);
-
-            if (key.VkCode == VirtualKeys.Return)
-                break;
-
-            if (key.VkCode == VirtualKeys.Up)
+            if (key.VkCode == VirtualKeys.Up || key.VkCode == VirtualKeys.Down)
             {
-                rate = Math.Min(rate + RateStep, MaxRateWpm);
+                rate = key.VkCode == VirtualKeys.Up
+                    ? Math.Min(rate + RateStep, MaxRateWpm)
+                    : Math.Max(rate - RateStep, MinRateWpm);
                 _speechEngine.SetRate(rate);
-                _speechEngine.Cancel();
-                await SpeakAsync($"{rate} words per minute. The quick brown fox jumps over the lazy dog.", cancellationToken);
+                key = await PromptAsync($"{rate} words per minute. The quick brown fox jumps over the lazy dog.", cancellationToken);
+                continue;
             }
-            else if (key.VkCode == VirtualKeys.Down)
-            {
-                rate = Math.Max(rate - RateStep, MinRateWpm);
-                _speechEngine.SetRate(rate);
-                _speechEngine.Cancel();
-                await SpeakAsync($"{rate} words per minute. The quick brown fox jumps over the lazy dog.", cancellationToken);
-            }
+            key = await WaitForKeyDownAsync(cancellationToken);
         }
 
         settings = settings with { SpeechRateWpm = rate };
@@ -197,33 +193,24 @@ public sealed class FirstRunWizard
             if (idx >= 0) currentIndex = idx;
         }
 
-        await SpeakAsync(
+        var key = await PromptAsync(
             $"Step 2 of 5: Voice selection. {voices.Count} voices available. " +
             $"Current voice: {voices[currentIndex]}. " +
             "Press Up or Down to cycle voices, Enter to accept.",
             cancellationToken);
 
-        while (true)
+        while (key.VkCode != VirtualKeys.Return)
         {
-            var key = await WaitForKeyDownAsync(cancellationToken);
-
-            if (key.VkCode == VirtualKeys.Return)
-                break;
-
-            if (key.VkCode == VirtualKeys.Up)
+            if (key.VkCode == VirtualKeys.Up || key.VkCode == VirtualKeys.Down)
             {
-                currentIndex = (currentIndex + 1) % voices.Count;
+                currentIndex = key.VkCode == VirtualKeys.Up
+                    ? (currentIndex + 1) % voices.Count
+                    : (currentIndex - 1 + voices.Count) % voices.Count;
                 _speechEngine.SetVoice(voices[currentIndex]);
-                _speechEngine.Cancel();
-                await SpeakAsync($"{voices[currentIndex]}. The quick brown fox jumps over the lazy dog.", cancellationToken);
+                key = await PromptAsync($"{voices[currentIndex]}. The quick brown fox jumps over the lazy dog.", cancellationToken);
+                continue;
             }
-            else if (key.VkCode == VirtualKeys.Down)
-            {
-                currentIndex = (currentIndex - 1 + voices.Count) % voices.Count;
-                _speechEngine.SetVoice(voices[currentIndex]);
-                _speechEngine.Cancel();
-                await SpeakAsync($"{voices[currentIndex]}. The quick brown fox jumps over the lazy dog.", cancellationToken);
-            }
+            key = await WaitForKeyDownAsync(cancellationToken);
         }
 
         settings = settings with { VoiceName = voices[currentIndex] };
@@ -234,7 +221,7 @@ public sealed class FirstRunWizard
 
     private async Task<VoxSettings> RunVerbosityStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
-        await SpeakAsync(
+        var key = await PromptAsync(
             "Step 3 of 5: Verbosity level. " +
             "Press 1 for Beginner — all element details announced, recommended for new users. " +
             "Press 2 for Intermediate — control type and essential state. " +
@@ -242,10 +229,8 @@ public sealed class FirstRunWizard
             "Press Enter to keep the current setting.",
             cancellationToken);
 
-        while (true)
+        for (; ; key = await WaitForKeyDownAsync(cancellationToken))
         {
-            var key = await WaitForKeyDownAsync(cancellationToken);
-
             if (key.VkCode == VirtualKeys.Return)
                 break; // Keep current verbosity
 
@@ -273,17 +258,15 @@ public sealed class FirstRunWizard
 
     private async Task<VoxSettings> RunModifierKeyStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
-        await SpeakAsync(
+        var key = await PromptAsync(
             "Step 4 of 5: Modifier key. " +
             "Press 1 for Insert key, recommended. " +
             "Press 2 for Caps Lock. " +
             "Press Enter to keep the current setting.",
             cancellationToken);
 
-        while (true)
+        for (; ; key = await WaitForKeyDownAsync(cancellationToken))
         {
-            var key = await WaitForKeyDownAsync(cancellationToken);
-
             if (key.VkCode == VirtualKeys.Return)
                 break; // Keep current modifier key
 
@@ -304,24 +287,22 @@ public sealed class FirstRunWizard
         return settings;
     }
 
-    private async Task RunTutorialStepAsync(CancellationToken cancellationToken)
+    private async Task RunTutorialStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
-        await SpeakAsync(
+        var modifier = settings.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+        var key = await PromptAsync(
             "Step 5 of 5: Quick tutorial. " +
             "In browse mode, press H to jump to the next heading. " +
             "Press K to jump to the next link. " +
-            "Press Enter to activate the focused element. " +
-            "Press Insert Space to toggle between browse and focus modes. " +
-            "Press Insert Escape to stop speech at any time. " +
+            "Press Enter to activate the current element. " +
+            $"Press {modifier} Space to toggle between browse and focus modes. " +
+            $"Press {modifier} Down Arrow to read from the current position. " +
+            "Press Control to stop speech at any time. " +
             "Press Enter to continue.",
             cancellationToken);
 
-        while (true)
-        {
-            var key = await WaitForKeyDownAsync(cancellationToken);
-            if (key.VkCode == VirtualKeys.Return)
-                break;
-        }
+        while (key.VkCode != VirtualKeys.Return)
+            key = await WaitForKeyDownAsync(cancellationToken);
     }
 
     // -------------------------------------------------------------------------
@@ -334,18 +315,49 @@ public sealed class FirstRunWizard
         Volatile.Read(ref _keyWaiter)?.TrySetResult(e);
     }
 
+    private static bool IsWizardKey(KeyEvent e) => e.VkCode is
+        VirtualKeys.Return or VirtualKeys.Escape or VirtualKeys.Up or VirtualKeys.Down or
+        VirtualKeys.D1 or VirtualKeys.D2 or VirtualKeys.D3 or
+        VirtualKeys.NumPad1 or VirtualKeys.NumPad2 or VirtualKeys.NumPad3;
+
     private Task<KeyEvent> WaitForKeyDownAsync(CancellationToken cancellationToken)
     {
         var tcs = new TaskCompletionSource<KeyEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
         Volatile.Write(ref _keyWaiter, tcs);
 
-        cancellationToken.Register(() =>
+        var registration = cancellationToken.Register(() =>
         {
-            Volatile.Write(ref _keyWaiter, null);
+            Interlocked.CompareExchange(ref _keyWaiter, null, tcs);
             tcs.TrySetCanceled(cancellationToken);
         });
+        tcs.Task.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
 
         return tcs.Task;
+    }
+
+    /// <summary>
+    /// Speaks <paramref name="text"/> while already listening for a key; a key press cuts the
+    /// prompt short. Returns the first key pressed (during or after the prompt).
+    /// </summary>
+    private async Task<KeyEvent> PromptAsync(string text, CancellationToken cancellationToken)
+    {
+        var keyTask = WaitForKeyDownAsync(cancellationToken);
+        var speakTask = SpeakAsync(text, cancellationToken);
+
+        var first = await Task.WhenAny(keyTask, speakTask).ConfigureAwait(false);
+        if (first == keyTask && !speakTask.IsCompleted)
+            _speechEngine.Cancel();
+
+        try
+        {
+            await speakTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Prompt interrupted by the key press
+        }
+
+        return await keyTask.ConfigureAwait(false);
     }
 
     // -------------------------------------------------------------------------

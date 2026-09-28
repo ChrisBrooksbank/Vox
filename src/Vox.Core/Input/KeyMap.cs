@@ -20,6 +20,10 @@ internal sealed class KeyBindingEntry
 
     [JsonPropertyName("command")]
     public string Command { get; set; } = string.Empty;
+
+    /// <summary>When true the key still reaches the application after the command runs.</summary>
+    [JsonPropertyName("passThrough")]
+    public bool PassThrough { get; set; }
 }
 
 internal sealed class KeyMapFile
@@ -37,10 +41,14 @@ public readonly record struct KeyMapKey(KeyModifiers Modifiers, int VkCode, Inte
 /// Loads and resolves keyboard bindings from a JSON keymap file.
 /// Maps (Modifiers, VkCode, InteractionMode) to NavigationCommand.
 /// Bindings with mode "Any" match both Browse and Focus modes.
+/// Bound keys are swallowed by the keyboard hook unless the binding sets "passThrough".
+/// Read-only after loading, so lookups are safe from any thread (including the hook thread).
 /// </summary>
 public sealed class KeyMap
 {
-    private readonly Dictionary<KeyMapKey, NavigationCommand> _bindings = new();
+    private readonly record struct Binding(NavigationCommand Command, bool PassThrough);
+
+    private readonly Dictionary<KeyMapKey, Binding> _bindings = new();
 
     private KeyMap() { }
 
@@ -77,14 +85,15 @@ public sealed class KeyMap
             if (!Enum.TryParse<NavigationCommand>(entry.Command, ignoreCase: true, out var command))
                 continue;
 
+            var binding = new Binding(command, entry.PassThrough);
             if (string.Equals(entry.Mode, "Any", StringComparison.OrdinalIgnoreCase))
             {
-                map._bindings[new KeyMapKey(modifiers, entry.VkCode, InteractionMode.Browse)] = command;
-                map._bindings[new KeyMapKey(modifiers, entry.VkCode, InteractionMode.Focus)] = command;
+                map._bindings[new KeyMapKey(modifiers, entry.VkCode, InteractionMode.Browse)] = binding;
+                map._bindings[new KeyMapKey(modifiers, entry.VkCode, InteractionMode.Focus)] = binding;
             }
             else if (Enum.TryParse<InteractionMode>(entry.Mode, ignoreCase: true, out var mode))
             {
-                map._bindings[new KeyMapKey(modifiers, entry.VkCode, mode)] = command;
+                map._bindings[new KeyMapKey(modifiers, entry.VkCode, mode)] = binding;
             }
         }
 
@@ -95,7 +104,25 @@ public sealed class KeyMap
     /// Tries to resolve a (Modifiers, VkCode, Mode) triple to a NavigationCommand.
     /// </summary>
     public bool TryResolve(KeyModifiers modifiers, int vkCode, InteractionMode mode, out NavigationCommand command)
-        => _bindings.TryGetValue(new KeyMapKey(modifiers, vkCode, mode), out command);
+        => TryResolve(modifiers, vkCode, mode, out command, out _);
+
+    /// <summary>
+    /// Tries to resolve a (Modifiers, VkCode, Mode) triple to a NavigationCommand, also reporting
+    /// whether the key should still be passed through to the application.
+    /// </summary>
+    public bool TryResolve(KeyModifiers modifiers, int vkCode, InteractionMode mode,
+        out NavigationCommand command, out bool passThrough)
+    {
+        if (_bindings.TryGetValue(new KeyMapKey(modifiers, vkCode, mode), out var binding))
+        {
+            command = binding.Command;
+            passThrough = binding.PassThrough;
+            return true;
+        }
+        command = default;
+        passThrough = false;
+        return false;
+    }
 
     /// <summary>
     /// Returns the total number of bindings in this keymap.

@@ -305,4 +305,48 @@ public class TypingEchoHandlerTests
         var modifiers = shift ? KeyModifiers.Shift : KeyModifiers.None;
         Assert.Equal(expected, TypingEchoHandler.VkCodeToChar(vkCode, modifiers));
     }
+
+    // -------------------------------------------------------------------------
+    // Shortcuts and Caps Lock
+    // -------------------------------------------------------------------------
+
+    private sealed class ListSink : Vox.Core.Pipeline.IEventSink
+    {
+        public List<Vox.Core.Pipeline.TypingEchoEvent> Echoes { get; } = new();
+        public void Post(Vox.Core.Pipeline.ScreenReaderEvent evt)
+        {
+            if (evt is Vox.Core.Pipeline.TypingEchoEvent e) Echoes.Add(e);
+        }
+    }
+
+    private static Vox.Core.Pipeline.RawKeyEvent ModKeyUp(int vk, KeyModifiers mods) =>
+        new(DateTimeOffset.UtcNow, new KeyEvent { VkCode = vk, Modifiers = mods, IsKeyDown = false });
+
+    [Theory]
+    [InlineData(KeyModifiers.Ctrl)]
+    [InlineData(KeyModifiers.Alt)]
+    [InlineData(KeyModifiers.Insert)]
+    public void Shortcut_IsNotEchoed_OrBuffered(KeyModifiers mods)
+    {
+        var sink = new ListSink();
+        var handler = new TypingEchoHandler(sink, () => TypingEchoMode.Both,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<TypingEchoHandler>.Instance);
+
+        handler.HandleKeyEvent(ModKeyUp(0x53, mods)); // Ctrl+S etc.
+        handler.HandleKeyEvent(ModKeyUp(0x20, KeyModifiers.None)); // Space: word boundary
+
+        Assert.DoesNotContain(sink.Echoes, e => e.Text.Equals("s", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(sink.Echoes, e => e.IsWord);
+    }
+
+    [Theory]
+    [InlineData(false, false, 'a')]
+    [InlineData(true, false, 'A')]
+    [InlineData(false, true, 'A')]
+    [InlineData(true, true, 'a')]
+    public void VkCodeToChar_RespectsShiftAndCapsLock(bool shift, bool caps, char expected)
+    {
+        var mods = shift ? KeyModifiers.Shift : KeyModifiers.None;
+        Assert.Equal(expected, TypingEchoHandler.VkCodeToChar(0x41, mods, caps));
+    }
 }

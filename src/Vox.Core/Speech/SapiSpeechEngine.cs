@@ -14,11 +14,15 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
     private readonly ILogger<SapiSpeechEngine> _logger;
     private volatile bool _isSpeaking;
 
-    // WPM range: 150-450 maps to SAPI rate -10 to +10
+    // Supported WPM range (matches the first-run wizard)
     private const int MinWpm = 150;
     private const int MaxWpm = 450;
     private const int MinSapiRate = -10;
     private const int MaxSapiRate = 10;
+
+    // SAPI rate is logarithmic: rate 0 is the voice's normal speed (~180 WPM for Microsoft voices),
+    // +10 is about 3x faster and -10 about 3x slower.
+    private const double BaseWpm = 180.0;
 
     public bool IsSpeaking => _isSpeaking;
 
@@ -101,11 +105,18 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
     public void SetRate(int wpm)
     {
         wpm = Math.Clamp(wpm, MinWpm, MaxWpm);
-        // Linear interpolation from WPM range to SAPI rate range
-        var sapiRate = (int)Math.Round(
-            MinSapiRate + (double)(wpm - MinWpm) / (MaxWpm - MinWpm) * (MaxSapiRate - MinSapiRate));
-        _synthesizer.Rate = Math.Clamp(sapiRate, MinSapiRate, MaxSapiRate);
+        _synthesizer.Rate = WpmToSapiRate(wpm);
         _logger.LogDebug("Speech rate set to {Wpm} WPM (SAPI rate {SapiRate})", wpm, _synthesizer.Rate);
+    }
+
+    /// <summary>
+    /// Converts words per minute to a SAPI rate (-10..10): rate = 10 * log3(wpm / 180).
+    /// </summary>
+    public static int WpmToSapiRate(int wpm)
+    {
+        if (wpm <= 0) return MinSapiRate;
+        var rate = 10.0 * Math.Log(wpm / BaseWpm, 3.0);
+        return Math.Clamp((int)Math.Round(rate), MinSapiRate, MaxSapiRate);
     }
 
     public void SetVoice(string voiceName)

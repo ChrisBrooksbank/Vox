@@ -9,7 +9,8 @@ namespace Vox.Core.Navigation;
 ///
 /// Supported commands:
 ///   NextHeading / PrevHeading  — H / Shift+H: next/prev heading any level
-///   HeadingLevel1-6            — 1-6 / Shift+1-6: heading at specific level (next only)
+///   HeadingLevel1-6            — 1-6: next heading at specific level
+///   PrevHeadingLevel1-6        — Shift+1-6: previous heading at specific level
 ///   NextLink / PrevLink        — K / Shift+K: next/prev link
 ///   NextLandmark / PrevLandmark— D / Shift+D: next/prev landmark
 ///   NextFormField / PrevFormField — F / Shift+F: next/prev form field
@@ -54,6 +55,19 @@ public sealed class QuickNavHandler
     // Command dispatch
     // -------------------------------------------------------------------------
 
+    /// <summary>True if <paramref name="command"/> is a quick-navigation command handled by <see cref="Handle"/>.</summary>
+    public static bool IsQuickNavCommand(NavigationCommand command) => command is
+        NavigationCommand.NextHeading or NavigationCommand.PrevHeading or
+        NavigationCommand.HeadingLevel1 or NavigationCommand.HeadingLevel2 or NavigationCommand.HeadingLevel3 or
+        NavigationCommand.HeadingLevel4 or NavigationCommand.HeadingLevel5 or NavigationCommand.HeadingLevel6 or
+        NavigationCommand.PrevHeadingLevel1 or NavigationCommand.PrevHeadingLevel2 or NavigationCommand.PrevHeadingLevel3 or
+        NavigationCommand.PrevHeadingLevel4 or NavigationCommand.PrevHeadingLevel5 or NavigationCommand.PrevHeadingLevel6 or
+        NavigationCommand.NextLink or NavigationCommand.PrevLink or
+        NavigationCommand.NextLandmark or NavigationCommand.PrevLandmark or
+        NavigationCommand.NextFormField or NavigationCommand.PrevFormField or
+        NavigationCommand.NextTable or NavigationCommand.PrevTable or
+        NavigationCommand.NextFocusable or NavigationCommand.PrevFocusable;
+
     /// <summary>
     /// Handles a quick-navigation command in Browse mode.
     /// Returns the node navigated to, or null if no match / no document.
@@ -73,6 +87,13 @@ public sealed class QuickNavHandler
             NavigationCommand.HeadingLevel4   => FindNext(_document.Headings, n => n.HeadingLevel == 4),
             NavigationCommand.HeadingLevel5   => FindNext(_document.Headings, n => n.HeadingLevel == 5),
             NavigationCommand.HeadingLevel6   => FindNext(_document.Headings, n => n.HeadingLevel == 6),
+
+            NavigationCommand.PrevHeadingLevel1 => FindPrev(_document.Headings, n => n.HeadingLevel == 1),
+            NavigationCommand.PrevHeadingLevel2 => FindPrev(_document.Headings, n => n.HeadingLevel == 2),
+            NavigationCommand.PrevHeadingLevel3 => FindPrev(_document.Headings, n => n.HeadingLevel == 3),
+            NavigationCommand.PrevHeadingLevel4 => FindPrev(_document.Headings, n => n.HeadingLevel == 4),
+            NavigationCommand.PrevHeadingLevel5 => FindPrev(_document.Headings, n => n.HeadingLevel == 5),
+            NavigationCommand.PrevHeadingLevel6 => FindPrev(_document.Headings, n => n.HeadingLevel == 6),
 
             NavigationCommand.NextLink        => FindNext(_document.Links, _ => true),
             NavigationCommand.PrevLink        => FindPrev(_document.Links, _ => true),

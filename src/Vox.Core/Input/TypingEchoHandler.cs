@@ -94,6 +94,10 @@ public sealed class TypingEchoHandler
 
         // Key-up from here on
 
+        // Shortcuts (Ctrl+S, Alt+F, Insert+…) don't type anything
+        if ((evt.Modifiers & (KeyModifiers.Ctrl | KeyModifiers.Alt | KeyModifiers.Insert)) != 0)
+            return;
+
         // Check for word boundary keys
         if (WordBoundaryVkCodes.Contains(evt.VkCode))
         {
@@ -102,7 +106,7 @@ public sealed class TypingEchoHandler
         }
 
         // Try to get the printable character for this VK code
-        var ch = VkCodeToChar(evt.VkCode, evt.Modifiers);
+        var ch = VkCodeToChar(evt.VkCode, evt.Modifiers, evt.CapsLockOn);
         if (ch == '\0')
             return; // Non-printable key (arrows, F-keys, etc.)
 
@@ -161,19 +165,19 @@ public sealed class TypingEchoHandler
     }
 
     /// <summary>
-    /// Maps a virtual key code to its printable character, considering shift state.
+    /// Maps a virtual key code to its printable character, considering shift and Caps Lock state.
     /// Returns '\0' if the key is not printable.
     /// Uses a simple lookup for common alpha/numeric keys to avoid P/Invoke in tests.
     /// </summary>
-    public static char VkCodeToChar(int vkCode, KeyModifiers modifiers)
+    public static char VkCodeToChar(int vkCode, KeyModifiers modifiers, bool capsLockOn = false)
     {
         bool shift = (modifiers & KeyModifiers.Shift) != 0;
 
-        // A-Z keys (VK 65–90)
+        // A-Z keys (VK 65–90): Caps Lock inverts the case Shift gives
         if (vkCode >= 0x41 && vkCode <= 0x5A)
         {
             char ch = (char)(vkCode); // uppercase A-Z
-            return shift ? ch : char.ToLower(ch);
+            return shift ^ capsLockOn ? ch : char.ToLower(ch);
         }
 
         // 0-9 number row (VK 48–57)
@@ -213,8 +217,9 @@ public sealed class TypingEchoHandler
     /// Returns a spoken name for a character. For most chars this is the char itself,
     /// but some characters have clearer spoken names.
     /// </summary>
-    private static string GetCharacterName(char ch) => ch switch
+    public static string GetCharacterName(char ch) => ch switch
     {
+        '\n' => "blank",
         ' ' => "Space",
         '\t' => "Tab",
         '@' => "at",
