@@ -449,6 +449,7 @@ public class IncrementalUpdaterTests
 
         Updater.ApplyUpdate(doc, [3], new MockElement { RuntimeId = [3], Name = "Send" }, out var hint);
 
+        Assert.NotNull(hint);
         Assert.Equal([2], hint);
     }
 

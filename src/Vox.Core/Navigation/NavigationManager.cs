@@ -50,6 +50,10 @@ public sealed class NavigationManager
                 ToggleMode();
                 return true;
 
+            case NavigationCommand.ExitFocusMode:
+                SwitchTo(InteractionMode.Browse, "escape");
+                return true;
+
             case NavigationCommand.ActivateElement when _currentMode == InteractionMode.Browse:
                 // Auto-switch to Focus mode if activating an edit field
                 if (IsEditField(currentNode))

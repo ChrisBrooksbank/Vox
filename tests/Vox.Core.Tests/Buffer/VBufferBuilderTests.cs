@@ -16,6 +16,9 @@ internal sealed class MockElement : IVBufferElement
     public string AriaProperties { get; set; } = string.Empty;
     public bool IsFocusable { get; set; }
     public int HeadingLevel { get; set; }
+    public int? ExpandCollapseState { get; set; }
+    public int? ToggleState { get; set; }
+    public bool? IsSelected { get; set; }
 
     private readonly List<MockElement> _children = new();
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;
@@ -312,7 +315,7 @@ public class VBufferBuilderTests
 
     [Theory]
     [InlineData("expanded=true",  true,  true)]
-    [InlineData("expanded=false", false, false)]
+    [InlineData("expanded=false", false, true)]   // collapsed: expandable, announced as "collapsed"
     [InlineData("haspopup=true",  false, true)]
     [InlineData("",               false, false)]
     public void Build_IsExpanded_And_IsExpandable(string ariaProps, bool expectedExpanded, bool expectedExpandable)
@@ -669,5 +672,37 @@ public class VBufferBuilderTests
         var doc = Builder.Build(root);
 
         Assert.Equal("Title\nBody text\n", doc.FlatText);
+    }
+
+    [Fact]
+    public void IncrementalUpdate_OfInlineLink_KeepsParagraphOnOneLine()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var p = new MockElement { RuntimeId = [2], ControlType = "Group" };
+        p.AddChild(new MockElement { RuntimeId = [3], Name = "Read the" });
+        p.AddChild(new MockElement { RuntimeId = [4], Name = "docs", ControlType = "Hyperlink" });
+        p.AddChild(new MockElement { RuntimeId = [5], Name = "first" });
+        root.AddChild(p);
+        var doc = Builder.Build(root);
+
+        var updated = new IncrementalUpdater().ApplyUpdate(doc, [4],
+            new MockElement { RuntimeId = [4], Name = "manual", ControlType = "Hyperlink" });
+
+        Assert.Equal("Read the manual first\n", updated.FlatText);
+    }
+
+    [Fact]
+    public void ApplyUpdateDetailed_ReportsSpliceSpanAndDelta()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "abc" });
+        root.AddChild(new MockElement { RuntimeId = [3], Name = "Title", AriaRole = "heading" });
+        var doc = Builder.Build(root);
+
+        var result = new IncrementalUpdater().ApplyUpdateDetailed(doc, [2], new MockElement { RuntimeId = [2], Name = "abcdef" });
+
+        Assert.Equal(0, result.OldTextStart);
+        Assert.Equal(4, result.OldTextEnd);   // "abc\n"
+        Assert.Equal(3, result.TextDelta);
     }
 }

@@ -22,6 +22,9 @@ public readonly struct KeyEvent
     public bool IsKeyDown { get; init; }
     public long Timestamp { get; init; }
 
+    /// <summary>Hardware scan code (used to map the key through the active keyboard layout).</summary>
+    public int ScanCode { get; init; }
+
     /// <summary>True when Caps Lock is toggled on (and CapsLock is not the screen reader modifier).</summary>
     public bool CapsLockOn { get; init; }
 

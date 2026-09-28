@@ -40,7 +40,8 @@ public readonly record struct KeyMapKey(KeyModifiers Modifiers, int VkCode, Inte
 /// <summary>
 /// Loads and resolves keyboard bindings from a JSON keymap file.
 /// Maps (Modifiers, VkCode, InteractionMode) to NavigationCommand.
-/// Bindings with mode "Any" match both Browse and Focus modes.
+/// Bindings with mode "Any" match both Browse and Focus modes, and are the only bindings that
+/// apply outside web documents (<see cref="TryResolveOutsideDocument"/>).
 /// Bound keys are swallowed by the keyboard hook unless the binding sets "passThrough".
 /// Read-only after loading, so lookups are safe from any thread (including the hook thread).
 /// </summary>
@@ -49,6 +50,7 @@ public sealed class KeyMap
     private readonly record struct Binding(NavigationCommand Command, bool PassThrough);
 
     private readonly Dictionary<KeyMapKey, Binding> _bindings = new();
+    private readonly Dictionary<(KeyModifiers, int), Binding> _anyBindings = new();
 
     private KeyMap() { }
 
@@ -119,6 +121,7 @@ public sealed class KeyMap
             {
                 map._bindings[new KeyMapKey(modifiers, entry.VkCode, InteractionMode.Browse)] = binding;
                 map._bindings[new KeyMapKey(modifiers, entry.VkCode, InteractionMode.Focus)] = binding;
+                map._anyBindings[(modifiers, entry.VkCode)] = binding;
             }
             else if (Enum.TryParse<InteractionMode>(entry.Mode, ignoreCase: true, out var mode))
             {
@@ -143,6 +146,24 @@ public sealed class KeyMap
         out NavigationCommand command, out bool passThrough)
     {
         if (_bindings.TryGetValue(new KeyMapKey(modifiers, vkCode, mode), out var binding))
+        {
+            command = binding.Command;
+            passThrough = binding.PassThrough;
+            return true;
+        }
+        command = default;
+        passThrough = false;
+        return false;
+    }
+
+    /// <summary>
+    /// Resolves a key outside web documents, where only "Any" bindings apply
+    /// (Browse- and Focus-mode bindings belong to documents).
+    /// </summary>
+    public bool TryResolveOutsideDocument(KeyModifiers modifiers, int vkCode,
+        out NavigationCommand command, out bool passThrough)
+    {
+        if (_anyBindings.TryGetValue((modifiers, vkCode), out var binding))
         {
             command = binding.Command;
             passThrough = binding.PassThrough;

@@ -24,6 +24,9 @@ public sealed class UIAElementSnapshot : IVBufferElement
     public string AriaProperties { get; init; } = string.Empty;
     public bool IsFocusable { get; init; }
     public int HeadingLevel { get; init; }
+    public int? ExpandCollapseState { get; init; }
+    public int? ToggleState { get; init; }
+    public bool? IsSelected { get; init; }
 
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;
 
@@ -66,7 +69,21 @@ public sealed class UIAElementSnapshot : IVBufferElement
         AriaProperties = Try(() => element.CachedAriaProperties) ?? string.Empty,
         IsFocusable = Try(() => element.CachedIsKeyboardFocusable != 0),
         HeadingLevel = ReadHeadingLevel(element),
+        ExpandCollapseState = ReadCachedInt(element, UIAProvider.UIA_ExpandCollapseStatePropertyId),
+        ToggleState = ReadCachedInt(element, UIAProvider.UIA_ToggleStatePropertyId),
+        IsSelected = ReadCachedBool(element, UIAProvider.UIA_SelectionItemIsSelectedPropertyId),
     };
+
+    /// <summary>
+    /// A cached int property, or null when the element doesn't support it (UIA returns its
+    /// "not supported" sentinel object instead of an int).
+    /// </summary>
+    internal static int? ReadCachedInt(IUIAutomationElement element, int propertyId) =>
+        Try(() => element.GetCachedPropertyValue(propertyId)) is int value ? value : null;
+
+    /// <summary>A cached bool property, or null when not supported.</summary>
+    internal static bool? ReadCachedBool(IUIAutomationElement element, int propertyId) =>
+        Try(() => element.GetCachedPropertyValue(propertyId)) is bool value ? value : null;
 
     /// <summary>Converts the cached UIA HeadingLevel property to 1-9, or 0 when not a heading.</summary>
     internal static int ReadHeadingLevel(IUIAutomationElement element)

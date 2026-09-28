@@ -108,10 +108,12 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.ElementsListClosedProcessed += OnElementsListClosedProcessed;
         _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
+        _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
         _navigationManager.ModeChanged += OnModeChanged;
         _browseModeController.DocumentActiveChanged += OnDocumentActiveChanged;
+        _browseModeController.EscapeGoesToPageChanged += OnEscapeGoesToPageChanged;
         _keyInputDispatcher.SetMode(_navigationManager.CurrentMode);
         _keyInputDispatcher.SetDocumentActive(_browseModeController.IsDocumentActive);
 
@@ -149,6 +151,8 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.ElementSelectedProcessed -= OnElementSelectedProcessed;
         _navigationManager.ModeChanged -= OnModeChanged;
         _browseModeController.DocumentActiveChanged -= OnDocumentActiveChanged;
+        _browseModeController.EscapeGoesToPageChanged -= OnEscapeGoesToPageChanged;
+        _eventPipeline.FocusAnnouncementFilter = null;
         _settingsSubscription?.Dispose();
 
         // Stop Say All if running
@@ -241,6 +245,9 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnModeChanged(object? sender, InteractionMode mode) =>
         _keyInputDispatcher.SetMode(mode);
+
+    private void OnEscapeGoesToPageChanged(object? sender, bool value) =>
+        _keyInputDispatcher.SetEscapeGoesToPage(value);
 
     private void OnDocumentActiveChanged(object? sender, bool active) =>
         _keyInputDispatcher.SetDocumentActive(active);

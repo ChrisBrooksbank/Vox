@@ -231,12 +231,74 @@ public class KeyInputDispatcherTests
     }
 
     [Fact]
-    public void ShouldSuppress_UnboundOrPassThroughKey_ReturnsFalse()
+    public void ShouldSuppress_UnboundNonTypingOrPassThroughKey_ReturnsFalse()
     {
         var (dispatcher, _, _) = Create(BuildMultiMap());
 
-        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 65, IsKeyDown = true }));
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 0x74, IsKeyDown = true })); // F5
         Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 162, IsKeyDown = true }));
+    }
+
+    [Fact]
+    public void Decide_InBrowseMode_SwallowsUnboundTypingKeys_ButNotShortcuts()
+    {
+        var (dispatcher, _, _) = Create(BuildMultiMap());
+
+        Assert.True(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 0x45, IsKeyDown = true }));                                  // E
+        Assert.True(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 0xBF, Modifiers = KeyModifiers.Shift, IsKeyDown = true }));  // Shift+/
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 0x4C, Modifiers = KeyModifiers.Ctrl, IsKeyDown = true }));  // Ctrl+L
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 0x74, IsKeyDown = true }));                                  // F5
+    }
+
+    [Fact]
+    public void Decide_UnboundTypingKeys_PassInFocusModeAndOutsideDocuments()
+    {
+        var (dispatcher, _, _) = Create(BuildMultiMap());
+
+        dispatcher.SetMode(InteractionMode.Focus);
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 0x45, IsKeyDown = true }));
+
+        dispatcher.SetMode(InteractionMode.Browse);
+        dispatcher.SetDocumentActive(false);
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 0x45, IsKeyDown = true }));
+    }
+
+    [Fact]
+    public void Decide_ScreenReaderModifierCombination_IsAlwaysSwallowed()
+    {
+        var (dispatcher, _, _) = Create(BuildMultiMap());
+        dispatcher.SetDocumentActive(false);
+
+        // Insert+Q is unbound, but must not type "q" into the application
+        Assert.True(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 0x51, Modifiers = KeyModifiers.Insert, IsKeyDown = true }));
+    }
+
+    private static KeyMap BuildEscapeMap() => KeyMap.LoadFromJson("""
+        {
+            "bindings": [
+                { "modifiers": "None", "vkCode": 27, "mode": "Focus", "command": "ExitFocusMode" }
+            ]
+        }
+        """);
+
+    [Fact]
+    public void Escape_InFocusModeInsideDocument_LeavesFocusMode_ButNotOutsideOrWithPopupOpen()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildEscapeMap());
+        dispatcher.SetMode(InteractionMode.Focus);
+
+        Assert.True(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 27, IsKeyDown = true }));
+        fireKey(new KeyEvent { VkCode = 27, IsKeyDown = true });
+        Assert.Equal(NavigationCommand.ExitFocusMode, Assert.IsType<NavigationCommandEvent>(Assert.Single(sink.Posted)).Command);
+
+        // An open combo box or menu gets Escape
+        dispatcher.SetEscapeGoesToPage(true);
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 27, IsKeyDown = true }));
+
+        // Outside documents Focus-mode bindings don't apply
+        dispatcher.SetEscapeGoesToPage(false);
+        dispatcher.SetDocumentActive(false);
+        Assert.False(dispatcher.ShouldSuppress(new KeyEvent { VkCode = 27, IsKeyDown = true }));
     }
 
     [Fact]

@@ -74,6 +74,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// </summary>
     public event EventHandler<FocusChangedEvent>? FocusChangedProcessed;
 
+    /// <summary>
+    /// Asked, after <see cref="FocusChangedProcessed"/> handlers have run, whether a focus change
+    /// should be announced. Null means always announce.
+    /// </summary>
+    public Func<FocusChangedEvent, bool>? FocusAnnouncementFilter { get; set; }
+
     /// <summary>Raised when a PropertyChangedEvent is processed.</summary>
     public event EventHandler<PropertyChangedEvent>? PropertyChangedProcessed;
 
@@ -199,9 +205,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     break;
 
                 case NotificationEvent notification:
-                    // Log only — most UIA notifications are system noise.
-                    // User-facing announcements come via LiveRegionChanged instead.
                     _logger.LogDebug("Notification: {Text}", notification.NotificationText);
+                    await HandleNotificationAsync(notification, token).ConfigureAwait(false);
+                    break;
+
+                case NotificationFlushEvent notificationFlush:
+                    await HandleNotificationFlushAsync(notificationFlush, token).ConfigureAwait(false);
                     break;
 
                 case PropertyChangedEvent propertyChanged:
@@ -252,8 +261,18 @@ public sealed class EventPipeline : IEventSink, IDisposable
         // Notify subscribers (e.g. NavigationManager for auto-mode-switching)
         FocusChangedProcessed?.Invoke(this, focus);
 
-        // Focus changes are high priority — interrupt current speech
+        // Subscribers may have decided this focus change shouldn't be spoken (e.g. focus returning
+        // to the page after an Elements List jump, which must not talk over the jump)
+        if (FocusAnnouncementFilter is { } filter && !filter(focus))
+            return;
+
+        // Nothing to say (e.g. an unnamed group): don't send an empty Interrupt that would
+        // silently cut off whatever is being spoken
         var text = BuildFocusAnnouncement(focus);
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        // Focus changes are high priority — interrupt current speech
         var utterance = new Utterance(text, SpeechPriority.Interrupt);
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
     }
@@ -326,13 +345,50 @@ public sealed class EventPipeline : IEventSink, IDisposable
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
+    // Latest text per "most recent" notification activity, waiting for its coalescing delay
+    // (only touched on the pipeline thread)
+    private readonly Dictionary<string, (string Text, SpeechPriority Priority)> _pendingNotifications = new();
+    private const int NotificationCoalesceMs = 150;
+
+    /// <summary>
+    /// Speaks application notifications (toasts, "download complete", ...) from the foreground
+    /// application. Important ones are High priority, others Low. For the "most recent" kinds,
+    /// a burst of notifications with the same activity id speaks only the last.
+    /// </summary>
     private async Task HandleNotificationAsync(NotificationEvent notification, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(notification.NotificationText))
+        if (!notification.IsFromForeground || string.IsNullOrWhiteSpace(notification.NotificationText))
             return;
 
-        var utterance = new Utterance(notification.NotificationText, SpeechPriority.Low);
-        await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+        var priority = notification.Processing is 0 or 1 ? SpeechPriority.High : SpeechPriority.Low;
+        bool mostRecentOnly = notification.Processing is 1 or 3 or 4;
+
+        if (mostRecentOnly && !string.IsNullOrEmpty(notification.ActivityId))
+        {
+            bool alreadyScheduled = _pendingNotifications.ContainsKey(notification.ActivityId);
+            _pendingNotifications[notification.ActivityId] = (notification.NotificationText, priority);
+            if (!alreadyScheduled)
+            {
+                var activityId = notification.ActivityId;
+                _ = Task.Delay(NotificationCoalesceMs, _cts.Token).ContinueWith(
+                    t =>
+                    {
+                        if (!t.IsCanceled)
+                            Post(new NotificationFlushEvent(DateTimeOffset.UtcNow, activityId));
+                    },
+                    TaskScheduler.Default);
+            }
+            return;
+        }
+
+        await _speechQueue.EnqueueAsync(new Utterance(notification.NotificationText, priority), token).ConfigureAwait(false);
+    }
+
+    private async Task HandleNotificationFlushAsync(NotificationFlushEvent flush, CancellationToken token)
+    {
+        if (!_pendingNotifications.Remove(flush.ActivityId, out var pending))
+            return;
+        await _speechQueue.EnqueueAsync(new Utterance(pending.Text, pending.Priority), token).ConfigureAwait(false);
     }
 
     private async Task HandleTypingEchoAsync(TypingEchoEvent typingEcho, CancellationToken token)

@@ -56,9 +56,11 @@ public sealed class FirstRunWizard
 
         _keyboardHook.KeyPressed += OnKeyPressed;
 
-        // Keep the wizard's keys away from whatever application has focus
+        // Keep the wizard's keys away from whatever application has focus — but only while the
+        // wizard is actually waiting for one, so keys pressed between prompts reach their app
         var previousFilter = _keyboardHook.SuppressionFilter;
-        _keyboardHook.SuppressionFilter = e => IsWizardKey(e) ? KeyDecision.Swallow : KeyDecision.Pass;
+        _keyboardHook.SuppressionFilter = e =>
+            IsWizardKey(e) && Volatile.Read(ref _keyWaiter) is not null ? KeyDecision.Swallow : KeyDecision.Pass;
 
         try
         {
@@ -73,6 +75,9 @@ public sealed class FirstRunWizard
                 _settingsMonitor.UpdateSettings(settings);
                 return;
             }
+
+            // From here on Escape leaves the wizard, keeping what was chosen so far
+            _exitOnEscape = true;
 
             // Step 2: Speech rate
             settings = await RunSpeechRateStepAsync(settings, cancellationToken);
@@ -98,16 +103,39 @@ public sealed class FirstRunWizard
 
             _logger.LogInformation("First-run wizard completed");
         }
+        catch (WizardExitException ex)
+        {
+            // Escape, or nobody answered for a while: keep the choices made so far and stop
+            _logger.LogInformation("First-run wizard ended early ({Reason})", ex.Message);
+            _settingsMonitor.UpdateSettings(_settingsMonitor.CurrentValue with { FirstRunCompleted = true });
+            try
+            {
+                await SpeakAsync("Setup ended. Your choices so far are saved.", cancellationToken);
+            }
+            catch (OperationCanceledException) { }
+        }
         catch (OperationCanceledException)
         {
             _logger.LogInformation("First-run wizard cancelled");
         }
         finally
         {
+            _exitOnEscape = false;
+            Volatile.Write(ref _keyWaiter, null);
             _keyboardHook.SuppressionFilter = previousFilter;
             _keyboardHook.KeyPressed -= OnKeyPressed;
         }
     }
+
+    /// <summary>
+    /// How long a step waits for a key before the wizard gives up (saving the choices so far),
+    /// so it can never hold the keyboard indefinitely.
+    /// </summary>
+    public TimeSpan InactivityTimeout { get; set; } = TimeSpan.FromMinutes(2);
+
+    private bool _exitOnEscape;
+
+    private sealed class WizardExitException(string reason) : Exception(reason);
 
     // -------------------------------------------------------------------------
     // Step implementations
@@ -312,7 +340,8 @@ public sealed class FirstRunWizard
     private void OnKeyPressed(object? sender, KeyEvent e)
     {
         if (!e.IsKeyDown) return;
-        Volatile.Read(ref _keyWaiter)?.TrySetResult(e);
+        // Take the waiter so the suppression filter stops swallowing until the next wait
+        Interlocked.Exchange(ref _keyWaiter, null)?.TrySetResult(e);
     }
 
     private static bool IsWizardKey(KeyEvent e) => e.VkCode is
@@ -320,19 +349,32 @@ public sealed class FirstRunWizard
         VirtualKeys.D1 or VirtualKeys.D2 or VirtualKeys.D3 or
         VirtualKeys.NumPad1 or VirtualKeys.NumPad2 or VirtualKeys.NumPad3;
 
-    private Task<KeyEvent> WaitForKeyDownAsync(CancellationToken cancellationToken)
+    private async Task<KeyEvent> WaitForKeyDownAsync(CancellationToken cancellationToken)
     {
         var tcs = new TaskCompletionSource<KeyEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
         Volatile.Write(ref _keyWaiter, tcs);
 
-        var registration = cancellationToken.Register(() =>
+        using var waitCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        waitCts.CancelAfter(InactivityTimeout);
+        using var registration = waitCts.Token.Register(() =>
         {
             Interlocked.CompareExchange(ref _keyWaiter, null, tcs);
-            tcs.TrySetCanceled(cancellationToken);
+            tcs.TrySetCanceled(waitCts.Token);
         });
-        tcs.Task.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
 
-        return tcs.Task;
+        KeyEvent key;
+        try
+        {
+            key = await tcs.Task.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new WizardExitException("no key pressed");
+        }
+
+        if (_exitOnEscape && key.VkCode == VirtualKeys.Escape)
+            throw new WizardExitException("escape pressed");
+        return key;
     }
 
     /// <summary>

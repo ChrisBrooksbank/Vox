@@ -382,4 +382,100 @@ public class TypingEchoHandlerTests
 
         Assert.Equal(["h", "i", "Space", "hi"], sink.Echoes.Select(e => e.Text));
     }
+
+    // -------------------------------------------------------------------------
+    // Round 3: key-down state, word resets, layout mapping
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void ShiftReleasedBeforeLetter_StillEchoesCapital()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Both);
+
+        handler.HandleKeyEvent(KeyDown(0x48, KeyModifiers.Shift)); // H down with Shift held
+        handler.HandleKeyEvent(KeyUp(0x48, KeyModifiers.None));    // Shift already released
+
+        Assert.Equal("H", Assert.Single(sink.Events).Text);
+    }
+
+    [Fact]
+    public void CtrlReleasedBeforeLetter_IsStillAShortcut()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Both);
+
+        handler.HandleKeyEvent(KeyDown(0x53, KeyModifiers.Ctrl)); // Ctrl+S
+        handler.HandleKeyEvent(KeyUp(0x53, KeyModifiers.None));   // Ctrl released first
+        handler.HandleKeyEvent(KeyUp(0x20));                      // Space: word boundary
+
+        Assert.DoesNotContain(sink.Events, e => e.Text.Equals("s", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(sink.Events, e => e.IsWord);
+    }
+
+    [Theory]
+    [InlineData(0x25)] // Left arrow
+    [InlineData(0x09)] // Tab
+    [InlineData(0x24)] // Home
+    public void CaretMovement_StartsANewWord(int vk)
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Words);
+
+        handler.HandleKeyEvent(KeyUp(0x41)); // a
+        handler.HandleKeyEvent(KeyUp(0x42)); // b
+        handler.HandleKeyEvent(KeyDown(vk));
+        handler.HandleKeyEvent(KeyUp(0x43)); // c
+        handler.HandleKeyEvent(KeyUp(0x20));
+
+        Assert.Equal("c", Assert.Single(sink.Events).Text);
+    }
+
+    [Fact]
+    public void ResetWord_And_CtrlBackspace_ClearTheWord()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Words);
+
+        handler.HandleKeyEvent(KeyUp(0x41));
+        handler.ResetWord();
+        handler.HandleKeyEvent(KeyUp(0x42));
+        handler.HandleKeyEvent(KeyDown(0x08, KeyModifiers.Ctrl)); // Ctrl+Backspace
+        handler.HandleKeyEvent(KeyUp(0x43));
+        handler.HandleKeyEvent(KeyUp(0x20));
+
+        Assert.Equal("c", Assert.Single(sink.Events).Text);
+    }
+
+    [Fact]
+    public void ShiftedPunctuation_UsesTheShiftedName()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Characters);
+
+        handler.HandleKeyEvent(KeyDown(0xBF, KeyModifiers.Shift));
+        handler.HandleKeyEvent(KeyUp(0xBF, KeyModifiers.Shift));
+
+        Assert.Equal("question mark", Assert.Single(sink.Events).Text);
+    }
+
+    [Fact]
+    public void NumpadOperators_AreEchoed()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Characters);
+
+        handler.HandleKeyEvent(KeyUp(0x6A)); // numpad *
+        handler.HandleKeyEvent(KeyUp(0x6B)); // numpad +
+
+        Assert.Equal(["asterisk", "plus"], sink.Events.Select(e => e.Text));
+    }
+
+    [Fact]
+    public void CustomCharMapper_IsUsed()
+    {
+        var sink = new ListSink();
+        // e.g. a UK layout: Shift+2 types a double quote
+        var handler = new TypingEchoHandler(sink, () => TypingEchoMode.Characters,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<TypingEchoHandler>.Instance,
+            e => e.VkCode == 0x32 && (e.Modifiers & KeyModifiers.Shift) != 0 ? '"' : '\0');
+
+        handler.HandleKeyEvent(ModKeyUp(0x32, KeyModifiers.Shift));
+
+        Assert.Equal("quote", Assert.Single(sink.Echoes).Text);
+    }
 }

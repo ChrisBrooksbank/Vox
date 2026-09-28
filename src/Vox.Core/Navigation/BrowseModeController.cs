@@ -41,10 +41,20 @@ public sealed class BrowseModeController
     private FocusChangedEvent? _lastFocus;
     private int[]? _lastFocusedRuntimeId;
     private int[]? _ignoreFocusReturnTo;
+    private FocusChangedEvent? _unannouncedFocus;
+    private bool _focusedExpanded;
+    private bool _escapeGoesToPage;
+    private bool _fullRecaptureRequested;
+
+    // Reading position per document, so returning to a page resumes where the user was
+    private const int RememberedDocuments = 8;
+    private readonly LinkedList<(string Key, int Offset, int[]? NodeId)> _documentPositions = new();
 
     private const int UIA_NamePropertyId = 30005;
     private const int UIA_ExpandCollapseStatePropertyId = 30070;
     private const int UIA_ValueValuePropertyId = 30045;
+    private const int UIA_ToggleToggleStatePropertyId = 30086;
+    private const int UIA_SelectionItemIsSelectedPropertyId = 30079;
 
     public BrowseModeController(
         SpeechQueue speechQueue,
@@ -85,6 +95,19 @@ public sealed class BrowseModeController
 
     /// <summary>The virtual cursor for the active document, or null.</summary>
     public VBufferCursor? Cursor => _cursor;
+
+    /// <summary>
+    /// Raised when Escape should go to the page (the focused control has an open popup such as an
+    /// expanded combo box or a menu) rather than leave Focus mode.
+    /// </summary>
+    public event EventHandler<bool>? EscapeGoesToPageChanged;
+
+    /// <summary>
+    /// Whether the pipeline should speak <paramref name="focus"/>. Called after
+    /// <see cref="HandleFocusChanged"/> has processed the same event: focus returning to the page
+    /// after an Elements List jump is not announced, so it can't talk over the jump.
+    /// </summary>
+    public bool ShouldAnnounceFocus(FocusChangedEvent focus) => !ReferenceEquals(focus, _unannouncedFocus);
 
     // -------------------------------------------------------------------------
     // Commands
@@ -134,8 +157,12 @@ public sealed class BrowseModeController
                 return;
         }
 
-        // Mode toggling, auto-switching and Focus-mode blocking
-        if (_navigationManager.HandleCommand(command, _quickNavHandler.CurrentNode))
+        // Mode toggling, auto-switching and Focus-mode blocking. For activation, the element that
+        // matters is the link/control around the cursor, not the text node it is on.
+        var commandNode = command == NavigationCommand.ActivateElement
+            ? ActivationTarget(_quickNavHandler.CurrentNode)
+            : _quickNavHandler.CurrentNode;
+        if (_navigationManager.HandleCommand(command, commandNode))
             return;
 
         if (_quickNavHandler.CurrentDocument is null)
@@ -185,9 +212,12 @@ public sealed class BrowseModeController
 
     public void HandleFocusChanged(FocusChangedEvent focus)
     {
-        // Never echo what is typed into a password field
+        // Never echo what is typed into a password field; a new field starts a new word
         _typingEchoHandler.PasswordMode = focus.IsPassword;
+        _typingEchoHandler.ResetWord();
         _lastFocus = focus;
+        _focusedExpanded = focus.IsExpanded;
+        UpdateEscapeTarget();
 
         // Focus moving around Vox's own Elements List must not move the cursor or change mode
         if (_modalOpen)
@@ -197,11 +227,15 @@ public sealed class BrowseModeController
         if (runtimeId is null || runtimeId.Length == 0)
             return;
 
-        // Focus returning to where it was when the Elements List opened must not undo the jump
+        // Focus returning to where it was when the Elements List opened must not undo the jump,
+        // nor be announced over it
         var ignore = _ignoreFocusReturnTo;
         _ignoreFocusReturnTo = null;
         if (ignore is not null && ignore.AsSpan().SequenceEqual(runtimeId))
+        {
+            _unannouncedFocus = focus;
             return;
+        }
 
         _lastFocusedRuntimeId = runtimeId;
 
@@ -210,7 +244,14 @@ public sealed class BrowseModeController
         if (node is null)
             return;
 
-        _navigationManager.HandleFocusChanged(focus);
+        // Tabbing or clicking into a text box, combo box or list box enters Focus mode, so typed
+        // letters reach it instead of running quick-nav commands ("automatic focus mode")
+        if (FormControls.NeedsFocusMode(node.ControlType, node.AriaRole)
+            || FormControls.NeedsFocusMode(focus.ControlType, focus.AriaRole))
+            _navigationManager.SwitchTo(InteractionMode.Focus, "focus moved to edit field");
+        else
+            _navigationManager.HandleFocusChanged(focus);
+
         MoveTo(node);
     }
 
@@ -227,7 +268,7 @@ public sealed class BrowseModeController
         switch (evt.PropertyId)
         {
             case UIA_ExpandCollapseStatePropertyId:
-                var state = evt.NewValue is IConvertible c ? c.ToInt32(null) : -1;
+                var state = ToInt(evt.NewValue);
                 var text = state switch
                 {
                     0 => "collapsed",
@@ -235,8 +276,27 @@ public sealed class BrowseModeController
                     2 => "partially expanded",
                     _ => null,
                 };
+                _focusedExpanded = state is 1 or 2;
+                UpdateEscapeTarget();
                 if (text is not null)
                     Speak(text);
+                break;
+
+            case UIA_ToggleToggleStatePropertyId:
+                var toggleText = AnnouncementBuilder.ToggleStateText(ToInt(evt.NewValue));
+                if (toggleText is not null)
+                    Speak(toggleText);
+                break;
+
+            case UIA_SelectionItemIsSelectedPropertyId:
+                if (evt.NewValue is bool selected)
+                {
+                    var selectedText = focus.ControlType == "RadioButton"
+                        ? (selected ? "checked" : "not checked")
+                        : (selected ? "selected" : null);
+                    if (selectedText is not null)
+                        Speak(selectedText);
+                }
                 break;
 
             case UIA_ValueValuePropertyId:
@@ -269,11 +329,14 @@ public sealed class BrowseModeController
     public void HandleDocumentChanged(DocumentChangedEvent evt)
     {
         StopSayAll();
+        RememberPosition();
 
         var document = evt.Document;
         _quickNavHandler.SetDocument(document);
+        _fullRecaptureRequested = false;
 
-        // A new (or no) document starts in Browse mode; nothing to announce
+        // A new (or no) document starts in Browse mode; nothing to announce. The focus a page sets
+        // while loading (e.g. an autofocused search box) deliberately doesn't enter Focus mode.
         _navigationManager.ResetMode(InteractionMode.Browse);
 
         if (document is null)
@@ -284,7 +347,10 @@ public sealed class BrowseModeController
         {
             _cursor = new VBufferCursor(document, _audioCuePlayer);
             var focused = evt.FocusedRuntimeId is { Length: > 0 } id ? document.FindByRuntimeId(id) : null;
-            if (focused is not null)
+
+            // Returning to a page with only the page itself focused: resume where the user was
+            bool focusIsPage = focused is null || ReferenceEquals(focused, document.Root);
+            if (!(focusIsPage && TryRestorePosition(document)) && focused is not null)
                 MoveTo(focused);
         }
 
@@ -297,28 +363,74 @@ public sealed class BrowseModeController
         if (document is null || _cursor is null)
             return;
 
-        var updated = _incrementalUpdater.ApplyUpdate(document, evt.RuntimeId, evt.NewSubtree, out var recaptureHint);
+        // An update captured for a different document (e.g. one that replaced it since) is stale
+        if (evt.DocumentRuntimeId is { } documentId && !documentId.AsSpan().SequenceEqual(document.Root.UIARuntimeId))
+            return;
+
+        var result = _incrementalUpdater.ApplyUpdateDetailed(document, evt.RuntimeId, evt.NewSubtree);
+        var updated = result.Document;
         if (ReferenceEquals(updated, document))
         {
-            // A changed element the buffer doesn't know about: re-capture the whole document
             if (evt.NewSubtree is not null && document.FindByRuntimeId(evt.RuntimeId) is null)
-                _documentActions.RequestRecapture(null);
+                RecaptureUnknownElement(document, evt);
             return;
         }
 
-        // An ancestor's text depends on whether this subtree has text; refresh it too
-        if (recaptureHint is not null)
-            _documentActions.RequestRecapture(recaptureHint);
+        if (evt.RuntimeId.AsSpan().SequenceEqual(document.Root.UIARuntimeId))
+            _fullRecaptureRequested = false;
 
-        // Keep the user's position: same element if it still exists, else the same offset
-        var currentId = _quickNavHandler.CurrentNode?.UIARuntimeId;
-        int offset = _cursor.TextOffset;
+        // An ancestor's text depends on whether this subtree has text; refresh it too
+        if (result.RecaptureRuntimeId is not null)
+            _documentActions.RequestRecapture(result.RecaptureRuntimeId);
+
+        // Keep the user's position: the same character of the same element if it still exists,
+        // otherwise the same text, shifted by whatever was inserted or removed before it
+        var oldNode = _quickNavHandler.CurrentNode;
+        int oldOffset = _cursor.TextOffset;
+        var node = oldNode is not null ? updated.FindByRuntimeId(oldNode.UIARuntimeId) : null;
+
+        int newOffset;
+        if (node is not null && oldNode is not null)
+        {
+            int within = Math.Max(0, oldOffset - oldNode.TextRange.Start);
+            int newLength = node.TextRange.End - node.TextRange.Start;
+            newOffset = node.TextRange.Start + (newLength > 0 ? Math.Min(within, newLength - 1) : within);
+        }
+        else if (oldOffset >= result.OldTextEnd)
+        {
+            newOffset = oldOffset + result.TextDelta;
+        }
+        else if (oldOffset >= result.OldTextStart)
+        {
+            newOffset = result.OldTextStart; // the text under the cursor was replaced
+        }
+        else
+        {
+            newOffset = oldOffset;
+        }
 
         _quickNavHandler.SetDocument(updated);
-        var node = currentId is not null ? updated.FindByRuntimeId(currentId) : null;
-        _cursor.SetDocument(updated, node?.TextRange.Start ?? offset);
-        if (currentId is not null)
+        _cursor.SetDocument(updated, newOffset);
+        if (oldNode is not null)
             _quickNavHandler.CurrentNode = node ?? _cursor.CurrentNode;
+    }
+
+    /// <summary>
+    /// A changed element the buffer doesn't contain (e.g. added since the last capture): re-capture
+    /// its nearest ancestor the buffer knows, or — once, until it arrives — the whole document.
+    /// </summary>
+    private void RecaptureUnknownElement(VBufferDocument document, SubtreeChangedEvent evt)
+    {
+        var knownAncestor = evt.AncestorRuntimeIds?.FirstOrDefault(id => document.FindByRuntimeId(id) is not null);
+        if (knownAncestor is not null)
+        {
+            _documentActions.RequestRecapture(knownAncestor);
+        }
+        else if (!_fullRecaptureRequested)
+        {
+            _fullRecaptureRequested = true;
+            _documentActions.RequestRecapture(null);
+        }
     }
 
     public void HandleElementsListClosed(ElementsListClosedEvent evt)
@@ -331,8 +443,14 @@ public sealed class BrowseModeController
         if (selected is null || document is null)
             return;
 
-        // The document may have been updated while the dialog was open
-        var node = document.FindByRuntimeId(selected.UIARuntimeId) ?? selected;
+        // The document may have been updated or replaced while the dialog was open
+        var node = document.FindByRuntimeId(selected.UIARuntimeId);
+        if (node is null)
+        {
+            _audioCuePlayer.Play("error");
+            Speak("Element no longer on page");
+            return;
+        }
         MoveTo(node);
         Announce(node);
     }
@@ -349,6 +467,83 @@ public sealed class BrowseModeController
 
         _documentActive = active;
         DocumentActiveChanged?.Invoke(this, active);
+    }
+
+    private void UpdateEscapeTarget()
+    {
+        var focus = _lastFocus;
+        var role = focus?.AriaRole?.Trim().ToLowerInvariant();
+        bool popupOpen = focus is not null &&
+            (((focus.ControlType == "ComboBox" || role == "combobox") && _focusedExpanded)
+             || focus.ControlType is "Menu" or "MenuItem"
+             || role is "menu" or "menuitem" or "menuitemcheckbox" or "menuitemradio");
+
+        if (popupOpen == _escapeGoesToPage)
+            return;
+        _escapeGoesToPage = popupOpen;
+        EscapeGoesToPageChanged?.Invoke(this, popupOpen);
+    }
+
+    private static int ToInt(object? value) => value is IConvertible c ? c.ToInt32(null) : -1;
+
+    private static string DocumentKey(VBufferDocument document) => string.Join(",", document.Root.UIARuntimeId);
+
+    private void RememberPosition()
+    {
+        var document = _quickNavHandler.CurrentDocument;
+        if (document is null || _cursor is null)
+            return;
+
+        var key = DocumentKey(document);
+        RemovePosition(key);
+        _documentPositions.AddFirst((key, _cursor.TextOffset, _quickNavHandler.CurrentNode?.UIARuntimeId));
+        while (_documentPositions.Count > RememberedDocuments)
+            _documentPositions.RemoveLast();
+    }
+
+    private bool TryRestorePosition(VBufferDocument document)
+    {
+        var key = DocumentKey(document);
+        for (var entry = _documentPositions.First; entry is not null; entry = entry.Next)
+        {
+            if (entry.Value.Key != key)
+                continue;
+
+            _cursor!.MoveTo(entry.Value.Offset);
+            _quickNavHandler.CurrentNode = entry.Value.NodeId is { } id
+                ? document.FindByRuntimeId(id) ?? _cursor.CurrentNode
+                : _cursor.CurrentNode;
+            _sayAllCursor = null;
+            return true;
+        }
+        return false;
+    }
+
+    private void RemovePosition(string key)
+    {
+        for (var entry = _documentPositions.First; entry is not null; entry = entry.Next)
+        {
+            if (entry.Value.Key == key)
+            {
+                _documentPositions.Remove(entry);
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The element Enter acts on: the nearest link, form control or focusable element at or above
+    /// <paramref name="node"/> (after arrowing, the cursor is on a link's or button's text child).
+    /// The document root itself is never the target.
+    /// </summary>
+    private static VBufferNode? ActivationTarget(VBufferNode? node)
+    {
+        for (var n = node; n?.Parent is not null; n = n.Parent)
+        {
+            if (n.IsLink || n.IsFocusable || FormControls.IsFormField(n.ControlType, n.AriaRole))
+                return n;
+        }
+        return node;
     }
 
     private void MoveTo(VBufferNode node)
@@ -371,7 +566,7 @@ public sealed class BrowseModeController
 
         // Say All reads with its own cursor so document updates on this thread never race it;
         // the main cursor catches up when reading stops.
-        _sayAllCursor = new VBufferCursor(document, _audioCuePlayer);
+        _sayAllCursor = new VBufferCursor(document, _audioCuePlayer) { PlayCues = false };
         _sayAllCursor.MoveTo(_cursor.TextOffset);
         _sayAllController.Start(_sayAllCursor);
     }
@@ -427,7 +622,7 @@ public sealed class BrowseModeController
 
     private void ActivateCurrentNode()
     {
-        var node = _quickNavHandler.CurrentNode;
+        var node = ActivationTarget(_quickNavHandler.CurrentNode);
         if (node is null)
         {
             _audioCuePlayer.Play("error");
@@ -474,7 +669,33 @@ public sealed class BrowseModeController
         if (text is null) return;
 
         _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
-        Speak(text);
+
+        // Entering a link, button or heading: say what it is, not just its text
+        var role = RoleEnteredAtCursor();
+        Speak(role is null ? text : $"{text}, {role}");
+    }
+
+    /// <summary>
+    /// The role of the link, button or heading whose text starts exactly at the cursor, if any
+    /// (so it is spoken when the cursor enters it, not on every move inside it).
+    /// </summary>
+    private string? RoleEnteredAtCursor()
+    {
+        var profile = VerbosityProfile.For(_settings.CurrentValue.VerbosityLevel);
+        int depth = 0;
+        for (var n = _cursor?.CurrentNode; n?.Parent is not null && depth < 4; n = n.Parent, depth++)
+        {
+            bool isRole = n.IsLink || n.IsHeading || n.ControlType == "Button";
+            if (!isRole)
+                continue;
+            if (_cursor!.TextOffset != n.TextRange.Start)
+                return null;
+
+            if (n.IsHeading)
+                return profile.AnnounceHeadingLevel ? $"heading level {n.HeadingLevel}" : null;
+            return profile.AnnounceControlType ? ControlTypeNames.ToSpoken(n.IsLink ? "Hyperlink" : n.ControlType) : null;
+        }
+        return null;
     }
 
     private static string? LineTextOrNull(string? line) => line is null ? null : LineText(line);

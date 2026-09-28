@@ -42,6 +42,12 @@ public sealed class VBufferNode
     /// <summary>True if this element is currently expanded.</summary>
     public bool IsExpanded { get; init; }
 
+    /// <summary>UIA ToggleState (0 off, 1 on, 2 indeterminate), or null when not a toggle.</summary>
+    public int? ToggleState { get; init; }
+
+    /// <summary>Whether a selectable element (radio button, tab, list item) is selected, or null.</summary>
+    public bool? IsSelected { get; init; }
+
     /// <summary>True if this element can receive keyboard focus.</summary>
     public bool IsFocusable { get; init; }
 
@@ -95,6 +101,8 @@ public sealed class VBufferNode
         IsRequired = IsRequired,
         IsExpandable = IsExpandable,
         IsExpanded = IsExpanded,
+        ToggleState = ToggleState,
+        IsSelected = IsSelected,
         IsFocusable = IsFocusable,
         TextRange = textRange,
     };

@@ -27,6 +27,9 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_HeadingLevelPropertyId = 30173;
     internal const int UIA_IsPasswordPropertyId = 30019;
     internal const int UIA_ValueValuePropertyId = 30045;
+    internal const int UIA_ExpandCollapseStatePropertyId = 30070;
+    internal const int UIA_ToggleStatePropertyId = 30086;
+    internal const int UIA_SelectionItemIsSelectedPropertyId = 30079;
 
     private readonly UIAThread _uiaThread;
     private readonly ILogger<UIAProvider> _logger;
@@ -68,6 +71,7 @@ public sealed class UIAProvider : IDisposable
             _cacheRequest.AddProperty(UIA_FrameworkIdPropertyId);
             _cacheRequest.AddProperty(UIA_ProcessIdPropertyId);
             _cacheRequest.AddProperty(UIA_IsPasswordPropertyId);
+            AddStateProperties(_cacheRequest);
 
             _subtreeCacheRequest = CreateSubtreeRequest(_automation);
             _liveRegionCacheRequest = CreateLiveRegionRequest(_automation);
@@ -89,9 +93,18 @@ public sealed class UIAProvider : IDisposable
         request.AddProperty(UIA_AriaPropertiesPropertyId);
         request.AddProperty(UIA_IsKeyboardFocusablePropertyId);
         request.AddProperty(UIA_HeadingLevelPropertyId);
+        AddStateProperties(request);
         request.TreeScope = TreeScope.TreeScope_Subtree;
         request.TreeFilter = automation.ControlViewCondition;
         return request;
+    }
+
+    /// <summary>Expand/collapse, toggle (checked) and selection state.</summary>
+    private static void AddStateProperties(IUIAutomationCacheRequest request)
+    {
+        request.AddProperty(UIA_ExpandCollapseStatePropertyId);
+        request.AddProperty(UIA_ToggleStatePropertyId);
+        request.AddProperty(UIA_SelectionItemIsSelectedPropertyId);
     }
 
     /// <summary>

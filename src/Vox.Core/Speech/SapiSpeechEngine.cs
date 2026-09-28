@@ -12,6 +12,12 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
 {
     private readonly SpeechSynthesizer _synthesizer;
     private readonly ILogger<SapiSpeechEngine> _logger;
+
+    // SpeechSynthesizer isn't documented as thread-safe, and it is driven from the speech queue,
+    // the pipeline (interrupts), the settings watcher and the wizard: serialize its method calls.
+    // Event subscription is left outside the lock (delegate add/remove is already thread-safe),
+    // so SpeakCompleted handlers can never deadlock against a call holding it.
+    private readonly object _synthLock = new();
     private volatile bool _isSpeaking;
 
     // Supported WPM range (matches the first-run wizard)
@@ -52,7 +58,7 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
 
         if (utterance.Priority == SpeechPriority.Interrupt)
         {
-            _synthesizer.SpeakAsyncCancelAll();
+            CancelAllPrompts();
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -80,11 +86,14 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
 
         using var registration = cancellationToken.Register(() =>
         {
-            _synthesizer.SpeakAsyncCancelAll();
+            CancelAllPrompts();
             tcs.TrySetCanceled(cancellationToken);
         });
 
-        _synthesizer.SpeakAsync(prompt);
+        lock (_synthLock)
+        {
+            _synthesizer.SpeakAsync(prompt);
+        }
 
         try
         {
@@ -97,16 +106,25 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         }
     }
 
-    public void Cancel()
+    public void Cancel() => CancelAllPrompts();
+
+    private void CancelAllPrompts()
     {
-        _synthesizer.SpeakAsyncCancelAll();
+        lock (_synthLock)
+        {
+            _synthesizer.SpeakAsyncCancelAll();
+        }
     }
 
     public void SetRate(int wpm)
     {
         wpm = Math.Clamp(wpm, MinWpm, MaxWpm);
-        _synthesizer.Rate = WpmToSapiRate(wpm);
-        _logger.LogDebug("Speech rate set to {Wpm} WPM (SAPI rate {SapiRate})", wpm, _synthesizer.Rate);
+        int rate = WpmToSapiRate(wpm);
+        lock (_synthLock)
+        {
+            _synthesizer.Rate = rate;
+        }
+        _logger.LogDebug("Speech rate set to {Wpm} WPM (SAPI rate {SapiRate})", wpm, rate);
     }
 
     /// <summary>
@@ -123,7 +141,10 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
     {
         try
         {
-            _synthesizer.SelectVoice(voiceName);
+            lock (_synthLock)
+            {
+                _synthesizer.SelectVoice(voiceName);
+            }
             _logger.LogInformation("Voice set to {VoiceName}", voiceName);
         }
         catch (Exception ex)
@@ -134,10 +155,13 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
 
     public IReadOnlyList<string> GetAvailableVoices()
     {
-        return _synthesizer.GetInstalledVoices()
-            .Where(v => v.Enabled)
-            .Select(v => v.VoiceInfo.Name)
-            .ToList();
+        lock (_synthLock)
+        {
+            return _synthesizer.GetInstalledVoices()
+                .Where(v => v.Enabled)
+                .Select(v => v.VoiceInfo.Name)
+                .ToList();
+        }
     }
 
     private void SelectOneCoreVoice()

@@ -73,6 +73,21 @@ public sealed class AnnouncementBuilder
             Append(sb, node.IsExpanded ? "expanded" : "collapsed");
         }
 
+        // Checked / selected state — essential, so announced at every verbosity with state info
+        if (profile.AnnounceExpandedState)
+        {
+            var toggle = ToggleStateText(node.ToggleState);
+            if (toggle is not null)
+                Append(sb, toggle);
+            else if (node.IsSelected is { } selected)
+            {
+                if (node.ControlType == "RadioButton")
+                    Append(sb, selected ? "checked" : "not checked");
+                else if (selected)
+                    Append(sb, "selected");
+            }
+        }
+
         return sb.ToString();
     }
 
@@ -92,7 +107,18 @@ public sealed class AnnouncementBuilder
             IsRequired = focus.IsRequired,
             IsExpandable = focus.IsExpandable,
             IsExpanded = focus.IsExpanded,
+            ToggleState = focus.ToggleState,
+            IsSelected = focus.IsSelected,
         }, profile, announceVisitedLinks);
+
+    /// <summary>Spoken text for a UIA ToggleState, or null when not a toggle.</summary>
+    public static string? ToggleStateText(int? toggleState) => toggleState switch
+    {
+        ControlState.ToggleOff => "not checked",
+        ControlState.ToggleOn => "checked",
+        ControlState.ToggleIndeterminate => "half checked",
+        _ => null,
+    };
 
     /// <summary>
     /// Convenience overload: looks up the built-in profile for the given level.

@@ -59,7 +59,8 @@ dotnet run --project src/Vox.App
 | F / Shift+F | Next/previous form field |
 | 1-6 / Shift+1-6 | Next/previous heading at level 1-6 |
 | D / Shift+D | Next/previous landmark |
-| Enter | Activate current element |
+| Enter / Space | Activate current element |
+| Escape (focus mode) | Return to browse mode |
 | Insert+Space | Toggle browse/focus mode |
 | Insert+Down | Say all from the current position |
 | Insert+F7 | Elements list |

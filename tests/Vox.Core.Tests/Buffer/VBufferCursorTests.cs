@@ -363,4 +363,14 @@ public class VBufferCursorTests
         Assert.Equal("second line", cursor.ReadCurrentLine());
         Assert.Equal("second", cursor.ReadCurrentWord());
     }
+
+    [Fact]
+    public void PlayCuesFalse_BoundaryIsSilent()
+    {
+        var (cursor, mock) = MakeCursor("only line");
+        cursor.PlayCues = false;
+
+        Assert.Null(cursor.NextLine());
+        mock.Verify(p => p.Play(It.IsAny<string>()), Times.Never);
+    }
 }
