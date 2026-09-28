@@ -583,4 +583,37 @@ public class TypingEchoHandlerTests
 
         Assert.Equal(["e"], sink.Echoes.Select(e => e.Text));
     }
+
+    // -------------------------------------------------------------------------
+    // Round 7: auto-repeat
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void HeldKey_IsEchoedForEachRepeat()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Both);
+
+        handler.HandleKeyEvent(KeyDown(0x41)); // a
+        handler.HandleKeyEvent(KeyDown(0x41)); // auto-repeat
+        handler.HandleKeyEvent(KeyDown(0x41)); // auto-repeat
+        handler.HandleKeyEvent(KeyUp(0x41));
+        handler.HandleKeyEvent(KeyUp(0x20));
+
+        Assert.Equal(["a", "a", "a", "Space", "aaa"], sink.Events.Select(e => e.Text));
+    }
+
+    [Fact]
+    public void HeldBackspace_KeepsDeletingWithoutEcho()
+    {
+        var (handler, sink) = CreateHandler(TypingEchoMode.Words);
+        foreach (var vk in new[] { 0x43, 0x41, 0x54 }) // "cat"
+            handler.HandleKeyEvent(KeyUp(vk));
+
+        handler.HandleKeyEvent(KeyDown(0x08));
+        handler.HandleKeyEvent(KeyDown(0x08)); // auto-repeat
+        handler.HandleKeyEvent(KeyUp(0x08));
+        handler.HandleKeyEvent(KeyUp(0x20));
+
+        Assert.Equal("c", Assert.Single(sink.Events, e => e.IsWord).Text);
+    }
 }

@@ -49,13 +49,34 @@ public sealed class SpeechQueue : IDisposable
 
     public async ValueTask EnqueueAsync(Utterance utterance, CancellationToken cancellationToken = default)
     {
+        if (_suspended) return;
         await _channel.Writer.WriteAsync(Prepare(utterance, null), cancellationToken).ConfigureAwait(false);
     }
 
     public void Enqueue(Utterance utterance)
     {
+        if (_suspended) return;
         _channel.Writer.TryWrite(Prepare(utterance, null));
     }
+
+    private volatile bool _suspended;
+
+    /// <summary>True while <see cref="Suspend"/> is in effect.</summary>
+    public bool IsSuspended => _suspended;
+
+    /// <summary>
+    /// Stops speech and drops everything enqueued until <see cref="Resume"/> (e.g. while the
+    /// setup wizard speaks through the engine directly): an Interrupt from the queue would
+    /// otherwise cancel the engine and cut off the wizard's prompt.
+    /// </summary>
+    public void Suspend()
+    {
+        _suspended = true;
+        CancelAll();
+    }
+
+    /// <summary>Accepts utterances again after <see cref="Suspend"/>.</summary>
+    public void Resume() => _suspended = false;
 
     /// <summary>
     /// Enqueues an utterance and returns a task that completes once it has been spoken.
@@ -71,7 +92,7 @@ public sealed class SpeechQueue : IDisposable
             completion.Task.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
         }
 
-        if (!_channel.Writer.TryWrite(Prepare(utterance, completion)))
+        if (_suspended || !_channel.Writer.TryWrite(Prepare(utterance, completion)))
             completion.TrySetCanceled();
 
         return completion.Task;

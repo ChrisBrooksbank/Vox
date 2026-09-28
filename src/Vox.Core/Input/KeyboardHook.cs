@@ -132,6 +132,9 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
 
     private readonly ILogger<KeyboardHook> _logger;
     private readonly KeyStateTracker _keyState = new();
+    private readonly ModifierTapDetector _modifierTaps = new();
+    // A double-tapped screen reader key let through (distinct from KeyDecision.Pass, the default)
+    private static readonly KeyDecision ModifierPassThrough = new(false, -1);
     // Filter decision for each key currently down, so the matching key-up is treated the same
     // way (swallowed if the key-down was) and carries the same decision (indexed by vkCode)
     private readonly KeyDecision[] _keyDecisions = new KeyDecision[256];
@@ -353,6 +356,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                     // Session switch (lock/unlock): key-ups may have been missed
                     _resetRequested = false;
                     _keyState.Reset();
+                    _modifierTaps.Reset();
                     Array.Clear(_keyDecisions);
                 }
 
@@ -360,6 +364,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                 if (isKeyDown && !KeyStateTracker.IsModifierKey(vkCode))
                     _keyState.Reconcile(IsPhysicallyDown);
 
+                bool modifierWasDown = _keyState.IsScreenReaderModifierDown;
                 var modifiers = _keyState.Process(vkCode, isKeyDown, out bool isScreenReaderModifier);
 
                 var evt = new KeyEvent
@@ -376,11 +381,29 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                 var slot = vkCode & 0xFF;
                 if (isScreenReaderModifier)
                 {
-                    // The screen reader modifier never reaches applications
-                    decision = KeyDecision.Swallow;
+                    // The screen reader modifier doesn't reach applications — except when tapped
+                    // twice quickly on its own, which uses the key's own function (Caps Lock,
+                    // overwrite mode), as in NVDA
+                    if (isKeyDown)
+                    {
+                        bool passThrough = _modifierTaps.OnModifierDown(kbStruct.time, isRepeat: modifierWasDown);
+                        if (passThrough && vkCode == VK_CAPITAL)
+                            _keyState.SetCapsLockState(!_keyState.CapsLockOn);
+                        decision = passThrough ? ModifierPassThrough : KeyDecision.Swallow;
+                        _keyDecisions[slot] = decision;
+                    }
+                    else
+                    {
+                        // Its key-up goes wherever its key-down went
+                        _modifierTaps.OnModifierUp(kbStruct.time);
+                        decision = _keyDecisions[slot] == ModifierPassThrough ? ModifierPassThrough : KeyDecision.Swallow;
+                        _keyDecisions[slot] = default;
+                    }
                 }
                 else if (isKeyDown)
                 {
+                    if (!KeyStateTracker.IsModifierKey(vkCode))
+                        _modifierTaps.OnOtherKeyDown();
                     decision = Decide(evt);
                     _keyDecisions[slot] = decision;
                 }

@@ -1112,4 +1112,122 @@ public class BrowseModeControllerTests : IDisposable
 
         Assert.Same(doc.FindByRuntimeId([4]), passed);
     }
+
+    // -------------------------------------------------------------------------
+    // Round 7 fixes
+    // -------------------------------------------------------------------------
+
+    // Document: main landmark [ navigation landmark [ link "Home" ], text "Article" ], footer landmark
+    private VBufferDocument LoadNestedLandmarks()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var main = new MockElement { RuntimeId = [2], ControlType = "Group", AriaRole = "main" };
+        var nav = new MockElement { RuntimeId = [3], ControlType = "Group", AriaRole = "navigation" };
+        nav.AddChild(new MockElement { RuntimeId = [4], Name = "Home", ControlType = "Hyperlink" });
+        main.AddChild(nav);
+        main.AddChild(new MockElement { RuntimeId = [5], Name = "Article" });
+        root.AddChild(main);
+        var footer = new MockElement { RuntimeId = [6], ControlType = "Group", AriaRole = "contentinfo" };
+        footer.AddChild(new MockElement { RuntimeId = [7], Name = "Copyright" });
+        root.AddChild(footer);
+        var doc = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+        return doc;
+    }
+
+    [Fact]
+    public void NextLandmark_FromInsideMainAfterItsNavigation_GoesForward()
+    {
+        var doc = LoadNestedLandmarks();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Article", "Text", RuntimeId: [5]));
+
+        _controller.HandleCommand(NavigationCommand.NextLandmark);
+
+        Assert.Same(doc.FindByRuntimeId([6]), _quickNav.CurrentNode); // the footer, not the navigation behind
+    }
+
+    [Fact]
+    public void PrevLandmark_FromInsideMainAfterItsNavigation_FindsThatNavigation()
+    {
+        var doc = LoadNestedLandmarks();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Article", "Text", RuntimeId: [5]));
+
+        _controller.HandleCommand(NavigationCommand.PrevLandmark);
+
+        Assert.Same(doc.FindByRuntimeId([3]), _quickNav.CurrentNode);
+    }
+
+    [Fact]
+    public void PrevLandmark_FromInsideNavigation_SkipsTheLandmarksItIsIn()
+    {
+        var doc = LoadNestedLandmarks();
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Home", "Hyperlink", RuntimeId: [4]));
+
+        _controller.HandleCommand(NavigationCommand.PrevLandmark);
+
+        // Nothing before main or the navigation: wraps to the last landmark
+        Assert.Same(doc.FindByRuntimeId([6]), _quickNav.CurrentNode);
+    }
+
+    // Document: menubar [ menuitem "Products" ], menu [ menuitem "Delete" ]
+    private void LoadMenus()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var bar = new MockElement { RuntimeId = [2], ControlType = "MenuBar", AriaRole = "menubar" };
+        bar.AddChild(new MockElement { RuntimeId = [3], Name = "Products", ControlType = "MenuItem", AriaRole = "menuitem" });
+        root.AddChild(bar);
+        var menu = new MockElement { RuntimeId = [4], ControlType = "Menu", AriaRole = "menu" };
+        menu.AddChild(new MockElement { RuntimeId = [5], Name = "Delete", ControlType = "MenuItem", AriaRole = "menuitem" });
+        root.AddChild(menu);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+    }
+
+    private bool EscapeGoesToPageAfterFocus(FocusChangedEvent focus)
+    {
+        bool value = false;
+        _controller.EscapeGoesToPageChanged += (_, v) => value = v;
+        _controller.HandleFocusChanged(focus);
+        return value;
+    }
+
+    [Fact]
+    public void Escape_OnAClosedMenuBarItem_LeavesFocusMode()
+    {
+        LoadMenus();
+        Assert.False(EscapeGoesToPageAfterFocus(
+            new FocusChangedEvent(DateTimeOffset.UtcNow, "Products", "MenuItem", AriaRole: "menuitem", RuntimeId: [3])));
+    }
+
+    [Fact]
+    public void Escape_OnAnItemInAPopupMenu_GoesToThePage()
+    {
+        LoadMenus();
+        Assert.True(EscapeGoesToPageAfterFocus(
+            new FocusChangedEvent(DateTimeOffset.UtcNow, "Delete", "MenuItem", AriaRole: "menuitem", RuntimeId: [5])));
+    }
+
+    [Fact]
+    public void Escape_OnAnExpandedMenuBarItem_GoesToThePage()
+    {
+        LoadMenus();
+        Assert.True(EscapeGoesToPageAfterFocus(
+            new FocusChangedEvent(DateTimeOffset.UtcNow, "Products", "MenuItem", AriaRole: "menuitem", RuntimeId: [3],
+                IsExpandable: true, IsExpanded: true)));
+    }
+
+    [Fact]
+    public async Task EmptyTable_IsAnnouncedWithoutTheFollowingLine()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        root.AddChild(new MockElement { RuntimeId = [3], Name = "Prices", ControlType = "Table" });
+        root.AddChild(new MockElement { RuntimeId = [4], Name = "After the table", AriaRole = "heading", AriaProperties = "level=2" });
+        var doc = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+
+        _controller.HandleCommand(NavigationCommand.NextTable);
+
+        var spoken = await WaitForSpeech(u => u.Text.Contains("table"));
+        Assert.DoesNotContain("After the table", spoken.Text);
+    }
 }

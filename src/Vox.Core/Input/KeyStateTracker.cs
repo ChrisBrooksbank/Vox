@@ -38,6 +38,9 @@ public sealed class KeyStateTracker
     /// <summary>Current Caps Lock toggle state (meaningless when CapsLock is the screen reader modifier).</summary>
     public bool CapsLockOn { get; private set; }
 
+    /// <summary>True while the screen reader modifier is held.</summary>
+    public bool IsScreenReaderModifierDown => _screenReaderModifier;
+
     /// <summary>Seeds the Caps Lock toggle state (e.g. from GetKeyState at install time).</summary>
     public void SetCapsLockState(bool on) => CapsLockOn = on;
 

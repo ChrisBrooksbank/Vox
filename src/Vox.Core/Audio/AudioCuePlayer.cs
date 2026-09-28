@@ -15,7 +15,27 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     private readonly Dictionary<string, CachedSound?> _sounds = new();
     private readonly string _soundsDirectory;
 
-    public bool IsEnabled { get; set; } = true;
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            _isEnabled = value;
+            if (!value)
+                ResetOutput(); // no open audio stream while cues are off
+        }
+    }
+    private volatile bool _isEnabled = true;
+
+    /// <summary>
+    /// How long the output stays open after the last cue. An open stream (even of silence) keeps
+    /// Windows from sleeping, so it is closed when idle and re-opened by the next cue.
+    /// </summary>
+    public TimeSpan IdleClose { get; set; } = TimeSpan.FromSeconds(5);
+
+    // Opens and starts an output device playing the mixer; disposing it closes the device
+    private readonly Func<ISampleProvider, IDisposable> _outputFactory;
+    private readonly System.Threading.Timer _idleTimer;
 
     public static readonly IReadOnlyList<string> Phase1Sounds = new[]
     {
@@ -27,10 +47,44 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     };
 
     public AudioCuePlayer(ILogger<AudioCuePlayer> logger, string? soundsDirectory = null)
+        : this(logger, soundsDirectory, outputFactory: null)
+    {
+    }
+
+    /// <param name="outputFactory">
+    /// Opens an output device playing the given mixer (a test seam); defaults to a started
+    /// <see cref="WaveOutEvent"/>.
+    /// </param>
+    public AudioCuePlayer(ILogger<AudioCuePlayer> logger, string? soundsDirectory, Func<ISampleProvider, IDisposable>? outputFactory)
     {
         _logger = logger;
         _soundsDirectory = soundsDirectory ?? GetDefaultSoundsDirectory();
+        _outputFactory = outputFactory ?? OpenWaveOut;
+        _idleTimer = new System.Threading.Timer(_ => ResetOutput(), null, Timeout.Infinite, Timeout.Infinite);
         PreloadSounds();
+    }
+
+    private static IDisposable OpenWaveOut(ISampleProvider mixer)
+    {
+        var output = new WaveOutEvent { DesiredLatency = 100 };
+        output.Init(mixer);
+        output.Play();
+        return output;
+    }
+
+    /// <summary>True while an output device is open (for tests).</summary>
+    public bool IsOutputOpen
+    {
+        get { lock (_outputLock) return _output is not null; }
+    }
+
+    /// <summary>Plays a cue already converted to <see cref="MixFormat"/> (for tests).</summary>
+    public void PlayProvider(ISampleProvider provider)
+    {
+        if (!IsEnabled)
+            return;
+        EnsureMixer().AddMixerInput(provider);
+        RestartIdleTimer();
     }
 
     public void Play(string cueName)
@@ -49,6 +103,7 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
             // One output device stays open, feeding a mixer: a cue is just another mixer input,
             // so it starts without opening a device and overlapping cues simply mix
             EnsureMixer().AddMixerInput(ToMixFormat(new CachedSoundSampleProvider(sound)));
+            RestartIdleTimer();
         }
         catch (Exception ex)
         {
@@ -61,7 +116,7 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     public static readonly WaveFormat MixFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 1);
 
     private readonly object _outputLock = new();
-    private WaveOutEvent? _output;
+    private IDisposable? _output;
     private MixingSampleProvider? _mixer;
 
     private MixingSampleProvider EnsureMixer()
@@ -71,15 +126,20 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
             if (_mixer is not null)
                 return _mixer;
 
-            // ReadFully keeps the device playing silence between cues, so it is never re-opened
+            // ReadFully keeps the device playing silence between cues, so quick cues don't
+            // re-open it; the idle timer closes it once cues stop
             var mixer = new MixingSampleProvider(MixFormat) { ReadFully = true };
-            var output = new WaveOutEvent { DesiredLatency = 100 };
-            output.Init(mixer);
-            output.Play();
-            _output = output;
+            _output = _outputFactory(mixer);
             _mixer = mixer;
             return mixer;
         }
+    }
+
+    // Close the device IdleClose after the last cue (cues are short, so it has finished by then)
+    private void RestartIdleTimer()
+    {
+        var delay = IdleClose;
+        _idleTimer.Change(delay < TimeSpan.Zero ? TimeSpan.Zero : delay, Timeout.InfiniteTimeSpan);
     }
 
     private void ResetOutput()
@@ -155,6 +215,7 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     public void Dispose()
     {
         // CachedSound doesn't implement IDisposable in NAudio 2.x; only the output device needs closing
+        _idleTimer.Dispose();
         ResetOutput();
     }
 }

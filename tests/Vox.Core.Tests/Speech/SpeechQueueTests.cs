@@ -265,3 +265,34 @@ public class SpeechQueueReorderingTests
         Assert.Equal(["first", "low a", "urgent", "low b"], engine.Snapshot());
     }
 }
+
+public class SpeechQueueSuspendTests
+{
+    [Fact]
+    public async Task WhileSuspended_NothingIsSpokenOrCancelled()
+    {
+        var engine = new Mock<ISpeechEngine>();
+        var spoken = new List<string>();
+        engine.Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Callback<Utterance, CancellationToken>((u, _) => { lock (spoken) spoken.Add(u.Text); })
+            .Returns(Task.CompletedTask);
+        using var queue = new SpeechQueue(engine.Object, NullLogger<SpeechQueue>.Instance);
+
+        queue.Suspend();
+        engine.Invocations.Clear();
+        queue.Enqueue(new Utterance("focus announcement", SpeechPriority.Interrupt));
+        await queue.EnqueueAsync(new Utterance("live region", SpeechPriority.Low));
+        var waited = queue.EnqueueAndWaitAsync(new Utterance("say all", SpeechPriority.Normal));
+        await Task.Delay(150);
+
+        lock (spoken) Assert.Empty(spoken);
+        engine.Verify(e => e.Cancel(), Times.Never); // the wizard's own speech is left alone
+        Assert.True(waited.IsCanceled);
+
+        queue.Resume();
+        queue.Enqueue(new Utterance("back", SpeechPriority.Normal));
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (DateTime.UtcNow < deadline) { lock (spoken) if (spoken.Contains("back")) break; await Task.Delay(10); }
+        lock (spoken) Assert.Contains("back", spoken);
+    }
+}

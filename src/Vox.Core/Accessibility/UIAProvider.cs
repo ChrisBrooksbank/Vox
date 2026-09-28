@@ -36,6 +36,8 @@ public sealed class UIAProvider : IDisposable
 
     internal const uint ConnectionTimeoutMs = 2000;
     internal const uint TransactionTimeoutMs = 4000;
+    // Capturing a whole large document is one long cross-process call: allow it more time
+    internal const uint DocumentCaptureTimeoutMs = 20000;
 
     private readonly UIAThread _uiaThread;
     private readonly ILogger<UIAProvider> _logger;
@@ -174,6 +176,39 @@ public sealed class UIAProvider : IDisposable
             if (_liveRegionCacheRequest is null)
                 throw new InvalidOperationException("UIAProvider not initialized. Call InitializeAsync first.");
             return _liveRegionCacheRequest;
+        }
+    }
+
+    /// <summary>
+    /// Runs <paramref name="capture"/> with the long <see cref="DocumentCaptureTimeoutMs"/>
+    /// transaction timeout, restoring the short one afterwards. Must be called on the STA thread
+    /// (so nothing else runs meanwhile with the long timeout).
+    /// </summary>
+    public T WithDocumentCaptureTimeout<T>(Func<T> capture)
+    {
+        if (Automation is not IUIAutomation2 automation2)
+            return capture();
+
+        uint previous;
+        try
+        {
+            previous = automation2.TransactionTimeout;
+            automation2.TransactionTimeout = DocumentCaptureTimeoutMs;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not raise the UIA timeout for a document capture");
+            return capture();
+        }
+
+        try
+        {
+            return capture();
+        }
+        finally
+        {
+            try { automation2.TransactionTimeout = previous; }
+            catch (Exception ex) { _logger.LogDebug(ex, "Could not restore the UIA timeout"); }
         }
     }
 

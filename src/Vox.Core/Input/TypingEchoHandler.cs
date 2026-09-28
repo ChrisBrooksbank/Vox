@@ -105,9 +105,16 @@ public sealed class TypingEchoHandler
 
         var slot = evt.VkCode & 0xFF;
 
-        // Only process key-up events for echo
+        // Echo happens on key-up — and on auto-repeat: another key-down while the key is still
+        // down types the character again (holding "a" types "aaaa")
         if (evt.IsKeyDown)
         {
+            if (_seenDown[slot] && !IsEditingKey(evt.VkCode))
+            {
+                EchoTypedKey(evt with { Modifiers = _downModifiers[slot], CapsLockOn = _downCapsLock[slot] }, mode);
+                return;
+            }
+
             _downModifiers[slot] = evt.Modifiers;
             _downCapsLock[slot] = evt.CapsLockOn;
             _seenDown[slot] = true;
@@ -129,6 +136,17 @@ public sealed class TypingEchoHandler
             evt = evt with { Modifiers = _downModifiers[slot], CapsLockOn = _downCapsLock[slot] };
             _seenDown[slot] = false;
         }
+
+        EchoTypedKey(evt, mode);
+    }
+
+    // Backspace/Delete and caret keys repeat through the key-down branch above
+    private static bool IsEditingKey(int vk) =>
+        vk is VK_BACK or VK_DELETE || CaretMovementVkCodes.Contains(vk);
+
+    /// <summary>Echoes (and buffers) what one press of <paramref name="evt"/>'s key typed.</summary>
+    private void EchoTypedKey(KeyEvent evt, TypingEchoMode mode)
+    {
 
         // Shortcuts (Ctrl+S, Alt+F, Insert+…) don't type anything. Ctrl+Alt together is AltGr,
         // which types characters on many layouts; it counts as a shortcut only if it types nothing.

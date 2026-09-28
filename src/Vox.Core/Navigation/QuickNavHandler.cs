@@ -174,10 +174,10 @@ public sealed class QuickNavHandler
 
         int endIndex = IndexBeforeCurrent(collection);
 
-        // Search backward from endIndex to 0
+        // Search backward from endIndex to 0 (skipping the elements the cursor is inside)
         for (int i = endIndex; i >= 0; i--)
         {
-            if (predicate(collection[i]))
+            if (predicate(collection[i]) && !IsAncestorOfCurrent(collection[i]))
             {
                 CurrentNode = collection[i];
                 return CurrentNode;
@@ -207,21 +207,15 @@ public sealed class QuickNavHandler
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Returns the collection index to start a forward search from.
-    /// If <see cref="CurrentNode"/> is in the collection, returns its index + 1.
-    /// Otherwise finds the first collection node with a higher document-order Id.
+    /// Returns the collection index to start a forward search from: the first item after
+    /// <see cref="CurrentNode"/> in document order. Items can contain one another (a navigation
+    /// landmark inside main), so this goes by document order, not by the item the cursor is in.
     /// Returns collection.Count if no forward starting point exists (triggers wrap).
     /// </summary>
     private int IndexAfterCurrent(IReadOnlyList<VBufferNode> collection)
     {
         if (CurrentNode is null) return 0;
 
-        // Fast path: current node (or the element it is inside, e.g. a heading's text) is in the collection
-        int enclosing = IndexOfEnclosing(collection);
-        if (enclosing >= 0)
-            return enclosing + 1;
-
-        // Fallback: find first collection node that comes after CurrentNode in document order
         int currentId = CurrentNode.Id;
         for (int i = 0; i < collection.Count; i++)
         {
@@ -233,47 +227,33 @@ public sealed class QuickNavHandler
     }
 
     /// <summary>
-    /// Returns the collection index to start a backward search from.
-    /// If <see cref="CurrentNode"/> is in the collection, returns its index - 1.
-    /// Otherwise finds the last collection node with a lower document-order Id.
+    /// Returns the collection index to start a backward search from: the last item before
+    /// <see cref="CurrentNode"/> in document order that doesn't contain it (so Shift+H inside a
+    /// heading's text finds the previous heading, and Shift+D inside main finds the landmark
+    /// before the cursor, even one nested in main).
     /// Returns -1 if no backward starting point exists (triggers wrap).
     /// </summary>
     private int IndexBeforeCurrent(IReadOnlyList<VBufferNode> collection)
     {
         if (CurrentNode is null) return collection.Count - 1;
 
-        // Fast path: current node (or the element it is inside, e.g. a heading's text) is in the collection.
-        // Starting from the enclosing element means Shift+H from inside a heading's text finds the
-        // previous heading, not the one the cursor is already in.
-        int enclosing = IndexOfEnclosing(collection);
-        if (enclosing >= 0)
-            return enclosing - 1;
-
-        // Fallback: find last collection node that comes before CurrentNode in document order
         int currentId = CurrentNode.Id;
         for (int i = collection.Count - 1; i >= 0; i--)
         {
-            if (collection[i].Id < currentId)
+            if (collection[i].Id < currentId && !IsAncestorOfCurrent(collection[i]))
                 return i;
         }
 
         return -1; // triggers wrap
     }
 
-    /// <summary>
-    /// Index of <see cref="CurrentNode"/> or its nearest ancestor within <paramref name="collection"/>, or -1.
-    /// </summary>
-    private int IndexOfEnclosing(IReadOnlyList<VBufferNode> collection)
+    private bool IsAncestorOfCurrent(VBufferNode node)
     {
-        for (var node = CurrentNode; node is not null; node = node.Parent)
+        for (var n = CurrentNode?.Parent; n is not null; n = n.Parent)
         {
-            for (int i = 0; i < collection.Count; i++)
-            {
-                if (ReferenceEquals(collection[i], node))
-                    return i;
-            }
+            if (ReferenceEquals(n, node))
+                return true;
         }
-        return -1;
+        return false;
     }
-
 }

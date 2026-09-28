@@ -127,3 +127,53 @@ public class RepeatPressConfirmationTests
         Assert.True(confirmation.Press());
     }
 }
+
+public class ModifierTapDetectorTests
+{
+    [Fact]
+    public void SecondQuickTap_PassesThrough()
+    {
+        var taps = new ModifierTapDetector();
+        Assert.False(taps.OnModifierDown(1000, isRepeat: false));
+        taps.OnModifierUp(1080);
+        Assert.True(taps.OnModifierDown(1300, isRepeat: false));
+    }
+
+    [Fact]
+    public void SlowSecondTap_IsSwallowed()
+    {
+        var taps = new ModifierTapDetector();
+        taps.OnModifierDown(1000, isRepeat: false);
+        taps.OnModifierUp(1080);
+        Assert.False(taps.OnModifierDown(1080 + ModifierTapDetector.DoubleTapMs + 1, isRepeat: false));
+    }
+
+    [Fact]
+    public void ModifierUsedForACommand_IsNotATap()
+    {
+        var taps = new ModifierTapDetector();
+        taps.OnModifierDown(1000, isRepeat: false);
+        taps.OnOtherKeyDown(); // Insert+Down
+        taps.OnModifierUp(1100);
+        Assert.False(taps.OnModifierDown(1200, isRepeat: false));
+    }
+
+    [Fact]
+    public void AutoRepeat_DoesNotCountAsASecondTap()
+    {
+        var taps = new ModifierTapDetector();
+        taps.OnModifierDown(1000, isRepeat: false);
+        Assert.False(taps.OnModifierDown(1030, isRepeat: true));
+        taps.OnModifierUp(1100);
+        Assert.True(taps.OnModifierDown(1200, isRepeat: false));
+    }
+
+    [Fact]
+    public void ThirdTap_StartsOver()
+    {
+        var taps = new ModifierTapDetector();
+        taps.OnModifierDown(1000, false); taps.OnModifierUp(1050);
+        Assert.True(taps.OnModifierDown(1100, false)); taps.OnModifierUp(1150);
+        Assert.False(taps.OnModifierDown(1200, false));
+    }
+}
