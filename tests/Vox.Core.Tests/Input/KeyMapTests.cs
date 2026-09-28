@@ -245,4 +245,21 @@ public class KeyMapTests
             File.Delete(invalidPath);
         }
     }
+
+    [Fact]
+    public void TryResolveOutsideDocument_OnlyMatchesAnyBindings()
+    {
+        var map = KeyMap.LoadFromJson("""
+            {
+                "bindings": [
+                    { "modifiers": "Insert", "vkCode": 32, "mode": "Any", "command": "ToggleMode" },
+                    { "modifiers": "None", "vkCode": 27, "mode": "Focus", "command": "ExitFocusMode" }
+                ]
+            }
+            """);
+
+        Assert.True(map.TryResolveOutsideDocument(KeyModifiers.Insert, 32, out var toggle, out _));
+        Assert.Equal(NavigationCommand.ToggleMode, toggle);
+        Assert.False(map.TryResolveOutsideDocument(KeyModifiers.None, 27, out _, out _));
+    }
 }

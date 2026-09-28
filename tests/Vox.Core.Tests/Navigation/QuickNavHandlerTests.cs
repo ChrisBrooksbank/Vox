@@ -432,4 +432,24 @@ public class QuickNavHandlerTests
         Assert.Null(result);
         mock.Verify(a => a.Play(It.IsAny<string>()), Times.Never);
     }
+
+    [Fact]
+    public void PrevHeading_FromInsideHeadingText_FindsThePreviousHeading()
+    {
+        var root = new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [1], ControlType = "Document" };
+        var h1 = new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [2], Name = "First", AriaRole = "heading", ControlType = "Group" };
+        h1.AddChild(new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [3], Name = "First" });
+        var h2 = new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [4], Name = "Second", AriaRole = "heading", ControlType = "Group" };
+        h2.AddChild(new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [5], Name = "Second" });
+        root.AddChild(h1);
+        root.AddChild(h2);
+        var doc = new VBufferBuilder().Build(root);
+        var (handler, _) = MakeHandler(doc, wrap: false);
+
+        handler.CurrentNode = doc.FindByRuntimeId([5]); // the second heading's text
+
+        var result = handler.Handle(NavigationCommand.PrevHeading);
+
+        Assert.Equal([2], result!.UIARuntimeId);
+    }
 }

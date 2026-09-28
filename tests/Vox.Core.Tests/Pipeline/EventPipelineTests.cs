@@ -322,4 +322,57 @@ public class EventPipelineTests : IDisposable
             Assert.Contains(_spokenUtterances, u => u.Text == "Done");
         }
     }
+
+    [Fact]
+    public async Task Focus_WithNothingToSay_DoesNotInterruptSpeech()
+    {
+        _pipeline.Post(new FocusChangedEvent(DateTimeOffset.UtcNow, "", "Group"));
+
+        await Task.Delay(200);
+
+        _engineMock.Verify(e => e.Cancel(), Times.Never);
+        lock (_spokenUtterances) Assert.Empty(_spokenUtterances);
+    }
+
+    [Fact]
+    public async Task Focus_RejectedByFilter_IsNotAnnounced()
+    {
+        _pipeline.FocusAnnouncementFilter = f => f.ElementName != "Old place";
+        _pipeline.Post(new FocusChangedEvent(DateTimeOffset.UtcNow, "Old place", "Hyperlink"));
+
+        await Task.Delay(200);
+
+        lock (_spokenUtterances) Assert.DoesNotContain(_spokenUtterances, u => u.Text.Contains("Old place"));
+    }
+
+    [Fact]
+    public async Task Notifications_FromForegroundAreSpoken_BackgroundIgnored()
+    {
+        var now = DateTimeOffset.UtcNow;
+        _pipeline.Post(new NotificationEvent(now, "a", "Download complete", Processing: 0));
+        _pipeline.Post(new NotificationEvent(now, "b", "Background app", Processing: 2, IsFromForeground: false));
+
+        await Task.Delay(300);
+
+        lock (_spokenUtterances)
+        {
+            var spoken = Assert.Single(_spokenUtterances);
+            Assert.Equal("Download complete", spoken.Text);
+            Assert.Equal(SpeechPriority.High, spoken.Priority);
+        }
+    }
+
+    [Fact]
+    public async Task Notifications_MostRecentKind_SpeaksOnlyTheLatest()
+    {
+        var now = DateTimeOffset.UtcNow;
+        _pipeline.Post(new NotificationEvent(now, "progress", "10 percent", Processing: 3));
+        _pipeline.Post(new NotificationEvent(now, "progress", "20 percent", Processing: 3));
+        _pipeline.Post(new NotificationEvent(now, "progress", "30 percent", Processing: 3));
+
+        await Task.Delay(500);
+
+        lock (_spokenUtterances)
+            Assert.Equal(["30 percent"], _spokenUtterances.Select(u => u.Text));
+    }
 }

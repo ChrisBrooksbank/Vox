@@ -462,4 +462,222 @@ public class BrowseModeControllerTests : IDisposable
 
         _actions.Verify(a => a.RequestRecapture(It.Is<int[]>(id => id.SequenceEqual(new[] { 2 }))), Times.Once);
     }
+
+    // -------------------------------------------------------------------------
+    // Round 3 fixes
+    // -------------------------------------------------------------------------
+
+    private void LoadCustom(MockElement root, int[]? focusedId = null) =>
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), focusedId));
+
+    [Fact]
+    public void FocusMovingToEditField_EntersFocusMode_ButNotForButtons()
+    {
+        LoadDocument();
+
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
+        Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "Edit", RuntimeId: [5]));
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public void LoadTimeFocusOnEditField_StaysInBrowseMode()
+    {
+        LoadDocument(focusedId: [5]);
+
+        Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+        Assert.Equal([5], _quickNav.CurrentNode!.UIARuntimeId);
+    }
+
+    [Fact]
+    public void EscapeTarget_FollowsExpandedComboBoxAndMenus()
+    {
+        var values = new List<bool>();
+        _controller.EscapeGoesToPageChanged += (_, v) => values.Add(v);
+
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Size", "ComboBox", RuntimeId: [8], IsExpandable: true, IsExpanded: false));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [8], 30070, 1));   // expanded
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [8], 30070, 0));   // collapsed
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Open", "MenuItem", RuntimeId: [9]));
+
+        Assert.Equal([true, false, true], values);
+    }
+
+    [Fact]
+    public void SubtreeChanged_FromAnotherDocument_IsIgnored()
+    {
+        LoadDocument();
+        var before = _quickNav.CurrentDocument;
+
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(
+            DateTimeOffset.UtcNow, [3], new MockElement { RuntimeId = [3], Name = "Other page" }, DocumentRuntimeId: [42]));
+
+        Assert.Same(before, _quickNav.CurrentDocument);
+        _actions.Verify(a => a.RequestRecapture(It.IsAny<int[]?>()), Times.Never);
+    }
+
+    [Fact]
+    public void SubtreeChanged_UnknownElement_RequestsFullRecaptureOnlyOnce()
+    {
+        LoadDocument();
+        var unknown = new MockElement { RuntimeId = [777], Name = "New" };
+
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(DateTimeOffset.UtcNow, [777], unknown, DocumentRuntimeId: [1]));
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(DateTimeOffset.UtcNow, [777], unknown, DocumentRuntimeId: [1]));
+
+        _actions.Verify(a => a.RequestRecapture(null), Times.Once);
+    }
+
+    [Fact]
+    public void SubtreeChanged_UnknownElementWithKnownAncestor_RecapturesThatAncestor()
+    {
+        LoadDocument();
+
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(
+            DateTimeOffset.UtcNow, [777], new MockElement { RuntimeId = [777], Name = "New" },
+            DocumentRuntimeId: [1], AncestorRuntimeIds: [[778], [6], [1]]));
+
+        _actions.Verify(a => a.RequestRecapture(It.Is<int[]>(id => id.SequenceEqual(new[] { 6 }))), Times.Once);
+        _actions.Verify(a => a.RequestRecapture(null), Times.Never);
+    }
+
+    [Fact]
+    public void SubtreeChanged_EarlierTextGrows_CursorStaysOnSameCharacter()
+    {
+        var doc = LoadDocument();
+        var intro = doc.FindByRuntimeId([3])!;
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Intro", "Text", RuntimeId: [3]));
+        _controller.Cursor!.MoveTo(intro.TextRange.Start + 5);
+        _controller.HandleCommand(NavigationCommand.NextChar); // updates CurrentNode from the cursor
+        var charBefore = _controller.Cursor.CurrentChar;
+        int withinBefore = _controller.Cursor.TextOffset - intro.TextRange.Start;
+
+        // The heading before it gets 10 characters longer
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(DateTimeOffset.UtcNow, [2],
+            new MockElement { RuntimeId = [2], Name = "Welcome1234567890", AriaRole = "heading", AriaProperties = "level=1" }));
+
+        var newIntro = _quickNav.CurrentDocument!.FindByRuntimeId([3])!;
+        Assert.Equal(charBefore, _controller.Cursor.CurrentChar);
+        Assert.Equal(withinBefore, _controller.Cursor.TextOffset - newIntro.TextRange.Start);
+    }
+
+    [Fact]
+    public void SubtreeChanged_CurrentNodeReplacedByLongerVersion_KeepsOffsetWithinIt()
+    {
+        var doc = LoadDocument(focusedId: [3]);
+        int start = doc.FindByRuntimeId([3])!.TextRange.Start;
+        _controller.Cursor!.MoveTo(start + 6);
+
+        _controller.HandleSubtreeChanged(new SubtreeChangedEvent(DateTimeOffset.UtcNow, [3],
+            new MockElement { RuntimeId = [3], Name = "Intro text, now much longer" }));
+
+        var newStart = _quickNav.CurrentDocument!.FindByRuntimeId([3])!.TextRange.Start;
+        Assert.Equal(newStart + 6, _controller.Cursor.TextOffset);
+    }
+
+    [Fact]
+    public void ReturningToADocument_RestoresTheReadingPosition()
+    {
+        var docA = LoadDocument();
+        _controller.HandleCommand(NavigationCommand.NextLink);
+        int offsetInA = _controller.Cursor!.TextOffset;
+
+        var rootB = new MockElement { RuntimeId = [50], ControlType = "Document" };
+        rootB.AddChild(new MockElement { RuntimeId = [51], Name = "Other page" });
+        LoadCustom(rootB);
+
+        // Back to A with only the page itself focused
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, BuildDocument(), [1]));
+
+        Assert.Equal(offsetInA, _controller.Cursor!.TextOffset);
+        Assert.Equal([4], _quickNav.CurrentNode!.UIARuntimeId);
+    }
+
+    [Fact]
+    public async Task FocusReturningAfterElementsListJump_IsNotAnnounced()
+    {
+        var doc = LoadDocument(focusedId: [4]);
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
+        var selection = new TaskCompletionSource<VBufferNode?>();
+        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>())).Returns(selection.Task);
+        _controller.HandleCommand(NavigationCommand.ElementsList);
+        selection.SetResult(doc.FindByRuntimeId([2]));
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (_sink.OfType<ElementsListClosedEvent>().Count == 0 && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+        _controller.HandleElementsListClosed(_sink.OfType<ElementsListClosedEvent>()[0]);
+
+        var returning = new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]);
+        _controller.HandleFocusChanged(returning);
+
+        Assert.False(_controller.ShouldAnnounceFocus(returning));
+        var later = new FocusChangedEvent(DateTimeOffset.UtcNow, "Search", "Edit", RuntimeId: [5]);
+        _controller.HandleFocusChanged(later);
+        Assert.True(_controller.ShouldAnnounceFocus(later));
+    }
+
+    [Fact]
+    public async Task ElementsListSelection_NoLongerOnPage_IsReported()
+    {
+        LoadDocument();
+        var selection = new TaskCompletionSource<VBufferNode?>();
+        _presenter.Setup(p => p.ShowAsync(It.IsAny<VBufferDocument>())).Returns(selection.Task);
+        _controller.HandleCommand(NavigationCommand.ElementsList);
+        selection.SetResult(new VBufferNode { UIARuntimeId = [999], Name = "Gone" });
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (_sink.OfType<ElementsListClosedEvent>().Count == 0 && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+
+        _controller.HandleElementsListClosed(_sink.OfType<ElementsListClosedEvent>()[0]);
+
+        await WaitForSpeech(u => u.Text == "Element no longer on page");
+        _audio.Verify(a => a.Play("error"), Times.Once);
+    }
+
+    [Fact]
+    public void ActivateElement_OnLinkText_ActivatesTheLink()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var link = new MockElement { RuntimeId = [2], Name = "Docs", ControlType = "Hyperlink" };
+        link.AddChild(new MockElement { RuntimeId = [3], Name = "Docs" });
+        root.AddChild(link);
+        LoadCustom(root);
+        _actions.Setup(a => a.ActivateAsync(It.IsAny<VBufferNode>())).ReturnsAsync(true);
+        _controller.HandleCommand(NavigationCommand.NextChar);
+        _controller.HandleCommand(NavigationCommand.PrevChar); // cursor on the link's text node
+        Assert.Equal([3], _quickNav.CurrentNode!.UIARuntimeId);
+
+        _controller.HandleCommand(NavigationCommand.ActivateElement);
+
+        _actions.Verify(a => a.ActivateAsync(It.Is<VBufferNode>(n => n.ControlType == "Hyperlink")), Times.Once);
+    }
+
+    [Fact]
+    public async Task ToggleStateChange_OnFocusedCheckbox_IsAnnounced()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Subscribe", "CheckBox", RuntimeId: [7], ToggleState: 0));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30086, 1));
+
+        await WaitForSpeech(u => u.Text == "checked");
+    }
+
+    [Fact]
+    public async Task LineMoveOntoLink_SaysItIsALink()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "First line" });
+        var group = new MockElement { RuntimeId = [3], ControlType = "Group" };
+        var link = new MockElement { RuntimeId = [4], Name = "Docs", ControlType = "Hyperlink" };
+        link.AddChild(new MockElement { RuntimeId = [5], Name = "Docs" });
+        group.AddChild(link);
+        root.AddChild(group);
+        LoadCustom(root);
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        await WaitForSpeech(u => u.Text == "Docs, link");
+    }
 }

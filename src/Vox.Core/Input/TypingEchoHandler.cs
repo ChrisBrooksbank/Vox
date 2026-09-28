@@ -7,22 +7,14 @@ namespace Vox.Core.Input;
 /// <summary>
 /// Handles typing echo by listening for RawKeyEvents and posting TypingEchoEvents.
 ///
-/// Character echo: on key-up of printable ASCII chars (VK 32–126), speaks the character.
-/// Word echo: when Space (VK 32), Enter (VK 13), or common punctuation triggers a word boundary,
-///            speaks the accumulated word from the rolling buffer.
+/// Character echo: on key-up, speaks the character the key typed (mapped through the keyboard
+/// layout, using the modifiers and Caps Lock state from the key-down).
+/// Word echo: Space, Enter and punctuation end a word; the accumulated word is then spoken.
+/// The word buffer is cleared when the caret or focus moves (arrows, Tab, Home/End, focus changes)
+/// and by Ctrl+Backspace. Shortcuts (Ctrl/Alt/screen reader modifier) are never echoed, and in
+/// password fields every character is echoed as "star".
 ///
 /// Respects TypingEchoMode: None / Characters / Words / Both.
-///
-/// VK codes used:
-///   0x08 = Backspace, 0x0D = Enter/Return, 0x20 = Space
-///   0x21–0x2F = punctuation keys (!, ", #, $, %, &, ', (, ), *, +, comma, -, ., /)
-///   0x3A–0x40 = : ; &lt; = &gt; ? @
-///   0x5B–0x60 = [ \ ] ^ _ `
-///   0x7B–0x7E = { | } ~
-///
-/// Printable char detection uses the Windows MapVirtualKey API to convert VK codes
-/// to Unicode characters for accuracy. The rolling buffer stores raw chars before a
-/// word boundary is detected.
 /// </summary>
 public sealed class TypingEchoHandler
 {
@@ -33,31 +25,32 @@ public sealed class TypingEchoHandler
     // Rolling buffer for word echo – stores chars since last word boundary
     private readonly System.Text.StringBuilder _wordBuffer = new();
 
-    // VK codes that trigger word-boundary (flush the word buffer)
-    private static readonly HashSet<int> WordBoundaryVkCodes = new()
-    {
-        0x0D, // Enter/Return
-        0x20, // Space
-        // Common punctuation VK codes
-        0xBC, // , (comma)
-        0xBE, // . (period)
-        0xBF, // / (forward slash)
-        0xBA, // ; (semicolon)
-        0xDE, // ' (apostrophe / quote)
-        0xDB, // [ (open bracket)
-        0xDD, // ] (close bracket)
-        0xDC, // \ (backslash)
-        0xBD, // - (minus / hyphen)
-        0xBB, // = (equals)
-        0xC0, // ` (backtick)
-    };
-
     // VK codes that delete content (Backspace)
     private static readonly HashSet<int> DeleteVkCodes = new()
     {
         0x08, // Backspace
         0x2E, // Delete
     };
+
+    // Keys that move the caret or focus: a new word starts wherever the user types next
+    private static readonly HashSet<int> CaretMovementVkCodes = new()
+    {
+        0x09,                   // Tab
+        0x1B,                   // Escape
+        0x21, 0x22, 0x23, 0x24, // Page Up, Page Down, End, Home
+        0x25, 0x26, 0x27, 0x28, // arrows
+    };
+
+    private const int VK_RETURN = 0x0D;
+    private const int VK_BACK = 0x08;
+
+    private readonly Func<KeyEvent, char> _charMapper;
+
+    // Modifiers and Caps Lock at each key's key-down: echo happens on key-up, when the user may
+    // already have released Shift (a capital) or Ctrl (a shortcut)
+    private readonly KeyModifiers[] _downModifiers = new KeyModifiers[256];
+    private readonly bool[] _downCapsLock = new bool[256];
+    private readonly bool[] _seenDown = new bool[256];
 
     /// <summary>
     /// True while a password field has focus: characters are echoed as "star" and never buffered
@@ -75,15 +68,24 @@ public sealed class TypingEchoHandler
     }
     private volatile bool _passwordMode;
 
+    /// <param name="charMapper">
+    /// Maps a key press to the character it types. Defaults to a US-layout table; the app passes
+    /// <see cref="KeyboardLayoutMapper.ToChar"/> to follow the user's keyboard layout.
+    /// </param>
     public TypingEchoHandler(
         IEventSink pipeline,
         Func<TypingEchoMode> getMode,
-        ILogger<TypingEchoHandler> logger)
+        ILogger<TypingEchoHandler> logger,
+        Func<KeyEvent, char>? charMapper = null)
     {
         _pipeline = pipeline;
         _getMode = getMode;
         _logger = logger;
+        _charMapper = charMapper ?? (e => VkCodeToChar(e.VkCode, e.Modifiers, e.CapsLockOn));
     }
+
+    /// <summary>Forgets the partly typed word (focus or caret moved elsewhere).</summary>
+    public void ResetWord() => _wordBuffer.Clear();
 
     /// <summary>
     /// Processes a RawKeyEvent. Should be called for every RawKeyEvent coming through the pipeline.
@@ -99,32 +101,52 @@ public sealed class TypingEchoHandler
             return;
         }
 
+        var slot = evt.VkCode & 0xFF;
+
         // Only process key-up events for echo
         if (evt.IsKeyDown)
         {
-            // On key-down of Backspace, trim the rolling buffer
-            if (DeleteVkCodes.Contains(evt.VkCode) && _wordBuffer.Length > 0)
+            _downModifiers[slot] = evt.Modifiers;
+            _downCapsLock[slot] = evt.CapsLockOn;
+            _seenDown[slot] = true;
+
+            if (evt.VkCode == VK_BACK && (evt.Modifiers & KeyModifiers.Ctrl) != 0)
+                _wordBuffer.Clear(); // Ctrl+Backspace deletes the whole word
+            else if (DeleteVkCodes.Contains(evt.VkCode) && _wordBuffer.Length > 0)
                 _wordBuffer.Remove(_wordBuffer.Length - 1, 1);
+            else if (CaretMovementVkCodes.Contains(evt.VkCode))
+                _wordBuffer.Clear();
             return;
         }
 
-        // Key-up from here on
+        // Key-up from here on: use the state from the key-down
+        if (_seenDown[slot])
+        {
+            evt = evt with { Modifiers = _downModifiers[slot], CapsLockOn = _downCapsLock[slot] };
+            _seenDown[slot] = false;
+        }
 
         // Shortcuts (Ctrl+S, Alt+F, Insert+…) don't type anything
         if ((evt.Modifiers & (KeyModifiers.Ctrl | KeyModifiers.Alt | KeyModifiers.Insert)) != 0)
             return;
 
-        // Check for word boundary keys
-        if (WordBoundaryVkCodes.Contains(evt.VkCode))
+        if (evt.VkCode == VK_RETURN)
         {
-            HandleWordBoundary(evt.VkCode, mode);
+            HandleWordBoundary("Return", mode);
             return;
         }
 
-        // Try to get the printable character for this VK code
-        var ch = VkCodeToChar(evt.VkCode, evt.Modifiers, evt.CapsLockOn);
+        // The character this key types in the user's keyboard layout
+        var ch = _charMapper(evt);
         if (ch == '\0')
             return; // Non-printable key (arrows, F-keys, etc.)
+
+        // Space and punctuation end a word
+        if (ch == ' ' || char.IsPunctuation(ch) || char.IsSymbol(ch))
+        {
+            HandleWordBoundary(PasswordMode ? "star" : GetCharacterName(ch), mode);
+            return;
+        }
 
         if (PasswordMode)
         {
@@ -146,23 +168,19 @@ public sealed class TypingEchoHandler
         }
     }
 
-    private void HandleWordBoundary(int vkCode, TypingEchoMode mode)
+    private void HandleWordBoundary(string boundaryName, TypingEchoMode mode)
     {
         // Echo the boundary character first: character echoes interrupt speech, while the word
         // (spoken at High priority) queues after it instead of being cut off by it
         if (mode == TypingEchoMode.Characters || mode == TypingEchoMode.Both)
         {
-            var boundaryName = PasswordMode && vkCode != 0x0D ? "star" : BoundaryName(vkCode);
-            if (!string.IsNullOrEmpty(boundaryName))
-            {
-                _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, boundaryName, IsWord: false));
-                _logger.LogDebug("TypingEcho boundary char: {Char}", boundaryName);
-            }
+            _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, boundaryName, IsWord: false));
+            _logger.LogDebug("TypingEcho boundary char: {Char}", boundaryName);
         }
 
-        // Speak the word that was accumulated before this boundary
+        // Speak the word that was accumulated before this boundary (never in password fields)
         if ((mode == TypingEchoMode.Words || mode == TypingEchoMode.Both)
-            && _wordBuffer.Length > 0)
+            && _wordBuffer.Length > 0 && !PasswordMode)
         {
             var word = _wordBuffer.ToString();
             _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, word, IsWord: true));
@@ -172,28 +190,10 @@ public sealed class TypingEchoHandler
         _wordBuffer.Clear();
     }
 
-    private static string BoundaryName(int vkCode) => vkCode switch
-    {
-        0x0D => "Return",
-        0x20 => "Space",
-        0xBC => "comma",
-        0xBE => "period",
-        0xBF => "slash",
-        0xBA => "semicolon",
-        0xDE => "quote",
-        0xDB => "open bracket",
-        0xDD => "close bracket",
-        0xDC => "backslash",
-        0xBD => "hyphen",
-        0xBB => "equals",
-        0xC0 => "backtick",
-        _ => string.Empty
-    };
-
     /// <summary>
     /// Maps a virtual key code to its printable character, considering shift and Caps Lock state.
     /// Returns '\0' if the key is not printable.
-    /// Uses a simple lookup for common alpha/numeric keys to avoid P/Invoke in tests.
+    /// A US-layout table (the default mapper, used in tests); the app maps through the real layout.
     /// </summary>
     public static char VkCodeToChar(int vkCode, KeyModifiers modifiers, bool capsLockOn = false)
     {
@@ -233,10 +233,29 @@ public sealed class TypingEchoHandler
         if (vkCode >= 0x60 && vkCode <= 0x69)
             return (char)('0' + (vkCode - 0x60));
 
-        // Space – handled separately as word boundary; not a printable char here
-        // (VK 0x20 is in WordBoundaryVkCodes)
-
-        return '\0';
+        return vkCode switch
+        {
+            0x20 => ' ',
+            // Numpad operators
+            0x6A => '*',
+            0x6B => '+',
+            0x6D => '-',
+            0x6E => '.',
+            0x6F => '/',
+            // OEM punctuation keys (US layout), unshifted / shifted
+            0xBA => shift ? ':' : ';',
+            0xBB => shift ? '+' : '=',
+            0xBC => shift ? '<' : ',',
+            0xBD => shift ? '_' : '-',
+            0xBE => shift ? '>' : '.',
+            0xBF => shift ? '?' : '/',
+            0xC0 => shift ? '~' : '`',
+            0xDB => shift ? '{' : '[',
+            0xDC => shift ? '|' : '\\',
+            0xDD => shift ? '}' : ']',
+            0xDE => shift ? '"' : '\'',
+            _ => '\0'
+        };
     }
 
     /// <summary>

@@ -18,7 +18,9 @@ public record FocusChangedEvent(
     bool IsExpanded = false,
     bool IsExpandable = false,
     int[]? RuntimeId = null,
-    bool IsPassword = false
+    bool IsPassword = false,
+    int? ToggleState = null,
+    bool? IsSelected = null
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(
@@ -85,10 +87,27 @@ public record PropertyChangedEvent(
     object? NewValue
 ) : ScreenReaderEvent(Timestamp);
 
+/// <summary>
+/// A UIA notification (IUIAutomation5). <paramref name="Processing"/> is the UIA
+/// NotificationProcessing value: 0 ImportantAll, 1 ImportantMostRecent, 2 All, 3 MostRecent,
+/// 4 CurrentThenMostRecent. <paramref name="IsFromForeground"/> is false for notifications raised
+/// by background applications.
+/// </summary>
 public record NotificationEvent(
     DateTimeOffset Timestamp,
     string? ActivityId,
-    string? NotificationText
+    string? NotificationText,
+    int Processing = 2,
+    bool IsFromForeground = true
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// The coalescing delay for a "most recent" notification activity has passed; speak its latest text.
+/// Posted by the pipeline itself.
+/// </summary>
+public record NotificationFlushEvent(
+    DateTimeOffset Timestamp,
+    string ActivityId
 ) : ScreenReaderEvent(Timestamp);
 
 /// <summary>
@@ -104,11 +123,16 @@ public record DocumentChangedEvent(
 /// <summary>
 /// A subtree of the active document was re-captured after a structure change.
 /// <paramref name="NewSubtree"/> is null when the element no longer exists.
+/// <paramref name="DocumentRuntimeId"/> identifies the document it was captured from, so updates
+/// for a document that has since been replaced can be ignored. <paramref name="AncestorRuntimeIds"/>
+/// lists the element's ancestors (nearest first) for splicing elements the buffer doesn't know yet.
 /// </summary>
 public record SubtreeChangedEvent(
     DateTimeOffset Timestamp,
     int[] RuntimeId,
-    IVBufferElement? NewSubtree
+    IVBufferElement? NewSubtree,
+    int[]? DocumentRuntimeId = null,
+    IReadOnlyList<int[]>? AncestorRuntimeIds = null
 ) : ScreenReaderEvent(Timestamp);
 
 /// <summary>

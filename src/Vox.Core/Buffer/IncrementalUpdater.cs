@@ -49,14 +49,29 @@ public sealed class IncrementalUpdater
         IVBufferElement? newSubtreeRoot,
         out int[]? recaptureRuntimeId)
     {
-        recaptureRuntimeId = null;
+        var result = ApplyUpdateDetailed(document, changedRuntimeId, newSubtreeRoot);
+        recaptureRuntimeId = result.RecaptureRuntimeId;
+        return result.Document;
+    }
+
+    /// <summary>
+    /// Applies an incremental update and describes the splice: the old text span that was replaced
+    /// and how much the text after it moved, so callers can keep positions stable.
+    /// </summary>
+    public IncrementalUpdateResult ApplyUpdateDetailed(
+        VBufferDocument document,
+        int[] changedRuntimeId,
+        IVBufferElement? newSubtreeRoot)
+    {
+        var unchanged = new IncrementalUpdateResult(document, null, 0, 0, 0);
+        int[]? recaptureRuntimeId = null;
         var oldSubtreeRoot = document.FindByRuntimeId(changedRuntimeId);
         if (oldSubtreeRoot is null)
-            return document;
+            return unchanged;
 
         // Removing the document root would leave no valid document
         if (oldSubtreeRoot.Parent is null && newSubtreeRoot is null)
-            return document;
+            return unchanged;
 
         // Collect all nodes in the old subtree (pre-order).
         var oldSubtreeNodes = CollectSubtree(oldSubtreeRoot);
@@ -75,7 +90,7 @@ public sealed class IncrementalUpdater
         }
 
         if (insertIndex < 0)
-            return document; // safety guard
+            return unchanged; // safety guard
 
         // Build the replacement subtree (or use empty if deletion). Offsets start at 0.
         List<VBufferNode> newSubtreeNodes;
@@ -155,7 +170,14 @@ public sealed class IncrementalUpdater
             }
         }
 
-        return new VBufferDocument(newFlatText, allNewNodes[0], allNewNodes);
+        // The re-captured subtree ends its text in '\n' again; re-join inline runs so a changed
+        // link doesn't split its paragraph into lines (same-length replacements, offsets unchanged)
+        var joined = new System.Text.StringBuilder(newFlatText);
+        VBufferBuilder.JoinInlineRuns(allNewNodes, joined);
+
+        return new IncrementalUpdateResult(
+            new VBufferDocument(joined.ToString(), allNewNodes[0], allNewNodes),
+            recaptureRuntimeId, oldTextStart, oldTextEnd, textDelta);
     }
 
     // -------------------------------------------------------------------------
@@ -201,3 +223,18 @@ public sealed class IncrementalUpdater
         return end;
     }
 }
+
+/// <summary>
+/// Result of <see cref="IncrementalUpdater.ApplyUpdateDetailed"/>.
+/// </summary>
+/// <param name="Document">The updated document, or the original when nothing changed.</param>
+/// <param name="RecaptureRuntimeId">An ancestor whose own text may now be wrong, or null.</param>
+/// <param name="OldTextStart">Start of the replaced text span in the old document.</param>
+/// <param name="OldTextEnd">Exclusive end of the replaced text span in the old document.</param>
+/// <param name="TextDelta">How far text after the span moved (new length − old length).</param>
+public sealed record IncrementalUpdateResult(
+    VBufferDocument Document,
+    int[]? RecaptureRuntimeId,
+    int OldTextStart,
+    int OldTextEnd,
+    int TextDelta);

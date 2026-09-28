@@ -72,7 +72,8 @@ public static class ServiceRegistration
             var pipeline = sp.GetRequiredService<EventPipeline>();
             var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
             var logger = sp.GetRequiredService<ILogger<TypingEchoHandler>>();
-            return new TypingEchoHandler(pipeline, () => settings.CurrentValue.TypingEchoMode, logger);
+            return new TypingEchoHandler(pipeline, () => settings.CurrentValue.TypingEchoMode, logger,
+                KeyboardLayoutMapper.ToChar);
         });
 
         // First-run wizard

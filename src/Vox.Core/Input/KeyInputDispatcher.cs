@@ -25,6 +25,12 @@ public sealed class KeyInputDispatcher
 
     private volatile InteractionMode _currentMode = InteractionMode.Browse;
     private volatile bool _documentActive;
+    private volatile bool _escapeGoesToPage;
+
+    // Resolution contexts carried in KeyDecision.Context (0 = no decision)
+    private const int BrowseContext = 1;
+    private const int FocusContext = 2;
+    private const int OutsideDocumentContext = 3;
 
     // Keys whose key-down was dispatched as a command; their key-ups are dropped so a key that
     // changed the mode (e.g. Enter entering Focus mode) is not then echoed as typing.
@@ -86,9 +92,24 @@ public sealed class KeyInputDispatcher
     }
 
     /// <summary>
+    /// Set while the focused control has an open popup (expanded combo box, menu), so Escape
+    /// reaches the page to close it instead of leaving Focus mode.
+    /// </summary>
+    public void SetEscapeGoesToPage(bool value)
+    {
+        _escapeGoesToPage = value;
+    }
+
+    /// <summary>
     /// The mode used for keymap resolution: the current mode inside a web document, Focus elsewhere.
+    /// Outside documents only "Any" bindings apply.
     /// </summary>
     public InteractionMode EffectiveMode => _documentActive ? _currentMode : InteractionMode.Focus;
+
+    private int CurrentContext =>
+        !_documentActive ? OutsideDocumentContext
+        : _currentMode == InteractionMode.Browse ? BrowseContext
+        : FocusContext;
 
     /// <summary>
     /// Suppression filter run on the keyboard hook thread for each key-down.
@@ -101,16 +122,52 @@ public sealed class KeyInputDispatcher
         if (!evt.IsKeyDown)
             return KeyDecision.Pass;
 
-        var mode = EffectiveMode;
-        bool suppress = _keyMap.TryResolve(evt.Modifiers, evt.VkCode, mode, out _, out var passThrough)
-            && !passThrough;
-        return new KeyDecision(suppress, EncodeMode(mode));
+        var context = CurrentContext;
+        bool found = TryResolve(evt, context, out _, out var passThrough);
+        bool suppress = found && !passThrough;
+
+        if (!found)
+        {
+            // Keys pressed with the screen reader modifier are Vox's, bound or not (NVDA behaviour)
+            if ((evt.Modifiers & KeyModifiers.Insert) != 0)
+                suppress = true;
+            // In Browse mode, unbound typing keys must not reach the page, where they could fire
+            // single-key site shortcuts (Gmail "e" archives, YouTube "m" mutes, ...)
+            else if (context == BrowseContext && IsTypingKey(evt.VkCode)
+                     && (evt.Modifiers & (KeyModifiers.Ctrl | KeyModifiers.Alt)) == 0)
+                suppress = true;
+        }
+
+        return new KeyDecision(suppress, context);
     }
 
     /// <summary>True when <see cref="Decide"/> would swallow the key.</summary>
     public bool ShouldSuppress(KeyEvent evt) => Decide(evt).Suppress;
 
-    private static int EncodeMode(InteractionMode mode) => (int)mode + 1;
+    /// <summary>Letters, digits, punctuation (OEM) keys, Space and the numeric keypad.</summary>
+    public static bool IsTypingKey(int vk) =>
+        vk == 0x20
+        || vk is >= 0x30 and <= 0x39
+        || vk is >= 0x41 and <= 0x5A
+        || vk is >= 0x60 and <= 0x6F
+        || vk is >= 0xBA and <= 0xC0
+        || vk is >= 0xDB and <= 0xDF
+        || vk == 0xE2;
+
+    private bool TryResolve(KeyEvent evt, int context, out NavigationCommand command, out bool passThrough)
+    {
+        bool found = context == OutsideDocumentContext
+            ? _keyMap.TryResolveOutsideDocument(evt.Modifiers, evt.VkCode, out command, out passThrough)
+            : _keyMap.TryResolve(evt.Modifiers, evt.VkCode,
+                context == BrowseContext ? InteractionMode.Browse : InteractionMode.Focus,
+                out command, out passThrough);
+
+        // Escape closes an open popup rather than leaving Focus mode
+        if (found && command == NavigationCommand.ExitFocusMode && _escapeGoesToPage)
+            found = false;
+
+        return found;
+    }
 
     private void OnKeyPressed(object? sender, KeyEvent evt)
     {
@@ -118,17 +175,15 @@ public sealed class KeyInputDispatcher
 
         if (evt.IsKeyDown)
         {
-            // Resolve with the mode the hook used when the key was pressed, so the swallow
+            // Resolve in the context the hook used when the key was pressed, so the swallow
             // decision and the command always agree even if the mode changed since
-            var mode = evt.Decision.Context > 0
-                ? (InteractionMode)(evt.Decision.Context - 1)
-                : EffectiveMode;
+            var context = evt.Decision.Context > 0 ? evt.Decision.Context : CurrentContext;
 
-            if (_keyMap.TryResolve(evt.Modifiers, evt.VkCode, mode, out var command))
+            if (TryResolve(evt, context, out var command, out _))
             {
                 _logger.LogDebug(
-                    "Key {VkCode} with {Modifiers} in {Mode} -> {Command}",
-                    evt.VkCode, evt.Modifiers, mode, command);
+                    "Key {VkCode} with {Modifiers} in context {Context} -> {Command}",
+                    evt.VkCode, evt.Modifiers, context, command);
 
                 _commandKeysDown[slot] = true;
                 _pipeline.Post(new NavigationCommandEvent(DateTimeOffset.UtcNow, command));

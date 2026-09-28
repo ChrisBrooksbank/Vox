@@ -459,4 +459,67 @@ public class FirstRunWizardTests : IDisposable
 
         Assert.Same(original, hook.SuppressionFilter);
     }
+
+    [Fact]
+    public async Task RunAsync_EscapeAtALaterStep_EndsWizardAndKeepsChoices()
+    {
+        var (wizard, hook, _, monitor, _) = CreateWizard(
+            new VoxSettings { FirstRunCompleted = false, SpeechRateWpm = 200 });
+
+        var wizardTask = wizard.RunAsync();
+        await Task.Delay(50);
+        hook.SimulateKeyDown(0x0D); // begin
+        await Task.Delay(80);
+        hook.SimulateKeyDown(0x26); // rate up
+        await Task.Delay(80);
+        hook.SimulateKeyDown(0x0D); // accept rate
+        await Task.Delay(80);
+        hook.SimulateKeyDown(0x1B); // Escape at the voice step
+
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+        Assert.Equal(210, monitor.CurrentValue.SpeechRateWpm);
+    }
+
+    [Fact]
+    public async Task RunAsync_NoKeyForAWhile_EndsWizard()
+    {
+        var (wizard, hook, _, monitor, _) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        wizard.InactivityTimeout = TimeSpan.FromMilliseconds(300);
+
+        var wizardTask = wizard.RunAsync();
+        await Task.Delay(50);
+        hook.SimulateKeyDown(0x0D); // begin, then walk away
+
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+    }
+
+    [Fact]
+    public async Task RunAsync_WizardKeys_AreOnlySwallowedWhileWaiting()
+    {
+        var (wizard, hook, engine, _, _) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        // The confirmation after the rate step speaks for a while: no key is awaited then
+        var confirming = new TaskCompletionSource();
+        engine
+            .Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Returns((Utterance u, CancellationToken _) =>
+                u.Text.StartsWith("Speech rate set") ? confirming.Task : Task.CompletedTask);
+
+        var wizardTask = wizard.RunAsync();
+        await Task.Delay(50);
+        Assert.True(hook.SuppressionFilter!(new KeyEvent { VkCode = 0x0D, IsKeyDown = true }).Suppress); // waiting
+        hook.SimulateKeyDown(0x0D); // begin
+        await Task.Delay(80);
+        hook.SimulateKeyDown(0x0D); // accept rate -> confirmation speaking, nothing awaited
+        await Task.Delay(80);
+
+        Assert.False(hook.SuppressionFilter!(new KeyEvent { VkCode = 0x0D, IsKeyDown = true }).Suppress);
+
+        confirming.SetResult();
+        hook.SimulateKeyDown(0x1B);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
+    }
 }

@@ -217,12 +217,10 @@ public sealed class QuickNavHandler
     {
         if (CurrentNode is null) return 0;
 
-        // Fast path: current node is directly in the collection
-        for (int i = 0; i < collection.Count; i++)
-        {
-            if (ReferenceEquals(collection[i], CurrentNode))
-                return i + 1;
-        }
+        // Fast path: current node (or the element it is inside, e.g. a heading's text) is in the collection
+        int enclosing = IndexOfEnclosing(collection);
+        if (enclosing >= 0)
+            return enclosing + 1;
 
         // Fallback: find first collection node that comes after CurrentNode in document order
         int currentId = CurrentNode.Id;
@@ -245,12 +243,12 @@ public sealed class QuickNavHandler
     {
         if (CurrentNode is null) return collection.Count - 1;
 
-        // Fast path: current node is directly in the collection
-        for (int i = 0; i < collection.Count; i++)
-        {
-            if (ReferenceEquals(collection[i], CurrentNode))
-                return i - 1;
-        }
+        // Fast path: current node (or the element it is inside, e.g. a heading's text) is in the collection.
+        // Starting from the enclosing element means Shift+H from inside a heading's text finds the
+        // previous heading, not the one the cursor is already in.
+        int enclosing = IndexOfEnclosing(collection);
+        if (enclosing >= 0)
+            return enclosing - 1;
 
         // Fallback: find last collection node that comes before CurrentNode in document order
         int currentId = CurrentNode.Id;
@@ -261,6 +259,22 @@ public sealed class QuickNavHandler
         }
 
         return -1; // triggers wrap
+    }
+
+    /// <summary>
+    /// Index of <see cref="CurrentNode"/> or its nearest ancestor within <paramref name="collection"/>, or -1.
+    /// </summary>
+    private int IndexOfEnclosing(IReadOnlyList<VBufferNode> collection)
+    {
+        for (var node = CurrentNode; node is not null; node = node.Parent)
+        {
+            for (int i = 0; i < collection.Count; i++)
+            {
+                if (ReferenceEquals(collection[i], node))
+                    return i;
+            }
+        }
+        return -1;
     }
 
     private VBufferNode? PlayBoundaryAndReturnNull()

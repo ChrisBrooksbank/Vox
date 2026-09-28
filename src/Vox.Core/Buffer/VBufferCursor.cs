@@ -23,6 +23,9 @@ public sealed class VBufferCursor
 
     public bool WrapEnabled { get; set; } = false;
 
+    /// <summary>When false, boundary and wrap cues are not played (e.g. for Say All's cursor).</summary>
+    public bool PlayCues { get; set; } = true;
+
     // -------------------------------------------------------------------------
     // Construction
     // -------------------------------------------------------------------------
@@ -259,10 +262,10 @@ public sealed class VBufferCursor
         if (WrapEnabled)
         {
             _offset = atEnd ? 0 : Math.Max(0, _document.FlatText.Length - 1);
-            _audioCuePlayer.Play("wrap");
+            PlayCue("wrap");
             return _document.FlatText.Length > 0 ? _document.FlatText[_offset] : (char?)null;
         }
-        _audioCuePlayer.Play("boundary");
+        PlayCue("boundary");
         return null;
     }
 
@@ -272,12 +275,12 @@ public sealed class VBufferCursor
     {
         if (!WrapEnabled || _document.FlatText.Length == 0)
         {
-            _audioCuePlayer.Play("boundary");
+            PlayCue("boundary");
             return null;
         }
 
         string text = _document.FlatText;
-        _audioCuePlayer.Play("wrap");
+        PlayCue("wrap");
 
         if (atEnd)
         {
@@ -298,5 +301,11 @@ public sealed class VBufferCursor
         }
 
         return unit == BoundaryUnit.Line ? ReadLineAt(_offset) : ReadWordAt(_offset);
+    }
+
+    private void PlayCue(string cue)
+    {
+        if (PlayCues)
+            _audioCuePlayer.Play(cue);
     }
 }

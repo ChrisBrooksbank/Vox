@@ -134,18 +134,54 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
         // Subscribe to the document's changes before capturing it, so nothing that changes in
-        // between is missed (a duplicate update is harmless; a missed one is not)
-        _documentRoot = document;
-        _documentRuntimeId = documentId;
+        // between is missed (a duplicate update is harmless; a missed one is not). Changes that
+        // arrive during the capture wait in the pending set until the document is recorded.
         ClearPendingChanges();
         _eventSubscriber.SetDocumentScope(document);
 
-        var cached = document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
-        var snapshot = UIAElementSnapshot.Capture(cached);
-        var buffer = new VBufferBuilder().Build(snapshot);
+        VBufferDocument buffer;
+        try
+        {
+            var cached = document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
+            var snapshot = UIAElementSnapshot.Capture(cached);
+            buffer = new VBufferBuilder().Build(snapshot);
+        }
+        catch (Exception ex)
+        {
+            // Busy page or UIA timeout. Don't record the document as loaded — that would leave the
+            // previous page's buffer in use and make every later focus change look like "same
+            // document". Drop the old buffer and try once more shortly.
+            _logger.LogWarning(ex, "Could not capture web document");
+            _eventSubscriber.SetDocumentScope(null);
+            _documentRoot = null;
+            _documentRuntimeId = null;
+            _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, null));
+            ScheduleRetry(documentId);
+            return;
+        }
+
+        _documentRoot = document;
+        _documentRuntimeId = documentId;
+        _retriedDocumentKey = null;
 
         _logger.LogInformation("Virtual buffer built: {Nodes} nodes in {Ms}ms", buffer.AllNodes.Count, sw.ElapsedMilliseconds);
         _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, buffer, focusedId));
+    }
+
+    // Document whose failed capture has already been retried (UIA thread only)
+    private string? _retriedDocumentKey;
+    private const int CaptureRetryDelayMs = 500;
+
+    private void ScheduleRetry(int[] documentId)
+    {
+        var key = string.Join(",", documentId);
+        if (key == _retriedDocumentKey)
+            return; // retry at most once per document; later focus changes will try again
+        _retriedDocumentKey = key;
+
+        _ = Task.Delay(CaptureRetryDelayMs).ContinueWith(
+            _ => RunOnUiaThread(DetectDocument, "retrying document capture"),
+            TaskScheduler.Default);
     }
 
     private void UnloadDocument()
@@ -241,7 +277,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             if (full || changes.Count > FullRecaptureThreshold || changes.Any(c => c.AsSpan().SequenceEqual(rootId)))
             {
                 var cached = root.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest);
-                _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, rootId, UIAElementSnapshot.Capture(cached)));
+                _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, rootId, UIAElementSnapshot.Capture(cached), rootId));
                 return;
             }
 
@@ -252,7 +288,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
                 if (element is null)
                 {
                     // The element is gone
-                    _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, runtimeId, null));
+                    _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, runtimeId, null, rootId));
                     continue;
                 }
 
@@ -261,9 +297,35 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
                 var normalized = TryGet(() => walker.NormalizeElementBuildCache(element, _uiaProvider.SubtreeCacheRequest)) ?? element;
                 var snapshot = UIAElementSnapshot.Capture(normalized);
                 var changedId = snapshot.RuntimeId.Length > 0 ? snapshot.RuntimeId : runtimeId;
-                _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, changedId, snapshot));
+
+                // Ancestors let the buffer splice an element it doesn't know yet (e.g. added
+                // since the last capture) at its nearest known ancestor
+                var ancestors = AncestorIds(walker, normalized, rootId);
+                _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, changedId, snapshot, rootId, ancestors));
             }
         }, "updating virtual buffer");
+    }
+
+    private const int MaxAncestorIds = 16;
+
+    /// <summary>Runtime ids of <paramref name="element"/>'s control-view ancestors up to the document, nearest first.</summary>
+    private static List<int[]> AncestorIds(IUIAutomationTreeWalker walker, IUIAutomationElement element, int[] rootId)
+    {
+        var ids = new List<int[]>();
+        var current = element;
+        for (int i = 0; i < MaxAncestorIds; i++)
+        {
+            current = TryGet(() => walker.GetParentElement(current));
+            if (current is null)
+                break;
+            var id = UIAEventSubscriber.TryGetRuntimeId(current);
+            if (id.Length == 0)
+                break;
+            ids.Add(id);
+            if (id.AsSpan().SequenceEqual(rootId))
+                break;
+        }
+        return ids;
     }
 
     private IUIAutomationElement? FindInDocument(

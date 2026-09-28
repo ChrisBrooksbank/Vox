@@ -33,6 +33,15 @@ public interface IVBufferElement
     /// </summary>
     int HeadingLevel => 0;
 
+    /// <summary>UIA ExpandCollapseState (0-3), or null when the pattern isn't supported.</summary>
+    int? ExpandCollapseState => null;
+
+    /// <summary>UIA ToggleState (0 off, 1 on, 2 indeterminate), or null when not a toggle.</summary>
+    int? ToggleState => null;
+
+    /// <summary>UIA SelectionItem.IsSelected, or null when the element isn't selectable.</summary>
+    bool? IsSelected => null;
+
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
 }
@@ -148,7 +157,7 @@ public sealed class VBufferBuilder
     /// Inline means a leaf Text node or a link (UIA exposes no CSS display type, so this is a
     /// heuristic: block elements such as paragraphs and headings have children or a heading level).
     /// </summary>
-    private static void JoinInlineRuns(List<VBufferNode> nodes, StringBuilder flatText)
+    internal static void JoinInlineRuns(IReadOnlyList<VBufferNode> nodes, StringBuilder flatText)
     {
         // Exclusive end of each node's whole subtree text (nodes are in pre-order, Ids = indices)
         var subtreeEnd = new int[nodes.Count];
@@ -216,9 +225,7 @@ public sealed class VBufferBuilder
         // Parse ARIA properties
         var isVisited  = ParseAriaPropertyBool(ariaProps, "visited");
         var isRequired = ParseAriaPropertyBool(ariaProps, "required");
-        var isExpanded = ParseAriaPropertyBool(ariaProps, "expanded");
-        var isExpandable = ParseAriaPropertyBool(ariaProps, "haspopup") || isExpanded ||
-                           string.Equals(element.ControlType, "ComboBox", StringComparison.OrdinalIgnoreCase);
+        var (isExpandable, isExpanded) = ControlState.Expansion(element.ExpandCollapseState, ariaProps, element.ControlType);
 
         // Determine focusability
         var isFocusable = element.IsFocusable ||
@@ -239,6 +246,8 @@ public sealed class VBufferBuilder
             IsRequired = isRequired,
             IsExpandable = isExpandable,
             IsExpanded = isExpanded,
+            ToggleState = element.ToggleState,
+            IsSelected = element.IsSelected,
             IsFocusable = isFocusable,
             Parent = parent,
         };

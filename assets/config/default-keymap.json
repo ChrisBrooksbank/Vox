@@ -1,5 +1,5 @@
 {
-  "comment": "NVDA-convention keybindings. VkCode values are Windows virtual key codes (the low-level hook reports left/right-specific modifier keys, e.g. 162/163 for Ctrl). Mode: Browse, Focus, or Any. The Insert modifier means the screen reader key (Insert or CapsLock per settings). Bound keys are swallowed unless passThrough is true. Browse-mode bindings only apply while a web document has focus. Tab is not bound: it moves real focus in the browser and the virtual cursor follows focus.",
+  "comment": "NVDA-convention keybindings. VkCode values are Windows virtual key codes (the low-level hook reports left/right-specific modifier keys, e.g. 162/163 for Ctrl). Mode: Browse, Focus, or Any. The Insert modifier means the screen reader key (Insert or CapsLock per settings). Bound keys are swallowed unless passThrough is true. Browse- and Focus-mode bindings only apply while a web document has focus; outside documents only Any bindings apply. In Browse mode, unbound typing keys are swallowed so they can't trigger page shortcuts. Tab is not bound: it moves real focus in the browser and the virtual cursor follows focus.",
   "bindings": [
     { "modifiers": "None",        "vkCode": 72,  "mode": "Browse", "command": "NextHeading" },
     { "modifiers": "Shift",       "vkCode": 72,  "mode": "Browse", "command": "PrevHeading" },
@@ -30,6 +30,8 @@
     { "modifiers": "None",        "vkCode": 39,  "mode": "Browse", "command": "NextChar" },
     { "modifiers": "None",        "vkCode": 37,  "mode": "Browse", "command": "PrevChar" },
     { "modifiers": "None",        "vkCode": 13,  "mode": "Browse", "command": "ActivateElement" },
+    { "modifiers": "None",        "vkCode": 32,  "mode": "Browse", "command": "ActivateElement" },
+    { "modifiers": "None",        "vkCode": 27,  "mode": "Focus",  "command": "ExitFocusMode" },
     { "modifiers": "Insert",      "vkCode": 32,  "mode": "Any",    "command": "ToggleMode" },
     { "modifiers": "Insert",      "vkCode": 40,  "mode": "Any",    "command": "SayAll" },
     { "modifiers": "None",        "vkCode": 162, "mode": "Any",    "command": "StopSpeech", "passThrough": true },

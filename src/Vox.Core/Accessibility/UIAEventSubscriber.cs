@@ -81,10 +81,11 @@ public sealed class UIAEventSubscriber :
             // Notification event (IUIAutomation5) — desktop scope
             if (automation is IUIAutomation5 automation5)
             {
+                // The cache request brings the sender's process id, to ignore background apps
                 automation5.AddNotificationEventHandler(
                     automation5.GetRootElement(),
                     TreeScope.TreeScope_Subtree,
-                    null,
+                    _uiaProvider.CacheRequest,
                     this);
             }
             else
@@ -132,7 +133,11 @@ public sealed class UIAEventSubscriber :
                 documentRoot, TreeScope.TreeScope_Subtree, null, this);
             automation.AddPropertyChangedEventHandler(
                 documentRoot, TreeScope.TreeScope_Subtree, null, this,
-                new[] { UIA_NamePropertyId, UIA_ExpandCollapseStatePropertyId, UIA_ValueValuePropertyId });
+                new[]
+                {
+                    UIA_NamePropertyId, UIA_ExpandCollapseStatePropertyId, UIA_ValueValuePropertyId,
+                    UIAProvider.UIA_ToggleStatePropertyId, UIAProvider.UIA_SelectionItemIsSelectedPropertyId,
+                });
             // Selection changes that don't move focus (e.g. list items, collapsed combo boxes)
             automation.AddAutomationEventHandler(
                 UIA_SelectionItem_ElementSelectedEventId, documentRoot, TreeScope.TreeScope_Subtree,
@@ -169,8 +174,9 @@ public sealed class UIAEventSubscriber :
                 headingLevel = Math.Min(uiaHeadingLevel, 6);
             var isVisited = ParseAriaPropertyBool(ariaProps, "visited");
             var isRequired = ParseAriaPropertyBool(ariaProps, "required");
-            var isExpanded = ParseAriaPropertyBool(ariaProps, "expanded");
-            var isExpandable = ParseAriaPropertyBool(ariaProps, "haspopup") || isExpanded;
+            var (isExpandable, isExpanded) = Vox.Core.Buffer.ControlState.Expansion(
+                UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_ExpandCollapseStatePropertyId),
+                ariaProps, controlType);
 
             _eventSink.Post(new FocusChangedEvent(
                 Timestamp: DateTimeOffset.UtcNow,
@@ -185,7 +191,9 @@ public sealed class UIAEventSubscriber :
                 IsExpanded: isExpanded,
                 IsExpandable: isExpandable,
                 RuntimeId: TryGetRuntimeId(sender),
-                IsPassword: TryGetValue(sender, () => sender.CachedIsPassword != 0)
+                IsPassword: TryGetValue(sender, () => sender.CachedIsPassword != 0),
+                ToggleState: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_ToggleStatePropertyId),
+                IsSelected: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_SelectionItemIsSelectedPropertyId)
             ));
         }
         catch (Exception ex)
@@ -377,10 +385,13 @@ public sealed class UIAEventSubscriber :
     {
         try
         {
+            var senderProcess = TryGetValue(sender, () => sender.CachedProcessId, -1);
             _eventSink.Post(new NotificationEvent(
                 Timestamp: DateTimeOffset.UtcNow,
                 ActivityId: activityId,
-                NotificationText: displayString
+                NotificationText: displayString,
+                Processing: (int)notificationProcessing,
+                IsFromForeground: IsForegroundProcess(senderProcess)
             ));
         }
         catch (Exception ex)
@@ -403,6 +414,33 @@ public sealed class UIAEventSubscriber :
     {
         try { return getter(); }
         catch { return defaultValue; }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern nint GetForegroundWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(nint hWnd, out uint lpdwProcessId);
+
+    /// <summary>True when <paramref name="processId"/> owns the foreground window (or either is unknown).</summary>
+    private static bool IsForegroundProcess(int processId)
+    {
+        var foreground = ForegroundProcessId();
+        return processId < 0 || foreground < 0 || processId == foreground;
+    }
+
+    /// <summary>Process id of the foreground window (two cheap Win32 calls, no UIA).</summary>
+    private static int ForegroundProcessId()
+    {
+        try
+        {
+            GetWindowThreadProcessId(GetForegroundWindow(), out var pid);
+            return (int)pid;
+        }
+        catch
+        {
+            return -1;
+        }
     }
 
     internal static int[] TryGetRuntimeId(IUIAutomationElement element)

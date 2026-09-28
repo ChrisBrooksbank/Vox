@@ -38,5 +38,6 @@ public enum NavigationCommand
     PrevHeadingLevel3,
     PrevHeadingLevel4,
     PrevHeadingLevel5,
-    PrevHeadingLevel6
+    PrevHeadingLevel6,
+    ExitFocusMode
 }

@@ -293,6 +293,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                     Modifiers = modifiers,
                     IsKeyDown = isKeyDown,
                     Timestamp = kbStruct.time,
+                    ScanCode = (int)kbStruct.scanCode,
                     CapsLockOn = _keyState.ScreenReaderModifier != ModifierKey.CapsLock && _keyState.CapsLockOn
                 };
 
