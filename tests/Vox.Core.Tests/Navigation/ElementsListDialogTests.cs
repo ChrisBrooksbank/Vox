@@ -1,6 +1,7 @@
 using System.Windows.Forms;
 using Vox.Core.Buffer;
 using Vox.Core.Navigation;
+using Vox.Core.Tests.Buffer;
 using Xunit;
 
 namespace Vox.Core.Tests.Navigation;
@@ -314,5 +315,66 @@ public class ElementsListDialogTests
             using var dlg = new ElementsListDialog(EmptyDocument());
             Assert.Null(dlg.SelectedNode);
         });
+    }
+}
+
+public class ElementsListViewModelRound6Tests
+{
+    private static (VBufferDocument doc, VBufferNode h1, VBufferNode h2Text) BuildDocument()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "First", AriaRole = "heading", AriaProperties = "level=1" });
+        var h2 = new MockElement { RuntimeId = [3], AriaRole = "heading", AriaProperties = "level=2" };
+        h2.AddChild(new MockElement { RuntimeId = [4], Name = "Second" });
+        root.AddChild(h2);
+        root.AddChild(new MockElement { RuntimeId = [5], Name = "Body text" });
+        var link = new MockElement { RuntimeId = [6], ControlType = "Hyperlink" };
+        link.AddChild(new MockElement { RuntimeId = [7], Name = "Logo", ControlType = "Image" });
+        root.AddChild(link);
+        root.AddChild(new MockElement { RuntimeId = [8], Name = "Search", ControlType = "Edit" });
+        var doc = new VBufferBuilder().Build(root);
+        return (doc, doc.FindByRuntimeId([2])!, doc.FindByRuntimeId([4])!);
+    }
+
+    [Fact]
+    public void InitialSelection_IsTheElementContainingTheCursor()
+    {
+        var (doc, _, h2Text) = BuildDocument();
+        Assert.Equal(1, ElementsListViewModel.InitialSelectionIndex(doc.Headings, h2Text));
+    }
+
+    [Fact]
+    public void InitialSelection_IsTheNextElementAfterTheCursor()
+    {
+        var (doc, h1, _) = BuildDocument();
+        // From the first heading, the next link is the only link
+        Assert.Equal(0, ElementsListViewModel.InitialSelectionIndex(doc.Links, h1));
+        // From the body text, the next heading doesn't exist: the last one is selected
+        Assert.Equal(1, ElementsListViewModel.InitialSelectionIndex(doc.Headings, doc.FindByRuntimeId([5])));
+    }
+
+    [Fact]
+    public void InitialSelection_WithoutCursor_IsTheFirst()
+    {
+        var (doc, _, _) = BuildDocument();
+        Assert.Equal(0, ElementsListViewModel.InitialSelectionIndex(doc.Headings, null));
+        Assert.Equal(-1, ElementsListViewModel.InitialSelectionIndex([], null));
+    }
+
+    [Fact]
+    public void UnnamedElements_ShowTheirText()
+    {
+        var (doc, _, _) = BuildDocument();
+        var vm = new ElementsListViewModel(doc);
+
+        Assert.Equal("H2: Second", vm.DisplayText(doc.FindByRuntimeId([3])!));
+        Assert.Equal("Logo", vm.DisplayText(doc.FindByRuntimeId([6])!));
+    }
+
+    [Fact]
+    public void FormFields_ShowTheirKindAndValue()
+    {
+        var node = new VBufferNode { Name = "Search", ControlType = "Edit", Value = "hello" };
+        Assert.Equal("Search, edit, hello", ElementsListViewModel.GetDisplayText(node));
     }
 }

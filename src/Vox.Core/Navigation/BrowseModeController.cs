@@ -114,6 +114,17 @@ public sealed class BrowseModeController
     /// </summary>
     public TimeSpan FullRecaptureRetryInterval { get; set; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>Raised when the user confirmed quitting Vox (the quit command pressed twice).</summary>
+    public event EventHandler? QuitRequested;
+
+    /// <summary>Raised when the user asked to run the first-run setup again.</summary>
+    public event EventHandler? SetupRequested;
+
+    private readonly Input.RepeatPressConfirmation _quitConfirmation = new(TimeSpan.FromSeconds(3));
+
+    private string ModifierName =>
+        _settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+
     /// <summary>
     /// Raised when Escape should go to the page (the focused control has an open popup such as an
     /// expanded combo box or a menu) rather than leave Focus mode.
@@ -140,6 +151,19 @@ public sealed class BrowseModeController
         {
             case NavigationCommand.StopSpeech:
                 _speechQueue.CancelAll();
+                return;
+
+            case NavigationCommand.Quit:
+                // Pressed twice within a few seconds: one accidental press must not close the
+                // screen reader
+                if (_quitConfirmation.Press())
+                    QuitRequested?.Invoke(this, EventArgs.Empty);
+                else
+                    Speak($"Press {ModifierName} Q again to exit Vox");
+                return;
+
+            case NavigationCommand.RunSetup:
+                SetupRequested?.Invoke(this, EventArgs.Empty);
                 return;
 
             case NavigationCommand.SayAll:
@@ -233,8 +257,16 @@ public sealed class BrowseModeController
             _typingEchoHandler.HandleKeyEvent(rawKey);
     }
 
+    /// <summary>
+    /// Counts focus changes. Passed to the document tracker with each focus change and echoed
+    /// back in <see cref="FocusInDocumentEvent"/>, so only the report for the latest focus counts.
+    /// </summary>
+    public long FocusSequence => _focusSequence;
+    private long _focusSequence;
+
     public void HandleFocusChanged(FocusChangedEvent focus)
     {
+        _focusSequence++;
         // Never echo what is typed into a password field; a new field starts a new word
         _typingEchoHandler.PasswordMode = focus.IsPassword;
         _typingEchoHandler.ResetWord();
@@ -475,8 +507,13 @@ public sealed class BrowseModeController
             return;
         if (!evt.DocumentRuntimeId.AsSpan().SequenceEqual(document.Root.UIARuntimeId))
             return;
-        // A report about an earlier focus must not re-enable keys after focus has moved on
-        if (_lastFocusedRuntimeId is null || !_lastFocusedRuntimeId.AsSpan().SequenceEqual(evt.FocusedRuntimeId))
+        // A report about an earlier focus must not re-enable keys after focus has moved on. The
+        // tracker reads focus again itself, so its element may differ from the event's: go by the
+        // focus change it was asked about when it says (sequence), else by element
+        bool current = evt.FocusSequence > 0
+            ? evt.FocusSequence == _focusSequence
+            : _lastFocusedRuntimeId is not null && _lastFocusedRuntimeId.AsSpan().SequenceEqual(evt.FocusedRuntimeId);
+        if (!current)
             return;
 
         _focusOutsideDocument = false;
@@ -758,15 +795,15 @@ public sealed class BrowseModeController
         _modalOpen = true;
         _ignoreFocusReturnTo = _lastFocusedRuntimeId;
         UpdateDocumentActive();
-        _ = ShowElementsListAsync(document);
+        _ = ShowElementsListAsync(document, _quickNavHandler.CurrentNode ?? _cursor?.CurrentNode);
     }
 
-    private async Task ShowElementsListAsync(VBufferDocument document)
+    private async Task ShowElementsListAsync(VBufferDocument document, VBufferNode? currentNode)
     {
         VBufferNode? selected = null;
         try
         {
-            selected = await _elementsListPresenter.ShowAsync(document).ConfigureAwait(false);
+            selected = await _elementsListPresenter.ShowAsync(document, currentNode).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -858,7 +895,9 @@ public sealed class BrowseModeController
 
             if (n.IsHeading)
                 return profile.AnnounceHeadingLevel ? $"heading level {n.HeadingLevel}" : null;
-            return profile.AnnounceControlType ? ControlTypeNames.ToSpoken(n.IsLink ? "Hyperlink" : n.ControlType) : null;
+            return profile.SpeaksRoleOf(n.ControlType, n.AriaRole, n.IsLink)
+                ? ControlTypeNames.ToSpoken(n.IsLink ? "Hyperlink" : n.ControlType)
+                : null;
         }
         return null;
     }

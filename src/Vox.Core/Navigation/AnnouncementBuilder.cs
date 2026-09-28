@@ -48,7 +48,7 @@ public sealed class AnnouncementBuilder
         }
 
         // Control type — "link", "button", "edit" (structural types such as Text are not spoken)
-        if (profile.AnnounceControlType)
+        if (profile.SpeaksRoleOf(node.ControlType, node.AriaRole, node.IsLink))
         {
             var controlType = ControlTypeNames.ToSpoken(node.ControlType);
             if (controlType is not null)

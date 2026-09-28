@@ -15,6 +15,12 @@ public sealed class VerbosityProfile
     public bool AnnouncePositionInfo { get; }
     public bool AnnounceDescription { get; }
 
+    /// <summary>
+    /// Speak the role of links and controls (edit, button, check box, ...) even when
+    /// <see cref="AnnounceControlType"/> is off, so interactive elements never sound like text.
+    /// </summary>
+    public bool AnnounceInteractiveRoles { get; }
+
     private VerbosityProfile(
         VerbosityLevel level,
         bool announceHeadingLevel,
@@ -24,8 +30,10 @@ public sealed class VerbosityProfile
         bool announceRequiredState,
         bool announceExpandedState,
         bool announcePositionInfo,
-        bool announceDescription)
+        bool announceDescription,
+        bool announceInteractiveRoles = true)
     {
+        AnnounceInteractiveRoles = announceInteractiveRoles;
         Level = level;
         AnnounceHeadingLevel = announceHeadingLevel;
         AnnounceLandmarkType = announceLandmarkType;
@@ -68,8 +76,8 @@ public sealed class VerbosityProfile
         announceDescription: false);
 
     /// <summary>
-    /// Advanced: Minimal — only role when ambiguous.
-    /// Example: "Products"
+    /// Advanced: Minimal — roles only for links and controls (which could otherwise pass for text).
+    /// Example: "Products" for a paragraph, "Search, edit" for a text box
     /// </summary>
     public static readonly VerbosityProfile Advanced = new(
         level: VerbosityLevel.Advanced,
@@ -81,6 +89,19 @@ public sealed class VerbosityProfile
         announceExpandedState: true,
         announcePositionInfo: false,
         announceDescription: false);
+
+    /// <summary>
+    /// Whether the role of an element with this control type / ARIA role should be spoken.
+    /// </summary>
+    public bool SpeaksRoleOf(string controlType, string? ariaRole, bool isLink) =>
+        AnnounceControlType || (AnnounceInteractiveRoles && IsInteractive(controlType, ariaRole, isLink));
+
+    private static bool IsInteractive(string controlType, string? ariaRole, bool isLink) =>
+        isLink
+        || controlType is "Button" or "SplitButton" or "Hyperlink"
+        || Buffer.FormControls.IsFormField(controlType, ariaRole)
+        || Buffer.FormControls.NeedsFocusMode(controlType, ariaRole)
+        || ariaRole?.Trim().ToLowerInvariant() is "button" or "link";
 
     /// <summary>
     /// Returns the built-in profile for the given verbosity level.

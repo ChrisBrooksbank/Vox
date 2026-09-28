@@ -78,19 +78,55 @@ public sealed class ElementsListViewModel
         var result = new List<VBufferNode>(source.Count);
         foreach (var node in source)
         {
-            if (GetDisplayText(node).Contains(filter, StringComparison.OrdinalIgnoreCase))
+            if (DisplayText(node).Contains(filter, StringComparison.OrdinalIgnoreCase))
                 result.Add(node);
         }
         return result;
     }
 
     /// <summary>
+    /// Index in <paramref name="items"/> to select first: the element containing
+    /// <paramref name="current"/> (the virtual cursor's node), else the first one after it, else
+    /// the last one — so the user starts where they are on the page. 0 when there is no current node.
+    /// </summary>
+    public static int InitialSelectionIndex(IReadOnlyList<VBufferNode> items, VBufferNode? current)
+    {
+        if (items.Count == 0 || current is null)
+            return items.Count == 0 ? -1 : 0;
+
+        for (var n = current; n is not null; n = n.Parent)
+        {
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (ReferenceEquals(items[i], n))
+                    return i;
+            }
+        }
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (items[i].Id > current.Id)
+                return i;
+        }
+        return items.Count - 1;
+    }
+
+    /// <summary>
+    /// How an item is shown: <see cref="GetDisplayText(VBufferNode, string?)"/> with this
+    /// document's text, so unnamed links show their text (e.g. an image's alt text).
+    /// </summary>
+    public string DisplayText(VBufferNode node) => GetDisplayText(node, _document.FlatText);
+
+    /// <summary>
     /// Returns the display text for a given node as it would appear in the list.
     /// </summary>
-    public static string GetDisplayText(VBufferNode node)
+    public static string GetDisplayText(VBufferNode node, string? flatText = null)
     {
+        // Unnamed elements (a link around an image, a heading made of child elements) show the
+        // text they contribute to the page instead
+        var name = !string.IsNullOrWhiteSpace(node.Name) ? node.Name : SubtreeText(node, flatText);
+
         if (node.IsHeading)
-            return $"H{node.HeadingLevel}: {node.Name}";
+            return $"H{node.HeadingLevel}: {name}";
 
         if (node.IsLandmark)
         {
@@ -99,10 +135,47 @@ public sealed class ElementsListViewModel
                 : $"{node.LandmarkType}: {node.Name}";
         }
 
-        if (!string.IsNullOrWhiteSpace(node.Name))
-            return node.Name;
+        // Form fields: what kind of field, and what is in it ("Search, edit, hello")
+        if (FormControls.IsFormField(node.ControlType, node.AriaRole))
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(name)) parts.Add(name);
+            var role = ControlTypeNames.ToSpoken(node.ControlType);
+            if (role is not null) parts.Add(role);
+            var value = FormControls.SpokenValue(node);
+            if (value is not null) parts.Add(value);
+            if (parts.Count > 0)
+                return string.Join(", ", parts);
+        }
+
+        if (!string.IsNullOrWhiteSpace(name))
+            return name;
 
         return $"[{node.ControlType}]";
+    }
+
+    private const int MaxSubtreeTextLength = 80;
+
+    /// <summary>The text <paramref name="node"/> and its descendants contribute to the flat text, on one line.</summary>
+    private static string SubtreeText(VBufferNode node, string? flatText)
+    {
+        if (string.IsNullOrEmpty(flatText))
+            return string.Empty;
+
+        int end = node.TextRange.End;
+        var stack = new Stack<VBufferNode>(node.Children);
+        while (stack.Count > 0)
+        {
+            var n = stack.Pop();
+            end = Math.Max(end, n.TextRange.End);
+            foreach (var child in n.Children)
+                stack.Push(child);
+        }
+
+        int start = Math.Clamp(node.TextRange.Start, 0, flatText.Length);
+        end = Math.Clamp(end, start, flatText.Length);
+        var text = string.Join(" ", flatText[start..end].Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return text.Length > MaxSubtreeTextLength ? text[..MaxSubtreeTextLength].TrimEnd() + "…" : text;
     }
 
     // -------------------------------------------------------------------------

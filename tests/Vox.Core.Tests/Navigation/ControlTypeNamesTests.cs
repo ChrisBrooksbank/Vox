@@ -36,6 +36,9 @@ public class ControlTypeNamesTests
         var focus = new FocusChangedEvent(DateTimeOffset.UtcNow, "Home", "Hyperlink", IsLink: true);
 
         Assert.Equal("Home, link", new AnnouncementBuilder().Build(focus, VerbosityProfile.Beginner, true));
-        Assert.Equal("Home", new AnnouncementBuilder().Build(focus, VerbosityProfile.Advanced, true));
+        Assert.Equal("Home, link", new AnnouncementBuilder().Build(focus, VerbosityProfile.Advanced, true));
+
+        var paragraph = new FocusChangedEvent(DateTimeOffset.UtcNow, "Intro", "Group");
+        Assert.Equal("Intro", new AnnouncementBuilder().Build(paragraph, VerbosityProfile.Advanced, true));
     }
 }

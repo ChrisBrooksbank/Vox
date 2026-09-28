@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace Vox.Core.Audio;
 
@@ -43,30 +44,65 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
             return;
         }
 
-        // Fire-and-forget: play on thread pool to not block caller
-        _ = Task.Run(() => PlaySound(sound, cueName));
-    }
-
-    private void PlaySound(CachedSound sound, string cueName)
-    {
         try
         {
-            using var output = new WaveOutEvent();
-            var provider = new CachedSoundSampleProvider(sound);
-            output.Init(provider);
-            output.Play();
-
-            // Wait for playback to complete (with timeout)
-            var timeout = DateTime.UtcNow.AddSeconds(5);
-            while (output.PlaybackState == PlaybackState.Playing && DateTime.UtcNow < timeout)
-            {
-                Thread.Sleep(10);
-            }
+            // One output device stays open, feeding a mixer: a cue is just another mixer input,
+            // so it starts without opening a device and overlapping cues simply mix
+            EnsureMixer().AddMixerInput(ToMixFormat(new CachedSoundSampleProvider(sound)));
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error playing audio cue: {CueName}", cueName);
+            ResetOutput(); // try a fresh device next time (e.g. the audio device changed)
         }
+    }
+
+    /// <summary>The mixer's format: every cue is converted to it.</summary>
+    public static readonly WaveFormat MixFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 1);
+
+    private readonly object _outputLock = new();
+    private WaveOutEvent? _output;
+    private MixingSampleProvider? _mixer;
+
+    private MixingSampleProvider EnsureMixer()
+    {
+        lock (_outputLock)
+        {
+            if (_mixer is not null)
+                return _mixer;
+
+            // ReadFully keeps the device playing silence between cues, so it is never re-opened
+            var mixer = new MixingSampleProvider(MixFormat) { ReadFully = true };
+            var output = new WaveOutEvent { DesiredLatency = 100 };
+            output.Init(mixer);
+            output.Play();
+            _output = output;
+            _mixer = mixer;
+            return mixer;
+        }
+    }
+
+    private void ResetOutput()
+    {
+        lock (_outputLock)
+        {
+            try { _output?.Dispose(); } catch { /* already gone */ }
+            _output = null;
+            _mixer = null;
+        }
+    }
+
+    /// <summary>Converts a cue to the mixer's format (mono, 44.1 kHz), whatever its file was.</summary>
+    public static ISampleProvider ToMixFormat(ISampleProvider source)
+    {
+        var provider = source;
+        if (provider.WaveFormat.Channels == 2)
+            provider = new NAudio.Wave.SampleProviders.StereoToMonoSampleProvider(provider);
+        else if (provider.WaveFormat.Channels != 1)
+            throw new NotSupportedException($"Audio cues must be mono or stereo, not {provider.WaveFormat.Channels} channels");
+        if (provider.WaveFormat.SampleRate != MixFormat.SampleRate)
+            provider = new WdlResamplingSampleProvider(provider, MixFormat.SampleRate);
+        return provider;
     }
 
     private void PreloadSounds()
@@ -118,7 +154,8 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
 
     public void Dispose()
     {
-        // CachedSound doesn't implement IDisposable in NAudio 2.x
+        // CachedSound doesn't implement IDisposable in NAudio 2.x; only the output device needs closing
+        ResetOutput();
     }
 }
 

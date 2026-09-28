@@ -6,6 +6,21 @@ This is a sixth static review, of `master` at `b043266`, done on 2026-09-28 afte
 
 The baseline is 643 tests passing on Linux, plus 14 that need Windows. Items marked **(verify)** depend on Windows, UIA, Chromium or SAPI behaviour and need confirming on Windows.
 
+## Status (2026-09-28)
+
+All 12 tasks are implemented, with regression tests for the testable parts. 684 tests pass on Linux, 41 of them new; the 14 that need Windows are unchanged. Still to check on Windows: the UIA timeouts, the persistent audio output, quitting and re-running setup from the keyboard, and menus and tab lists in Chrome.
+
+Where the implementation made a specific choice:
+- Task 1: menus, menu bars, menu items and tab lists/tabs (`TabItem`, `role=tab`) need Focus mode, as in NVDA.
+- Task 3: a spoken value is its first line, cut at 100 characters at a word boundary and marked "…". The buffer holds up to 1,000 characters of it.
+- Task 6: `BrowseModeController.FocusSequence` is passed to `OnFocusChangedAsync` and echoed in `FocusInDocumentEvent`. A report without a sequence falls back to comparing elements.
+- Task 7: `ConnectionTimeout` 2 s, `TransactionTimeout` 4 s. Only one `DetectDocument` waits at a time, and it reports on the latest focus change.
+- Task 8: one `WaveOutEvent` plays a `MixingSampleProvider` (44.1 kHz mono float) for the app's lifetime. Cues are converted to that format, and the device is re-opened after an error.
+- Task 9: Insert+Q (Caps Lock+Q) twice within 3 s quits, after saying "Vox exiting". The first press asks for confirmation.
+- Task 10: Insert+Ctrl+S runs the wizard again. The wizard's skip message and tutorial name the key.
+- Task 11: the list starts at the element containing the virtual cursor, else the next one, else the last. Unnamed items show their text from the buffer, and form fields show their kind and value.
+- Task 12: Advanced keeps the roles of links and controls (new `AnnounceInteractiveRoles`, on in every profile) and drops the rest.
+
 Tasks use the `IMPLEMENTATION_PLAN.md` checkbox format and are ordered by severity. Each fix needs a regression test in `tests/Vox.Core.Tests/` where the code is testable.
 
 ## P1 — Wrong behaviour in common use
@@ -18,24 +33,24 @@ The effects on a page's own menus (an "Actions" button opening a `role=menu`, a 
 - Opening one from Browse mode never enters Focus mode.
 
 The Escape handling added in round 4 (Escape goes to the page while a menu has focus) assumes the menu is used in Focus mode.
-- [ ] Add the menu control types and roles to the Focus-mode sets. `IsFormField` already lists them.
-- [ ] Tests: Focus mode stays on when focus moves from an edit to a `menuitem`; focus moving onto a `menuitem` from Browse mode enters Focus mode.
-- [ ] (verify) Also consider `tab`/`tablist`: ARIA tabs are operated with the arrow keys, and NVDA treats tab controls as needing focus mode.
+- [x] Add the menu control types and roles to the Focus-mode sets. `IsFormField` already lists them.
+- [x] Tests: Focus mode stays on when focus moves from an edit to a `menuitem`; focus moving onto a `menuitem` from Browse mode enters Focus mode.
+- [x] Tab lists and tabs need Focus mode too: ARIA tabs are operated with the arrow keys, and NVDA treats tab controls the same way.
 
 ### 2. The wizard's voice step changes the voice when the user accepts the current one
 `RunVoiceSelectionStepAsync` starts at `voices[0]` unless `VoiceName` is set (`FirstRunWizard.cs:213`). On first run `VoiceName` is null, and the voice actually in use is the one `SapiSpeechEngine.SelectOneCoreVoice` picked at startup, often not `voices[0]`. So the step announces the wrong "Current voice", and pressing Enter to keep it saves `voices[0]` and switches to a voice the user never heard.
-- [ ] Add `string? CurrentVoice { get; }` to `ISpeechEngine` (SAPI: `_synthesizer.Voice.Name`), and start the step at that voice. Only save `VoiceName` when the user actually changed voice.
-- [ ] Test, with a fake engine whose current voice is the second of three: the prompt names it, and Enter keeps it (no `SetVoice`, `VoiceName` unchanged).
+- [x] Add `string? CurrentVoice { get; }` to `ISpeechEngine` (SAPI: `_synthesizer.Voice.Name`), and start the step at that voice. Only save `VoiceName` when the user actually changed voice.
+- [x] Test, with a fake engine whose current voice is the second of three: the prompt names it, and Enter keeps it (no `SetVoice`, `VoiceName` unchanged).
 
 ### 3. Focusing a large text box reads its entire contents
 Round 5 speaks a field's value on focus (`FormControls.SpokenValue`, `FormControls.cs:56`) with no limit. Tabbing into a `<textarea>` holding a long draft, a comment box, or a code editor exposed as an Edit reads all of it, and the only way to stop it is Ctrl. The value is also put into the buffer in full, so a big textarea adds thousands of characters and many lines of editable text to browse mode. NVDA reads only the current line of a multi-line field.
-- [ ] Speak at most the first line of a value, cut at `MaxLineLength` at a word boundary, with "…" when truncated. In the buffer, cap the value (e.g. 1,000 characters) and keep it on the field's own line(s).
-- [ ] Tests: a multi-line value speaks only its first line; a long single line is cut at a word boundary; the buffer text is capped.
+- [x] Speak at most the first line of a value, cut at `MaxLineLength` at a word boundary, with "…" when truncated. In the buffer, cap the value (e.g. 1,000 characters) and keep it on the field's own line(s).
+- [x] Tests: a multi-line value speaks only its first line; a long single line is cut at a word boundary; the buffer text is capped.
 
 ### 4. Leaving the wizard early keeps the previewed rate and voice but not the settings
 The rate and voice steps change the engine immediately while previewing (`FirstRunWizard.cs:191`, `FirstRunWizard.cs:237`), but save the setting only when Enter is pressed. If the user presses Escape or stops answering in the middle of either step, `WizardExitException` saves the settings "so far" (`FirstRunWizard.cs:110`), which don't include the preview. The engine keeps the previewed rate or voice. `ApplySettings` doesn't correct it, because it only re-applies values that changed since last time. What the user hears then differs from `settings.json` until Vox restarts, and the next settings change doesn't fix it.
-- [ ] On early exit (and when skipping at the welcome step), re-apply the saved `SpeechRateWpm` and `VoiceName` to the engine before speaking "Setup ended".
-- [ ] Test: change the rate with Up, then Escape → the engine's last `SetRate` call is the saved rate.
+- [x] On early exit (and when skipping at the welcome step), re-apply the saved `SpeechRateWpm` and `VoiceName` to the engine before speaking "Setup ended".
+- [x] Test: change the rate with Up, then Escape → the engine's last `SetRate` call is the saved rate.
 
 ## P2 — Smaller issues
 
@@ -47,8 +62,8 @@ Round 5 speaks identical live-region text again after 1.5 s without events (`Liv
 
 ### 7. A hung page stalls all UIA work, and the backlog runs afterwards
 Every UIA call runs in turn on one thread (`UIAThread`), with UIA's default timeouts. A busy or hung renderer blocks the thread in `BuildUpdatedCache` or `FindFirstBuildCache` for as long as UIA waits, which is up to its transaction timeout (20 s by default). Meanwhile each focus change queues another `DetectDocument`, and they all run once the thread is free.
-- [ ] Set `IUIAutomation2.ConnectionTimeout`/`TransactionTimeout` to a few seconds.
-- [ ] Coalesce `DetectDocument` in `BrowseDocumentTracker`: don't queue one while another is waiting to run.
+- [x] Set `IUIAutomation2.ConnectionTimeout`/`TransactionTimeout` to a few seconds.
+- [x] Coalesce `DetectDocument` in `BrowseDocumentTracker`: don't queue one while another is waiting to run.
 
 ### 8. Each audio cue opens a new output device on a sleeping pool thread
 `AudioCuePlayer.Play` starts `Task.Run`, creates a `WaveOutEvent`, and polls `Thread.Sleep(10)` until the sound ends (`AudioCuePlayer.cs:47`). Every cue pays the device-open latency, and cues repeat quickly: boundary on a held arrow key, and mode cues. Each one also holds a thread-pool thread, and overlapping cues open several devices at once. Keep one `WaveOutEvent` open for the app's lifetime, feeding a `MixingSampleProvider`, and add a `CachedSoundSampleProvider` input per cue.

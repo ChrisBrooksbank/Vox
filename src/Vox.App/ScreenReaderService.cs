@@ -33,7 +33,9 @@ public sealed class ScreenReaderService : IHostedService
     private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly FirstRunWizard _firstRunWizard;
     private readonly IOptionsMonitor<VoxSettings> _settings;
+    private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<ScreenReaderService> _logger;
+    private int _setupRunning;
 
     private IDisposable? _settingsSubscription;
     private VoxSettings? _appliedSettings;
@@ -54,8 +56,10 @@ public sealed class ScreenReaderService : IHostedService
         IAudioCuePlayer audioCuePlayer,
         FirstRunWizard firstRunWizard,
         IOptionsMonitor<VoxSettings> settings,
+        IHostApplicationLifetime lifetime,
         ILogger<ScreenReaderService> logger)
     {
+        _lifetime = lifetime;
         _speechEngine = speechEngine;
         _speechQueue = speechQueue;
         _eventPipeline = eventPipeline;
@@ -115,6 +119,8 @@ public sealed class ScreenReaderService : IHostedService
         _navigationManager.ModeChanged += OnModeChanged;
         _browseModeController.DocumentActiveChanged += OnDocumentActiveChanged;
         _browseModeController.EscapeGoesToPageChanged += OnEscapeGoesToPageChanged;
+        _browseModeController.QuitRequested += OnQuitRequested;
+        _browseModeController.SetupRequested += OnSetupRequested;
         _keyInputDispatcher.SetMode(_navigationManager.CurrentMode);
         _keyInputDispatcher.SetDocumentActive(_browseModeController.IsDocumentActive);
 
@@ -154,6 +160,8 @@ public sealed class ScreenReaderService : IHostedService
         _navigationManager.ModeChanged -= OnModeChanged;
         _browseModeController.DocumentActiveChanged -= OnDocumentActiveChanged;
         _browseModeController.EscapeGoesToPageChanged -= OnEscapeGoesToPageChanged;
+        _browseModeController.QuitRequested -= OnQuitRequested;
+        _browseModeController.SetupRequested -= OnSetupRequested;
         _eventPipeline.FocusAnnouncementFilter = null;
         _settingsSubscription?.Dispose();
 
@@ -217,7 +225,7 @@ public sealed class ScreenReaderService : IHostedService
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
     {
         _browseModeController.HandleFocusChanged(e);
-        _ = _documentTracker.OnFocusChangedAsync();
+        _ = _documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence);
     }
 
     private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>
@@ -247,6 +255,52 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnElementSelectedProcessed(object? sender, ElementSelectedEvent e) =>
         _browseModeController.HandleElementSelected(e);
+
+    private void OnQuitRequested(object? sender, EventArgs e) => _ = QuitAsync();
+
+    private async Task QuitAsync()
+    {
+        _logger.LogInformation("Quit requested by the user");
+        try
+        {
+            // Say goodbye (briefly) before the speech engine is stopped
+            await _speechQueue.EnqueueAndWaitAsync(new Utterance("Vox exiting", SpeechPriority.Interrupt))
+                .WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is TimeoutException or OperationCanceledException)
+        {
+        }
+        _lifetime.StopApplication();
+    }
+
+    private void OnSetupRequested(object? sender, EventArgs e) => _ = RunSetupAgainAsync();
+
+    /// <summary>
+    /// Runs the first-run wizard again. Browse-mode key handling is paused meanwhile, so the
+    /// wizard's keys (arrows, Enter, digits) aren't also taken as navigation commands.
+    /// </summary>
+    private async Task RunSetupAgainAsync()
+    {
+        if (Interlocked.Exchange(ref _setupRunning, 1) == 1)
+            return;
+        try
+        {
+            _sayAllController.Cancel();
+            _speechQueue.CancelAll();
+            _keyInputDispatcher.Stop();
+            await _firstRunWizard.RunAsync(_lifetime.ApplicationStopping).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "First-run wizard failed");
+        }
+        finally
+        {
+            if (!_lifetime.ApplicationStopping.IsCancellationRequested)
+                _keyInputDispatcher.Start();
+            Interlocked.Exchange(ref _setupRunning, 0);
+        }
+    }
 
     private void OnModeChanged(object? sender, InteractionMode mode) =>
         _keyInputDispatcher.SetMode(mode);

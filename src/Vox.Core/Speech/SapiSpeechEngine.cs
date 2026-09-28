@@ -164,6 +164,11 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         }
     }
 
+    public string? CurrentVoice
+    {
+        get { lock (_synthLock) return TryGetCurrentVoiceName(); }
+    }
+
     public IReadOnlyList<string> GetAvailableVoices()
     {
         lock (_synthLock)

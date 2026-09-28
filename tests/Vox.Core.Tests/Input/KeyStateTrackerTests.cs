@@ -97,3 +97,33 @@ public class KeyStateTrackerTests
         Assert.Equal(KeyModifiers.None, tracker.Current);
     }
 }
+
+public class RepeatPressConfirmationTests
+{
+    [Fact]
+    public void SecondPressWithinWindow_Confirms()
+    {
+        long now = 1000;
+        var confirmation = new RepeatPressConfirmation(TimeSpan.FromSeconds(3), () => now);
+
+        Assert.False(confirmation.Press());
+        now += 2000;
+        Assert.True(confirmation.Press());
+        // Confirmed: the next press starts over
+        now += 100;
+        Assert.False(confirmation.Press());
+    }
+
+    [Fact]
+    public void SecondPressAfterWindow_StartsOver()
+    {
+        long now = 1000;
+        var confirmation = new RepeatPressConfirmation(TimeSpan.FromSeconds(3), () => now);
+
+        Assert.False(confirmation.Press());
+        now += 5000;
+        Assert.False(confirmation.Press());
+        now += 1000;
+        Assert.True(confirmation.Press());
+    }
+}
