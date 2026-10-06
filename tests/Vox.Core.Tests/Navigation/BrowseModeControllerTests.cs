@@ -715,6 +715,38 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public void RepeatedFocusOnSameElement_DoesNotPullTheCursorBack()
+    {
+        var doc = LoadDocument();
+        var focusOnLink = new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]);
+        _controller.HandleFocusChanged(focusOnLink);
+        Assert.Equal(doc.FindByRuntimeId([4])!.TextRange.Start, _controller.Cursor!.TextOffset);
+
+        // The user reads on from the link, then Chromium repeats the focus event for it
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        int readingAt = _controller.Cursor.TextOffset;
+        Assert.NotEqual(doc.FindByRuntimeId([4])!.TextRange.Start, readingAt);
+        _controller.HandleFocusChanged(focusOnLink with { Timestamp = DateTimeOffset.UtcNow });
+
+        Assert.Equal(readingAt, _controller.Cursor.TextOffset);
+    }
+
+    [Fact]
+    public void FocusReturningAfterLeavingTheElement_MovesTheCursorAgain()
+    {
+        var doc = LoadDocument();
+        var focusOnLink = new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]);
+        _controller.HandleFocusChanged(focusOnLink);
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        // Focus goes to the page itself, then back to the link
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "", "Document", RuntimeId: [1]));
+        _controller.HandleFocusChanged(focusOnLink with { Timestamp = DateTimeOffset.UtcNow });
+
+        Assert.Equal(doc.FindByRuntimeId([4])!.TextRange.Start, _controller.Cursor!.TextOffset);
+    }
+
+    [Fact]
     public void ReturningToPageWithFocusInEditField_ResumesFocusMode()
     {
         LoadDocument();

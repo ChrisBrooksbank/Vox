@@ -133,6 +133,23 @@ public class KeyMapTests
         Assert.Equal(NavigationCommand.NextLink, cmd);
     }
 
+    [Theory]
+    [InlineData("None", "Browse", "99")]       // a number, not a command
+    [InlineData("None", "Browse", "3")]        // a number that happens to be a valid value
+    [InlineData("None", "7", "NextLink")]      // a numeric mode
+    [InlineData("64", "Browse", "NextLink")]   // a numeric modifier
+    public void LoadFromJson_NumericNames_AreSkippedWithAWarning(string modifiers, string mode, string command)
+    {
+        var json = $$"""
+        { "bindings": [ { "modifiers": "{{modifiers}}", "vkCode": 72, "mode": "{{mode}}", "command": "{{command}}" } ] }
+        """;
+
+        var map = KeyMap.LoadFromJson(json, out var warnings);
+
+        Assert.Equal(0, map.Count);
+        Assert.Single(warnings);
+    }
+
     [Fact]
     public void LoadFromJson_AnyModeAddsBindingForBothModes()
     {

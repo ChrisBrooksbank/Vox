@@ -317,6 +317,9 @@ public class VBufferBuilderTests
     [InlineData("expanded=true",  true,  true)]
     [InlineData("expanded=false", false, true)]   // collapsed: expandable, announced as "collapsed"
     [InlineData("haspopup=true",  false, true)]
+    [InlineData("haspopup=menu",  false, true)]   // ARIA 1.1 token values
+    [InlineData("haspopup=listbox", false, true)]
+    [InlineData("haspopup=false", false, false)]
     [InlineData("",               false, false)]
     public void Build_IsExpanded_And_IsExpandable(string ariaProps, bool expectedExpanded, bool expectedExpandable)
     {

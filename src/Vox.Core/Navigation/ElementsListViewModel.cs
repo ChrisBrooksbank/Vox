@@ -138,6 +138,11 @@ public sealed class ElementsListViewModel
         // Form fields: what kind of field, and what is in it ("Search, edit, hello")
         if (FormControls.IsFormField(node.ControlType, node.AriaRole))
         {
+            // An unnamed field's own buffer text is just its value, which is added below:
+            // don't show it twice ("hello, edit, hello")
+            if (string.IsNullOrWhiteSpace(node.Name) && node.HasText)
+                name = string.Empty;
+
             var parts = new List<string>();
             if (!string.IsNullOrWhiteSpace(name)) parts.Add(name);
             var role = ControlTypeNames.ToSpoken(node.ControlType);

@@ -32,10 +32,29 @@ public static class ControlState
 
         var expanded = VBufferBuilder.ParseAriaPropertyBool(ariaProps ?? string.Empty, "expanded");
         var expandable = expanded
-            || VBufferBuilder.ParseAriaPropertyBool(ariaProps ?? string.Empty, "haspopup")
+            || HasPopup(ariaProps)
             || AriaPropertyPresent(ariaProps, "expanded")
             || string.Equals(controlType, "ComboBox", StringComparison.OrdinalIgnoreCase);
         return (expandable, expanded);
+    }
+
+    /// <summary>
+    /// aria-haspopup set to anything but false: since ARIA 1.1 it names the popup's kind
+    /// (menu, listbox, tree, grid, dialog), and "true" means menu.
+    /// </summary>
+    private static bool HasPopup(string? ariaProps)
+    {
+        if (string.IsNullOrEmpty(ariaProps)) return false;
+        foreach (var segment in ariaProps.Split(';', ','))
+        {
+            var sep = segment.IndexOf('=');
+            if (sep < 0) sep = segment.IndexOf(':');
+            if (sep <= 0 || !string.Equals(segment[..sep].Trim(), "haspopup", StringComparison.OrdinalIgnoreCase))
+                continue;
+            var value = segment[(sep + 1)..].Trim().ToLowerInvariant();
+            return value is "true" or "1" or "yes" or "menu" or "listbox" or "tree" or "grid" or "dialog";
+        }
+        return false;
     }
 
     /// <summary>True when <paramref name="key"/> appears in the ARIA properties at all (e.g. expanded=false).</summary>

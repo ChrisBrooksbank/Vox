@@ -299,6 +299,8 @@ public sealed class BrowseModeController
 
         // Modes only matter inside the active document: auto-switch and follow focus only there
         var node = _quickNavHandler.CurrentDocument?.FindByRuntimeId(runtimeId);
+        if (node is null || ReferenceEquals(node, _quickNavHandler.CurrentDocument!.Root))
+            _cursorFollowedFocusTo = null; // coming back from here is a real move again
         if (node is null)
         {
             // Probably left the page (Ctrl+L, F6, Alt+Tab). Stop treating keys as browse commands
@@ -335,8 +337,18 @@ public sealed class BrowseModeController
         if (ReferenceEquals(node, _quickNavHandler.CurrentDocument!.Root))
             return;
 
+        // The cursor follows focus once per focused element: a repeated focus event for it
+        // (Chromium sends them, e.g. when the window is re-activated) must not pull the cursor
+        // back after the user has read on from it
+        if (_cursorFollowedFocusTo is { } followed && followed.AsSpan().SequenceEqual(runtimeId))
+            return;
+
         MoveTo(node);
+        _cursorFollowedFocusTo = runtimeId;
     }
+
+    // The focused element the cursor was last moved to (pipeline thread only)
+    private int[]? _cursorFollowedFocusTo;
 
     /// <summary>
     /// Announces state changes of the focused element: expanded/collapsed, and value or name
@@ -464,6 +476,7 @@ public sealed class BrowseModeController
 
         _documentFocusedRuntimeId = null;
         _focusOutsideDocument = false;
+        _cursorFollowedFocusTo = null;
 
         if (document is null)
         {
@@ -484,7 +497,10 @@ public sealed class BrowseModeController
             if (focusIsPage && remembered is not null)
                 RestorePosition(document, remembered);
             else if (focused is not null)
+            {
                 MoveTo(focused);
+                _cursorFollowedFocusTo = focused.UIARuntimeId;
+            }
 
             // Coming back to a page with focus in an edit field (Alt+Tab, tab switch): resume
             // typing in Focus mode. Only a fresh load's autofocus stays in Browse mode.

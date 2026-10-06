@@ -275,6 +275,17 @@ public class ElementsListDialogTests
     }
 
     [Fact]
+    public void GetDisplayText_UnnamedFormField_ShowsValueOnce()
+    {
+        // An unnamed text box's buffer text is just its value
+        var node = new VBufferNode
+        {
+            UIARuntimeId = [7], Name = "", ControlType = "Edit", Value = "hello", TextRange = (0, 6),
+        };
+        Assert.Equal("edit, hello", ElementsListViewModel.GetDisplayText(node, "hello\n"));
+    }
+
+    [Fact]
     public void GetDisplayText_NodeWithoutName_FallsBackToControlType()
     {
         var node = new VBufferNode { UIARuntimeId = [99, 0], Name = "", ControlType = "Button" };

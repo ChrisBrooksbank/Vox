@@ -50,7 +50,9 @@ public sealed class AnnouncementBuilder
         // Control type — "link", "button", "edit" (structural types such as Text are not spoken)
         if (profile.SpeaksRoleOf(node.ControlType, node.AriaRole, node.IsLink))
         {
-            var controlType = ControlTypeNames.ToSpoken(node.ControlType);
+            // A link is spoken as a link whatever control type exposes it (e.g. role=link on a
+            // generic element), as the cursor's role announcement does
+            var controlType = ControlTypeNames.ToSpoken(node.IsLink ? "Hyperlink" : node.ControlType);
             if (controlType is not null)
                 Append(sb, controlType);
         }
@@ -110,7 +112,8 @@ public sealed class AnnouncementBuilder
             AriaRole = focus.AriaRole ?? string.Empty,
             HeadingLevel = focus.HeadingLevel,
             LandmarkType = focus.LandmarkType ?? string.Empty,
-            IsLink = focus.IsLink,
+            // Links without an ARIA role (e.g. Firefox's) are still links: say "visited"
+            IsLink = focus.IsLink || string.Equals(focus.ControlType, "Hyperlink", StringComparison.OrdinalIgnoreCase),
             IsVisited = focus.IsVisited,
             IsRequired = focus.IsRequired,
             IsExpandable = focus.IsExpandable,

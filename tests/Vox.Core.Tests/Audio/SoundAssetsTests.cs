@@ -99,4 +99,20 @@ public class AudioCueIdleTests
         Assert.False(player.IsOutputOpen);
         Assert.True(opened[0].Disposed);
     }
+
+    [Fact]
+    public void IdleClose_AlreadyFiredBeforeANewCue_DoesNotCloseTheNewCue()
+    {
+        // The idle timer fired just before a cue was added and runs after it: the device the
+        // new cue plays on must stay open
+        var (player, opened) = CreatePlayer();
+        using var _ = player;
+        player.IdleClose = TimeSpan.FromSeconds(5);
+        player.PlayProvider(Cue());
+
+        player.CloseIfIdle();
+
+        Assert.True(player.IsOutputOpen);
+        Assert.False(opened[0].Disposed);
+    }
 }
