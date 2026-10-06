@@ -97,7 +97,10 @@ public sealed class UIAThread : IDisposable
         if (_disposed) return;
         _disposed = true;
         _workQueue.CompleteAdding();
-        _thread.Join(TimeSpan.FromSeconds(5));
-        _workQueue.Dispose();
+        // A work item can outlast the wait (a large page's capture may take up to 20 s). The
+        // queue must outlive the thread then: disposing it under the running enumerator would
+        // throw on the STA thread, and an unhandled exception there takes the process down
+        if (_thread.Join(TimeSpan.FromSeconds(5)))
+            _workQueue.Dispose();
     }
 }

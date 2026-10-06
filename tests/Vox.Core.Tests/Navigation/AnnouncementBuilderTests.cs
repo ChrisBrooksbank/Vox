@@ -264,6 +264,15 @@ public class AnnouncementBuilderTests
     }
 
     [Fact]
+    public void Build_FocusOnVisitedHyperlinkWithoutAriaRole_SaysVisited()
+    {
+        var focus = new Vox.Core.Pipeline.FocusChangedEvent(
+            DateTimeOffset.UtcNow, "Home", "Hyperlink", IsVisited: true);
+        Assert.Equal("Home, link, visited",
+            _builder.Build(focus, VerbosityProfile.Beginner, announceVisitedLinks: true));
+    }
+
+    [Fact]
     public void Build_AriaLinkWithGenericControlType_SpeaksLinkRole()
     {
         // role=link on a generic element: IsLink, but the control type isn't Hyperlink

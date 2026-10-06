@@ -112,7 +112,8 @@ public sealed class AnnouncementBuilder
             AriaRole = focus.AriaRole ?? string.Empty,
             HeadingLevel = focus.HeadingLevel,
             LandmarkType = focus.LandmarkType ?? string.Empty,
-            IsLink = focus.IsLink,
+            // Links without an ARIA role (e.g. Firefox's) are still links: say "visited"
+            IsLink = focus.IsLink || string.Equals(focus.ControlType, "Hyperlink", StringComparison.OrdinalIgnoreCase),
             IsVisited = focus.IsVisited,
             IsRequired = focus.IsRequired,
             IsExpandable = focus.IsExpandable,
