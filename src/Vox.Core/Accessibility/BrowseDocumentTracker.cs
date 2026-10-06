@@ -202,6 +202,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         _documentRoot = document;
         _documentRuntimeId = documentId;
         _retriedDocumentKey = null;
+        _fullRecaptureFailures = 0;
 
         _logger.LogInformation("Virtual buffer built: {Nodes} nodes in {Ms}ms", buffer.AllNodes.Count, sw.ElapsedMilliseconds);
         _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, buffer, focusedId));
@@ -293,6 +294,10 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         }
     }
 
+    // Whole-document re-captures that failed in a row (UIA thread only)
+    private int _fullRecaptureFailures;
+    private const int MaxFullRecaptureRetries = 2;
+
     private void ProcessPendingChanges()
     {
         _ = RunOnUiaThread(() =>
@@ -316,8 +321,22 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             // Many changes, or a change to the document itself: re-capture the whole document
             if (full || changes.Count > FullRecaptureThreshold || changes.Any(c => c.AsSpan().SequenceEqual(rootId)))
             {
-                var cached = _uiaProvider.WithDocumentCaptureTimeout(() => root.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
-                var rootSnapshot = UIAElementSnapshot.Capture(cached);
+                UIAElementSnapshot rootSnapshot;
+                try
+                {
+                    var cached = _uiaProvider.WithDocumentCaptureTimeout(() => root.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
+                    rootSnapshot = UIAElementSnapshot.Capture(cached);
+                }
+                catch (Exception ex)
+                {
+                    // A busy page or a timeout: the pending changes were already taken, so without
+                    // a retry the buffer would stay stale until the page happened to change again
+                    _logger.LogDebug(ex, "Could not re-capture the document");
+                    if (++_fullRecaptureFailures <= MaxFullRecaptureRetries)
+                        RequestRecapture(null);
+                    return;
+                }
+                _fullRecaptureFailures = 0;
                 RememberWholeCapture(rootSnapshot); // forgets elements removed since
                 _eventSink.Post(new SubtreeChangedEvent(DateTimeOffset.UtcNow, rootId, rootSnapshot, rootId));
                 return;

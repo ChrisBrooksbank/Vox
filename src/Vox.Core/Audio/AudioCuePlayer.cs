@@ -60,7 +60,7 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
         _logger = logger;
         _soundsDirectory = soundsDirectory ?? GetDefaultSoundsDirectory();
         _outputFactory = outputFactory ?? OpenWaveOut;
-        _idleTimer = new System.Threading.Timer(_ => ResetOutput(), null, Timeout.Infinite, Timeout.Infinite);
+        _idleTimer = new System.Threading.Timer(_ => CloseIfIdle(), null, Timeout.Infinite, Timeout.Infinite);
         PreloadSounds();
     }
 
@@ -96,7 +96,32 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
         {
             _idleTimer.Change(Timeout.Infinite, Timeout.Infinite);
             EnsureMixer().AddMixerInput(provider);
+            _lastCueTick = Environment.TickCount64;
             RestartIdleTimer();
+        }
+    }
+
+    // When the last cue was added (guarded by _outputLock)
+    private long _lastCueTick;
+
+    /// <summary>
+    /// Closes the output unless a cue was added within <see cref="IdleClose"/>. Run by the idle
+    /// timer: stopping the timer can't recall a callback that has already fired and is waiting
+    /// for the lock, which would otherwise close the device under the cue just added.
+    /// </summary>
+    public void CloseIfIdle()
+    {
+        lock (_outputLock)
+        {
+            long remaining = (long)IdleClose.TotalMilliseconds - (Environment.TickCount64 - _lastCueTick);
+            if (_mixer is not null && remaining > 0)
+            {
+                // A cue was added since: wait out its idle time (the timer's clock and the tick
+                // count can also disagree by a few ms)
+                try { _idleTimer.Change(remaining, Timeout.Infinite); } catch (ObjectDisposedException) { }
+                return;
+            }
+            ResetOutput();
         }
     }
 

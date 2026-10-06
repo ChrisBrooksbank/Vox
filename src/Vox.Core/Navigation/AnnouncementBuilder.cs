@@ -50,7 +50,9 @@ public sealed class AnnouncementBuilder
         // Control type — "link", "button", "edit" (structural types such as Text are not spoken)
         if (profile.SpeaksRoleOf(node.ControlType, node.AriaRole, node.IsLink))
         {
-            var controlType = ControlTypeNames.ToSpoken(node.ControlType);
+            // A link is spoken as a link whatever control type exposes it (e.g. role=link on a
+            // generic element), as the cursor's role announcement does
+            var controlType = ControlTypeNames.ToSpoken(node.IsLink ? "Hyperlink" : node.ControlType);
             if (controlType is not null)
                 Append(sb, controlType);
         }

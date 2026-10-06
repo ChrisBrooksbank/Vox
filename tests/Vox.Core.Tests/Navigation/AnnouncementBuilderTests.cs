@@ -262,6 +262,14 @@ public class AnnouncementBuilderTests
         }
         return count;
     }
+
+    [Fact]
+    public void Build_AriaLinkWithGenericControlType_SpeaksLinkRole()
+    {
+        // role=link on a generic element: IsLink, but the control type isn't Hyperlink
+        var node = MakeNode(name: "More", controlType: "Group", isLink: true);
+        Assert.Equal("More, link", _builder.Build(node, VerbosityProfile.Advanced));
+    }
 }
 
 public class ValueAnnouncementTests
