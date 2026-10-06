@@ -145,7 +145,7 @@ public sealed class KeyMap
                 continue;
             }
 
-            if (!Enum.TryParse<NavigationCommand>(entry.Command, ignoreCase: true, out var command))
+            if (!TryParseName<NavigationCommand>(entry.Command, out var command))
             {
                 warningList.Add($"Binding for vkCode {entry.VkCode}: unrecognized command '{entry.Command}' — skipped.");
                 continue;
@@ -158,7 +158,7 @@ public sealed class KeyMap
                 map._bindings[new KeyMapKey(modifiers, entry.VkCode, InteractionMode.Focus)] = binding;
                 map._anyBindings[(modifiers, entry.VkCode)] = binding;
             }
-            else if (Enum.TryParse<InteractionMode>(entry.Mode, ignoreCase: true, out var mode))
+            else if (TryParseName<InteractionMode>(entry.Mode, out var mode))
             {
                 map._bindings[new KeyMapKey(modifiers, entry.VkCode, mode)] = binding;
             }
@@ -219,6 +219,15 @@ public sealed class KeyMap
     /// </summary>
     public int Count => _bindings.Count;
 
+    /// <summary>
+    /// Parses an enum member by name. Enum.TryParse alone also accepts any number ("99"), which
+    /// would turn a typo into a binding that silently never fires.
+    /// </summary>
+    private static bool TryParseName<TEnum>(string? value, out TEnum result) where TEnum : struct, Enum =>
+        Enum.TryParse(value, ignoreCase: true, out result)
+        && Enum.IsDefined(result)
+        && !char.IsDigit(value!.Trim()[0]) && value.Trim()[0] is not '-' and not '+';
+
     private static bool TryParseModifiers(string value, out KeyModifiers result)
     {
         result = KeyModifiers.None;
@@ -231,7 +240,7 @@ public sealed class KeyMap
 
         foreach (var part in value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            if (!Enum.TryParse<KeyModifiers>(part, ignoreCase: true, out var flag))
+            if (!TryParseName<KeyModifiers>(part, out var flag))
                 return false;
             result |= flag;
         }
