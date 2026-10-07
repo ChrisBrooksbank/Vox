@@ -33,6 +33,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly NotRespondingReporter _notRespondingReporter;
     private readonly FocusedTextMonitor _focusedTextMonitor;
     private readonly TerminalMonitor _terminalMonitor;
+    private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -77,6 +78,7 @@ public sealed class ScreenReaderService : IHostedService
         NotRespondingReporter notRespondingReporter,
         FocusedTextMonitor focusedTextMonitor,
         TerminalMonitor terminalMonitor,
+        ForegroundWindowMonitor foregroundWindowMonitor,
         NavigationManager navigationManager,
         BrowseModeController browseModeController,
         SayAllController sayAllController,
@@ -100,6 +102,7 @@ public sealed class ScreenReaderService : IHostedService
         _notRespondingReporter = notRespondingReporter;
         _focusedTextMonitor = focusedTextMonitor;
         _terminalMonitor = terminalMonitor;
+        _foregroundWindowMonitor = foregroundWindowMonitor;
         _navigationManager = navigationManager;
         _browseModeController = browseModeController;
         _sayAllController = sayAllController;
@@ -152,6 +155,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.CaretMovedProcessed += OnCaretMovedProcessed;
         _eventPipeline.TextEditedProcessed += OnTextEditedProcessed;
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
+        _eventPipeline.FocusContextProvider = _foregroundWindowMonitor.FocusContext;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
         _navigationManager.ModeChanged += OnModeChanged;
@@ -208,6 +212,7 @@ public sealed class ScreenReaderService : IHostedService
         _browseModeController.QuitRequested -= OnQuitRequested;
         _browseModeController.SetupRequested -= OnSetupRequested;
         _eventPipeline.FocusAnnouncementFilter = null;
+        _eventPipeline.FocusContextProvider = null;
         _settingsSubscription?.Dispose();
 
         // Stop Say All if running

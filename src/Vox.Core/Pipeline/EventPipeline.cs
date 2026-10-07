@@ -80,6 +80,15 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// </summary>
     public Func<FocusChangedEvent, bool>? FocusAnnouncementFilter { get; set; }
 
+    /// <summary>
+    /// Optional context said before a focus announcement, such as the title of the window focus
+    /// has just moved into. Called on the pipeline thread; null or empty adds nothing.
+    /// </summary>
+    public Func<FocusChangedEvent, string?>? FocusContextProvider { get; set; }
+
+    /// <summary>Raised on the pipeline thread when focus has moved into another top-level window.</summary>
+    public event EventHandler<ForegroundWindowChangedEvent>? ForegroundWindowChangedProcessed;
+
     /// <summary>Raised when a PropertyChangedEvent is processed.</summary>
     public event EventHandler<PropertyChangedEvent>? PropertyChangedProcessed;
 
@@ -233,6 +242,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     PropertyChangedProcessed?.Invoke(this, propertyChanged);
                     break;
 
+                case ForegroundWindowChangedEvent foregroundChanged:
+                    ForegroundWindowChangedProcessed?.Invoke(this, foregroundChanged);
+                    break;
+
                 case CaretMovedEvent caretMoved:
                     CaretMovedProcessed?.Invoke(this, caretMoved);
                     break;
@@ -295,6 +308,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
         // Nothing to say (e.g. an unnamed group): don't send an empty Interrupt that would
         // silently cut off whatever is being spoken
         var text = BuildFocusAnnouncement(focus);
+        var context = FocusContextProvider?.Invoke(focus);
+        if (!string.IsNullOrWhiteSpace(context))
+            text = string.IsNullOrWhiteSpace(text) ? context : $"{context}. {text}";
         if (string.IsNullOrWhiteSpace(text))
             return;
 

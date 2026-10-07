@@ -195,3 +195,11 @@ public record TextEditedEvent(
     DateTimeOffset Timestamp,
     int[] RuntimeId
 ) : ScreenReaderEvent(Timestamp);
+
+/// <summary>Focus moved into another top-level window (its handle, title and process).</summary>
+public record ForegroundWindowChangedEvent(
+    DateTimeOffset Timestamp,
+    IntPtr WindowHandle,
+    string Title,
+    int ProcessId
+) : ScreenReaderEvent(Timestamp);
