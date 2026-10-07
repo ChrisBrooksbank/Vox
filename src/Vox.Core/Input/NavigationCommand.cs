@@ -86,5 +86,9 @@ public enum NavigationCommand
     MouseLeftClick,
     MouseRightClick,
     ToggleLeftMouseLock,
-    CopyNavigatorText
+    CopyNavigatorText,
+    SettingsRingPrevious,
+    SettingsRingNext,
+    SettingsRingIncrease,
+    SettingsRingDecrease
 }

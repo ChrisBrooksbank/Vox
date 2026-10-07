@@ -21,6 +21,15 @@ public enum ModifierKey
     CapsLock
 }
 
+/// <summary>How much punctuation and how many symbols are spoken.</summary>
+public enum PunctuationLevel
+{
+    None,
+    Some,
+    Most,
+    All
+}
+
 /// <summary>Which set of key bindings is used.</summary>
 public enum KeyboardLayout
 {
@@ -77,6 +86,8 @@ public record VoxSettings
     public int SpeechPitch { get; init; } = 50;
     /// <summary>Speech volume, 0 to 100.</summary>
     public int SpeechVolume { get; init; } = 100;
+    /// <summary>How much punctuation is spoken.</summary>
+    public PunctuationLevel PunctuationLevel { get; init; } = PunctuationLevel.Some;
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }

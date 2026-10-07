@@ -54,6 +54,12 @@ public static class ServiceRegistration
                 () => new SapiSpeechEngine(sp.GetRequiredService<ILogger<SapiSpeechEngine>>())),
         ], sp.GetRequiredService<ILogger<SpeechEngineRegistry>>()));
         services.AddSingleton<ISpeechEngine>(sp => sp.GetRequiredService<SpeechEngineRegistry>());
+        services.AddSingleton<SettingsRing>(sp => new SettingsRing(
+            sp.GetRequiredService<ISpeechEngine>(),
+            sp.GetRequiredService<SpeechEngineRegistry>().Engines,
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+            sp.GetRequiredService<SpeechQueue>()));
         services.AddSingleton<SpeechQueue>(sp =>
         {
             var queue = new SpeechQueue(sp.GetRequiredService<ISpeechEngine>(), sp.GetRequiredService<ILogger<SpeechQueue>>());

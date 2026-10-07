@@ -1,5 +1,5 @@
 {
-  "comment": "Laptop layout (NVDA laptop conventions), for keyboards without a numeric keypad; meant to be used with CapsLock as the screen reader key. It is the desktop layout (default-keymap.json) without the keypad bindings, plus these bindings, which replace any desktop binding on the same key. The Insert modifier means the screen reader key. VkCodes: arrows 37-40 (Left, Up, Right, Down), Home 36, End 35, Page Up 33, Page Down 34, Backspace 8, Enter 13, period 190, comma 188, [ 219, ] 221.",
+  "comment": "Laptop layout (NVDA laptop conventions), for keyboards without a numeric keypad; meant to be used with CapsLock as the screen reader key. It is the desktop layout (default-keymap.json) without the keypad bindings, plus these bindings, which replace any desktop binding on the same key. The Insert modifier means the screen reader key. VkCodes: arrows 37-40 (Left, Up, Right, Down), Home 36, End 35, Page Up 33, Page Down 34, Backspace 8, Enter 13, period 190, comma 188, [ 219, ] 221. The settings ring is on the screen reader key with Ctrl+Shift+arrows (with Ctrl alone, Left and Right move the review cursor by word).",
   "bindings": [
     { "modifiers": "Insert",       "vkCode": 38,  "mode": "Any", "command": "ReviewPrevLine" },
     { "modifiers": "Insert|Shift", "vkCode": 190, "mode": "Any", "command": "ReviewCurrentLine" },
@@ -29,6 +29,11 @@
     { "modifiers": "Insert",       "vkCode": 65,  "mode": "Any", "command": "SayAll" },
     { "modifiers": "Insert",       "vkCode": 76,  "mode": "Any", "command": "ReadCurrentLine" },
     { "modifiers": "Insert|Shift", "vkCode": 83,  "mode": "Any", "command": "ReadSelection" },
-    { "modifiers": "Insert",       "vkCode": 188, "mode": "Any", "command": "ReadCurrentChar" }
+    { "modifiers": "Insert",       "vkCode": 188, "mode": "Any", "command": "ReadCurrentChar" },
+    { "modifiers": "Insert|Ctrl",  "vkCode": 188, "mode": "Any", "command": "ReadCurrentWord" },
+    { "modifiers": "Insert|Ctrl|Shift", "vkCode": 37, "mode": "Any", "command": "SettingsRingPrevious" },
+    { "modifiers": "Insert|Ctrl|Shift", "vkCode": 39, "mode": "Any", "command": "SettingsRingNext" },
+    { "modifiers": "Insert|Ctrl|Shift", "vkCode": 38, "mode": "Any", "command": "SettingsRingIncrease" },
+    { "modifiers": "Insert|Ctrl|Shift", "vkCode": 40, "mode": "Any", "command": "SettingsRingDecrease" }
   ]
 }

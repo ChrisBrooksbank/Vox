@@ -3,6 +3,7 @@
   "SpeechRateWpm": 200,
   "SpeechPitch": 50,
   "SpeechVolume": 100,
+  "PunctuationLevel": "Some",
   "VoiceName": null,
   "SpeechEngine": null,
   "TypingEchoMode": "Both",

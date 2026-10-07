@@ -404,4 +404,21 @@ public class DefaultKeyMapReadingKeysTests
         Assert.True(keyMap.TryResolve(KeyModifiers.None, 65, InteractionMode.Browse, out var browse));
         Assert.Equal(NavigationCommand.NextLink, browse);
     }
+
+    [Fact]
+    public void SettingsRing_IsOnCtrlArrows_OnDesktop_AndCtrlShiftArrows_OnLaptop()
+    {
+        var desktop = KeyMap.LoadBuiltIn(KeyboardLayout.Desktop, out _);
+        var laptop = KeyMap.LoadBuiltIn(KeyboardLayout.Laptop, out _);
+
+        Assert.True(desktop.TryResolveOutsideDocument(KeyModifiers.Insert | KeyModifiers.Ctrl, 38, out var increase, out _));
+        Assert.Equal(NavigationCommand.SettingsRingIncrease, increase);
+        Assert.True(desktop.TryResolveOutsideDocument(KeyModifiers.Insert | KeyModifiers.Ctrl, 190, out var word, out _));
+        Assert.Equal(NavigationCommand.ReadCurrentWord, word);
+
+        Assert.True(laptop.TryResolveOutsideDocument(KeyModifiers.Insert | KeyModifiers.Ctrl | KeyModifiers.Shift, 37, out var previous, out _));
+        Assert.Equal(NavigationCommand.SettingsRingPrevious, previous);
+        Assert.True(laptop.TryResolveOutsideDocument(KeyModifiers.Insert | KeyModifiers.Ctrl, 37, out var reviewWord, out _));
+        Assert.Equal(NavigationCommand.ReviewPrevWord, reviewWord);
+    }
 }
