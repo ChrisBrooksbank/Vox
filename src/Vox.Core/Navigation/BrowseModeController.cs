@@ -174,6 +174,7 @@ public sealed class BrowseModeController
             case NavigationCommand.ReadCurrentWord:
             case NavigationCommand.ReadCurrentChar:
             case NavigationCommand.ReadSelection:
+            case NavigationCommand.ReadFormatting:
                 // Browse mode reads the buffer; anywhere else, the focused text control
                 bool browsing = _documentActive && _navigationManager.CurrentMode == InteractionMode.Browse;
                 if (!browsing && _focusedTextReader is { HasFocusedText: true } reader)
@@ -183,6 +184,7 @@ public sealed class BrowseModeController
                         NavigationCommand.ReadCurrentLine => TextReadKind.Line,
                         NavigationCommand.ReadCurrentWord => TextReadKind.Word,
                         NavigationCommand.ReadCurrentChar => TextReadKind.Character,
+                        NavigationCommand.ReadFormatting => TextReadKind.Formatting,
                         _ => TextReadKind.Selection,
                     });
                     return;
@@ -231,6 +233,10 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ReadSelection:
                 Speak("No selection"); // browse mode has no selection
+                return;
+
+            case NavigationCommand.ReadFormatting:
+                Speak("No formatting information"); // the buffer doesn't keep formatting
                 return;
         }
 

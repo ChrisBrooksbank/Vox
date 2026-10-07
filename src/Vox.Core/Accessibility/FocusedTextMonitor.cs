@@ -93,6 +93,8 @@ public sealed class FocusedTextMonitor : IFocusedTextReader
         var caret = document.GetCaret();
         if (caret is null)
             return null;
+        if (kind == TextReadKind.Formatting)
+            return TextFormatting.Describe(caret.ExpandToEnclosingUnit(TextUnit.Character).GetAttributes());
         var unit = kind switch
         {
             TextReadKind.Character => TextUnit.Character,

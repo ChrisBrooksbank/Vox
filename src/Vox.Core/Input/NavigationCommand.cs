@@ -49,5 +49,6 @@ public enum NavigationCommand
     Quit,
     RunSetup,
     ReadCurrentChar,
-    ReadSelection
+    ReadSelection,
+    ReadFormatting
 }

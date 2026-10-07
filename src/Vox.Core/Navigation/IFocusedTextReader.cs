@@ -7,6 +7,7 @@ public enum TextReadKind
     Word,
     Line,
     Selection,
+    Formatting,
 }
 
 /// <summary>

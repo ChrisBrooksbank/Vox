@@ -47,6 +47,7 @@
     { "modifiers": "Insert|Ctrl", "vkCode": 38,  "mode": "Any",    "command": "ReadCurrentWord" },
     { "modifiers": "Insert",      "vkCode": 190, "mode": "Any",    "command": "ReadCurrentChar" },
     { "modifiers": "Insert|Shift", "vkCode": 38, "mode": "Any",    "command": "ReadSelection" },
+    { "modifiers": "Insert",      "vkCode": 70,  "mode": "Any",    "command": "ReadFormatting" },
     { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },
     { "modifiers": "Insert|Ctrl", "vkCode": 83,  "mode": "Any",    "command": "RunSetup" }
   ]
