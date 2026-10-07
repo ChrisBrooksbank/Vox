@@ -148,6 +148,7 @@ public sealed class UIAEventSubscriber :
             _documentScope = null;
             _textScope = null;
             _propertyScope = null;
+            _selectionScope = null;
             _focusedText = null;
             _focusedTextKind = FocusedTextKind.None;
             _subscribed = false;
@@ -292,7 +293,10 @@ public sealed class UIAEventSubscriber :
             _propertyScope = null;
         }
         if (focused is null)
+        {
+            FollowFocusForSelection(automation, null);
             return;
+        }
         try
         {
             automation.AddPropertyChangedEventHandler(focused, TreeScope.TreeScope_Element, null, this, FocusedElementProperties);
@@ -301,6 +305,47 @@ public sealed class UIAEventSubscriber :
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Could not subscribe to the focused element's property changes");
+        }
+        FollowFocusForSelection(automation, focused);
+    }
+
+    // Container whose item selections are reported, outside documents too (STA thread only)
+    private IUIAutomationElement? _selectionScope;
+
+    private static readonly HashSet<int> ItemControlTypes = [50007 /* ListItem */, 50024 /* TreeItem */, 50019 /* TabItem */, 50029 /* DataItem */];
+
+    /// <summary>
+    /// Reports items selected in the focused list, tree, tab list or grid without focus moving to
+    /// them: the handler goes on the focused container, or on the container of a focused item.
+    /// </summary>
+    private void FollowFocusForSelection(IUIAutomation automation, IUIAutomationElement? focused)
+    {
+        IUIAutomationElement? container = focused;
+        if (focused is not null && ItemControlTypes.Contains(TryGetValue(focused, () => focused.CachedControlType)))
+        {
+            try { container = automation.ControlViewWalker.GetParentElement(focused); }
+            catch { container = null; }
+        }
+
+        if (_selectionScope is not null && container is not null && automation.CompareElements(_selectionScope, container) != 0)
+            return;
+        if (_selectionScope is not null)
+        {
+            try { automation.RemoveAutomationEventHandler(UIA_SelectionItem_ElementSelectedEventId, _selectionScope, this); }
+            catch (Exception ex) { _logger.LogDebug(ex, "Error removing the selection handler"); }
+            _selectionScope = null;
+        }
+        if (container is null)
+            return;
+        try
+        {
+            automation.AddAutomationEventHandler(UIA_SelectionItem_ElementSelectedEventId, container,
+                TreeScope.TreeScope_Subtree, _uiaProvider.CacheRequest, this);
+            _selectionScope = container;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not subscribe to selection changes of the focused container");
         }
     }
 

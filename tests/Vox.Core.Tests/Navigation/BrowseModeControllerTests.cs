@@ -503,6 +503,16 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task ElementSelected_InADesktopListWithoutFocusMoving_IsAnnounced()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Files", "List", RuntimeId: [7]));
+
+        _controller.HandleElementSelected(new ElementSelectedEvent(DateTimeOffset.UtcNow, [7, 3], "report.docx"));
+
+        await WaitForSpeech(u => u.Text == "report.docx");
+    }
+
+    [Fact]
     public async Task PropertyChanged_SliderRangeValue_IsAnnounced()
     {
         _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Volume", "Slider", RuntimeId: [7]));
