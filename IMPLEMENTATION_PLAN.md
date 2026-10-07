@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 47
+- Build iterations: 48
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -92,7 +92,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Make StopSpeech, Quit and other non-UIA commands run without awaiting the UIA thread; unit test that they complete while UIA is blocked (spec: robustness-secure-desktop.md)
 - [x] Add an unhandled-exception and process-exit handler that uninstalls the keyboard hook first; test with a fake `IKeyboardHook` (spec: robustness-secure-desktop.md)
 - [x] Add `Vox.Watchdog` console project: launches Vox.App, restarts it after a crash (max 3 per minute), then speaks a failure message through SAPI directly; restart policy unit-tested via an injectable process launcher (spec: robustness-secure-desktop.md)
-- [ ] Add fault-injection test helpers: a mock `IVBufferElement` provider that hangs or throws; tests that the buffer builder and tracker recover (spec: quality-engineering.md)
+- [x] Add fault-injection test helpers: a mock `IVBufferElement` provider that hangs or throws; tests that the buffer builder and tracker recover (spec: quality-engineering.md)
 
 #### Desktop text editing (spec: desktop-text-and-controls.md)
 

@@ -131,12 +131,33 @@ public sealed class VBufferBuilder
 
             if (frame.Node is not null)
             {
-                // Exit: children have been processed
-                FinishNode(frame.Element, frame.Node, frame.TextStart, flatText);
+                // Exit: children have been processed. An element that fails to report its text
+                // just contributes none.
+                try
+                {
+                    FinishNode(frame.Element, frame.Node, frame.TextStart, flatText);
+                }
+                catch (Exception) when (frame.Parent is not null)
+                {
+                }
                 continue;
             }
 
-            var node = CreateNode(frame.Element, frame.Parent, nextId++);
+            // An element that fails (a live provider whose element went away, or that errors)
+            // is left out with its subtree rather than failing the whole page. Children are read
+            // first: CreateNode links the node into its parent, so nothing is linked on failure.
+            IReadOnlyList<IVBufferElement> children;
+            VBufferNode node;
+            try
+            {
+                children = frame.Element.GetChildren();
+                node = CreateNode(frame.Element, frame.Parent, nextId);
+            }
+            catch (Exception) when (frame.Parent is not null)
+            {
+                continue;
+            }
+            nextId++;
             allNodes.Add(node);
 
             // Link doubly-linked document-order list
@@ -150,7 +171,6 @@ public sealed class VBufferBuilder
             stack.Push(new Frame(frame.Element, frame.Parent, node, flatText.Length));
 
             // Push children in reverse order so we process them left-to-right
-            var children = frame.Element.GetChildren();
             for (int i = children.Count - 1; i >= 0; i--)
             {
                 stack.Push(new Frame(children[i], node, null, 0));
