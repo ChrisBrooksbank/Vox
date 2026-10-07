@@ -248,6 +248,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     PropertyChangedProcessed?.Invoke(this, propertyChanged);
                     break;
 
+                case ToolTipOpenedEvent toolTip:
+                    await HandleToolTipAsync(toolTip, token).ConfigureAwait(false);
+                    break;
+
                 case MenuEvent menuEvent:
                     MenuEventProcessed?.Invoke(this, menuEvent);
                     break;
@@ -331,6 +335,23 @@ public sealed class EventPipeline : IEventSink, IDisposable
         // Focus changes are high priority — interrupt current speech
         var utterance = new Utterance(text, SpeechPriority.Interrupt);
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+    }
+
+    // The last tooltip spoken, so one shown again and again (mouse resting on a control) is said once
+    private string? _lastToolTip;
+    private DateTimeOffset _lastToolTipAt;
+    private static readonly TimeSpan ToolTipRepeat = TimeSpan.FromSeconds(2);
+
+    private async Task HandleToolTipAsync(ToolTipOpenedEvent toolTip, CancellationToken token)
+    {
+        var text = toolTip.Text.Trim();
+        if (text.Length == 0)
+            return;
+        if (text == _lastToolTip && toolTip.Timestamp - _lastToolTipAt < ToolTipRepeat)
+            return;
+        _lastToolTip = text;
+        _lastToolTipAt = toolTip.Timestamp;
+        await _speechQueue.EnqueueAsync(new Utterance(text, SpeechPriority.Normal), token).ConfigureAwait(false);
     }
 
     private async Task HandleNavigationAsync(NavigationEvent nav, CancellationToken token)

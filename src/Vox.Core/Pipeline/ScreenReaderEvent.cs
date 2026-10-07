@@ -224,3 +224,9 @@ public record MenuEvent(
     DateTimeOffset Timestamp,
     Navigation.MenuEventKind Kind
 ) : ScreenReaderEvent(Timestamp);
+
+/// <summary>A tooltip opened (UIA ToolTipOpened) with this text.</summary>
+public record ToolTipOpenedEvent(
+    DateTimeOffset Timestamp,
+    string Text
+) : ScreenReaderEvent(Timestamp);

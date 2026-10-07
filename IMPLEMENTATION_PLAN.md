@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 69
+- Build iterations: 70
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -120,7 +120,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Speak `SelectionItem`/`Selection` changes in lists, grids, tabs and trees (spec: desktop-text-and-controls.md)
 - [x] Add position info ("3 of 10", "level 2") from PositionInSet/SizeOfSet/Level to `AnnouncementBuilder`, controlled by `VerbosityProfile`; unit tests (spec: desktop-text-and-controls.md)
 - [x] Menus: "menu" on open, "leaving menu" on close, submenu entry, shortcut and accelerator text; unit tests (spec: desktop-text-and-controls.md)
-- [ ] Tooltips, Start menu search results, Alt+Tab and Win+Tab switchers and virtual-desktop switch announcements (spec: desktop-text-and-controls.md)
+- [x] Tooltips, Start menu search results, Alt+Tab and Win+Tab switchers and virtual-desktop switch announcements (spec: desktop-text-and-controls.md)
 - [ ] Add Where-am-I commands (mode Any): SayTitle Insert+T, SayFocus Insert+Tab, SayStatusBar Insert+End, SayTime Insert+F12 (twice: date), SayBattery Insert+Shift+B, ReadWindow Insert+B; keymap bindings and tests (spec: desktop-text-and-controls.md)
 
 #### Privileges and secure screens (spec: robustness-secure-desktop.md)

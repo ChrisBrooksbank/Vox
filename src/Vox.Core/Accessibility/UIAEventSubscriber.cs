@@ -25,6 +25,7 @@ public sealed class UIAEventSubscriber :
     private const int UIA_NotificationEventId = 20035;
     private const int UIA_SelectionItem_ElementSelectedEventId = 20012;
     private const int UIA_AsyncContentLoadedEventId = 20023;
+    private const int UIA_ToolTipOpenedEventId = 20000;
     private const int UIA_MenuOpenedEventId = 20003;
     private const int UIA_MenuClosedEventId = 20007;
     private const int UIA_MenuModeStartEventId = 20018;
@@ -85,6 +86,7 @@ public sealed class UIAEventSubscriber :
         _uiaProvider = uiaProvider;
         _eventSink = eventSink;
         _logger = logger;
+        _shellSelectionHandler = new ShellSelectionHandler(this);
     }
 
     /// <summary>
@@ -110,6 +112,15 @@ public sealed class UIAEventSubscriber :
                 TreeScope.TreeScope_Subtree,
                 _uiaProvider.LiveRegionCacheRequest,
                 this);
+
+            // Tooltips — desktop scope
+            automation.AddAutomationEventHandler(UIA_ToolTipOpenedEventId, automation.GetRootElement(),
+                TreeScope.TreeScope_Subtree, _uiaProvider.CacheRequest, this);
+
+            // Items selected in the shell (Alt+Tab, Win+Tab, Start search results) — desktop scope,
+            // through a handler that keeps only the shell's processes
+            automation.AddAutomationEventHandler(UIA_SelectionItem_ElementSelectedEventId, automation.GetRootElement(),
+                TreeScope.TreeScope_Subtree, _uiaProvider.CacheRequest, _shellSelectionHandler);
 
             // Menus opening and closing — desktop scope
             foreach (var menuEvent in new[] { UIA_MenuOpenedEventId, UIA_MenuClosedEventId, UIA_MenuModeStartEventId, UIA_MenuModeEndEventId })
@@ -520,6 +531,12 @@ public sealed class UIAEventSubscriber :
                     RuntimeId: TryGetRuntimeId(sender),
                     Name: TryGetCachedString(sender, () => sender.CachedName) ?? string.Empty));
             }
+            else if (eventId == UIA_ToolTipOpenedEventId)
+            {
+                var text = TryGetCachedString(sender, () => sender.CachedName);
+                if (!string.IsNullOrWhiteSpace(text))
+                    _eventSink.Post(new ToolTipOpenedEvent(DateTimeOffset.UtcNow, text));
+            }
             else if (eventId is UIA_MenuOpenedEventId or UIA_MenuClosedEventId or UIA_MenuModeStartEventId or UIA_MenuModeEndEventId)
             {
                 _eventSink.Post(new MenuEvent(DateTimeOffset.UtcNow, eventId switch
@@ -656,12 +673,37 @@ public sealed class UIAEventSubscriber :
                 ActivityId: activityId,
                 NotificationText: displayString,
                 Processing: (int)notificationProcessing,
-                IsFromForeground: IsForegroundProcess(senderProcess)
+                // The shell (e.g. "Desktop 2" after Ctrl+Win+Right) speaks for the whole desktop
+                IsFromForeground: IsForegroundProcess(senderProcess) || ShellProcesses.IsShell(senderProcess)
             ));
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error in Notification handler");
+        }
+    }
+
+    private readonly ShellSelectionHandler _shellSelectionHandler;
+
+    /// <summary>Posts items selected in the shell's own windows (Alt+Tab, Win+Tab, Start search).</summary>
+    private sealed class ShellSelectionHandler(UIAEventSubscriber owner) : IUIAutomationEventHandler
+    {
+        void IUIAutomationEventHandler.HandleAutomationEvent(IUIAutomationElement sender, int eventId)
+        {
+            try
+            {
+                var pid = TryGetValue(sender, () => sender.CachedProcessId, -1);
+                if (!ShellProcesses.IsShell(pid))
+                    return;
+                owner._eventSink.Post(new ElementSelectedEvent(
+                    Timestamp: DateTimeOffset.UtcNow,
+                    RuntimeId: TryGetRuntimeId(sender),
+                    Name: TryGetCachedString(sender, () => sender.CachedName) ?? string.Empty));
+            }
+            catch (Exception ex)
+            {
+                owner._logger.LogDebug(ex, "Error in shell selection handler");
+            }
         }
     }
 
@@ -837,7 +879,7 @@ public sealed class UIAEventSubscriber :
             {
                 var automation = _uiaProvider.Automation;
                 automation.RemoveFocusChangedEventHandler(this);
-                automation.RemoveAllEventHandlers();
+                automation.RemoveAllEventHandlers(); // includes the shell selection handler
                 _documentScope = null;
                 _logger.LogDebug("UIAEventSubscriber: unsubscribed from all UIA events");
             }
