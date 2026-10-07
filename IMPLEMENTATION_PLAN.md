@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 88
+- Build iterations: 89
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -150,7 +150,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add object navigation commands and keymap bindings: Insert+Numpad8/2/4/6, report Insert+Numpad5, to focus Insert+Numpad-, focus to navigator Insert+Shift+Numpad-, activate Insert+NumpadEnter (spec: review-object-navigation.md)
 - [x] Add `ReviewCursor` over `ITextDocument` for the navigator object, focused document or window; Numpad 7/8/9, 4/5/6, 1/2/3; unit tests (spec: review-object-navigation.md)
 - [x] Add spell on double press and phonetic (NATO) spell on triple press for review char/word and read-current commands; unit tests (spec: review-object-navigation.md)
-- [ ] Review follows focus/caret setting and tether to virtual buffer in browse mode (spec: review-object-navigation.md)
+- [x] Review follows focus/caret setting and tether to virtual buffer in browse mode (spec: review-object-navigation.md)
 - [ ] Add mouse tracking setting: speak element under pointer, throttled `ElementFromPoint` (100 ms), unit text setting (spec: review-object-navigation.md)
 - [ ] Add mouse commands: route mouse to navigator, left click, right click, lock left button; keymap bindings (spec: review-object-navigation.md)
 - [ ] Add copy navigator text to clipboard (Insert+Ctrl+C) (spec: review-object-navigation.md)

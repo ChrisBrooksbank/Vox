@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Vox.Core.Audio;
+using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Speech;
@@ -22,7 +24,7 @@ public enum ReviewMode
 /// The review cursor commands (keypad 7/8/9 line, 4/5/6 word, 1/2/3 character, Shift+7/9 top
 /// and bottom, Insert+7/1 review mode): read text without moving the caret. The
 /// <see cref="ReviewCursor"/> and its document live on the UIA thread; command handlers never
-/// await it.
+/// await it. In browse mode the review cursor is tethered to the virtual buffer instead.
 /// </summary>
 public sealed class ReviewCommands
 {
@@ -31,23 +33,29 @@ public sealed class ReviewCommands
     private readonly IReviewTextSource _source;
     private readonly SpeechQueue _speechQueue;
     private readonly IAudioCuePlayer _audioCuePlayer;
+    private readonly IOptionsMonitor<VoxSettings> _settings;
     private readonly ILogger<ReviewCommands> _logger;
     private readonly ReviewCursor _cursor = new();
     private readonly RepeatPressCounter _presses = new();
 
     private volatile ReviewMode _mode = ReviewMode.Object;
     private int _focusVersion;
+    private int _caretVersion;
 
     // What the cursor's document was taken from (UIA thread only)
     private ReviewMode? _attachedMode;
     private INavigatorObject? _attachedObject;
     private int _attachedFocusVersion = -1;
+    private int _attachedCaretVersion;
+    private ReviewTether? _attachedTether;
     private IntPtr _attachedWindow;
     private int _generation = -1;
 
     public ReviewCommands(UIAThread uiaThread, ObjectNavigationCommands navigation, IReviewTextSource source,
-        SpeechQueue speechQueue, IAudioCuePlayer audioCuePlayer, ILogger<ReviewCommands> logger)
+        SpeechQueue speechQueue, IAudioCuePlayer audioCuePlayer, IOptionsMonitor<VoxSettings> settings,
+        ILogger<ReviewCommands> logger)
     {
+        _settings = settings;
         _uiaThread = uiaThread;
         _navigation = navigation;
         _source = source;
@@ -58,8 +66,24 @@ public sealed class ReviewCommands
 
     public ReviewMode Mode => _mode;
 
+    /// <summary>
+    /// The virtual buffer to review while browsing (null when not browsing). Called on the thread
+    /// commands arrive on (the pipeline thread). Set by the host.
+    /// </summary>
+    public Func<ReviewTether?>? BrowseTether { get; set; }
+
     /// <summary>Focus moved: document review picks up the newly focused control's text.</summary>
     public void HandleFocusChanged() => Interlocked.Increment(ref _focusVersion);
+
+    /// <summary>The caret moved: the review cursor goes to it, when the setting says so.</summary>
+    public void HandleCaretMoved()
+    {
+        if (!_settings.CurrentValue.ReviewFollowsCaret)
+            return;
+        Interlocked.Increment(ref _caretVersion);
+        // In object review the navigator returns to the focused control with the caret
+        _navigation.HandleFocusChanged();
+    }
 
     /// <summary>Runs <paramref name="command"/> if it is a review command; returns whether it was.</summary>
     public bool TryHandle(NavigationCommand command)
@@ -116,19 +140,25 @@ public sealed class ReviewCommands
     {
         var mode = _mode;
         int focusVersion = Volatile.Read(ref _focusVersion);
-        var window = mode == ReviewMode.Screen ? _source.ForegroundWindow : IntPtr.Zero;
+        int caretVersion = Volatile.Read(ref _caretVersion);
+        var tether = BrowseTether?.Invoke();
+        bool followCaret = _settings.CurrentValue.ReviewFollowsCaret;
+        var window = mode == ReviewMode.Screen && tether is null ? _source.ForegroundWindow : IntPtr.Zero;
         bool atBoundary;
         try
         {
             atBoundary = await _uiaThread.RunAsync(() =>
             {
-                EnsureDocument(mode, focusVersion, window);
+                if (tether is not null)
+                    EnsureTethered(tether, followCaret);
+                else
+                    EnsureDocument(mode, focusVersion, caretVersion, window);
                 var result = command(_cursor);
                 // Spoken here, in the order commands ran: quick presses finish in order on the UIA
                 // thread, but their continuations could reach the queue out of order
                 Speak(result?.Text ?? "No text");
                 return result?.AtBoundary == true;
-            }, mode == ReviewMode.Screen ? UIAThread.DocumentTimeout : null).ConfigureAwait(false);
+            }, window != IntPtr.Zero ? UIAThread.DocumentTimeout : null).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -145,9 +175,27 @@ public sealed class ReviewCommands
             _audioCuePlayer.Play("boundary");
     }
 
-    /// <summary>Attaches the cursor to the text the mode reviews, when that changed (UIA thread).</summary>
-    private void EnsureDocument(ReviewMode mode, int focusVersion, IntPtr window)
+    /// <summary>
+    /// Browsing: reviews the buffer, from the browse cursor when it moved (following the caret) or
+    /// the page changed (UIA thread).
+    /// </summary>
+    private void EnsureTethered(ReviewTether tether, bool followCaret)
     {
+        var previous = _attachedTether;
+        bool samePage = previous is not null && ReferenceEquals(previous.Buffer, tether.Buffer);
+        if (!samePage || (followCaret && previous!.Offset != tether.Offset))
+        {
+            _cursor.Attach(tether.Document);
+            _attachedTether = tether;
+        }
+        // Leaving browse mode later attaches the mode's own text again
+        _attachedMode = null;
+    }
+
+    /// <summary>Attaches the cursor to the text the mode reviews, when that changed (UIA thread).</summary>
+    private void EnsureDocument(ReviewMode mode, int focusVersion, int caretVersion, IntPtr window)
+    {
+        _attachedTether = null;
         if (_generation != _uiaThread.Generation)
         {
             _generation = _uiaThread.Generation;
@@ -163,10 +211,15 @@ public sealed class ReviewCommands
                     _cursor.Attach(current?.GetText());
                     _attachedObject = current;
                 }
+                else if (caretVersion != _attachedCaretVersion)
+                {
+                    // Same object, caret moved: back to the caret
+                    _cursor.Attach(_cursor.Document);
+                }
                 break;
 
             case ReviewMode.Document:
-                if (_attachedMode != mode || focusVersion != _attachedFocusVersion)
+                if (_attachedMode != mode || focusVersion != _attachedFocusVersion || caretVersion != _attachedCaretVersion)
                 {
                     _cursor.Attach(_source.GetFocusedText());
                     _attachedFocusVersion = focusVersion;
@@ -182,6 +235,7 @@ public sealed class ReviewCommands
                 break;
         }
         _attachedMode = mode;
+        _attachedCaretVersion = caretVersion;
     }
 
     private void Speak(string text) => _speechQueue.Enqueue(new Utterance(text, SpeechPriority.Interrupt));

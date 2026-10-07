@@ -1,5 +1,11 @@
 namespace Vox.Core.Text;
 
+/// <summary>
+/// The virtual buffer for the review cursor while browsing: a document the review owns (safe to
+/// use on another thread), the buffer it shows and the browse cursor's offset in it.
+/// </summary>
+public sealed record ReviewTether(ITextDocument Document, object Buffer, int Offset);
+
 /// <summary>What a review command says: the text of the unit reached, and whether it hit an edge.</summary>
 public readonly record struct ReviewResult(string Text, bool AtBoundary);
 

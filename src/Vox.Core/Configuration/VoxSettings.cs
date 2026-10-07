@@ -77,4 +77,8 @@ public record VoxSettings
     public bool KeepAudioDeviceAwake { get; init; } = true;
     /// <summary>Object navigation skips layout-only objects (unnamed groups and panes).</summary>
     public bool SimpleReviewMode { get; init; } = true;
+    /// <summary>The navigator object moves to each newly focused object.</summary>
+    public bool ReviewFollowsFocus { get; init; } = true;
+    /// <summary>The review cursor moves to the caret when it moves (and to the browse cursor in browse mode).</summary>
+    public bool ReviewFollowsCaret { get; init; } = true;
 }

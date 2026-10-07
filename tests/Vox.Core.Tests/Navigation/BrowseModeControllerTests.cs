@@ -459,6 +459,30 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public void ReviewTether_WhileBrowsing_IsTheBufferAtTheBrowseCursor()
+    {
+        Assert.Null(_controller.ReviewTether());
+        var doc = LoadDocument(focusedId: [4]);
+
+        var tether = _controller.ReviewTether();
+
+        Assert.NotNull(tether);
+        Assert.Same(doc, tether!.Buffer);
+        Assert.Equal(_controller.Cursor!.TextOffset, tether.Offset);
+        var caret = tether.Document.GetCaret()!;
+        Assert.StartsWith("Read more", caret.ExpandToEnclosingUnit(TextUnit.Line).GetText());
+    }
+
+    [Fact]
+    public void ReviewTether_InFocusMode_IsNull()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.ToggleMode);
+
+        Assert.Null(_controller.ReviewTether());
+    }
+
+    [Fact]
     public void SayAll_OutsideADocument_ReadsTheFocusedTextControl()
     {
         var reader = new FakeTextReader();

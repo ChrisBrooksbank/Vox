@@ -123,6 +123,20 @@ public sealed class BrowseModeController
     public VBufferCursor? Cursor => _cursor;
 
     /// <summary>
+    /// While browsing, the buffer for the review cursor, with its own copy of the browse cursor
+    /// so it can be read on the UIA thread; null otherwise. Call on the pipeline thread.
+    /// </summary>
+    public ReviewTether? ReviewTether()
+    {
+        if (!_documentActive || _navigationManager.CurrentMode != InteractionMode.Browse || _cursor is null)
+            return null;
+        var copy = new VBufferCursor(_cursor.Document, _audioCuePlayer);
+        ApplyCursorSettings(copy);
+        copy.MoveTo(_cursor.TextOffset);
+        return new ReviewTether(new BufferTextDocument(copy), _cursor.Document, _cursor.TextOffset);
+    }
+
+    /// <summary>
     /// How long after an unanswered full-document re-capture request another may be made
     /// (the capture can fail, and then no reply ever comes).
     /// </summary>

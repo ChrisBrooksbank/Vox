@@ -26,6 +26,8 @@ public sealed class ObjectNavigationCommands
     private readonly ObjectNavigator _navigator = new();
     // UIA thread generation the navigator object belongs to; a replaced thread's objects are dropped
     private int _generation = -1;
+    // Focus moved and the navigator follows it: re-seed from focus on next use
+    private volatile bool _followFocus;
 
     public ObjectNavigationCommands(UIAThread uiaThread, INavigatorObjectSource source, SpeechQueue speechQueue,
         AnnouncementBuilder announcementBuilder, IAudioCuePlayer audioCuePlayer, IOptionsMonitor<VoxSettings> settings,
@@ -38,6 +40,13 @@ public sealed class ObjectNavigationCommands
         _audioCuePlayer = audioCuePlayer;
         _settings = settings;
         _logger = logger;
+    }
+
+    /// <summary>Focus moved (or the caret did): the navigator follows it, when the setting says so.</summary>
+    public void HandleFocusChanged()
+    {
+        if (_settings.CurrentValue.ReviewFollowsFocus)
+            _followFocus = true;
     }
 
     /// <summary>Runs <paramref name="command"/> if it is an object navigation command; returns whether it was.</summary>
@@ -80,6 +89,7 @@ public sealed class ObjectNavigationCommands
     public Task NavigatorToFocusAsync() => RunAsync(() =>
     {
         _generation = _uiaThread.Generation;
+        _followFocus = false;
         _navigator.MoveTo(_source.GetFocused());
         return _navigator.Current is { } current ? Say(current.Describe()) : Outcome.Speak("No focus");
     }, "move the navigator object to focus");
@@ -158,6 +168,11 @@ public sealed class ObjectNavigationCommands
         {
             _navigator.MoveTo(null);
             _generation = _uiaThread.Generation;
+        }
+        if (_followFocus)
+        {
+            _followFocus = false;
+            _navigator.MoveTo(null);
         }
         if (_navigator.Current is null)
             _navigator.MoveTo(_source.GetFocused());
