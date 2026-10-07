@@ -25,6 +25,7 @@
   "AudioOutputDevice": null,
   "AudioDucking": "Off",
   "KeepAudioDeviceAwake": true,
+  "EarconScheme": "default",
   "SimpleReviewMode": true,
   "ReviewFollowsFocus": true,
   "ReviewFollowsCaret": true,

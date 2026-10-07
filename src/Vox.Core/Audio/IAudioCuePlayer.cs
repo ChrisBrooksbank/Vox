@@ -13,4 +13,7 @@ public interface IAudioCuePlayer
 
     /// <summary>Keep the output device open between sounds. Optional.</summary>
     bool KeepAwake { get => false; set { } }
+
+    /// <summary>The earcon scheme (a folder under assets/sounds). Optional.</summary>
+    string Scheme { get => "default"; set { } }
 }

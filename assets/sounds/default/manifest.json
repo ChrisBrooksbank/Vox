@@ -1,0 +1,18 @@
+{
+  "comment": "An earcon scheme: each cue Vox plays and its sound file in this folder (16-bit or float WAV, mono or stereo, any rate). Another scheme is a folder next to this one with its own manifest; cues it leaves out play this scheme's sound. Pick a scheme with the EarconScheme setting.",
+  "name": "Default",
+  "cues": {
+    "browse_mode": "browse_mode.wav",
+    "focus_mode": "focus_mode.wav",
+    "boundary": "boundary.wav",
+    "wrap": "wrap.wav",
+    "error": "error.wav",
+    "list_entry": "list_entry.wav",
+    "list_exit": "list_exit.wav",
+    "table_entry": "table_entry.wav",
+    "table_exit": "table_exit.wav",
+    "landmark": "landmark.wav",
+    "clickable": "clickable.wav",
+    "progress": "progress.wav"
+  }
+}

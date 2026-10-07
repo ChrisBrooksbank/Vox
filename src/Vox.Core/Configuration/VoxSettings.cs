@@ -145,6 +145,8 @@ public record VoxSettings
     public string? AudioOutputDevice { get; init; }
     /// <summary>Lower other applications' audio: off, while Vox speaks, or always (needs UI access).</summary>
     public AudioDuckingMode AudioDucking { get; init; } = AudioDuckingMode.Off;
+    /// <summary>The earcon scheme: a folder under assets/sounds with a manifest.json ("default").</summary>
+    public string EarconScheme { get; init; } = "default";
     /// <summary>Keep the audio device awake between sounds so their start isn't clipped.</summary>
     public bool KeepAudioDeviceAwake { get; init; } = true;
     /// <summary>Object navigation skips layout-only objects (unnamed groups and panes).</summary>

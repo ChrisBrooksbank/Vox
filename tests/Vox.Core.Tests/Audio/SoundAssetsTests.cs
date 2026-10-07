@@ -6,17 +6,61 @@ namespace Vox.Core.Tests.Audio;
 
 public class SoundAssetsTests
 {
-    [Fact]
-    public void EveryPhase1Cue_HasAValidWavFile()
-    {
-        var soundsDir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "assets", "sounds");
+    private static readonly string SoundsDir =
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "assets", "sounds");
 
-        foreach (var cue in AudioCuePlayer.Phase1Sounds)
+    [Fact]
+    public void TheDefaultScheme_HasAValidWavFileForEveryCue()
+    {
+        var files = AudioCuePlayer.SchemeFiles(SoundsDir, AudioCuePlayer.DefaultScheme);
+
+        foreach (var cue in AudioCuePlayer.Cues)
         {
-            var path = Path.Combine(soundsDir, cue + ".wav");
+            Assert.True(files.TryGetValue(cue, out var path), $"The default scheme has no sound for {cue}");
             Assert.True(File.Exists(path), $"Missing sound file {path}");
             using var reader = new WaveFileReader(path);
-            Assert.True(reader.TotalTime > TimeSpan.Zero);
+            Assert.True(reader.TotalTime > TimeSpan.Zero && reader.TotalTime < TimeSpan.FromSeconds(1), $"{cue} is too long");
+            Assert.True(reader.WaveFormat.Channels is 1 or 2);
+        }
+    }
+
+    [Fact]
+    public void EveryScheme_HasAManifestNamingFilesItHas()
+    {
+        foreach (var folder in Directory.GetDirectories(SoundsDir))
+        {
+            var scheme = Path.GetFileName(folder);
+            Assert.True(File.Exists(Path.Combine(folder, "manifest.json")), $"Scheme {scheme} has no manifest");
+            foreach (var (cue, path) in AudioCuePlayer.SchemeFiles(SoundsDir, scheme))
+                Assert.True(File.Exists(path), $"Scheme {scheme}: {cue} names a missing file");
+        }
+    }
+
+    [Fact]
+    public void AnotherScheme_OverridesSomeCues_AndFallsBackForTheRest()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "VoxSounds_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(directory, "default"));
+            Directory.CreateDirectory(Path.Combine(directory, "soft"));
+            File.WriteAllText(Path.Combine(directory, "default", "manifest.json"),
+                """{ "cues": { "boundary": "boundary.wav", "wrap": "wrap.wav" } }""");
+            File.WriteAllText(Path.Combine(directory, "soft", "manifest.json"),
+                """{ "cues": { "boundary": "soft-boundary.wav", "wrap": "..\\..\\outside.wav" } }""");
+
+            var files = AudioCuePlayer.SchemeFiles(directory, "soft");
+
+            Assert.Equal(Path.Combine(directory, "soft", "soft-boundary.wav"), files["boundary"]);
+            // A path out of the scheme's folder is ignored
+            Assert.Equal(Path.Combine(directory, "default", "wrap.wav"), files["wrap"]);
+            // An unknown scheme is the default one
+            Assert.Equal(Path.Combine(directory, "default", "boundary.wav"), AudioCuePlayer.SchemeFiles(directory, "missing")["boundary"]);
+            Assert.Empty(AudioCuePlayer.SchemeFiles(directory, "..").Where(f => !f.Value.StartsWith(Path.Combine(directory, "default"))));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
         }
     }
 }

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 109
+- Build iterations: 110
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -174,7 +174,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add speech history (last 100; Insert+Shift+F11/F12 step back/forward, press twice to copy); unit tests (spec: speech-and-audio.md)
 - [x] Add sleep mode per app (Insert+Shift+S): no speech and no key swallowing while that app has focus; persisted; unit tests (spec: speech-and-audio.md)
 - [x] Add eSpeak NG engine as an optional separately-downloaded component loaded through the registry (spec: speech-and-audio.md)
-- [ ] Add earcon scheme folder with manifest and new cues (list, table, landmark, clickable, error, progress); `AudioCuePlayer` loads the selected scheme; asset tests (spec: speech-and-audio.md)
+- [x] Add earcon scheme folder with manifest and new cues (list, table, landmark, clickable, error, progress); `AudioCuePlayer` loads the selected scheme; asset tests (spec: speech-and-audio.md)
 - [ ] Add optional indentation tones and "states as sound only" setting (spec: speech-and-audio.md)
 
 #### Web parity (spec: web-parity.md)
