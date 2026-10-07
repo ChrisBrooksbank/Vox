@@ -73,6 +73,10 @@ public record VoxSettings
 {
     public VerbosityLevel VerbosityLevel { get; init; } = VerbosityLevel.Beginner;
     public int SpeechRateWpm { get; init; } = 200;
+    /// <summary>Speech pitch, 0 (lowest) to 100 (highest); 50 is the voice's normal pitch.</summary>
+    public int SpeechPitch { get; init; } = 50;
+    /// <summary>Speech volume, 0 to 100.</summary>
+    public int SpeechVolume { get; init; } = 100;
     public string? VoiceName { get; init; }
     public TypingEchoMode TypingEchoMode { get; init; } = TypingEchoMode.Both;
     public bool AudioCuesEnabled { get; init; } = true;

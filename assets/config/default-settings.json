@@ -1,6 +1,8 @@
 {
   "VerbosityLevel": "Beginner",
   "SpeechRateWpm": 200,
+  "SpeechPitch": 50,
+  "SpeechVolume": 100,
   "VoiceName": null,
   "TypingEchoMode": "Both",
   "AudioCuesEnabled": true,

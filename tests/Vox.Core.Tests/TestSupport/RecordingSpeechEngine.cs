@@ -48,6 +48,14 @@ public sealed class RecordingSpeechEngine : ISpeechEngine
 
     public void SetVoice(string voiceName) => _voice = voiceName;
 
+    public SpeechCapabilities Capabilities => SpeechCapabilities.Pitch | SpeechCapabilities.Volume;
+
+    public int Pitch { get; private set; } = ISpeechEngine.DefaultPitch;
+    public void SetPitch(int pitch) => Pitch = pitch;
+
+    public int Volume { get; private set; } = 100;
+    public void SetVolume(int volume) => Volume = volume;
+
     public IReadOnlyList<string> GetAvailableVoices() => ["Test Voice"];
 
     public void Clear()

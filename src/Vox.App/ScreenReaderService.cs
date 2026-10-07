@@ -322,6 +322,10 @@ public sealed class ScreenReaderService : IHostedService
 
             if (previous is null || previous.SpeechRateWpm != settings.SpeechRateWpm)
                 _speechEngine.SetRate(settings.SpeechRateWpm);
+            if (previous is null || previous.SpeechPitch != settings.SpeechPitch)
+                _speechEngine.SetPitch(settings.SpeechPitch);
+            if (previous is null || previous.SpeechVolume != settings.SpeechVolume)
+                _speechEngine.SetVolume(settings.SpeechVolume);
             // A cleared voice goes back to the default one (at startup there is nothing to undo)
             if (previous is null ? !string.IsNullOrEmpty(settings.VoiceName) : previous.VoiceName != settings.VoiceName)
                 _speechEngine.SetVoice(settings.VoiceName ?? string.Empty);

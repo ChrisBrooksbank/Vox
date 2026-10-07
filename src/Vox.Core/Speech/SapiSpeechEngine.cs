@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Security;
 using Microsoft.Extensions.Logging;
 using System.Speech.Synthesis;
 
@@ -21,6 +23,8 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
     private volatile bool _isSpeaking;
     // The voice chosen at startup, restored when the voice setting is cleared
     private readonly string? _defaultVoiceName;
+    private volatile int _pitch = ISpeechEngine.DefaultPitch;
+    private volatile int _volume = 100;
 
     // Supported WPM range (matches the first-run wizard)
     private const int MinWpm = 150;
@@ -51,7 +55,73 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         // Warm up the engine to avoid first-utterance delay
         _synthesizer.Volume = 0;
         _synthesizer.SpeakAsync(" ");
-        _synthesizer.Volume = 100;
+        _synthesizer.Volume = _volume;
+    }
+
+    // System.Speech has no pitch property: pitch is set per prompt with SSML prosody
+    public SpeechCapabilities Capabilities => SpeechCapabilities.Pitch | SpeechCapabilities.Volume | SpeechCapabilities.Markup;
+
+    public void SetPitch(int pitch)
+    {
+        _pitch = Math.Clamp(pitch, 0, 100);
+        _logger.LogDebug("Speech pitch set to {Pitch}", _pitch);
+    }
+
+    public void SetVolume(int volume)
+    {
+        _volume = Math.Clamp(volume, 0, 100);
+        lock (_synthLock)
+        {
+            _synthesizer.Volume = _volume;
+        }
+        _logger.LogDebug("Speech volume set to {Volume}", _volume);
+    }
+
+    public IReadOnlyList<string> GetLanguages()
+    {
+        lock (_synthLock)
+        {
+            return _synthesizer.GetInstalledVoices()
+                .Where(v => v.Enabled)
+                .Select(v => v.VoiceInfo.Culture?.Name)
+                .OfType<string>()
+                .Where(name => name.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+    }
+
+    /// <summary>
+    /// The relative SSML prosody pitch for a pitch on the 0–100 scale: 50 is the voice's normal
+    /// pitch, 0 and 100 half an octave or so below and above (-50% to +50%).
+    /// </summary>
+    public static string PitchToProsody(int pitch)
+    {
+        int percent = Math.Clamp(pitch, 0, 100) - ISpeechEngine.DefaultPitch;
+        return percent >= 0 ? $"+{percent}%" : $"{percent}%";
+    }
+
+    /// <summary>SSML speaking <paramref name="text"/> (escaped) at <paramref name="pitch"/>.</summary>
+    public static string BuildPitchSsml(string text, int pitch, string language) =>
+        "<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" " +
+        $"xml:lang=\"{SecurityElement.Escape(language)}\"><prosody pitch=\"{PitchToProsody(pitch)}\">" +
+        $"{SecurityElement.Escape(text)}</prosody></speak>";
+
+    /// <summary>A prompt for <paramref name="text"/>, through SSML only when the pitch isn't normal.</summary>
+    private Prompt CreatePrompt(string text)
+    {
+        int pitch = _pitch;
+        if (pitch == ISpeechEngine.DefaultPitch)
+            return new Prompt(text);
+        string language;
+        lock (_synthLock)
+        {
+            try { language = _synthesizer.Voice?.Culture?.Name ?? CultureInfo.CurrentUICulture.Name; }
+            catch { language = CultureInfo.CurrentUICulture.Name; }
+        }
+        if (string.IsNullOrEmpty(language))
+            language = "en-US";
+        return new Prompt(BuildPitchSsml(text, pitch, language), SynthesisTextFormat.Ssml);
     }
 
     public async Task SpeakAsync(Utterance utterance, CancellationToken cancellationToken = default)
@@ -67,7 +137,7 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var prompt = new Prompt(utterance.Text);
+        var prompt = CreatePrompt(utterance.Text);
 
         void OnCompleted(object? sender, SpeakCompletedEventArgs e)
         {
