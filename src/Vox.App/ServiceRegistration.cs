@@ -61,8 +61,22 @@ public static class ServiceRegistration
             sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
             sp.GetRequiredService<SpeechQueue>()));
         // Rules run in this order on every utterance
+        services.AddSingleton<PronunciationRule>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            // Secure screens never read the user's profile
+            var directory = policy.AllowUserProfileAccess
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Vox", "dictionaries")
+                : null;
+            var engine = sp.GetRequiredService<ISpeechEngine>();
+            var rule = new PronunciationRule(PronunciationRule.LoadBuiltInDefault(), directory, () => engine.CurrentVoice,
+                sp.GetRequiredService<ILogger<PronunciationRule>>());
+            rule.StartWatching();
+            return rule;
+        });
         services.AddSingleton<TextProcessor>(sp => new TextProcessor(
             [
+                sp.GetRequiredService<PronunciationRule>(),
                 new PunctuationRule(SymbolDictionary.LoadBuiltIn(),
                     () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.PunctuationLevel),
             ],
