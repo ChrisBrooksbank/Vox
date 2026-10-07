@@ -49,6 +49,17 @@ public enum SpellingErrorReporting
     Off
 }
 
+/// <summary>What mouse tracking reports under the pointer.</summary>
+public enum MouseTextUnit
+{
+    /// <summary>The object (name and type).</summary>
+    Object,
+    /// <summary>The line of text, or the object where there is no text.</summary>
+    Line,
+    /// <summary>The word, or the object where there is no text.</summary>
+    Word
+}
+
 public record VoxSettings
 {
     public VerbosityLevel VerbosityLevel { get; init; } = VerbosityLevel.Beginner;
@@ -81,4 +92,8 @@ public record VoxSettings
     public bool ReviewFollowsFocus { get; init; } = true;
     /// <summary>The review cursor moves to the caret when it moves (and to the browse cursor in browse mode).</summary>
     public bool ReviewFollowsCaret { get; init; } = true;
+    /// <summary>Speak what is under the mouse pointer as it moves.</summary>
+    public bool MouseTracking { get; init; } = false;
+    /// <summary>What mouse tracking reports: the object, or the line or word of text under the pointer.</summary>
+    public MouseTextUnit MouseTextUnit { get; init; } = MouseTextUnit.Line;
 }

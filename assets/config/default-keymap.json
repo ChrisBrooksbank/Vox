@@ -78,6 +78,7 @@
     { "modifiers": "Shift",       "vkCode": 105, "mode": "Any",    "command": "ReviewBottom" },
     { "modifiers": "Insert",      "vkCode": 103, "mode": "Any",    "command": "PrevReviewMode" },
     { "modifiers": "Insert",      "vkCode": 97,  "mode": "Any",    "command": "NextReviewMode" },
+    { "modifiers": "Insert",      "vkCode": 77,  "mode": "Any",    "command": "ToggleMouseTracking" },
     { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },
     { "modifiers": "Insert|Ctrl", "vkCode": 83,  "mode": "Any",    "command": "RunSetup" }
   ]

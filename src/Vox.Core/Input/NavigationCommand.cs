@@ -80,5 +80,6 @@ public enum NavigationCommand
     ReviewTop,
     ReviewBottom,
     NextReviewMode,
-    PrevReviewMode
+    PrevReviewMode,
+    ToggleMouseTracking
 }

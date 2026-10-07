@@ -88,6 +88,10 @@ public static class ServiceRegistration
         services.AddSingleton<IReviewTextSource>(sp => new UIAReviewTextSource(sp.GetRequiredService<UIAProvider>(),
             sp.GetRequiredService<IFocusedTextSource>(), sp.GetRequiredService<IForegroundWindow>()));
         services.AddSingleton<ReviewCommands>();
+        services.AddSingleton<IMousePointer, Win32MousePointer>();
+        services.AddSingleton<IPointerTargetSource>(sp => new UIAPointerTargetSource(sp.GetRequiredService<UIAProvider>()));
+        services.AddSingleton<MouseTracker>(sp => ActivatorUtilities.CreateInstance<MouseTracker>(sp,
+            new Action<VoxSettings>(sp.GetRequiredService<SettingsMonitor>().UpdateSettings)));
         services.AddSingleton<IStartupRegistration, RunKeyStartupRegistration>();
         services.AddSingleton<IAudioDucker, Win32AudioDucker>();
         services.AddSingleton<DuckingController>(sp =>

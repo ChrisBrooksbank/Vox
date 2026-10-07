@@ -41,6 +41,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly WhereAmICommands _whereAmI;
     private readonly ObjectNavigationCommands _objectNavigation;
     private readonly ReviewCommands _review;
+    private readonly MouseTracker _mouseTracker;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -109,9 +110,11 @@ public sealed class ScreenReaderService : IHostedService
         SpeechViewer speechViewer,
         ObjectNavigationCommands objectNavigation,
         ReviewCommands review,
+        MouseTracker mouseTracker,
         RunPolicy? runPolicy = null)
     {
         _review = review;
+        _mouseTracker = mouseTracker;
         _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
         _duckingController = duckingController;
@@ -174,6 +177,9 @@ public sealed class ScreenReaderService : IHostedService
         // Replace the UIA thread if an unresponsive app leaves it stuck in a call; _uiaRecovery
         // then re-creates the automation object, subscriptions and document on the new thread
         _uiaWatchdog.Start();
+
+        // Speak what is under the mouse pointer while mouse tracking is on
+        _mouseTracker.Start();
 
         // Wire pipeline events (all raised on the pipeline thread)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
@@ -272,6 +278,8 @@ public sealed class ScreenReaderService : IHostedService
             catch (Exception ex) { _logger.LogWarning(ex, "Timed out waiting for background UIA work to finish before shutdown"); }
         }
 
+        _mouseTracker.Dispose();
+
         // Stop pending buffer updates, then release UIA (both run on the STA thread in order)
         _documentTracker.Dispose();
         _uiaEventSubscriber.Dispose();
@@ -358,7 +366,8 @@ public sealed class ScreenReaderService : IHostedService
             _speechQueue.Enqueue(new Utterance(message, SpeechPriority.Interrupt));
             return;
         }
-        if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command))
+        if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
+            && !_mouseTracker.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 

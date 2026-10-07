@@ -179,10 +179,12 @@ public sealed class ObjectNavigationCommands
     }
 
     /// <summary>What to say for an object: the focus announcement, or at least its type.</summary>
-    private string Describe(FocusChangedEvent target)
+    private string Describe(FocusChangedEvent target) => Describe(_announcementBuilder, _settings.CurrentValue, target);
+
+    /// <summary>What to say for an object: the focus announcement, or at least its type.</summary>
+    internal static string Describe(AnnouncementBuilder announcementBuilder, VoxSettings settings, FocusChangedEvent target)
     {
-        var settings = _settings.CurrentValue;
-        var text = _announcementBuilder.Build(target, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
+        var text = announcementBuilder.Build(target, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
         if (!string.IsNullOrWhiteSpace(text))
             return text;
         return string.IsNullOrWhiteSpace(target.ControlType) || target.ControlType == "Unknown"

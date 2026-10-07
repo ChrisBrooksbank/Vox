@@ -17,5 +17,7 @@
   "SimpleReviewMode": true,
   "ReviewFollowsFocus": true,
   "ReviewFollowsCaret": true,
+  "MouseTracking": false,
+  "MouseTextUnit": "Line",
   "FirstRunCompleted": false
 }
