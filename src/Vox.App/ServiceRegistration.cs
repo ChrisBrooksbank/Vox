@@ -50,6 +50,7 @@ public static class ServiceRegistration
 
         // Input
         services.AddSingleton<IKeyboardHook, KeyboardHook>();
+        services.AddSingleton<HookSafetyNet>();
         services.AddSingleton<KeyMap>(sp =>
         {
             var keyMapPath = Path.Combine(

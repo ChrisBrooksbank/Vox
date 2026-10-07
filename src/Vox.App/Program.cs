@@ -1,5 +1,6 @@
 using Serilog;
 using Vox.App;
+using Vox.Core.Input;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -21,6 +22,7 @@ if (!isFirstInstance)
     return 1;
 }
 
+HookSafetyNet? safetyNet = null;
 try
 {
     Log.Information("Vox Screen Reader starting");
@@ -30,11 +32,16 @@ try
         .ConfigureServices(ServiceRegistration.RegisterServices)
         .Build();
 
+    // A crash must never leave the keyboard hooked: release it before anything else
+    safetyNet = host.Services.GetRequiredService<HookSafetyNet>();
+    safetyNet.Register();
+
     await host.RunAsync();
     return 0;
 }
 catch (Exception ex)
 {
+    safetyNet?.ReleaseHook();
     Log.Fatal(ex, "Vox terminated unexpectedly");
     return 1;
 }
