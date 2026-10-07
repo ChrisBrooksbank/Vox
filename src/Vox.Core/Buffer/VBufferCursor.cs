@@ -325,7 +325,7 @@ public sealed class VBufferCursor
     }
 
     /// <summary>Exclusive end of the line containing <paramref name="pos"/> (its '\n' or the end of a piece).</summary>
-    private int LineEndAt(int pos)
+    public int LineEndAt(int pos)
     {
         int start = LineStartAt(pos);
         return PieceEnd(start, HardLineEnd(start));

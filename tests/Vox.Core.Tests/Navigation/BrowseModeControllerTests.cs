@@ -286,6 +286,19 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public void RawKey_AfterFocusLeavesTheDocumentForANativeEdit_IsEchoed()
+    {
+        LoadDocument();
+        // Ctrl+L: focus moves to the browser's address bar, which isn't in the buffer
+        _controller.HandleFocusChanged(new FocusChangedEvent(
+            DateTimeOffset.UtcNow, "Address and search bar", "Edit", RuntimeId: [42, 1]));
+
+        _controller.HandleRawKey(KeyUp(0x41));
+
+        Assert.Single(_sink.OfType<TypingEchoEvent>());
+    }
+
+    [Fact]
     public void SubtreeChanged_KeepsCurrentElement()
     {
         LoadDocument(focusedId: [4]);
@@ -362,7 +375,6 @@ public class BrowseModeControllerTests : IDisposable
 
     [Theory]
     [InlineData(NavigationCommand.SayAll)]
-    [InlineData(NavigationCommand.ReadCurrentLine)]
     [InlineData(NavigationCommand.ElementsList)]
     [InlineData(NavigationCommand.ToggleMode)]
     public async Task DocumentCommand_WithoutDocument_SaysNotInADocument(NavigationCommand command)
@@ -371,6 +383,86 @@ public class BrowseModeControllerTests : IDisposable
 
         await WaitForSpeech(u => u.Text == "Not in a document");
         Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public async Task ReadCommand_WithoutDocumentOrText_SaysNoText()
+    {
+        _controller.HandleCommand(NavigationCommand.ReadCurrentLine);
+
+        await WaitForSpeech(u => u.Text == "No text");
+    }
+
+    private sealed class FakeTextReader : IFocusedTextReader
+    {
+        public bool HasFocusedText { get; set; } = true;
+        public List<TextReadKind> Reads { get; } = new();
+        public void Read(TextReadKind kind) => Reads.Add(kind);
+        public int SayAllSources { get; private set; }
+        public ISayAllSource CreateSayAllSource()
+        {
+            SayAllSources++;
+            return new TextDocumentSayAllSource(() => new Vox.Core.Text.StringTextDocument("one"), f => Task.FromResult(f()));
+        }
+    }
+
+    private BrowseModeController ControllerWith(IFocusedTextReader reader)
+    {
+        var settingsMonitor = new Mock<IOptionsMonitor<VoxSettings>>();
+        settingsMonitor.SetupGet(m => m.CurrentValue).Returns(() => _settings);
+        return new BrowseModeController(_speechQueue, _audio.Object, _navigationManager, _quickNav,
+            new SayAllController(_speechQueue, NullLogger<SayAllController>.Instance), new AnnouncementBuilder(),
+            new TypingEchoHandler(_sink, () => TypingEchoMode.Characters, NullLogger<TypingEchoHandler>.Instance),
+            settingsMonitor.Object, _sink, _actions.Object, _presenter.Object,
+            NullLogger<BrowseModeController>.Instance, reader);
+    }
+
+    [Theory]
+    [InlineData(NavigationCommand.ReadCurrentLine, TextReadKind.Line)]
+    [InlineData(NavigationCommand.ReadCurrentWord, TextReadKind.Word)]
+    [InlineData(NavigationCommand.ReadCurrentChar, TextReadKind.Character)]
+    [InlineData(NavigationCommand.ReadSelection, TextReadKind.Selection)]
+    public void ReadCommand_OutsideADocument_ReadsTheFocusedTextControl(NavigationCommand command, TextReadKind kind)
+    {
+        var reader = new FakeTextReader();
+        var controller = ControllerWith(reader);
+
+        controller.HandleCommand(command);
+
+        Assert.Equal([kind], reader.Reads);
+    }
+
+    [Fact]
+    public void SayAll_OutsideADocument_ReadsTheFocusedTextControl()
+    {
+        var reader = new FakeTextReader();
+        var controller = ControllerWith(reader);
+
+        controller.HandleCommand(NavigationCommand.SayAll);
+
+        Assert.Equal(1, reader.SayAllSources);
+    }
+
+    [Fact]
+    public void ReadCommand_InBrowseMode_ReadsTheBufferNotTheFocusedControl()
+    {
+        var reader = new FakeTextReader();
+        var controller = ControllerWith(reader);
+        controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, BuildDocument(), null));
+
+        controller.HandleCommand(NavigationCommand.ReadCurrentLine);
+
+        Assert.Empty(reader.Reads);
+    }
+
+    [Fact]
+    public async Task ReadCurrentChar_InBrowseMode_SpeaksTheCharacterAtTheCursor()
+    {
+        LoadDocument();
+
+        _controller.HandleCommand(NavigationCommand.ReadCurrentChar);
+
+        await WaitForSpeech(u => u.Text == "W"); // "Welcome"
     }
 
     [Fact]
@@ -408,6 +500,61 @@ public class BrowseModeControllerTests : IDisposable
         _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Size", "ComboBox", RuntimeId: [8]));
         _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [8], 30045, "Large"));
         await WaitForSpeech(u => u.Text == "Large");
+    }
+
+    [Fact]
+    public async Task ElementSelected_InADesktopListWithoutFocusMoving_IsAnnounced()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Files", "List", RuntimeId: [7]));
+
+        _controller.HandleElementSelected(new ElementSelectedEvent(DateTimeOffset.UtcNow, [7, 3], "report.docx"));
+
+        await WaitForSpeech(u => u.Text == "report.docx");
+    }
+
+    [Fact]
+    public async Task PropertyChanged_SliderRangeValue_IsAnnounced()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Volume", "Slider", RuntimeId: [7]));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30047, 42.0));
+
+        await WaitForSpeech(u => u.Text == "42");
+    }
+
+    [Fact]
+    public async Task PropertyChanged_ProgressBarRangeValue_IsLeftToTheProgressReporter()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Copying", "ProgressBar", RuntimeId: [7]));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30047, 42.0));
+
+        await Task.Delay(100);
+        lock (_spoken) Assert.DoesNotContain(_spoken, u => u.Text == "42");
+    }
+
+    [Fact]
+    public async Task PropertyChanged_IsEnabled_SaysAvailableOrUnavailable()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Save", "Button", RuntimeId: [7]));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30010, false));
+        await WaitForSpeech(u => u.Text == "unavailable");
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30010, true));
+        await WaitForSpeech(u => u.Text == "available");
+    }
+
+    [Fact]
+    public async Task PropertyChanged_SameChangeFromTwoSubscriptions_IsSpokenOnce()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Remember me", "CheckBox", RuntimeId: [7], ToggleState: 0));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30086, 1));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30086, 1));
+        await WaitForSpeech(u => u.Text == "checked");
+        await Task.Delay(100);
+
+        lock (_spoken) Assert.Single(_spoken, u => u.Text == "checked");
     }
 
     [Fact]

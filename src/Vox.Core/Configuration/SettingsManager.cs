@@ -44,6 +44,11 @@ public sealed class SettingsManager
     public string UserSettingsPath => _userSettingsPath;
 
     /// <summary>
+    /// Never write the settings file (secure mode): changes apply for this session only.
+    /// </summary>
+    public bool ReadOnly { get; init; }
+
+    /// <summary>
     /// Loads settings from the user settings file, falling back to defaults if not found or invalid.
     /// </summary>
     public VoxSettings Load()
@@ -91,22 +96,35 @@ public sealed class SettingsManager
     /// </summary>
     public void Save(VoxSettings settings)
     {
+        if (ReadOnly)
+        {
+            _logger.LogInformation("Settings are read-only here; not saved");
+            return;
+        }
+        SaveTo(_userSettingsPath, settings);
+    }
+
+    /// <summary>Writes settings to <paramref name="path"/> atomically. Returns whether it worked.</summary>
+    public bool SaveTo(string path, VoxSettings settings)
+    {
         try
         {
-            var dir = Path.GetDirectoryName(_userSettingsPath)!;
+            var dir = Path.GetDirectoryName(path)!;
             Directory.CreateDirectory(dir);
 
             // Write to a temporary file and swap it in, so a crash mid-write can't leave a
             // truncated settings file behind
             var json = JsonSerializer.Serialize(settings, JsonOptions);
-            var tempPath = _userSettingsPath + ".tmp";
+            var tempPath = path + ".tmp";
             File.WriteAllText(tempPath, json);
-            File.Move(tempPath, _userSettingsPath, overwrite: true);
-            _logger.LogInformation("Saved settings to {Path}", _userSettingsPath);
+            File.Move(tempPath, path, overwrite: true);
+            _logger.LogInformation("Saved settings to {Path}", path);
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save settings to {Path}", _userSettingsPath);
+            _logger.LogError(ex, "Failed to save settings to {Path}", path);
+            return false;
         }
     }
 

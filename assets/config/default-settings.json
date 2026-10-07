@@ -7,5 +7,12 @@
   "AnnounceVisitedLinks": true,
   "ModifierKey": "Insert",
   "MaxLineLength": 100,
+  "SpellingErrors": "Speech",
+  "ProgressBars": "Every10Percent",
+  "ReportBackgroundProgress": false,
+  "StartAtLogon": false,
+  "AudioOutputDevice": null,
+  "AudioDucking": "Off",
+  "KeepAudioDeviceAwake": true,
   "FirstRunCompleted": false
 }

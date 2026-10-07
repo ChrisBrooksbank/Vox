@@ -47,5 +47,17 @@ public enum NavigationCommand
     NextParagraph,
     PrevParagraph,
     Quit,
-    RunSetup
+    RunSetup,
+    ReadCurrentChar,
+    ReadSelection,
+    ReadFormatting,
+    SayTitle,
+    SayFocus,
+    SayStatusBar,
+    SayTime,
+    SayBattery,
+    ReadWindow,
+    CopySettingsToSecureScreens,
+    ToggleSpeechViewer,
+    DeveloperInfo
 }

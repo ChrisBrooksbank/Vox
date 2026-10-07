@@ -6,6 +6,7 @@ using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Lifecycle;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
@@ -27,6 +28,22 @@ public sealed class ScreenReaderService : IHostedService
     private readonly UIAProvider _uiaProvider;
     private readonly UIAEventSubscriber _uiaEventSubscriber;
     private readonly BrowseDocumentTracker _documentTracker;
+    private readonly UIAWatchdog _uiaWatchdog;
+    private readonly UIARecovery _uiaRecovery;
+    // Constructed to subscribe to UIA call timeouts ("<app> not responding")
+    private readonly NotRespondingReporter _notRespondingReporter;
+    private readonly FocusedTextMonitor _focusedTextMonitor;
+    private readonly TerminalMonitor _terminalMonitor;
+    private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
+    private readonly DialogReader _dialogReader;
+    private readonly ProgressReporter _progressReporter;
+    private readonly MenuTracker _menuTracker;
+    private readonly WhereAmICommands _whereAmI;
+    private readonly RunPolicy _runPolicy;
+    private readonly SettingsManager _settingsManager;
+    private readonly IStartupRegistration _startupRegistration;
+    private readonly DuckingController _duckingController;
+    private readonly SpeechViewer _speechViewer;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -66,6 +83,16 @@ public sealed class ScreenReaderService : IHostedService
         UIAProvider uiaProvider,
         UIAEventSubscriber uiaEventSubscriber,
         BrowseDocumentTracker documentTracker,
+        UIAWatchdog uiaWatchdog,
+        UIARecovery uiaRecovery,
+        NotRespondingReporter notRespondingReporter,
+        FocusedTextMonitor focusedTextMonitor,
+        TerminalMonitor terminalMonitor,
+        ForegroundWindowMonitor foregroundWindowMonitor,
+        DialogReader dialogReader,
+        ProgressReporter progressReporter,
+        MenuTracker menuTracker,
+        WhereAmICommands whereAmI,
         NavigationManager navigationManager,
         BrowseModeController browseModeController,
         SayAllController sayAllController,
@@ -73,8 +100,18 @@ public sealed class ScreenReaderService : IHostedService
         FirstRunWizard firstRunWizard,
         IOptionsMonitor<VoxSettings> settings,
         IHostApplicationLifetime lifetime,
-        ILogger<ScreenReaderService> logger)
+        ILogger<ScreenReaderService> logger,
+        SettingsManager settingsManager,
+        IStartupRegistration startupRegistration,
+        DuckingController duckingController,
+        SpeechViewer speechViewer,
+        RunPolicy? runPolicy = null)
     {
+        _speechViewer = speechViewer;
+        _duckingController = duckingController;
+        _startupRegistration = startupRegistration;
+        _settingsManager = settingsManager;
+        _runPolicy = runPolicy ?? RunPolicy.Normal;
         _lifetime = lifetime;
         _speechEngine = speechEngine;
         _speechQueue = speechQueue;
@@ -84,6 +121,16 @@ public sealed class ScreenReaderService : IHostedService
         _uiaProvider = uiaProvider;
         _uiaEventSubscriber = uiaEventSubscriber;
         _documentTracker = documentTracker;
+        _uiaWatchdog = uiaWatchdog;
+        _uiaRecovery = uiaRecovery;
+        _notRespondingReporter = notRespondingReporter;
+        _focusedTextMonitor = focusedTextMonitor;
+        _terminalMonitor = terminalMonitor;
+        _foregroundWindowMonitor = foregroundWindowMonitor;
+        _dialogReader = dialogReader;
+        _progressReporter = progressReporter;
+        _menuTracker = menuTracker;
+        _whereAmI = whereAmI;
         _navigationManager = navigationManager;
         _browseModeController = browseModeController;
         _sayAllController = sayAllController;
@@ -109,7 +156,7 @@ public sealed class ScreenReaderService : IHostedService
 
         // Run the first-run wizard before subscribing to UIA events: focus announcements are
         // Interrupt speech and would cut off the wizard's prompts
-        if (hookInstalled && !_settings.CurrentValue.FirstRunCompleted)
+        if (hookInstalled && _runPolicy.AllowSetupWizard && !_settings.CurrentValue.FirstRunCompleted)
         {
             _logger.LogInformation("First run not completed — starting wizard");
             await _firstRunWizard.RunAsync(cancellationToken);
@@ -117,6 +164,10 @@ public sealed class ScreenReaderService : IHostedService
 
         // Subscribe to UIA events (focus, live regions, notifications)
         await _uiaEventSubscriber.SubscribeAsync();
+
+        // Replace the UIA thread if an unresponsive app leaves it stuck in a call; _uiaRecovery
+        // then re-creates the automation object, subscriptions and document on the new thread
+        _uiaWatchdog.Start();
 
         // Wire pipeline events (all raised on the pipeline thread)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
@@ -129,7 +180,13 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.ElementsListClosedProcessed += OnElementsListClosedProcessed;
         _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
+        _eventPipeline.CaretMovedProcessed += OnCaretMovedProcessed;
+        _eventPipeline.TextEditedProcessed += OnTextEditedProcessed;
+        _eventPipeline.ForegroundWindowChangedProcessed += OnForegroundWindowChangedProcessed;
+        _eventPipeline.ProgressChangedProcessed += OnProgressChangedProcessed;
+        _eventPipeline.MenuEventProcessed += OnMenuEventProcessed;
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
+        _eventPipeline.FocusContextProvider = FocusContext;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
         _navigationManager.ModeChanged += OnModeChanged;
@@ -162,6 +219,11 @@ public sealed class ScreenReaderService : IHostedService
         _keyInputDispatcher.Stop();
         _keyboardHook.Uninstall();
 
+        // No thread replacement or recovery while shutting down
+        _uiaWatchdog.Dispose();
+        _uiaRecovery.Dispose();
+        _notRespondingReporter.Dispose();
+
         // Unsubscribe event handlers
         _eventPipeline.RawKeyReceived -= OnRawKeyReceived;
         _eventPipeline.NavigationCommandReceived -= OnNavigationCommandReceived;
@@ -173,12 +235,18 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.ElementsListClosedProcessed -= OnElementsListClosedProcessed;
         _eventPipeline.PropertyChangedProcessed -= OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed -= OnElementSelectedProcessed;
+        _eventPipeline.CaretMovedProcessed -= OnCaretMovedProcessed;
+        _eventPipeline.TextEditedProcessed -= OnTextEditedProcessed;
+        _eventPipeline.ForegroundWindowChangedProcessed -= OnForegroundWindowChangedProcessed;
+        _eventPipeline.ProgressChangedProcessed -= OnProgressChangedProcessed;
+        _eventPipeline.MenuEventProcessed -= OnMenuEventProcessed;
         _navigationManager.ModeChanged -= OnModeChanged;
         _browseModeController.DocumentActiveChanged -= OnDocumentActiveChanged;
         _browseModeController.EscapeGoesToPageChanged -= OnEscapeGoesToPageChanged;
         _browseModeController.QuitRequested -= OnQuitRequested;
         _browseModeController.SetupRequested -= OnSetupRequested;
         _eventPipeline.FocusAnnouncementFilter = null;
+        _eventPipeline.FocusContextProvider = null;
         _settingsSubscription?.Dispose();
 
         // Stop Say All if running
@@ -238,21 +306,117 @@ public sealed class ScreenReaderService : IHostedService
                 _speechEngine.SetVoice(settings.VoiceName ?? string.Empty);
             if (previous is null || previous.AudioCuesEnabled != settings.AudioCuesEnabled)
                 _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
+            if (previous is null || previous.AudioOutputDevice != settings.AudioOutputDevice)
+                _audioCuePlayer.OutputDevice = settings.AudioOutputDevice;
+            if (previous is null || previous.KeepAudioDeviceAwake != settings.KeepAudioDeviceAwake)
+                _audioCuePlayer.KeepAwake = settings.KeepAudioDeviceAwake;
+            if (previous is null || previous.AudioDucking != settings.AudioDucking)
+                _duckingController.SetMode(settings.AudioDucking);
             if (previous is null || previous.ModifierKey != settings.ModifierKey)
                 _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
+            if (previous is null || previous.StartAtLogon != settings.StartAtLogon)
+            {
+                try
+                {
+                    StartAtLogon.Apply(settings.StartAtLogon, _startupRegistration,
+                        StartAtLogon.CommandFor(AppContext.BaseDirectory), _runPolicy);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not change the start-at-logon registration");
+                }
+            }
         }
     }
 
-    private void OnRawKeyReceived(object? sender, RawKeyEvent e) =>
+    private void OnRawKeyReceived(object? sender, RawKeyEvent e)
+    {
         _browseModeController.HandleRawKey(e);
+        TrackBackground(_focusedTextMonitor.HandleRawKey(e));
+        _terminalMonitor.HandleRawKey(e);
+    }
 
-    private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e) =>
-        _browseModeController.HandleCommand(e.Command);
+    private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e)
+    {
+        if (e.Command == NavigationCommand.ToggleSpeechViewer)
+        {
+            _speechViewer.Toggle();
+            return;
+        }
+        if (e.Command == NavigationCommand.CopySettingsToSecureScreens)
+        {
+            var message = SecureScreenSettings.Copy(_settingsManager, _settings.CurrentValue, _runPolicy);
+            _speechQueue.Enqueue(new Utterance(message, SpeechPriority.Interrupt));
+            return;
+        }
+        if (!_whereAmI.TryHandle(e.Command))
+            _browseModeController.HandleCommand(e.Command);
+    }
 
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
     {
         _browseModeController.HandleFocusChanged(e);
+        _whereAmI.HandleFocusChanged(e);
+        TrackBackground(_focusedTextMonitor.HandleFocusChanged());
         TrackBackground(_documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence));
+        TrackBackground(FollowFocusForTextAsync());
+    }
+
+    /// <summary>Finds the newly focused text control, then lets the terminal monitor take its first snapshot.</summary>
+    private async Task FollowFocusForTextAsync()
+    {
+        await IgnoreUiaFailure(_uiaEventSubscriber.FollowFocusForTextAsync(), "following focus for caret events").ConfigureAwait(false);
+        await _terminalMonitor.HandleFocusChangedAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>Awaits background UIA work whose failure (timeout, element gone) only needs logging.</summary>
+    private async Task IgnoreUiaFailure(Task task, string what)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Shutting down
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "UIA error while {What}", what);
+        }
+    }
+
+    private void OnCaretMovedProcessed(object? sender, CaretMovedEvent e) =>
+        TrackBackground(_focusedTextMonitor.HandleCaretMovedAsync(e));
+
+    private void OnMenuEventProcessed(object? sender, MenuEvent e) => _menuTracker.Handle(e.Kind);
+
+    /// <summary>Said before a focus announcement: the window title when focus moved into another window, then menu context.</summary>
+    private string? FocusContext(FocusChangedEvent focus)
+    {
+        var parts = new[] { _foregroundWindowMonitor.FocusContext(focus), _menuTracker.TakeContext() }
+            .Where(p => !string.IsNullOrWhiteSpace(p));
+        var context = string.Join(". ", parts);
+        return context.Length == 0 ? null : context;
+    }
+
+    private void OnProgressChangedProcessed(object? sender, ProgressChangedEvent e)
+    {
+        if (_progressReporter.Evaluate(e) is not { } report)
+            return;
+        if (report.Speech is { } speech)
+            _speechQueue.Enqueue(new Utterance(speech, SpeechPriority.Normal));
+        if (report.ToneHz is { } hz)
+            _audioCuePlayer.PlayTone(hz, 40);
+    }
+
+    private void OnForegroundWindowChangedProcessed(object? sender, ForegroundWindowChangedEvent e) =>
+        TrackBackground(_dialogReader.HandleForegroundWindowChangedAsync(e));
+
+    private void OnTextEditedProcessed(object? sender, TextEditedEvent e)
+    {
+        TrackBackground(_focusedTextMonitor.HandleTextEditedAsync(e));
+        TrackBackground(_terminalMonitor.HandleTextEditedAsync(e));
     }
 
     private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>
@@ -300,7 +464,15 @@ public sealed class ScreenReaderService : IHostedService
         _lifetime.StopApplication();
     }
 
-    private void OnSetupRequested(object? sender, EventArgs e) => _ = RunSetupAgainAsync();
+    private void OnSetupRequested(object? sender, EventArgs e)
+    {
+        if (!_runPolicy.AllowSetupWizard)
+        {
+            _speechQueue.Enqueue(new Utterance("Not available on this screen", SpeechPriority.Interrupt));
+            return;
+        }
+        _ = RunSetupAgainAsync();
+    }
 
     /// <summary>
     /// Runs the first-run wizard again. Browse-mode key handling is paused meanwhile, so the

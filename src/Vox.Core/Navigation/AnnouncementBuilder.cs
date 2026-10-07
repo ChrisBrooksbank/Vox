@@ -98,6 +98,21 @@ public sealed class AnnouncementBuilder
             }
         }
 
+        // Shortcut keys — "Open, menu item, Ctrl+O"; the access key at the most verbose level
+        if (!string.IsNullOrWhiteSpace(node.AcceleratorKey))
+            Append(sb, node.AcceleratorKey.Trim());
+        if (profile.AnnounceDescription && !string.IsNullOrWhiteSpace(node.AccessKey))
+            Append(sb, node.AccessKey.Trim());
+
+        // Position — "3 of 10", "level 2" (tree items, nested lists)
+        if (profile.AnnouncePositionInfo)
+        {
+            if (node.PositionInSet > 0 && node.SizeOfSet >= node.PositionInSet)
+                Append(sb, $"{node.PositionInSet} of {node.SizeOfSet}");
+            if (node.Level > 0 && !node.IsHeading)
+                Append(sb, $"level {node.Level}");
+        }
+
         return sb.ToString();
     }
 
@@ -122,6 +137,11 @@ public sealed class AnnouncementBuilder
             IsSelected = focus.IsSelected,
             Value = focus.Value ?? string.Empty,
             IsPassword = focus.IsPassword,
+            PositionInSet = focus.PositionInSet,
+            SizeOfSet = focus.SizeOfSet,
+            Level = focus.Level,
+            AcceleratorKey = focus.AcceleratorKey ?? string.Empty,
+            AccessKey = focus.AccessKey ?? string.Empty,
         }, profile, announceVisitedLinks);
 
     /// <summary>Spoken text for a UIA ToggleState, or null when not a toggle.</summary>

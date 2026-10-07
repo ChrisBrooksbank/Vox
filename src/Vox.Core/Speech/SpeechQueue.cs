@@ -36,7 +36,10 @@ public sealed class SpeechQueue : IDisposable
     private sealed record QueuedUtterance(
         Utterance Utterance,
         long Epoch,
-        TaskCompletionSource? Completion);
+        TaskCompletionSource? Completion)
+    {
+        public long EnqueuedTick { get; } = Environment.TickCount64;
+    }
 
     public SpeechQueue(ISpeechEngine engine, ILogger<SpeechQueue> logger)
     {
@@ -244,6 +247,21 @@ public sealed class SpeechQueue : IDisposable
         }
     }
 
+    /// <summary>Receives how long each utterance waited in the queue (latency measurement).</summary>
+    public Action<TimeSpan>? QueueLatency { get; set; }
+
+    /// <summary>Raised on the queue's thread just before an utterance is handed to the engine. Handlers must be quick.</summary>
+    public event EventHandler<Utterance>? UtteranceStarted;
+
+    /// <summary>Raised on the queue's thread when the engine has finished (or abandoned) an utterance.</summary>
+    public event EventHandler<Utterance>? UtteranceFinished;
+
+    private void RaiseSafely(EventHandler<Utterance>? handler, Utterance utterance)
+    {
+        try { handler?.Invoke(this, utterance); }
+        catch (Exception ex) { _logger.LogError(ex, "Error in a speech queue event handler"); }
+    }
+
     private async Task SpeakGroupAsync(List<QueuedUtterance> group, CancellationToken token)
     {
         var first = group[0].Utterance;
@@ -265,7 +283,16 @@ public sealed class SpeechQueue : IDisposable
         try
         {
             speechCts.Token.ThrowIfCancellationRequested();
-            await _engine.SpeakAsync(utterance, speechCts.Token).ConfigureAwait(false);
+            QueueLatency?.Invoke(TimeSpan.FromMilliseconds(Environment.TickCount64 - group.Min(g => g.EnqueuedTick)));
+            RaiseSafely(UtteranceStarted, utterance);
+            try
+            {
+                await _engine.SpeakAsync(utterance, speechCts.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                RaiseSafely(UtteranceFinished, utterance);
+            }
             spoken = true;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -276,11 +303,12 @@ public sealed class SpeechQueue : IDisposable
         catch (OperationCanceledException)
         {
             // Interrupted by a higher-priority utterance or CancelAll — normal operation
-            _logger.LogDebug("Speech interrupted: {Text}", utterance.Text);
+            _logger.LogDebug("Speech interrupted ({Priority}, {Length} chars)", utterance.Priority, utterance.Text.Length);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error speaking utterance: {Text}", utterance.Text);
+            // Never log the text: utterances carry typed characters and form field values
+            _logger.LogError(ex, "Error speaking utterance ({Priority}, {Length} chars)", utterance.Priority, utterance.Text.Length);
         }
         finally
         {

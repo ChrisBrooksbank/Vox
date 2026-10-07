@@ -32,6 +32,12 @@ public sealed class FirstRunWizard
 
     private TaskCompletionSource<KeyEvent>? _keyWaiter;
 
+    /// <summary>
+    /// Whether the wizard is waiting for a key now. Keys pressed while it isn't are not its own
+    /// (they pass through to the system); tests use this to press keys only once a step listens.
+    /// </summary>
+    public bool IsWaitingForKey => Volatile.Read(ref _keyWaiter) is not null;
+
     public FirstRunWizard(
         ISpeechEngine speechEngine,
         SettingsManager settingsManager,

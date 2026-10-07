@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 36
+- Build iterations: 83
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -78,68 +78,68 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Quality foundation (spec: quality-engineering.md)
 
-- [ ] Add GitHub Actions workflow `.github/workflows/ci.yml` on `windows-latest`: setup .NET 9, restore, `dotnet build`, `dotnet test` on push and pull request; upload test results (spec: quality-engineering.md)
-- [ ] Add `RecordingSpeechEngine` (test helper implementing `ISpeechEngine`) that records text, priority and timestamps; use it in one existing EventPipeline test (spec: quality-engineering.md)
-- [ ] Add a log-sink test proving typed characters, password field values and `TypingEchoEvent` text never reach Serilog; fix any leak found (spec: quality-engineering.md)
+- [x] Add GitHub Actions workflow `.github/workflows/ci.yml` on `windows-latest`: setup .NET 9, restore, `dotnet build`, `dotnet test` on push and pull request; upload test results (spec: quality-engineering.md)
+- [x] Add `RecordingSpeechEngine` (test helper implementing `ISpeechEngine`) that records text, priority and timestamps; use it in one existing EventPipeline test (spec: quality-engineering.md)
+- [x] Add a log-sink test proving typed characters, password field values and `TypingEchoEvent` text never reach Serilog; fix any leak found (spec: quality-engineering.md)
 
 #### Robustness (spec: robustness-secure-desktop.md)
 
-- [ ] Add a timeout parameter (default 2 s) to `UIAThread.RunAsync`; throw `UIATimeoutException` on expiry and abandon the call; unit tests with a blocking delegate (spec: robustness-secure-desktop.md)
-- [ ] Add `UIAWatchdog`: detect an STA thread blocked past 5 s, start a replacement `UIAThread`, raise a `UIAThreadReplaced` event; unit tests with a fake blocking call (spec: robustness-secure-desktop.md)
-- [ ] On `UIAThreadReplaced`, re-create `CUIAutomation` and the cache request in `UIAProvider` and re-subscribe `UIAEventSubscriber` and `BrowseDocumentTracker` (spec: robustness-secure-desktop.md)
-- [ ] Set `IUIAutomation2.ConnectionTimeout` (2000 ms) and `TransactionTimeout` (1000 ms) when creating the automation object (spec: robustness-secure-desktop.md)
-- [ ] Speak "<app> not responding" once per process per 10 s when UIA calls to it time out; add `AppNotRespondingEvent` to the pipeline (spec: robustness-secure-desktop.md)
-- [ ] Make StopSpeech, Quit and other non-UIA commands run without awaiting the UIA thread; unit test that they complete while UIA is blocked (spec: robustness-secure-desktop.md)
-- [ ] Add an unhandled-exception and process-exit handler that uninstalls the keyboard hook first; test with a fake `IKeyboardHook` (spec: robustness-secure-desktop.md)
-- [ ] Add `Vox.Watchdog` console project: launches Vox.App, restarts it after a crash (max 3 per minute), then speaks a failure message through SAPI directly; restart policy unit-tested via an injectable process launcher (spec: robustness-secure-desktop.md)
-- [ ] Add fault-injection test helpers: a mock `IVBufferElement` provider that hangs or throws; tests that the buffer builder and tracker recover (spec: quality-engineering.md)
+- [x] Add a timeout parameter (default 2 s) to `UIAThread.RunAsync`; throw `UIATimeoutException` on expiry and abandon the call; unit tests with a blocking delegate (spec: robustness-secure-desktop.md)
+- [x] Add `UIAWatchdog`: detect an STA thread blocked past 5 s, start a replacement `UIAThread`, raise a `UIAThreadReplaced` event; unit tests with a fake blocking call (spec: robustness-secure-desktop.md)
+- [x] On `UIAThreadReplaced`, re-create `CUIAutomation` and the cache request in `UIAProvider` and re-subscribe `UIAEventSubscriber` and `BrowseDocumentTracker` (spec: robustness-secure-desktop.md)
+- [x] Set `IUIAutomation2.ConnectionTimeout` (2000 ms) and `TransactionTimeout` (1000 ms) when creating the automation object (spec: robustness-secure-desktop.md) — already in `UIAProvider.InitializeAsync` (2000 ms connection, 4000 ms transaction, 20 s for document capture); kept the tuned 4000 ms
+- [x] Speak "<app> not responding" once per process per 10 s when UIA calls to it time out; add `AppNotRespondingEvent` to the pipeline (spec: robustness-secure-desktop.md)
+- [x] Make StopSpeech, Quit and other non-UIA commands run without awaiting the UIA thread; unit test that they complete while UIA is blocked (spec: robustness-secure-desktop.md)
+- [x] Add an unhandled-exception and process-exit handler that uninstalls the keyboard hook first; test with a fake `IKeyboardHook` (spec: robustness-secure-desktop.md)
+- [x] Add `Vox.Watchdog` console project: launches Vox.App, restarts it after a crash (max 3 per minute), then speaks a failure message through SAPI directly; restart policy unit-tested via an injectable process launcher (spec: robustness-secure-desktop.md)
+- [x] Add fault-injection test helpers: a mock `IVBufferElement` provider that hangs or throws; tests that the buffer builder and tracker recover (spec: quality-engineering.md)
 
 #### Desktop text editing (spec: desktop-text-and-controls.md)
 
-- [ ] Add `ITextDocument` / `ITextRange` abstractions (units char/word/line/paragraph, caret, selection, attributes) in `Vox.Core/Text/` (spec: desktop-text-and-controls.md)
-- [ ] Add `BufferTextDocument` adapter so the virtual buffer implements `ITextDocument`; existing `VBufferCursor` tests still pass (spec: desktop-text-and-controls.md)
-- [ ] Add `UIATextDocument` over `IUIAutomationTextPattern`/`TextPattern2` with all calls through `UIAThread`; snapshot-based fake for tests (spec: desktop-text-and-controls.md)
-- [ ] Subscribe to `TextSelectionChanged` and `TextEditTextChanged` for the focused element; add `CaretMovedEvent` and `TextEditedEvent` to the pipeline (spec: desktop-text-and-controls.md)
-- [ ] Add `TextCaretTracker`: after a caret key (arrows, Ctrl+arrows, Home/End, Ctrl+Home/End, PgUp/PgDn) speak the matching unit at the new caret; unit tests per key (spec: desktop-text-and-controls.md)
-- [ ] Add caret fallback for edits without `TextPattern`: `GetGUIThreadInfo` caret plus `ValuePattern` text (spec: desktop-text-and-controls.md)
-- [ ] Add selection speech in native edits: "selected X" / "unselected X", "all selected", "selection cleared"; unit tests with a fake `ITextDocument` (spec: desktop-text-and-controls.md)
-- [ ] Add deletion echo: Backspace/Delete (and Ctrl+Backspace/Delete) speak the removed text; unit tests (spec: desktop-text-and-controls.md)
-- [ ] Extend `TypingEchoHandler` to native edit controls (not only web documents); password edits still echo "star" (spec: desktop-text-and-controls.md)
-- [ ] Add commands (mode Any) ReadCurrentLine/Word/Char for native edits, ReadSelection (Insert+Shift+Up); keymap bindings (spec: desktop-text-and-controls.md)
-- [ ] Add ReadFormatting (Insert+F): font name, size, bold/italic/underline, colour, spelling error from text attributes; keymap binding (spec: desktop-text-and-controls.md)
-- [ ] Report "misspelled" when the caret enters a word with the spelling-error attribute (setting: speech / earcon / off) (spec: desktop-text-and-controls.md)
-- [ ] Make `SayAllController` work over any `ITextDocument`, so Insert+Down reads native edit controls (spec: desktop-text-and-controls.md)
-- [ ] Add `TerminalMonitor` for Windows Terminal and conhost: diff text on change, speak new lines, throttle to one utterance per 100 ms, collapse >20 lines, suppress echo of typed characters; unit tests (spec: desktop-text-and-controls.md)
+- [x] Add `ITextDocument` / `ITextRange` abstractions (units char/word/line/paragraph, caret, selection, attributes) in `Vox.Core/Text/` (spec: desktop-text-and-controls.md)
+- [x] Add `BufferTextDocument` adapter so the virtual buffer implements `ITextDocument`; existing `VBufferCursor` tests still pass (spec: desktop-text-and-controls.md)
+- [x] Add `UIATextDocument` over `IUIAutomationTextPattern`/`TextPattern2` with all calls through `UIAThread`; snapshot-based fake for tests (spec: desktop-text-and-controls.md)
+- [x] Subscribe to `TextSelectionChanged` and `TextEditTextChanged` for the focused element; add `CaretMovedEvent` and `TextEditedEvent` to the pipeline (spec: desktop-text-and-controls.md)
+- [x] Add `TextCaretTracker`: after a caret key (arrows, Ctrl+arrows, Home/End, Ctrl+Home/End, PgUp/PgDn) speak the matching unit at the new caret; unit tests per key (spec: desktop-text-and-controls.md)
+- [x] Add caret fallback for edits without `TextPattern`: `GetGUIThreadInfo` caret plus `ValuePattern` text (spec: desktop-text-and-controls.md)
+- [x] Add selection speech in native edits: "selected X" / "unselected X", "all selected", "selection cleared"; unit tests with a fake `ITextDocument` (spec: desktop-text-and-controls.md)
+- [x] Add deletion echo: Backspace/Delete (and Ctrl+Backspace/Delete) speak the removed text; unit tests (spec: desktop-text-and-controls.md)
+- [x] Extend `TypingEchoHandler` to native edit controls (not only web documents); password edits still echo "star" (spec: desktop-text-and-controls.md): already the case (echo is only skipped in browse mode over a document; password mode follows every focus event); added a test for focus leaving the document for a native edit
+- [x] Add commands (mode Any) ReadCurrentLine/Word/Char for native edits, ReadSelection (Insert+Shift+Up); keymap bindings (spec: desktop-text-and-controls.md)
+- [x] Add ReadFormatting (Insert+F): font name, size, bold/italic/underline, colour, spelling error from text attributes; keymap binding (spec: desktop-text-and-controls.md)
+- [x] Report "misspelled" when the caret enters a word with the spelling-error attribute (setting: speech / earcon / off) (spec: desktop-text-and-controls.md)
+- [x] Make `SayAllController` work over any `ITextDocument`, so Insert+Down reads native edit controls (spec: desktop-text-and-controls.md)
+- [x] Add `TerminalMonitor` for Windows Terminal and conhost: diff text on change, speak new lines, throttle to one utterance per 100 ms, collapse >20 lines, suppress echo of typed characters; unit tests (spec: desktop-text-and-controls.md)
 
 #### Desktop controls and events (spec: desktop-text-and-controls.md)
 
-- [ ] Add `ForegroundWindowChangedEvent` (WinEvent `EVENT_SYSTEM_FOREGROUND` or UIA window opened) and speak the window title (spec: desktop-text-and-controls.md)
-- [ ] Add dialog auto-read: on a dialog opening, speak title plus static text that has no focusable target; unit tests over a mock tree (spec: desktop-text-and-controls.md)
-- [ ] Speak focused-element property changes: ToggleState, ExpandCollapseState, Value, RangeValue, IsEnabled, Name; announcement text per verbosity; unit tests (spec: desktop-text-and-controls.md)
-- [ ] Add progress-bar reporting with setting (every 10 % / 25 % / beep / off) and throttling; unit tests (spec: desktop-text-and-controls.md)
-- [ ] Speak `SelectionItem`/`Selection` changes in lists, grids, tabs and trees (spec: desktop-text-and-controls.md)
-- [ ] Add position info ("3 of 10", "level 2") from PositionInSet/SizeOfSet/Level to `AnnouncementBuilder`, controlled by `VerbosityProfile`; unit tests (spec: desktop-text-and-controls.md)
-- [ ] Menus: "menu" on open, "leaving menu" on close, submenu entry, shortcut and accelerator text; unit tests (spec: desktop-text-and-controls.md)
-- [ ] Tooltips, Start menu search results, Alt+Tab and Win+Tab switchers and virtual-desktop switch announcements (spec: desktop-text-and-controls.md)
-- [ ] Add Where-am-I commands (mode Any): SayTitle Insert+T, SayFocus Insert+Tab, SayStatusBar Insert+End, SayTime Insert+F12 (twice: date), SayBattery Insert+Shift+B, ReadWindow Insert+B; keymap bindings and tests (spec: desktop-text-and-controls.md)
+- [x] Add `ForegroundWindowChangedEvent` (WinEvent `EVENT_SYSTEM_FOREGROUND` or UIA window opened) and speak the window title (spec: desktop-text-and-controls.md)
+- [x] Add dialog auto-read: on a dialog opening, speak title plus static text that has no focusable target; unit tests over a mock tree (spec: desktop-text-and-controls.md)
+- [x] Speak focused-element property changes: ToggleState, ExpandCollapseState, Value, RangeValue, IsEnabled, Name; announcement text per verbosity; unit tests (spec: desktop-text-and-controls.md)
+- [x] Add progress-bar reporting with setting (every 10 % / 25 % / beep / off) and throttling; unit tests (spec: desktop-text-and-controls.md)
+- [x] Speak `SelectionItem`/`Selection` changes in lists, grids, tabs and trees (spec: desktop-text-and-controls.md)
+- [x] Add position info ("3 of 10", "level 2") from PositionInSet/SizeOfSet/Level to `AnnouncementBuilder`, controlled by `VerbosityProfile`; unit tests (spec: desktop-text-and-controls.md)
+- [x] Menus: "menu" on open, "leaving menu" on close, submenu entry, shortcut and accelerator text; unit tests (spec: desktop-text-and-controls.md)
+- [x] Tooltips, Start menu search results, Alt+Tab and Win+Tab switchers and virtual-desktop switch announcements (spec: desktop-text-and-controls.md)
+- [x] Add Where-am-I commands (mode Any): SayTitle Insert+T, SayFocus Insert+Tab, SayStatusBar Insert+End, SayTime Insert+F12 (twice: date), SayBattery Insert+Shift+B, ReadWindow Insert+B; keymap bindings and tests (spec: desktop-text-and-controls.md)
 
 #### Privileges and secure screens (spec: robustness-secure-desktop.md)
 
-- [ ] Add app manifest with `uiAccess="true"` to Vox.App and an MSBuild signing target that runs only when a certificate is configured; detect and log missing `uiAccess` at startup (spec: robustness-secure-desktop.md)
-- [ ] Add `--secure` mode to Vox.App: no add-ons, no settings writes, no network/AI, settings read from a system location; unit tests of the mode switches (spec: robustness-secure-desktop.md)
-- [ ] Add "use current settings on sign-in screens" command that copies settings to the system location (spec: robustness-secure-desktop.md)
-- [ ] Add `Vox.Service` Windows service project: watch session/desktop switches and launch Vox in secure mode on the Winlogon desktop; switching logic unit-tested behind an interface (spec: robustness-secure-desktop.md)
-- [ ] Add start-at-logon setting (scheduled task or Run key) (spec: robustness-secure-desktop.md)
+- [x] Add app manifest with `uiAccess="true"` to Vox.App and an MSBuild signing target that runs only when a certificate is configured; detect and log missing `uiAccess` at startup (spec: robustness-secure-desktop.md)
+- [x] Add `--secure` mode to Vox.App: no add-ons, no settings writes, no network/AI, settings read from a system location; unit tests of the mode switches (spec: robustness-secure-desktop.md)
+- [x] Add "use current settings on sign-in screens" command that copies settings to the system location (spec: robustness-secure-desktop.md)
+- [x] Add `Vox.Service` Windows service project: watch session/desktop switches and launch Vox in secure mode on the Winlogon desktop; switching logic unit-tested behind an interface (spec: robustness-secure-desktop.md)
+- [x] Add start-at-logon setting (scheduled task or Run key) (spec: robustness-secure-desktop.md)
 
 #### Audio and diagnostics (spec: robustness-secure-desktop.md)
 
-- [ ] Move speech and earcon output to WASAPI through NAudio with output device selection setting (spec: robustness-secure-desktop.md)
-- [ ] Add audio ducking setting (Off / While speaking / Always) (spec: robustness-secure-desktop.md)
-- [ ] Keep the audio device warm with a silent stream so the first syllable after idle isn't clipped (spec: robustness-secure-desktop.md)
-- [ ] Add speech viewer window (non-focusable, lists recent utterances) toggled by a command (spec: robustness-secure-desktop.md)
-- [ ] Add developer info command (Insert+F1): speak and copy name, control type, ARIA role, framework, process and runtime id of the focused element (spec: robustness-secure-desktop.md)
-- [ ] Add latency instrumentation (timestamps at hook, dispatcher, pipeline, queue, engine) and log p95 every minute; unit test the percentile tracker (spec: robustness-secure-desktop.md)
-- [ ] Add latency test: injected key → first `SpeakAsync` call, using `RecordingSpeechEngine`; fail above budget (spec: quality-engineering.md)
+- [x] Move speech and earcon output to WASAPI through NAudio with output device selection setting (spec: robustness-secure-desktop.md) — earcons and tones done (AudioOutputDevice setting); speech stays on the SAPI default device until the OneCore engine task, which picks the device for speech
+- [x] Add audio ducking setting (Off / While speaking / Always) (spec: robustness-secure-desktop.md)
+- [x] Keep the audio device warm with a silent stream so the first syllable after idle isn't clipped (spec: robustness-secure-desktop.md)
+- [x] Add speech viewer window (non-focusable, lists recent utterances) toggled by a command (spec: robustness-secure-desktop.md)
+- [x] Add developer info command (Insert+F1): speak and copy name, control type, ARIA role, framework, process and runtime id of the focused element (spec: robustness-secure-desktop.md)
+- [x] Add latency instrumentation (timestamps at hook, dispatcher, pipeline, queue, engine) and log p95 every minute; unit test the percentile tracker (spec: robustness-secure-desktop.md)
+- [x] Add latency test: injected key → first `SpeakAsync` call, using `RecordingSpeechEngine`; fail above budget (spec: quality-engineering.md)
 
 ### Milestone B — "Daily driver, home use"
 
@@ -160,7 +160,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 #### Speech and audio (spec: speech-and-audio.md)
 
 - [ ] Extend `ISpeechEngine` with pitch, volume and capability flags; implement in `SapiSpeechEngine` (spec: speech-and-audio.md)
-- [ ] Add `OneCoreSpeechEngine` over `Windows.Media.SpeechSynthesis` with voice listing, rate, pitch, volume (spec: speech-and-audio.md)
+- [ ] Add `OneCoreSpeechEngine` over `Windows.Media.SpeechSynthesis` with voice listing, rate, pitch, volume, playing through NAudio WASAPI on the `AudioOutputDevice` (so speech follows the output device setting) (spec: speech-and-audio.md)
 - [ ] Add `SpeechEngineRegistry`: list engines, switch at runtime, fall back to SAPI if an engine fails; prefer OneCore by default; unit tests (spec: speech-and-audio.md)
 - [ ] Add rate boost up to 900 wpm (engine boost or time-stretch) with `SpeechRateWpm` range update and wizard support (spec: speech-and-audio.md)
 - [ ] Add settings ring (Insert+Ctrl+Left/Right choose, Up/Down change: voice, rate, pitch, volume, punctuation, engine); saved and spoken; unit tests (spec: speech-and-audio.md)

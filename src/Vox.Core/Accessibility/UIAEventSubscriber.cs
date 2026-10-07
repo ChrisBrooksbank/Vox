@@ -25,6 +25,13 @@ public sealed class UIAEventSubscriber :
     private const int UIA_NotificationEventId = 20035;
     private const int UIA_SelectionItem_ElementSelectedEventId = 20012;
     private const int UIA_AsyncContentLoadedEventId = 20023;
+    private const int UIA_ToolTipOpenedEventId = 20000;
+    private const int UIA_MenuOpenedEventId = 20003;
+    private const int UIA_MenuClosedEventId = 20007;
+    private const int UIA_MenuModeStartEventId = 20018;
+    private const int UIA_MenuModeEndEventId = 20019;
+    private const int UIA_Text_TextSelectionChangedEventId = 20014;
+    private const int UIA_Text_TextChangedEventId = 20015;
 
     // UIA property IDs for PropertyChanged subscriptions
     private const int UIA_NamePropertyId = 30005;
@@ -42,6 +49,33 @@ public sealed class UIAEventSubscriber :
     // Element the structure/property handlers are registered on (STA thread only)
     private IUIAutomationElement? _documentScope;
 
+    // Focused element with a text pattern that the caret/text handlers are registered on (STA thread only)
+    private IUIAutomationElement? _textScope;
+
+    // Focused element with text: the one above, or a value-only edit control (STA thread only)
+    private IUIAutomationElement? _focusedText;
+    private volatile FocusedTextKind _focusedTextKind;
+
+    /// <summary>
+    /// The focused element with text (see <see cref="FocusedTextKind"/>), or null. STA thread only.
+    /// </summary>
+    public IUIAutomationElement? FocusedTextElement => _focusedText;
+
+    /// <summary>What kind of text the focused element has. Readable from any thread.</summary>
+    public FocusedTextKind FocusedTextKind => _focusedTextKind;
+
+    private volatile bool _focusedIsTerminal;
+
+    /// <summary>Whether the focused text element is a terminal. Readable from any thread.</summary>
+    public bool FocusedIsTerminal => _focusedIsTerminal;
+
+    /// <summary>UIA class names of terminal text areas: Windows Terminal, and the classic console.</summary>
+    public static readonly IReadOnlySet<string> TerminalClassNames =
+        new HashSet<string>(StringComparer.Ordinal) { "TermControl", "TermControl2", "ConsoleWindowClass" };
+
+    private const int UIA_ValuePatternId = 10002;
+    private const int UIA_EditControlTypeId = 50004;
+
     public UIAEventSubscriber(
         UIAThread uiaThread,
         UIAProvider uiaProvider,
@@ -52,6 +86,7 @@ public sealed class UIAEventSubscriber :
         _uiaProvider = uiaProvider;
         _eventSink = eventSink;
         _logger = logger;
+        _shellSelectionHandler = new ShellSelectionHandler(this);
     }
 
     /// <summary>
@@ -78,6 +113,27 @@ public sealed class UIAEventSubscriber :
                 _uiaProvider.LiveRegionCacheRequest,
                 this);
 
+            // Tooltips — desktop scope
+            automation.AddAutomationEventHandler(UIA_ToolTipOpenedEventId, automation.GetRootElement(),
+                TreeScope.TreeScope_Subtree, _uiaProvider.CacheRequest, this);
+
+            // Items selected in the shell (Alt+Tab, Win+Tab, Start search results) — desktop scope,
+            // through a handler that keeps only the shell's processes
+            automation.AddAutomationEventHandler(UIA_SelectionItem_ElementSelectedEventId, automation.GetRootElement(),
+                TreeScope.TreeScope_Subtree, _uiaProvider.CacheRequest, _shellSelectionHandler);
+
+            // Menus opening and closing — desktop scope
+            foreach (var menuEvent in new[] { UIA_MenuOpenedEventId, UIA_MenuClosedEventId, UIA_MenuModeStartEventId, UIA_MenuModeEndEventId })
+                automation.AddAutomationEventHandler(menuEvent, automation.GetRootElement(), TreeScope.TreeScope_Subtree, null, this);
+
+            // Progress bars — desktop scope; the handler keeps only ProgressBar senders
+            automation.AddPropertyChangedEventHandler(
+                automation.GetRootElement(),
+                TreeScope.TreeScope_Subtree,
+                _uiaProvider.ProgressCacheRequest,
+                this,
+                [UIA_RangeValueValuePropertyId]);
+
             // Notification event (IUIAutomation5) — desktop scope
             if (automation is IUIAutomation5 automation5)
             {
@@ -95,7 +151,28 @@ public sealed class UIAEventSubscriber :
 
             _subscribed = true;
             _logger.LogDebug("UIAEventSubscriber: subscribed to all UIA events");
-        });
+        }, UIAThread.SetupTimeout);
+    }
+
+    /// <summary>
+    /// Subscribes again with the provider's new automation object after the UIA thread was
+    /// replaced (see <see cref="UIAProvider.ReinitializeAsync"/>). The document scope is cleared;
+    /// the document tracker sets it again when it reloads the document.
+    /// </summary>
+    public async Task ResubscribeAsync()
+    {
+        if (_disposed) return;
+        await _uiaThread.RunAsync(() =>
+        {
+            _documentScope = null;
+            _textScope = null;
+            _propertyScope = null;
+            _selectionScope = null;
+            _focusedText = null;
+            _focusedTextKind = FocusedTextKind.None;
+            _subscribed = false;
+        }, UIAThread.SetupTimeout).ConfigureAwait(false);
+        await SubscribeAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -153,6 +230,163 @@ public sealed class UIAEventSubscriber :
         }
     }
 
+    /// <summary>
+    /// Moves the caret (TextSelectionChanged) and text (TextChanged) subscriptions to the focused
+    /// element if it has a text pattern, or removes them. Handlers can't be registered from inside
+    /// an event callback, so focus changes call this, and it runs on the UIA thread.
+    /// </summary>
+    public Task FollowFocusForTextAsync()
+    {
+        if (!_subscribed || _disposed) return Task.CompletedTask;
+        return _uiaThread.RunAsync(() =>
+        {
+            var automation = _uiaProvider.Automation;
+            var focused = automation.GetFocusedElementBuildCache(_uiaProvider.CacheRequest);
+            FollowFocusForProperties(automation, focused);
+            if (_focusedText is not null && focused is not null && automation.CompareElements(_focusedText, focused) != 0)
+                return; // still the same element
+
+            RemoveTextScope(automation);
+            if (focused is null)
+                return;
+            if (UIATextDocument.TryCreate(focused) is null)
+            {
+                // An edit control with only a value: its caret is read through Win32 after caret keys
+                bool isEdit = TryGetValue(focused, () => focused.CachedControlType) == UIA_EditControlTypeId;
+                if (isEdit && TryGetValue(focused, () => focused.GetCurrentPattern(UIA_ValuePatternId) is not null))
+                {
+                    _focusedText = focused;
+                    _focusedTextKind = FocusedTextKind.ValueOnly;
+                }
+                return;
+            }
+
+            try
+            {
+                automation.AddAutomationEventHandler(
+                    UIA_Text_TextSelectionChangedEventId, focused, TreeScope.TreeScope_Element, null, this);
+                automation.AddAutomationEventHandler(
+                    UIA_Text_TextChangedEventId, focused, TreeScope.TreeScope_Element, null, this);
+                _textScope = focused;
+                _focusedText = focused;
+                _focusedTextKind = FocusedTextKind.TextPattern;
+                _focusedIsTerminal = TerminalClassNames.Contains(
+                    TryGetCachedString(focused, () => focused.CachedClassName) ?? string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not subscribe to caret and text changes of the focused element");
+            }
+        });
+    }
+
+    // Focused element the property handler is registered on, outside documents too (STA thread only)
+    private IUIAutomationElement? _propertyScope;
+
+    /// <summary>Property changes reported for the focused element itself (state, value, name, enabled).</summary>
+    internal static readonly int[] FocusedElementProperties =
+    [
+        UIA_NamePropertyId, UIA_ExpandCollapseStatePropertyId, UIA_ValueValuePropertyId,
+        UIAProvider.UIA_ToggleStatePropertyId, UIAProvider.UIA_SelectionItemIsSelectedPropertyId,
+        UIA_RangeValueValuePropertyId, UIA_IsEnabledPropertyId,
+    ];
+
+    private const int UIA_RangeValueValuePropertyId = 30047;
+    private const int UIA_ProgressBarControlTypeId = 50012;
+    private const int UIA_IsEnabledPropertyId = 30010;
+
+    /// <summary>
+    /// Moves the element-scoped property handler to the focused element, so state and value changes
+    /// of desktop controls are reported (inside web documents the document-scoped handler also
+    /// reports them; BrowseModeController drops the duplicates).
+    /// </summary>
+    private void FollowFocusForProperties(IUIAutomation automation, IUIAutomationElement? focused)
+    {
+        if (_propertyScope is not null && focused is not null && automation.CompareElements(_propertyScope, focused) != 0)
+            return;
+
+        if (_propertyScope is not null)
+        {
+            try { automation.RemovePropertyChangedEventHandler(_propertyScope, this); }
+            catch (Exception ex) { _logger.LogDebug(ex, "Error removing the focused element's property handler"); }
+            _propertyScope = null;
+        }
+        if (focused is null)
+        {
+            FollowFocusForSelection(automation, null);
+            return;
+        }
+        try
+        {
+            automation.AddPropertyChangedEventHandler(focused, TreeScope.TreeScope_Element, null, this, FocusedElementProperties);
+            _propertyScope = focused;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not subscribe to the focused element's property changes");
+        }
+        FollowFocusForSelection(automation, focused);
+    }
+
+    // Container whose item selections are reported, outside documents too (STA thread only)
+    private IUIAutomationElement? _selectionScope;
+
+    private static readonly HashSet<int> ItemControlTypes = [50007 /* ListItem */, 50024 /* TreeItem */, 50019 /* TabItem */, 50029 /* DataItem */];
+
+    /// <summary>
+    /// Reports items selected in the focused list, tree, tab list or grid without focus moving to
+    /// them: the handler goes on the focused container, or on the container of a focused item.
+    /// </summary>
+    private void FollowFocusForSelection(IUIAutomation automation, IUIAutomationElement? focused)
+    {
+        IUIAutomationElement? container = focused;
+        if (focused is not null && ItemControlTypes.Contains(TryGetValue(focused, () => focused.CachedControlType)))
+        {
+            try { container = automation.ControlViewWalker.GetParentElement(focused); }
+            catch { container = null; }
+        }
+
+        if (_selectionScope is not null && container is not null && automation.CompareElements(_selectionScope, container) != 0)
+            return;
+        if (_selectionScope is not null)
+        {
+            try { automation.RemoveAutomationEventHandler(UIA_SelectionItem_ElementSelectedEventId, _selectionScope, this); }
+            catch (Exception ex) { _logger.LogDebug(ex, "Error removing the selection handler"); }
+            _selectionScope = null;
+        }
+        if (container is null)
+            return;
+        try
+        {
+            automation.AddAutomationEventHandler(UIA_SelectionItem_ElementSelectedEventId, container,
+                TreeScope.TreeScope_Subtree, _uiaProvider.CacheRequest, this);
+            _selectionScope = container;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not subscribe to selection changes of the focused container");
+        }
+    }
+
+    private void RemoveTextScope(IUIAutomation automation)
+    {
+        _focusedText = null;
+        _focusedTextKind = FocusedTextKind.None;
+        _focusedIsTerminal = false;
+        if (_textScope is null) return;
+        try
+        {
+            automation.RemoveAutomationEventHandler(UIA_Text_TextSelectionChangedEventId, _textScope, this);
+            automation.RemoveAutomationEventHandler(UIA_Text_TextChangedEventId, _textScope, this);
+        }
+        catch (Exception ex)
+        {
+            // The element may already be gone
+            _logger.LogDebug(ex, "Error removing caret and text handlers");
+        }
+        _textScope = null;
+    }
+
     // -------------------------------------------------------------------------
     // IUIAutomationFocusChangedEventHandler
     // -------------------------------------------------------------------------
@@ -196,7 +430,12 @@ public sealed class UIAEventSubscriber :
                 ToggleState: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_ToggleStatePropertyId),
                 IsSelected: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_SelectionItemIsSelectedPropertyId),
                 Value: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_ValueValuePropertyId),
-                IsValueReadOnly: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_ValueIsReadOnlyPropertyId)
+                IsValueReadOnly: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_ValueIsReadOnlyPropertyId),
+                PositionInSet: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_PositionInSetPropertyId) ?? 0,
+                SizeOfSet: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_SizeOfSetPropertyId) ?? 0,
+                Level: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_LevelPropertyId) ?? 0,
+                AcceleratorKey: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_AcceleratorKeyPropertyId),
+                AccessKey: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_AccessKeyPropertyId)
             ));
         }
         catch (Exception ex)
@@ -250,6 +489,16 @@ public sealed class UIAEventSubscriber :
         try
         {
             var runtimeId = TryGetRuntimeId(sender);
+            if (propertyId == UIA_RangeValueValuePropertyId && newValue is double value
+                && TryGetValue(sender, () => sender.CachedControlType) == UIA_ProgressBarControlTypeId)
+            {
+                _eventSink.Post(new ProgressChangedEvent(
+                    DateTimeOffset.UtcNow, runtimeId, value,
+                    Minimum: TryGetValue(sender, () => sender.GetCachedPropertyValue(UIAProvider.UIA_RangeValueMinimumPropertyId) is double min ? min : 0),
+                    Maximum: TryGetValue(sender, () => sender.GetCachedPropertyValue(UIAProvider.UIA_RangeValueMaximumPropertyId) is double max ? max : 100),
+                    ProcessId: TryGetValue(sender, () => sender.CachedProcessId)));
+                return;
+            }
             _eventSink.Post(new PropertyChangedEvent(
                 Timestamp: DateTimeOffset.UtcNow,
                 RuntimeId: runtimeId,
@@ -281,6 +530,30 @@ public sealed class UIAEventSubscriber :
                     Timestamp: DateTimeOffset.UtcNow,
                     RuntimeId: TryGetRuntimeId(sender),
                     Name: TryGetCachedString(sender, () => sender.CachedName) ?? string.Empty));
+            }
+            else if (eventId == UIA_ToolTipOpenedEventId)
+            {
+                var text = TryGetCachedString(sender, () => sender.CachedName);
+                if (!string.IsNullOrWhiteSpace(text))
+                    _eventSink.Post(new ToolTipOpenedEvent(DateTimeOffset.UtcNow, text));
+            }
+            else if (eventId is UIA_MenuOpenedEventId or UIA_MenuClosedEventId or UIA_MenuModeStartEventId or UIA_MenuModeEndEventId)
+            {
+                _eventSink.Post(new MenuEvent(DateTimeOffset.UtcNow, eventId switch
+                {
+                    UIA_MenuOpenedEventId => Navigation.MenuEventKind.Opened,
+                    UIA_MenuClosedEventId => Navigation.MenuEventKind.Closed,
+                    UIA_MenuModeStartEventId => Navigation.MenuEventKind.ModeStart,
+                    _ => Navigation.MenuEventKind.ModeEnd,
+                }));
+            }
+            else if (eventId == UIA_Text_TextSelectionChangedEventId)
+            {
+                _eventSink.Post(new CaretMovedEvent(DateTimeOffset.UtcNow, TryGetRuntimeId(sender)));
+            }
+            else if (eventId == UIA_Text_TextChangedEventId)
+            {
+                _eventSink.Post(new TextEditedEvent(DateTimeOffset.UtcNow, TryGetRuntimeId(sender)));
             }
             else if (eventId == UIA_AsyncContentLoadedEventId)
             {
@@ -400,12 +673,37 @@ public sealed class UIAEventSubscriber :
                 ActivityId: activityId,
                 NotificationText: displayString,
                 Processing: (int)notificationProcessing,
-                IsFromForeground: IsForegroundProcess(senderProcess)
+                // The shell (e.g. "Desktop 2" after Ctrl+Win+Right) speaks for the whole desktop
+                IsFromForeground: IsForegroundProcess(senderProcess) || ShellProcesses.IsShell(senderProcess)
             ));
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error in Notification handler");
+        }
+    }
+
+    private readonly ShellSelectionHandler _shellSelectionHandler;
+
+    /// <summary>Posts items selected in the shell's own windows (Alt+Tab, Win+Tab, Start search).</summary>
+    private sealed class ShellSelectionHandler(UIAEventSubscriber owner) : IUIAutomationEventHandler
+    {
+        void IUIAutomationEventHandler.HandleAutomationEvent(IUIAutomationElement sender, int eventId)
+        {
+            try
+            {
+                var pid = TryGetValue(sender, () => sender.CachedProcessId, -1);
+                if (!ShellProcesses.IsShell(pid))
+                    return;
+                owner._eventSink.Post(new ElementSelectedEvent(
+                    Timestamp: DateTimeOffset.UtcNow,
+                    RuntimeId: TryGetRuntimeId(sender),
+                    Name: TryGetCachedString(sender, () => sender.CachedName) ?? string.Empty));
+            }
+            catch (Exception ex)
+            {
+                owner._logger.LogDebug(ex, "Error in shell selection handler");
+            }
         }
     }
 
@@ -581,7 +879,7 @@ public sealed class UIAEventSubscriber :
             {
                 var automation = _uiaProvider.Automation;
                 automation.RemoveFocusChangedEventHandler(this);
-                automation.RemoveAllEventHandlers();
+                automation.RemoveAllEventHandlers(); // includes the shell selection handler
                 _documentScope = null;
                 _logger.LogDebug("UIAEventSubscriber: unsubscribed from all UIA events");
             }
@@ -589,6 +887,6 @@ public sealed class UIAEventSubscriber :
             {
                 _logger.LogWarning(ex, "Error unsubscribing from UIA events");
             }
-        });
+        }, UIAThread.SetupTimeout);
     }
 }

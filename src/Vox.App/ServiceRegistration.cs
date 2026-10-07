@@ -2,10 +2,13 @@ using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
+using Vox.Core.Diagnostics;
 using Vox.Core.Input;
+using Vox.Core.Lifecycle;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Text;
 
 namespace Vox.App;
 
@@ -20,14 +23,35 @@ public static class ServiceRegistration
             var defaultSettingsPath = Path.Combine(
                 AppContext.BaseDirectory,
                 "assets", "config", "default-settings.json");
-            return new SettingsManager(logger, defaultSettingsPath);
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            return new SettingsManager(logger, defaultSettingsPath, policy.SettingsPath)
+            {
+                ReadOnly = !policy.AllowSettingsWrites,
+            };
         });
         services.AddSingleton<SettingsMonitor>();
         services.AddSingleton<IOptionsMonitor<VoxSettings>>(sp => sp.GetRequiredService<SettingsMonitor>());
 
         // Speech
         services.AddSingleton<ISpeechEngine, SapiSpeechEngine>();
-        services.AddSingleton<SpeechQueue>();
+        services.AddSingleton<SpeechQueue>(sp =>
+        {
+            var queue = new SpeechQueue(sp.GetRequiredService<ISpeechEngine>(), sp.GetRequiredService<ILogger<SpeechQueue>>());
+            var history = sp.GetRequiredService<SpeechHistory>();
+            var latency = sp.GetRequiredService<LatencyTracker>();
+            queue.UtteranceStarted += (_, u) => history.Add(u.Text);
+            queue.UtteranceStarted += (_, _) => latency.NoteSpeechStarted();
+            queue.QueueLatency = wait => latency.Record(LatencyTracker.QueueToEngine, wait);
+            return queue;
+        });
+        services.AddSingleton<SpeechHistory>(_ => new SpeechHistory());
+        services.AddSingleton<LatencyTracker>(sp =>
+        {
+            var tracker = new LatencyTracker();
+            tracker.StartReporting(sp.GetRequiredService<ILogger<LatencyTracker>>(), TimeSpan.FromMinutes(1));
+            return tracker;
+        });
+        services.AddSingleton<SpeechViewer>();
 
         // Audio
         services.AddSingleton<IAudioCuePlayer, AudioCuePlayer>();
@@ -38,6 +62,43 @@ public static class ServiceRegistration
 
         // UIA Accessibility
         services.AddSingleton<UIAThread>();
+        services.AddSingleton<UIAWatchdog>();
+        services.AddSingleton<UIARecovery>();
+        services.AddSingleton<IForegroundApp, Win32ForegroundApp>();
+        services.AddSingleton<NotRespondingReporter>();
+        services.AddSingleton<TextCaretTracker>(sp =>
+        {
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var tracker = new TextCaretTracker(spellingErrors: () => settings.CurrentValue.SpellingErrors);
+            var cues = sp.GetRequiredService<IAudioCuePlayer>();
+            tracker.SpellingErrorEntered += (_, _) => cues.Play("error");
+            return tracker;
+        });
+        services.AddSingleton<IFocusedTextSource, UIAFocusedTextSource>();
+        services.AddSingleton<FocusedTextMonitor>();
+        services.AddSingleton<IFocusedTextReader>(sp => sp.GetRequiredService<FocusedTextMonitor>());
+        services.AddSingleton<TerminalMonitor>();
+        services.AddSingleton<IForegroundWindow, Win32ForegroundWindow>();
+        services.AddSingleton<ForegroundWindowMonitor>();
+        services.AddSingleton<DialogReader>();
+        services.AddSingleton<MenuTracker>();
+        services.AddSingleton<WhereAmICommands>();
+        services.AddSingleton<IStartupRegistration, RunKeyStartupRegistration>();
+        services.AddSingleton<IAudioDucker, Win32AudioDucker>();
+        services.AddSingleton<DuckingController>(sp =>
+        {
+            var controller = new DuckingController(sp.GetRequiredService<IAudioDucker>());
+            var queue = sp.GetRequiredService<SpeechQueue>();
+            queue.UtteranceStarted += (_, _) => controller.OnSpeechStarted();
+            queue.UtteranceFinished += (_, _) => controller.OnSpeechEnded();
+            return controller;
+        });
+        services.AddSingleton<ProgressReporter>(sp =>
+        {
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var foreground = sp.GetRequiredService<IForegroundWindow>();
+            return new ProgressReporter(() => settings.CurrentValue, () => foreground.Get()?.ProcessId);
+        });
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
         services.AddSingleton<LiveRegionMonitor>();
@@ -46,6 +107,7 @@ public static class ServiceRegistration
 
         // Input
         services.AddSingleton<IKeyboardHook, KeyboardHook>();
+        services.AddSingleton<HookSafetyNet>();
         services.AddSingleton<KeyMap>(sp =>
         {
             var keyMapPath = Path.Combine(
@@ -68,7 +130,7 @@ public static class ServiceRegistration
             var keyMap = sp.GetRequiredService<KeyMap>();
             var pipeline = sp.GetRequiredService<EventPipeline>();
             var logger = sp.GetRequiredService<ILogger<KeyInputDispatcher>>();
-            return new KeyInputDispatcher(hook, keyMap, pipeline, logger);
+            return new KeyInputDispatcher(hook, keyMap, pipeline, logger, sp.GetRequiredService<LatencyTracker>());
         });
         services.AddSingleton<TypingEchoHandler>(sp =>
         {

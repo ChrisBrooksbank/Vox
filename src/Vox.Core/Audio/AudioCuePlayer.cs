@@ -52,24 +52,72 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     }
 
     /// <param name="outputFactory">
-    /// Opens an output device playing the given mixer (a test seam); defaults to a started
-    /// <see cref="WaveOutEvent"/>.
+    /// Opens an output device playing the given mixer (a test seam); defaults to WASAPI on
+    /// <see cref="OutputDevice"/> (<see cref="AudioOutputDevices.Open"/>).
     /// </param>
     public AudioCuePlayer(ILogger<AudioCuePlayer> logger, string? soundsDirectory, Func<ISampleProvider, IDisposable>? outputFactory)
     {
         _logger = logger;
         _soundsDirectory = soundsDirectory ?? GetDefaultSoundsDirectory();
-        _outputFactory = outputFactory ?? OpenWaveOut;
+        _outputFactory = outputFactory ?? (mixer => AudioOutputDevices.Open(mixer, OutputDevice));
         _idleTimer = new System.Threading.Timer(_ => CloseIfIdle(), null, Timeout.Infinite, Timeout.Infinite);
         PreloadSounds();
     }
 
-    private static IDisposable OpenWaveOut(ISampleProvider mixer)
+    private string? _outputDevice;
+
+    /// <summary>
+    /// The output device's name (null: the default device). Changing it reopens the output on the
+    /// new device with the next cue.
+    /// </summary>
+    public string? OutputDevice
     {
-        var output = new WaveOutEvent { DesiredLatency = 100 };
-        output.Init(mixer);
-        output.Play();
-        return output;
+        get => _outputDevice;
+        set
+        {
+            if (_outputDevice == value)
+                return;
+            _outputDevice = value;
+            ResetOutput();
+            if (_keepAwake)
+                OpenSilently();
+        }
+    }
+
+    private volatile bool _keepAwake;
+
+    /// <summary>
+    /// Keeps the output device open, playing silence, instead of closing it when idle: some
+    /// devices (Bluetooth, HDMI) take a moment to wake and clip the start of the next sound, and an
+    /// active device keeps speech on the same device from being clipped too.
+    /// </summary>
+    public bool KeepAwake
+    {
+        get => _keepAwake;
+        set
+        {
+            _keepAwake = value;
+            if (value)
+                OpenSilently();
+            else
+                lock (_outputLock) RestartIdleTimer();
+        }
+    }
+
+    private void OpenSilently()
+    {
+        try
+        {
+            lock (_outputLock)
+            {
+                _idleTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                EnsureMixer();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not open the audio output");
+        }
     }
 
     /// <summary>True while an output device is open (for tests).</summary>
@@ -113,6 +161,8 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     {
         lock (_outputLock)
         {
+            if (_keepAwake)
+                return;
             long remaining = (long)IdleClose.TotalMilliseconds - (Environment.TickCount64 - _lastCueTick);
             if (_mixer is not null && remaining > 0)
             {
@@ -146,6 +196,27 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
         {
             _logger.LogDebug(ex, "Error playing audio cue: {CueName}", cueName);
             ResetOutput(); // try a fresh device next time (e.g. the audio device changed)
+        }
+    }
+
+    public void PlayTone(double frequencyHz, int durationMs)
+    {
+        if (!IsEnabled || frequencyHz <= 0 || durationMs <= 0)
+            return;
+        try
+        {
+            var tone = new SignalGenerator(MixFormat.SampleRate, MixFormat.Channels)
+            {
+                Type = SignalGeneratorType.Sin,
+                Frequency = frequencyHz,
+                Gain = 0.15,
+            };
+            AddToMixer(tone.Take(TimeSpan.FromMilliseconds(durationMs)));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error playing a tone");
+            ResetOutput();
         }
     }
 

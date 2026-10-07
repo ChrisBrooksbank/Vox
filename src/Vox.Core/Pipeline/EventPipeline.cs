@@ -38,8 +38,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
         ILogger<EventPipeline> logger,
         LiveRegionMonitor? liveRegionMonitor = null,
         AnnouncementBuilder? announcementBuilder = null,
-        IOptionsMonitor<VoxSettings>? settings = null)
+        IOptionsMonitor<VoxSettings>? settings = null,
+        Diagnostics.LatencyTracker? latency = null)
     {
+        _latency = latency;
         _speechQueue = speechQueue;
         _audioCuePlayer = audioCuePlayer;
         _logger = logger;
@@ -80,11 +82,32 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// </summary>
     public Func<FocusChangedEvent, bool>? FocusAnnouncementFilter { get; set; }
 
+    /// <summary>
+    /// Optional context said before a focus announcement, such as the title of the window focus
+    /// has just moved into. Called on the pipeline thread; null or empty adds nothing.
+    /// </summary>
+    public Func<FocusChangedEvent, string?>? FocusContextProvider { get; set; }
+
+    /// <summary>Raised on the pipeline thread for menu events.</summary>
+    public event EventHandler<MenuEvent>? MenuEventProcessed;
+
+    /// <summary>Raised on the pipeline thread when a progress bar's value changed.</summary>
+    public event EventHandler<ProgressChangedEvent>? ProgressChangedProcessed;
+
+    /// <summary>Raised on the pipeline thread when focus has moved into another top-level window.</summary>
+    public event EventHandler<ForegroundWindowChangedEvent>? ForegroundWindowChangedProcessed;
+
     /// <summary>Raised when a PropertyChangedEvent is processed.</summary>
     public event EventHandler<PropertyChangedEvent>? PropertyChangedProcessed;
 
     /// <summary>Raised when an ElementSelectedEvent is processed.</summary>
     public event EventHandler<ElementSelectedEvent>? ElementSelectedProcessed;
+
+    /// <summary>Raised on the pipeline thread when the caret or selection of the focused text control moved.</summary>
+    public event EventHandler<CaretMovedEvent>? CaretMovedProcessed;
+
+    /// <summary>Raised on the pipeline thread when the text of the focused text control changed.</summary>
+    public event EventHandler<TextEditedEvent>? TextEditedProcessed;
 
     /// <summary>Raised when a StructureChangedEvent is processed (for virtual buffer updates).</summary>
     public event EventHandler<StructureChangedEvent>? StructureChangedProcessed;
@@ -212,14 +235,43 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     await HandleNotificationAsync(notification, token).ConfigureAwait(false);
                     break;
 
+                case AppNotRespondingEvent notResponding:
+                    await _speechQueue.EnqueueAsync(
+                        new Utterance($"{notResponding.AppName} not responding", SpeechPriority.High), token).ConfigureAwait(false);
+                    break;
+
                 case NotificationFlushEvent notificationFlush:
                     await HandleNotificationFlushAsync(notificationFlush, token).ConfigureAwait(false);
                     break;
 
                 case PropertyChangedEvent propertyChanged:
-                    _logger.LogDebug("PropertyChanged: PropertyId={PropertyId}, NewValue={NewValue}",
-                        propertyChanged.PropertyId, propertyChanged.NewValue);
+                    // Not the new value: it can be the text of an edit field
+                    _logger.LogDebug("PropertyChanged: PropertyId={PropertyId}", propertyChanged.PropertyId);
                     PropertyChangedProcessed?.Invoke(this, propertyChanged);
+                    break;
+
+                case ToolTipOpenedEvent toolTip:
+                    await HandleToolTipAsync(toolTip, token).ConfigureAwait(false);
+                    break;
+
+                case MenuEvent menuEvent:
+                    MenuEventProcessed?.Invoke(this, menuEvent);
+                    break;
+
+                case ProgressChangedEvent progressChanged:
+                    ProgressChangedProcessed?.Invoke(this, progressChanged);
+                    break;
+
+                case ForegroundWindowChangedEvent foregroundChanged:
+                    ForegroundWindowChangedProcessed?.Invoke(this, foregroundChanged);
+                    break;
+
+                case CaretMovedEvent caretMoved:
+                    CaretMovedProcessed?.Invoke(this, caretMoved);
+                    break;
+
+                case TextEditedEvent textEdited:
+                    TextEditedProcessed?.Invoke(this, textEdited);
                     break;
 
                 case ElementSelectedEvent elementSelected:
@@ -276,12 +328,32 @@ public sealed class EventPipeline : IEventSink, IDisposable
         // Nothing to say (e.g. an unnamed group): don't send an empty Interrupt that would
         // silently cut off whatever is being spoken
         var text = BuildFocusAnnouncement(focus);
+        var context = FocusContextProvider?.Invoke(focus);
+        if (!string.IsNullOrWhiteSpace(context))
+            text = string.IsNullOrWhiteSpace(text) ? context : $"{context}. {text}";
         if (string.IsNullOrWhiteSpace(text))
             return;
 
         // Focus changes are high priority — interrupt current speech
         var utterance = new Utterance(text, SpeechPriority.Interrupt);
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
+    }
+
+    // The last tooltip spoken, so one shown again and again (mouse resting on a control) is said once
+    private string? _lastToolTip;
+    private DateTimeOffset _lastToolTipAt;
+    private static readonly TimeSpan ToolTipRepeat = TimeSpan.FromSeconds(2);
+
+    private async Task HandleToolTipAsync(ToolTipOpenedEvent toolTip, CancellationToken token)
+    {
+        var text = toolTip.Text.Trim();
+        if (text.Length == 0)
+            return;
+        if (text == _lastToolTip && toolTip.Timestamp - _lastToolTipAt < ToolTipRepeat)
+            return;
+        _lastToolTip = text;
+        _lastToolTipAt = toolTip.Timestamp;
+        await _speechQueue.EnqueueAsync(new Utterance(text, SpeechPriority.Normal), token).ConfigureAwait(false);
     }
 
     private async Task HandleNavigationAsync(NavigationEvent nav, CancellationToken token)
@@ -358,8 +430,11 @@ public sealed class EventPipeline : IEventSink, IDisposable
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
     }
 
+    private readonly Diagnostics.LatencyTracker? _latency;
+
     private async Task HandleNavigationCommandAsync(NavigationCommandEvent evt, CancellationToken token)
     {
+        _latency?.Record(Diagnostics.LatencyTracker.CommandToPipeline, DateTimeOffset.UtcNow - evt.Timestamp);
         _logger.LogDebug("NavigationCommand dispatched: {Command}", evt.Command);
         NavigationCommandReceived?.Invoke(this, evt);
         await Task.CompletedTask.ConfigureAwait(false);

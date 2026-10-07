@@ -75,4 +75,90 @@ public class UIAThreadTests : IDisposable
         var ex = Record.Exception(() => { _ = _uiaThread.RunAsync(() => 1); });
         Assert.IsType<ObjectDisposedException>(ex);
     }
+
+    // -------------------------------------------------------------------------
+    // Timeouts: a stuck call never makes its callers wait forever
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task RunAsync_CallOutlastsTimeout_ThrowsUIATimeoutException()
+    {
+        using var release = new ManualResetEventSlim();
+        try
+        {
+            var ex = await Assert.ThrowsAsync<UIATimeoutException>(() =>
+                _uiaThread.RunAsync(() => { release.Wait(); return 1; }, TimeSpan.FromMilliseconds(100)));
+            Assert.Equal(TimeSpan.FromMilliseconds(100), ex.Timeout);
+        }
+        finally
+        {
+            release.Set();
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_QueuedCallTimesOutBehindStuckCall_IsNeverStarted()
+    {
+        using var release = new ManualResetEventSlim();
+        var stuck = _uiaThread.RunAsync(() => { release.Wait(); return 1; }, Timeout.InfiniteTimeSpan);
+        var queuedRan = false;
+
+        await Assert.ThrowsAsync<UIATimeoutException>(() =>
+            _uiaThread.RunAsync(() => { queuedRan = true; return 2; }, TimeSpan.FromMilliseconds(50)));
+
+        release.Set();
+        Assert.Equal(1, await stuck);
+        Assert.Equal(3, await _uiaThread.RunAsync(() => 3)); // the thread has moved past the skipped call
+        Assert.False(queuedRan);
+    }
+
+    [Fact]
+    public async Task RunAsync_AfterAbandonedCallReturns_ThreadServesLaterCalls()
+    {
+        using var release = new ManualResetEventSlim();
+        await Assert.ThrowsAsync<UIATimeoutException>(() =>
+            _uiaThread.RunAsync(() => { release.Wait(); return 1; }, TimeSpan.FromMilliseconds(50)));
+
+        release.Set();
+
+        Assert.Equal(7, await _uiaThread.RunAsync(() => 7));
+    }
+
+    [Fact]
+    public async Task RunAsync_ExceptionAfterTimeout_IsNotRethrownOrLost()
+    {
+        using var release = new ManualResetEventSlim();
+        var task = _uiaThread.RunAsync<int>(() => { release.Wait(); throw new InvalidOperationException("late"); },
+            TimeSpan.FromMilliseconds(50));
+
+        await Assert.ThrowsAsync<UIATimeoutException>(() => task);
+        release.Set();
+
+        Assert.Equal(1, await _uiaThread.RunAsync(() => 1));
+    }
+
+    [Fact]
+    public async Task RunAsync_DefaultTimeout_IsTwoSeconds()
+    {
+        Assert.Equal(TimeSpan.FromSeconds(2), UIAThread.DefaultTimeout);
+        Assert.Equal(5, await _uiaThread.RunAsync(() => 5));
+    }
+
+    [Fact]
+    public async Task CurrentWorkDuration_SetWhileRunning_NullWhenIdle()
+    {
+        Assert.Null(_uiaThread.CurrentWorkDuration);
+        using var started = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var task = _uiaThread.RunAsync(() => { started.Set(); release.Wait(); }, Timeout.InfiniteTimeSpan);
+
+        Assert.True(started.Wait(TimeSpan.FromSeconds(2)));
+        await Task.Delay(60);
+        Assert.True(_uiaThread.CurrentWorkDuration >= TimeSpan.FromMilliseconds(50));
+
+        release.Set();
+        await task;
+        await Task.Delay(20);
+        Assert.Null(_uiaThread.CurrentWorkDuration);
+    }
 }

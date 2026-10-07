@@ -33,6 +33,11 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_ValueIsReadOnlyPropertyId = 30046;
     internal const int UIA_IsRequiredForFormPropertyId = 30025;
     internal const int UIA_LegacyIAccessibleStatePropertyId = 30100;
+    internal const int UIA_AcceleratorKeyPropertyId = 30006;
+    internal const int UIA_AccessKeyPropertyId = 30007;
+    internal const int UIA_PositionInSetPropertyId = 30152;
+    internal const int UIA_SizeOfSetPropertyId = 30153;
+    internal const int UIA_LevelPropertyId = 30154;
 
     internal const uint ConnectionTimeoutMs = 2000;
     internal const uint TransactionTimeoutMs = 4000;
@@ -46,6 +51,10 @@ public sealed class UIAProvider : IDisposable
     private IUIAutomationCacheRequest? _cacheRequest;
     private IUIAutomationCacheRequest? _subtreeCacheRequest;
     private IUIAutomationCacheRequest? _liveRegionCacheRequest;
+    private IUIAutomationCacheRequest? _progressCacheRequest;
+
+    internal const int UIA_RangeValueMinimumPropertyId = 30049;
+    internal const int UIA_RangeValueMaximumPropertyId = 30050;
     private bool _disposed;
 
     public UIAProvider(UIAThread uiaThread, ILogger<UIAProvider> logger)
@@ -94,13 +103,45 @@ public sealed class UIAProvider : IDisposable
             _cacheRequest.AddProperty(UIA_FrameworkIdPropertyId);
             _cacheRequest.AddProperty(UIA_ProcessIdPropertyId);
             _cacheRequest.AddProperty(UIA_IsPasswordPropertyId);
+            _cacheRequest.AddProperty(UIA_PositionInSetPropertyId);
+            _cacheRequest.AddProperty(UIA_SizeOfSetPropertyId);
+            _cacheRequest.AddProperty(UIA_LevelPropertyId);
+            _cacheRequest.AddProperty(UIA_AcceleratorKeyPropertyId);
+            _cacheRequest.AddProperty(UIA_AccessKeyPropertyId);
             AddStateProperties(_cacheRequest);
 
             _subtreeCacheRequest = CreateSubtreeRequest(_automation);
             _liveRegionCacheRequest = CreateLiveRegionRequest(_automation);
 
+            // Progress bars anywhere: their type, process and range come with each change
+            _progressCacheRequest = _automation.CreateCacheRequest();
+            _progressCacheRequest.AddProperty(UIA_ControlTypePropertyId);
+            _progressCacheRequest.AddProperty(UIA_ProcessIdPropertyId);
+            _progressCacheRequest.AddProperty(UIA_RangeValueMinimumPropertyId);
+            _progressCacheRequest.AddProperty(UIA_RangeValueMaximumPropertyId);
+
             _logger.LogDebug("UIAProvider initialized with cache requests");
-        });
+        }, UIAThread.SetupTimeout);
+    }
+
+    /// <summary>
+    /// Creates a new automation object and cache requests on the (new) UIA thread after
+    /// <see cref="UIAThread.ReplaceStuckThread"/>. The old automation object's event handlers are
+    /// removed in the background: that call can block on the same unresponsive provider that
+    /// stuck the old thread, so nothing waits for it.
+    /// </summary>
+    public async Task ReinitializeAsync()
+    {
+        var old = await _uiaThread.RunAsync(() => _automation, UIAThread.SetupTimeout).ConfigureAwait(false);
+        await InitializeAsync().ConfigureAwait(false);
+        if (old is not null && !ReferenceEquals(old, _automation))
+        {
+            _ = Task.Run(() =>
+            {
+                try { old.RemoveAllEventHandlers(); }
+                catch (Exception ex) { _logger.LogDebug(ex, "Could not remove the old automation object's event handlers"); }
+            });
+        }
     }
 
     /// <summary>
@@ -212,6 +253,10 @@ public sealed class UIAProvider : IDisposable
         }
     }
 
+    /// <summary>Cache request for desktop-wide progress bar changes. Must be used on the STA thread.</summary>
+    public IUIAutomationCacheRequest ProgressCacheRequest =>
+        _progressCacheRequest ?? throw new InvalidOperationException("UIAProvider not initialized. Call InitializeAsync first.");
+
     /// <summary>
     /// Gets the UIA automation object. Must be called on the STA thread.
     /// </summary>
@@ -257,6 +302,11 @@ public sealed class UIAProvider : IDisposable
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(_subtreeCacheRequest);
                 _subtreeCacheRequest = null;
             }
+            if (_progressCacheRequest is not null)
+            {
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(_progressCacheRequest);
+                _progressCacheRequest = null;
+            }
             if (_liveRegionCacheRequest is not null)
             {
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(_liveRegionCacheRequest);
@@ -268,6 +318,6 @@ public sealed class UIAProvider : IDisposable
                 _automation = null;
             }
             _logger.LogDebug("UIAProvider disposed");
-        });
+        }, UIAThread.SetupTimeout);
     }
 }

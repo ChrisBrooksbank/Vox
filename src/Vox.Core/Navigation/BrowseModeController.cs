@@ -62,11 +62,19 @@ public sealed class BrowseModeController
         InteractionMode Mode,
         int[]? FocusedRuntimeId);
 
+    private readonly IFocusedTextReader? _focusedTextReader;
+
     private const int UIA_NamePropertyId = 30005;
     private const int UIA_ExpandCollapseStatePropertyId = 30070;
     private const int UIA_ValueValuePropertyId = 30045;
     private const int UIA_ToggleToggleStatePropertyId = 30086;
     private const int UIA_SelectionItemIsSelectedPropertyId = 30079;
+    private const int UIA_RangeValueValuePropertyId = 30047;
+    private const int UIA_IsEnabledPropertyId = 30010;
+
+    // The last property change handled, to drop the copy a second subscription delivers
+    private (int[] RuntimeId, int PropertyId, object? Value, long Tick)? _lastPropertyChange;
+    private const int DuplicatePropertyChangeMs = 100;
 
     public BrowseModeController(
         SpeechQueue speechQueue,
@@ -80,8 +88,10 @@ public sealed class BrowseModeController
         IEventSink pipeline,
         IBrowseDocumentActions documentActions,
         IElementsListPresenter elementsListPresenter,
-        ILogger<BrowseModeController> logger)
+        ILogger<BrowseModeController> logger,
+        IFocusedTextReader? focusedTextReader = null)
     {
+        _focusedTextReader = focusedTextReader;
         _speechQueue = speechQueue;
         _audioCuePlayer = audioCuePlayer;
         _navigationManager = navigationManager;
@@ -166,10 +176,48 @@ public sealed class BrowseModeController
                 SetupRequested?.Invoke(this, EventArgs.Empty);
                 return;
 
-            case NavigationCommand.SayAll:
-            case NavigationCommand.ElementsList:
             case NavigationCommand.ReadCurrentLine:
             case NavigationCommand.ReadCurrentWord:
+            case NavigationCommand.ReadCurrentChar:
+            case NavigationCommand.ReadSelection:
+            case NavigationCommand.ReadFormatting:
+                // Browse mode reads the buffer; anywhere else, the focused text control
+                bool browsing = _documentActive && _navigationManager.CurrentMode == InteractionMode.Browse;
+                if (!browsing && _focusedTextReader is { HasFocusedText: true } reader)
+                {
+                    reader.Read(command switch
+                    {
+                        NavigationCommand.ReadCurrentLine => TextReadKind.Line,
+                        NavigationCommand.ReadCurrentWord => TextReadKind.Word,
+                        NavigationCommand.ReadCurrentChar => TextReadKind.Character,
+                        NavigationCommand.ReadFormatting => TextReadKind.Formatting,
+                        _ => TextReadKind.Selection,
+                    });
+                    return;
+                }
+                if (_quickNavHandler.CurrentDocument is null || _cursor is null)
+                {
+                    Speak("No text");
+                    return;
+                }
+                break;
+
+            case NavigationCommand.SayAll:
+                // In an edit control (outside browse mode), read it from the caret
+                if (!(_documentActive && _navigationManager.CurrentMode == InteractionMode.Browse)
+                    && _focusedTextReader is { HasFocusedText: true } sayAllReader)
+                {
+                    _sayAllController.Start(sayAllReader.CreateSayAllSource());
+                    return;
+                }
+                if (_quickNavHandler.CurrentDocument is null || _cursor is null)
+                {
+                    Speak("Not in a document");
+                    return;
+                }
+                break;
+
+            case NavigationCommand.ElementsList:
             case NavigationCommand.ToggleMode:
                 // These only apply to web documents; say so rather than silently eating the key
                 if (_quickNavHandler.CurrentDocument is null || _cursor is null)
@@ -197,6 +245,18 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ReadCurrentWord:
                 Speak(LineText(_cursor!.ReadCurrentWord()));
+                return;
+
+            case NavigationCommand.ReadCurrentChar:
+                Speak(_cursor!.CurrentChar == '\0' ? "blank" : CharText(_cursor.CurrentChar)!);
+                return;
+
+            case NavigationCommand.ReadSelection:
+                Speak("No selection"); // browse mode has no selection
+                return;
+
+            case NavigationCommand.ReadFormatting:
+                Speak("No formatting information"); // the buffer doesn't keep formatting
                 return;
         }
 
@@ -360,6 +420,14 @@ public sealed class BrowseModeController
         if (focus?.RuntimeId is null || !focus.RuntimeId.AsSpan().SequenceEqual(evt.RuntimeId))
             return;
 
+        // The focused element's own handler and the document's both report changes of a focused
+        // page element: handle each change once
+        var now = Environment.TickCount64;
+        if (_lastPropertyChange is { } last && last.PropertyId == evt.PropertyId && Equals(last.Value, evt.NewValue)
+            && now - last.Tick < DuplicatePropertyChangeMs && last.RuntimeId.AsSpan().SequenceEqual(evt.RuntimeId))
+            return;
+        _lastPropertyChange = (evt.RuntimeId, evt.PropertyId, evt.NewValue, now);
+
         // State changes (expanded, checked, selected) are queued after the focus announcement
         // rather than interrupting it, and skipped when the focus announcement already said it
         // (Chromium raises focus and then the new item's state change when arrowing a list)
@@ -403,6 +471,19 @@ public sealed class BrowseModeController
                     if (selectedText is not null && !selectionSaid)
                         SpeakQueued(selectedText);
                 }
+                break;
+
+            case UIA_IsEnabledPropertyId:
+                if (evt.NewValue is bool enabled)
+                    SpeakQueued(enabled ? "available" : "unavailable");
+                break;
+
+            case UIA_RangeValueValuePropertyId:
+                // Sliders and spin boxes; progress bars are reported by ProgressReporter
+                if (focus.ControlType == "ProgressBar")
+                    return;
+                if (evt.NewValue is double range)
+                    SpeakSelectionText(range.ToString("0.##", System.Globalization.CultureInfo.CurrentCulture));
                 break;
 
             case UIA_ValueValuePropertyId:

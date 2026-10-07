@@ -22,7 +22,12 @@ public record FocusChangedEvent(
     int? ToggleState = null,
     bool? IsSelected = null,
     string? Value = null,
-    bool? IsValueReadOnly = null
+    bool? IsValueReadOnly = null,
+    int PositionInSet = 0,
+    int SizeOfSet = 0,
+    int Level = 0,
+    string? AcceleratorKey = null,
+    string? AccessKey = null
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(
@@ -169,4 +174,59 @@ public record ElementSelectedEvent(
     DateTimeOffset Timestamp,
     int[] RuntimeId,
     string Name
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// UIA calls to an application are timing out: it isn't responding. Spoken as "{AppName} not responding".
+/// </summary>
+public record AppNotRespondingEvent(
+    DateTimeOffset Timestamp,
+    int ProcessId,
+    string AppName
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// The caret or selection moved in the focused text control (UIA TextSelectionChanged).
+/// </summary>
+public record CaretMovedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// The text of the focused text control changed (UIA TextChanged).
+/// </summary>
+public record TextEditedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>Focus moved into another top-level window (its handle, title and process).</summary>
+public record ForegroundWindowChangedEvent(
+    DateTimeOffset Timestamp,
+    IntPtr WindowHandle,
+    string Title,
+    int ProcessId
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>A progress bar's value changed (UIA RangeValue), anywhere on the desktop.</summary>
+public record ProgressChangedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId,
+    double Value,
+    double Minimum,
+    double Maximum,
+    int ProcessId
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>A menu opened or closed, or menu mode started or ended (UIA menu events).</summary>
+public record MenuEvent(
+    DateTimeOffset Timestamp,
+    Navigation.MenuEventKind Kind
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>A tooltip opened (UIA ToolTipOpened) with this text.</summary>
+public record ToolTipOpenedEvent(
+    DateTimeOffset Timestamp,
+    string Text
 ) : ScreenReaderEvent(Timestamp);
