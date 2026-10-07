@@ -27,6 +27,8 @@ public sealed class ScreenReaderService : IHostedService
     private readonly UIAProvider _uiaProvider;
     private readonly UIAEventSubscriber _uiaEventSubscriber;
     private readonly BrowseDocumentTracker _documentTracker;
+    private readonly UIAWatchdog _uiaWatchdog;
+    private readonly UIARecovery _uiaRecovery;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -66,6 +68,8 @@ public sealed class ScreenReaderService : IHostedService
         UIAProvider uiaProvider,
         UIAEventSubscriber uiaEventSubscriber,
         BrowseDocumentTracker documentTracker,
+        UIAWatchdog uiaWatchdog,
+        UIARecovery uiaRecovery,
         NavigationManager navigationManager,
         BrowseModeController browseModeController,
         SayAllController sayAllController,
@@ -84,6 +88,8 @@ public sealed class ScreenReaderService : IHostedService
         _uiaProvider = uiaProvider;
         _uiaEventSubscriber = uiaEventSubscriber;
         _documentTracker = documentTracker;
+        _uiaWatchdog = uiaWatchdog;
+        _uiaRecovery = uiaRecovery;
         _navigationManager = navigationManager;
         _browseModeController = browseModeController;
         _sayAllController = sayAllController;
@@ -117,6 +123,10 @@ public sealed class ScreenReaderService : IHostedService
 
         // Subscribe to UIA events (focus, live regions, notifications)
         await _uiaEventSubscriber.SubscribeAsync();
+
+        // Replace the UIA thread if an unresponsive app leaves it stuck in a call; _uiaRecovery
+        // then re-creates the automation object, subscriptions and document on the new thread
+        _uiaWatchdog.Start();
 
         // Wire pipeline events (all raised on the pipeline thread)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
@@ -161,6 +171,10 @@ public sealed class ScreenReaderService : IHostedService
         // Stop key input first so no new commands arrive
         _keyInputDispatcher.Stop();
         _keyboardHook.Uninstall();
+
+        // No thread replacement or recovery while shutting down
+        _uiaWatchdog.Dispose();
+        _uiaRecovery.Dispose();
 
         // Unsubscribe event handlers
         _eventPipeline.RawKeyReceived -= OnRawKeyReceived;

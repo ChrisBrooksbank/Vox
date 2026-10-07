@@ -99,6 +99,24 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     private int _detectQueued;
     private long _pendingFocusSequence;
 
+    /// <summary>
+    /// After the UIA thread was replaced: forgets the loaded document (its element and event
+    /// subscriptions belong to the old automation object) and loads the focused one again. The
+    /// reading position survives, as for any return to a recently visited document.
+    /// </summary>
+    public Task ReloadAfterThreadReplacedAsync()
+    {
+        Interlocked.Exchange(ref _detectQueued, 0);
+        return RunOnUiaThread(() =>
+        {
+            ClearPendingChanges();
+            _capturedIds.Clear();
+            _documentRoot = null;
+            _documentRuntimeId = null;
+            DetectDocument(Interlocked.Read(ref _pendingFocusSequence));
+        }, "reloading the document after the UIA thread was replaced");
+    }
+
     private void DetectDocument() => DetectDocument(0);
 
     private void DetectDocument(long focusSequence)

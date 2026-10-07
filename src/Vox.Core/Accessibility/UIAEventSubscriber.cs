@@ -99,6 +99,22 @@ public sealed class UIAEventSubscriber :
     }
 
     /// <summary>
+    /// Subscribes again with the provider's new automation object after the UIA thread was
+    /// replaced (see <see cref="UIAProvider.ReinitializeAsync"/>). The document scope is cleared;
+    /// the document tracker sets it again when it reloads the document.
+    /// </summary>
+    public async Task ResubscribeAsync()
+    {
+        if (_disposed) return;
+        await _uiaThread.RunAsync(() =>
+        {
+            _documentScope = null;
+            _subscribed = false;
+        }, UIAThread.SetupTimeout).ConfigureAwait(false);
+        await SubscribeAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Moves the StructureChanged/PropertyChanged subscriptions to <paramref name="documentRoot"/>
     /// (or removes them when null). Must be called on the UIA STA thread.
     /// </summary>

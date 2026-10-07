@@ -38,6 +38,8 @@ public static class ServiceRegistration
 
         // UIA Accessibility
         services.AddSingleton<UIAThread>();
+        services.AddSingleton<UIAWatchdog>();
+        services.AddSingleton<UIARecovery>();
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
         services.AddSingleton<LiveRegionMonitor>();

@@ -104,6 +104,26 @@ public sealed class UIAProvider : IDisposable
     }
 
     /// <summary>
+    /// Creates a new automation object and cache requests on the (new) UIA thread after
+    /// <see cref="UIAThread.ReplaceStuckThread"/>. The old automation object's event handlers are
+    /// removed in the background: that call can block on the same unresponsive provider that
+    /// stuck the old thread, so nothing waits for it.
+    /// </summary>
+    public async Task ReinitializeAsync()
+    {
+        var old = await _uiaThread.RunAsync(() => _automation, UIAThread.SetupTimeout).ConfigureAwait(false);
+        await InitializeAsync().ConfigureAwait(false);
+        if (old is not null && !ReferenceEquals(old, _automation))
+        {
+            _ = Task.Run(() =>
+            {
+                try { old.RemoveAllEventHandlers(); }
+                catch (Exception ex) { _logger.LogDebug(ex, "Could not remove the old automation object's event handlers"); }
+            });
+        }
+    }
+
+    /// <summary>
     /// Cache request for capturing a whole subtree (control view) in one cross-process call,
     /// with every property the virtual buffer needs. Used with BuildUpdatedCache / FindFirstBuildCache.
     /// </summary>
