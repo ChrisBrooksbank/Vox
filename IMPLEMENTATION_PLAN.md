@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 48
+- Build iterations: 49
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -96,7 +96,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Desktop text editing (spec: desktop-text-and-controls.md)
 
-- [ ] Add `ITextDocument` / `ITextRange` abstractions (units char/word/line/paragraph, caret, selection, attributes) in `Vox.Core/Text/` (spec: desktop-text-and-controls.md)
+- [x] Add `ITextDocument` / `ITextRange` abstractions (units char/word/line/paragraph, caret, selection, attributes) in `Vox.Core/Text/` (spec: desktop-text-and-controls.md)
 - [ ] Add `BufferTextDocument` adapter so the virtual buffer implements `ITextDocument`; existing `VBufferCursor` tests still pass (spec: desktop-text-and-controls.md)
 - [ ] Add `UIATextDocument` over `IUIAutomationTextPattern`/`TextPattern2` with all calls through `UIAThread`; snapshot-based fake for tests (spec: desktop-text-and-controls.md)
 - [ ] Subscribe to `TextSelectionChanged` and `TextEditTextChanged` for the focused element; add `CaretMovedEvent` and `TextEditedEvent` to the pipeline (spec: desktop-text-and-controls.md)
