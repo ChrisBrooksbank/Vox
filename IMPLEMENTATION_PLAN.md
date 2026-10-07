@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 55
+- Build iterations: 56
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -103,7 +103,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add `TextCaretTracker`: after a caret key (arrows, Ctrl+arrows, Home/End, Ctrl+Home/End, PgUp/PgDn) speak the matching unit at the new caret; unit tests per key (spec: desktop-text-and-controls.md)
 - [x] Add caret fallback for edits without `TextPattern`: `GetGUIThreadInfo` caret plus `ValuePattern` text (spec: desktop-text-and-controls.md)
 - [x] Add selection speech in native edits: "selected X" / "unselected X", "all selected", "selection cleared"; unit tests with a fake `ITextDocument` (spec: desktop-text-and-controls.md)
-- [ ] Add deletion echo: Backspace/Delete (and Ctrl+Backspace/Delete) speak the removed text; unit tests (spec: desktop-text-and-controls.md)
+- [x] Add deletion echo: Backspace/Delete (and Ctrl+Backspace/Delete) speak the removed text; unit tests (spec: desktop-text-and-controls.md)
 - [ ] Extend `TypingEchoHandler` to native edit controls (not only web documents); password edits still echo "star" (spec: desktop-text-and-controls.md)
 - [ ] Add commands (mode Any) ReadCurrentLine/Word/Char for native edits, ReadSelection (Insert+Shift+Up); keymap bindings (spec: desktop-text-and-controls.md)
 - [ ] Add ReadFormatting (Insert+F): font name, size, bold/italic/underline, colour, spelling error from text attributes; keymap binding (spec: desktop-text-and-controls.md)

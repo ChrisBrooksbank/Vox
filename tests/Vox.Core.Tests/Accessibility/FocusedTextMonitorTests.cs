@@ -29,7 +29,11 @@ public class FocusedTextMonitorTests : IDisposable
     {
         _queue = new SpeechQueue(_engine, NullLogger<SpeechQueue>.Instance);
         _monitor = new FocusedTextMonitor(_uiaThread, _source, new TextCaretTracker(), _queue,
-            NullLogger<FocusedTextMonitor>.Instance) { FallbackDelay = TimeSpan.FromMilliseconds(10) };
+            NullLogger<FocusedTextMonitor>.Instance)
+        {
+            FallbackDelay = TimeSpan.FromMilliseconds(10),
+            PrimeDelay = TimeSpan.Zero,
+        };
     }
 
     public void Dispose()
@@ -83,5 +87,32 @@ public class FocusedTextMonitorTests : IDisposable
 
         Assert.Equal(5, document.Caret);
         Assert.Equal("hello", Assert.Single(document.GetSelection()).GetText());
+    }
+
+    [Fact]
+    public async Task TextPatternControl_BackspaceThenTextEvent_SaysTheDeletedCharacter()
+    {
+        _source.Document = new StringTextDocument("hello", 5);
+        await _monitor.HandleFocusChanged(); // primes the caret line
+
+        await _monitor.HandleRawKey(KeyDown(0x08));
+        _source.Document = new StringTextDocument("hell", 4);
+        await _monitor.HandleCaretMovedAsync(new CaretMovedEvent(DateTimeOffset.UtcNow, [1]));
+        await _monitor.HandleTextEditedAsync(new TextEditedEvent(DateTimeOffset.UtcNow, [1]));
+
+        await _engine.WaitForTextAsync("o");
+    }
+
+    [Fact]
+    public async Task ValueOnlyControl_DeleteIsReadAfterTheKey()
+    {
+        _source.RaisesCaretEvents = false;
+        _source.Document = UIAFocusedTextSource.FromValue("abc", 1, 1);
+        await _monitor.HandleFocusChanged();
+
+        _source.Document = UIAFocusedTextSource.FromValue("ac", 1, 1); // the control deletes "b" right away
+        await _monitor.HandleRawKey(KeyDown(0x2E));
+
+        await _engine.WaitForTextAsync("b");
     }
 }

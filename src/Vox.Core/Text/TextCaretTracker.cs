@@ -6,7 +6,8 @@ namespace Vox.Core.Text;
 /// Decides what to say when the caret moves in an edit control. The key that moved it says which
 /// unit to read (see <see cref="CaretKeys"/>): after Down, the line the caret is now on; after
 /// Ctrl+Right, the word. Caret moves with no caret key before them (typing, the app moving it)
-/// say nothing here; typing echo covers typing.
+/// say nothing here; typing echo covers typing. Backspace and Delete (with or without Ctrl) say
+/// what they removed, worked out by comparing the caret's line before and after the edit.
 /// </summary>
 /// <remarks>
 /// Thread-safe: keys arrive on the pipeline thread, caret changes are evaluated on the UIA thread
@@ -26,16 +27,25 @@ public sealed class TextCaretTracker
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
     }
 
-    private sealed record PendingKey(TextUnit Unit, bool ExtendsSelection, DateTimeOffset At, bool SelectsAll = false);
+    private sealed record PendingKey(TextUnit Unit, bool ExtendsSelection, DateTimeOffset At,
+        bool SelectsAll = false, bool IsDeletion = false);
+
+    /// <summary>The caret's line and where in it the caret is.</summary>
+    private sealed record LineSnapshot(string Text, int CaretInLine);
 
     // The selection after the last caret evaluation, to tell what a Shift+key added or removed
     private ITextRange? _lastSelection;
 
+    // The caret's line after the last evaluation, to tell what a deletion removed
+    private LineSnapshot? _lastLine;
+
     private const int VK_A = 0x41;
+    private const int VK_BACK = 0x08;
+    private const int VK_DELETE = 0x2E;
 
     /// <summary>
-    /// Notes a key press in the focused edit control. Returns true if it is a caret key whose
-    /// caret move should be read.
+    /// Notes a key press in the focused edit control. Returns true if it is a caret, selection or
+    /// deletion key whose effect should be read.
     /// </summary>
     public bool NoteKey(int vkCode, KeyModifiers modifiers)
     {
@@ -51,6 +61,11 @@ public sealed class TextCaretTracker
                 _pending = new PendingKey(TextUnit.Document, true, _clock(), SelectsAll: true);
                 return true;
             }
+            if (vkCode is VK_BACK or VK_DELETE && modifiers is KeyModifiers.None or KeyModifiers.Ctrl)
+            {
+                _pending = new PendingKey(TextUnit.Character, false, _clock(), IsDeletion: true);
+                return true;
+            }
             _pending = null;
             return false;
         }
@@ -63,7 +78,75 @@ public sealed class TextCaretTracker
         {
             _pending = null;
             _lastSelection = null;
+            _lastLine = null;
         }
+    }
+
+    /// <summary>Records the document's caret line and selection (on focus), so the first deletion or selection can be read.</summary>
+    public void Prime(ITextDocument document)
+    {
+        var selections = document.GetSelection();
+        var line = Snapshot(document);
+        lock (_lock)
+        {
+            _lastSelection = selections.Count > 0 ? selections[0] : null;
+            _lastLine = line;
+        }
+    }
+
+    /// <summary>
+    /// The text of <paramref name="document"/> changed: after Backspace or Delete, returns what
+    /// was removed ("e", "word", "line break"); otherwise null. Run on the document's thread.
+    /// </summary>
+    public string? OnTextChanged(ITextDocument document)
+    {
+        var line = Snapshot(document);
+        PendingKey? key;
+        LineSnapshot? previous;
+        lock (_lock)
+        {
+            key = _pending is { IsDeletion: true } ? _pending : null;
+            if (key is not null)
+                _pending = null;
+            previous = _lastLine;
+            _lastLine = line;
+        }
+        if (key is null || previous is null || line is null || _clock() - key.At > KeyLifetime)
+            return null;
+        return DescribeDeletion(previous, line);
+    }
+
+    /// <summary>What was removed between two snapshots of the caret's line.</summary>
+    private static string? DescribeDeletion(LineSnapshot before, LineSnapshot after)
+    {
+        string old = before.Text.TrimEnd('\r', '\n'), now = after.Text.TrimEnd('\r', '\n');
+        if (now.Length > old.Length)
+            return "line break"; // the line was joined with its neighbour
+
+        int prefix = 0;
+        int maxPrefix = Math.Min(old.Length, now.Length);
+        while (prefix < maxPrefix && old[prefix] == now[prefix])
+            prefix++;
+        int suffix = 0;
+        while (suffix < old.Length - prefix && suffix < now.Length - prefix
+            && old[old.Length - 1 - suffix] == now[now.Length - 1 - suffix])
+            suffix++;
+
+        var removed = old.Substring(prefix, old.Length - prefix - suffix);
+        if (removed.Length == 0)
+            return old == now && before.CaretInLine == 0 && after.CaretInLine == 0 ? null : "line break";
+        return removed.Length <= 2 ? TextSpeech.ForCharacter(removed) : TextSpeech.ForUnit(removed, TextUnit.Word);
+    }
+
+    private static LineSnapshot? Snapshot(ITextDocument document)
+    {
+        var caret = document.GetCaret();
+        if (caret is null)
+            return null;
+        var line = caret.ExpandToEnclosingUnit(TextUnit.Line);
+        var text = line.GetText(MaxSpokenLength);
+        var beforeCaret = line.WithEndpoint(TextEndpoint.End, caret, TextEndpoint.Start).GetText(MaxSpokenLength);
+        return new LineSnapshot(text, beforeCaret.Length);
     }
 
     /// <summary>
@@ -78,11 +161,16 @@ public sealed class TextCaretTracker
         var selection = selections.Count > 0 ? selections[0] : null;
         lock (_lock)
         {
+            // A deletion is read when the text changes, against the line from before it
+            if (_pending is { IsDeletion: true })
+                return null;
             key = _pending;
             _pending = null;
             previousSelection = _lastSelection;
             _lastSelection = selection;
         }
+        var line = Snapshot(document);
+        lock (_lock) _lastLine = line;
         if (key is null || _clock() - key.At > KeyLifetime)
             return null;
         if (key.ExtendsSelection)

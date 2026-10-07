@@ -178,4 +178,73 @@ public class TextCaretTrackerTests
 
         Assert.Equal("selected The quick brown fox", spoken);
     }
+
+    // -------------------------------------------------------------------------
+    // Deletion echo
+    // -------------------------------------------------------------------------
+
+    private const int VK_BACK = 0x08, VK_DELETE = 0x2E;
+
+    private string? Delete(TextCaretTracker tracker, int vk, KeyModifiers modifiers, StringTextDocument after,
+        bool caretEventFirst = true)
+    {
+        tracker.NoteKey(vk, modifiers);
+        if (caretEventFirst)
+            Assert.Null(tracker.OnCaretMoved(after)); // the caret event comes before the text change
+        return tracker.OnTextChanged(after);
+    }
+
+    [Fact]
+    public void Backspace_SaysTheDeletedCharacter()
+    {
+        var tracker = Tracker();
+        tracker.Prime(new StringTextDocument("hello", 5));
+
+        Assert.Equal("o", Delete(tracker, VK_BACK, KeyModifiers.None, new StringTextDocument("hell", 4)));
+        Assert.Equal("l", Delete(tracker, VK_BACK, KeyModifiers.None, new StringTextDocument("hel", 3)));
+    }
+
+    [Fact]
+    public void Delete_SaysTheDeletedCharacter_EvenWithoutACaretEvent()
+    {
+        var tracker = Tracker();
+        tracker.Prime(new StringTextDocument("a, b", 1));
+
+        Assert.Equal("comma", Delete(tracker, VK_DELETE, KeyModifiers.None, new StringTextDocument("a b", 1), caretEventFirst: false));
+    }
+
+    [Fact]
+    public void CtrlBackspace_SaysTheDeletedWord()
+    {
+        var tracker = Tracker();
+        tracker.Prime(new StringTextDocument("hello big world", 10));
+
+        Assert.Equal("big", Delete(tracker, VK_BACK, KeyModifiers.Ctrl, new StringTextDocument("hello world", 6)));
+    }
+
+    [Fact]
+    public void BackspaceAtLineStart_SaysLineBreak()
+    {
+        var tracker = Tracker();
+        tracker.Prime(new StringTextDocument("one\ntwo", 4));
+
+        Assert.Equal("line break", Delete(tracker, VK_BACK, KeyModifiers.None, new StringTextDocument("onetwo", 3)));
+    }
+
+    [Fact]
+    public void TextChangeWithoutDeletionKey_SaysNothingButKeepsTheLine()
+    {
+        var tracker = Tracker();
+        tracker.Prime(new StringTextDocument("ab", 2));
+        tracker.NoteKey('C', KeyModifiers.None);
+
+        Assert.Null(tracker.OnTextChanged(new StringTextDocument("abc", 3)));
+        Assert.Equal("c", Delete(tracker, VK_BACK, KeyModifiers.None, new StringTextDocument("ab", 2)));
+    }
+
+    [Fact]
+    public void DeletionWithNothingKnownBefore_SaysNothing()
+    {
+        Assert.Null(Delete(Tracker(), VK_BACK, KeyModifiers.None, new StringTextDocument("ab", 2)));
+    }
 }

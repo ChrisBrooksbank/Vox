@@ -147,6 +147,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
         _eventPipeline.CaretMovedProcessed += OnCaretMovedProcessed;
+        _eventPipeline.TextEditedProcessed += OnTextEditedProcessed;
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
@@ -197,6 +198,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.PropertyChangedProcessed -= OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed -= OnElementSelectedProcessed;
         _eventPipeline.CaretMovedProcessed -= OnCaretMovedProcessed;
+        _eventPipeline.TextEditedProcessed -= OnTextEditedProcessed;
         _navigationManager.ModeChanged -= OnModeChanged;
         _browseModeController.DocumentActiveChanged -= OnDocumentActiveChanged;
         _browseModeController.EscapeGoesToPageChanged -= OnEscapeGoesToPageChanged;
@@ -279,7 +281,7 @@ public sealed class ScreenReaderService : IHostedService
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
     {
         _browseModeController.HandleFocusChanged(e);
-        _focusedTextMonitor.HandleFocusChanged();
+        TrackBackground(_focusedTextMonitor.HandleFocusChanged());
         TrackBackground(_documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence));
         TrackBackground(IgnoreUiaFailure(_uiaEventSubscriber.FollowFocusForTextAsync(), "following focus for caret events"));
     }
@@ -303,6 +305,9 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnCaretMovedProcessed(object? sender, CaretMovedEvent e) =>
         TrackBackground(_focusedTextMonitor.HandleCaretMovedAsync(e));
+
+    private void OnTextEditedProcessed(object? sender, TextEditedEvent e) =>
+        TrackBackground(_focusedTextMonitor.HandleTextEditedAsync(e));
 
     private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>
         _documentTracker.OnStructureChanged(e.RuntimeId);
