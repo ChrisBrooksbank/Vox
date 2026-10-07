@@ -7,5 +7,6 @@
   "AnnounceVisitedLinks": true,
   "ModifierKey": "Insert",
   "MaxLineLength": 100,
+  "SpellingErrors": "Speech",
   "FirstRunCompleted": false
 }

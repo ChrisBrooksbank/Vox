@@ -1,3 +1,4 @@
+using Vox.Core.Configuration;
 using Vox.Core.Input;
 
 namespace Vox.Core.Text;
@@ -19,13 +20,24 @@ public sealed class TextCaretTracker
     public static readonly TimeSpan KeyLifetime = TimeSpan.FromSeconds(1);
 
     private readonly Func<DateTimeOffset> _clock;
+    private readonly Func<SpellingErrorReporting> _spellingErrors;
     private readonly object _lock = new();
     private PendingKey? _pending;
 
-    public TextCaretTracker(Func<DateTimeOffset>? clock = null)
+    // The misspelled word last reported, so moving within it doesn't repeat the report
+    private ITextRange? _reportedMisspelling;
+
+    public TextCaretTracker(Func<DateTimeOffset>? clock = null, Func<SpellingErrorReporting>? spellingErrors = null)
     {
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
+        _spellingErrors = spellingErrors ?? (() => SpellingErrorReporting.Speech);
     }
+
+    /// <summary>
+    /// Raised (on the document's thread) when the caret enters a misspelled word and spelling
+    /// errors are reported with an earcon.
+    /// </summary>
+    public event EventHandler? SpellingErrorEntered;
 
     private sealed record PendingKey(TextUnit Unit, bool ExtendsSelection, DateTimeOffset At,
         bool SelectsAll = false, bool IsDeletion = false);
@@ -79,6 +91,7 @@ public sealed class TextCaretTracker
             _pending = null;
             _lastSelection = null;
             _lastLine = null;
+            _reportedMisspelling = null;
         }
     }
 
@@ -180,7 +193,47 @@ public sealed class TextCaretTracker
         if (caret is null)
             return null;
         var text = caret.ExpandToEnclosingUnit(key.Unit).GetText(MaxSpokenLength);
-        return TextSpeech.ForUnit(text, key.Unit);
+        var speech = TextSpeech.ForUnit(text, key.Unit);
+        return CheckSpelling(caret) ? $"misspelled, {speech}" : speech;
+    }
+
+    /// <summary>
+    /// Whether the caret has just entered a misspelled word that should be reported by speech
+    /// (an earcon report raises <see cref="SpellingErrorEntered"/> instead).
+    /// </summary>
+    private bool CheckSpelling(ITextRange caret)
+    {
+        var mode = _spellingErrors();
+        if (mode == SpellingErrorReporting.Off)
+            return false;
+
+        var word = caret.ExpandToEnclosingUnit(TextUnit.Word);
+        bool misspelled = word.GetAttributes().IsSpellingError || caret.GetAttributes().IsSpellingError;
+        lock (_lock)
+        {
+            if (!misspelled)
+            {
+                _reportedMisspelling = null;
+                return false;
+            }
+            var reported = _reportedMisspelling;
+            if (reported is not null && SameStart(reported, word))
+                return false;
+            _reportedMisspelling = word;
+        }
+
+        if (mode == SpellingErrorReporting.Earcon)
+        {
+            SpellingErrorEntered?.Invoke(this, EventArgs.Empty);
+            return false;
+        }
+        return true;
+    }
+
+    private static bool SameStart(ITextRange a, ITextRange b)
+    {
+        try { return a.CompareEndpoints(TextEndpoint.Start, b, TextEndpoint.Start) == 0; }
+        catch (ArgumentException) { return false; } // ranges from different documents
     }
 
     /// <summary>

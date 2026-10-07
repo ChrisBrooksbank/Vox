@@ -21,6 +21,14 @@ public enum ModifierKey
     CapsLock
 }
 
+/// <summary>How a misspelled word is reported when the caret enters it.</summary>
+public enum SpellingErrorReporting
+{
+    Speech,
+    Earcon,
+    Off
+}
+
 public record VoxSettings
 {
     public VerbosityLevel VerbosityLevel { get; init; } = VerbosityLevel.Beginner;
@@ -33,4 +41,6 @@ public record VoxSettings
     /// <summary>Browse-mode lines longer than this are split at a word boundary (0 = never).</summary>
     public int MaxLineLength { get; init; } = 100;
     public bool FirstRunCompleted { get; init; } = false;
+    /// <summary>How a misspelled word is reported when the caret enters it in an edit control.</summary>
+    public SpellingErrorReporting SpellingErrors { get; init; } = SpellingErrorReporting.Speech;
 }

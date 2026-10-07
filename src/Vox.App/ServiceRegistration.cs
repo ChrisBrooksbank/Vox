@@ -43,7 +43,14 @@ public static class ServiceRegistration
         services.AddSingleton<UIARecovery>();
         services.AddSingleton<IForegroundApp, Win32ForegroundApp>();
         services.AddSingleton<NotRespondingReporter>();
-        services.AddSingleton<TextCaretTracker>(_ => new TextCaretTracker());
+        services.AddSingleton<TextCaretTracker>(sp =>
+        {
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var tracker = new TextCaretTracker(spellingErrors: () => settings.CurrentValue.SpellingErrors);
+            var cues = sp.GetRequiredService<IAudioCuePlayer>();
+            tracker.SpellingErrorEntered += (_, _) => cues.Play("error");
+            return tracker;
+        });
         services.AddSingleton<IFocusedTextSource, UIAFocusedTextSource>();
         services.AddSingleton<FocusedTextMonitor>();
         services.AddSingleton<IFocusedTextReader>(sp => sp.GetRequiredService<FocusedTextMonitor>());

@@ -1,3 +1,4 @@
+using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Text;
 using Xunit;
@@ -246,5 +247,43 @@ public class TextCaretTrackerTests
     public void DeletionWithNothingKnownBefore_SaysNothing()
     {
         Assert.Null(Delete(Tracker(), VK_BACK, KeyModifiers.None, new StringTextDocument("ab", 2)));
+    }
+
+    // -------------------------------------------------------------------------
+    // Spelling errors
+    // -------------------------------------------------------------------------
+
+    // "teh" (offsets 4-7) is marked misspelled
+    private static StringTextDocument Misspelt(int caret) =>
+        new("see teh cat", caret, attributesAt: i => new TextAttributes { IsSpellingError = i is >= 4 and < 7 });
+
+    [Fact]
+    public void EnteringAMisspelledWord_SaysMisspelledOnce()
+    {
+        var tracker = Tracker();
+
+        Assert.Equal("misspelled, teh", Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Ctrl, Misspelt(4)));
+        Assert.Equal("e", Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.None, Misspelt(5)));   // still inside it
+        Assert.Equal("cat", Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Ctrl, Misspelt(8)));
+        Assert.Equal("misspelled, teh", Press(tracker, CaretKeys.VK_LEFT, KeyModifiers.Ctrl, Misspelt(4)));
+    }
+
+    [Fact]
+    public void SpellingErrorsOff_SaysJustTheWord()
+    {
+        var tracker = new TextCaretTracker(() => _now, () => SpellingErrorReporting.Off);
+
+        Assert.Equal("teh", Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Ctrl, Misspelt(4)));
+    }
+
+    [Fact]
+    public void SpellingErrorsAsEarcon_RaisesTheEventInsteadOfSpeaking()
+    {
+        var tracker = new TextCaretTracker(() => _now, () => SpellingErrorReporting.Earcon);
+        var cues = 0;
+        tracker.SpellingErrorEntered += (_, _) => cues++;
+
+        Assert.Equal("teh", Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Ctrl, Misspelt(4)));
+        Assert.Equal(1, cues);
     }
 }
