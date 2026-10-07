@@ -95,7 +95,7 @@ public sealed class UIAEventSubscriber :
 
             _subscribed = true;
             _logger.LogDebug("UIAEventSubscriber: subscribed to all UIA events");
-        });
+        }, UIAThread.SetupTimeout);
     }
 
     /// <summary>
@@ -589,6 +589,6 @@ public sealed class UIAEventSubscriber :
             {
                 _logger.LogWarning(ex, "Error unsubscribing from UIA events");
             }
-        });
+        }, UIAThread.SetupTimeout);
     }
 }

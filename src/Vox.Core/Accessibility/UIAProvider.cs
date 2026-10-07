@@ -100,7 +100,7 @@ public sealed class UIAProvider : IDisposable
             _liveRegionCacheRequest = CreateLiveRegionRequest(_automation);
 
             _logger.LogDebug("UIAProvider initialized with cache requests");
-        });
+        }, UIAThread.SetupTimeout);
     }
 
     /// <summary>
@@ -268,6 +268,6 @@ public sealed class UIAProvider : IDisposable
                 _automation = null;
             }
             _logger.LogDebug("UIAProvider disposed");
-        });
+        }, UIAThread.SetupTimeout);
     }
 }

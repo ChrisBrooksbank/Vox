@@ -503,7 +503,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
 
             element.SetFocus();
             return true;
-        });
+        }, UIAThread.DocumentTimeout); // may search the whole document
     }
 
     // -------------------------------------------------------------------------
@@ -514,7 +514,8 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     {
         try
         {
-            await _uiaThread.RunAsync(action).ConfigureAwait(false);
+            // Captures and searches whole documents, which UIA itself allows a long time
+            await _uiaThread.RunAsync(action, UIAThread.DocumentTimeout).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
