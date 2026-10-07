@@ -53,6 +53,12 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IAudioStreamPlayer, IDispo
         "landmark",
         "clickable",
         "progress",
+        Speech.StateSounds.Checked,
+        Speech.StateSounds.NotChecked,
+        Speech.StateSounds.HalfChecked,
+        Speech.StateSounds.Expanded,
+        Speech.StateSounds.Collapsed,
+        Speech.StateSounds.Selected,
     };
 
     /// <summary>The scheme every other scheme falls back to.</summary>

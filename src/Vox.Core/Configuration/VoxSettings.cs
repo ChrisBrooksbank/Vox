@@ -51,6 +51,17 @@ public enum NumberReading
     Digits
 }
 
+/// <summary>How changes of a line's indentation are reported (for code).</summary>
+public enum IndentationReporting
+{
+    Off,
+    /// <summary>"4 spaces", "1 tab", "no indent".</summary>
+    Speech,
+    /// <summary>A tone, higher for deeper indentation.</summary>
+    Tones,
+    Both
+}
+
 /// <summary>Which set of key bindings is used.</summary>
 public enum KeyboardLayout
 {
@@ -115,6 +126,10 @@ public record VoxSettings
     public CapitalIndication CapitalsForWords { get; init; } = CapitalIndication.Off;
     /// <summary>Numbers as words or digit by digit.</summary>
     public NumberReading Numbers { get; init; } = NumberReading.Words;
+    /// <summary>Report a line's indentation when it changes, moving by line in a text control.</summary>
+    public IndentationReporting Indentation { get; init; } = IndentationReporting.Off;
+    /// <summary>Checked, expanded and selected states are played as sounds instead of spoken.</summary>
+    public bool StatesAsSounds { get; init; } = false;
     /// <summary>Text in another language (a page's lang) is read with a voice for that language.</summary>
     public bool AutoLanguageSwitching { get; init; } = true;
     /// <summary>The voice to use for a language (BCP 47 tag or just the language, e.g. "fr"), overriding the automatic choice.</summary>

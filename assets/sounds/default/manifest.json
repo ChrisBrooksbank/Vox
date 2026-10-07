@@ -13,6 +13,12 @@
     "table_exit": "table_exit.wav",
     "landmark": "landmark.wav",
     "clickable": "clickable.wav",
-    "progress": "progress.wav"
+    "progress": "progress.wav",
+    "checked": "checked.wav",
+    "not_checked": "not_checked.wav",
+    "half_checked": "half_checked.wav",
+    "expanded": "expanded.wav",
+    "collapsed": "collapsed.wav",
+    "selected": "selected.wav"
   }
 }

@@ -89,6 +89,8 @@ public static class ServiceRegistration
         });
         services.AddSingleton<TextProcessor>(sp => new TextProcessor(
             [
+                // First: the state marks must not reach any other rule
+                new StateSoundsRule(),
                 new LanguageRule(sp.GetRequiredService<ISpeechEngine>(),
                     () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue),
                 // On the text as it is on screen, before anything replaces words
@@ -157,9 +159,11 @@ public static class ServiceRegistration
         services.AddSingleton<TextCaretTracker>(sp =>
         {
             var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
-            var tracker = new TextCaretTracker(spellingErrors: () => settings.CurrentValue.SpellingErrors);
+            var tracker = new TextCaretTracker(spellingErrors: () => settings.CurrentValue.SpellingErrors,
+                indentation: () => settings.CurrentValue.Indentation);
             var cues = sp.GetRequiredService<IAudioCuePlayer>();
             tracker.SpellingErrorEntered += (_, _) => cues.Play("error");
+            tracker.IndentationChanged += (_, columns) => cues.PlayTone(TextCaretTracker.IndentationToneHz(columns), 40);
             return tracker;
         });
         services.AddSingleton<IFocusedTextSource, UIAFocusedTextSource>();
@@ -234,7 +238,11 @@ public static class ServiceRegistration
         // Navigation
         services.AddSingleton<NavigationManager>();
         services.AddSingleton<QuickNavHandler>();
-        services.AddSingleton<AnnouncementBuilder>();
+        services.AddSingleton<AnnouncementBuilder>(sp =>
+        {
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            return new AnnouncementBuilder { StatesAsSounds = () => settings.CurrentValue.StatesAsSounds };
+        });
         services.AddSingleton<SayAllController>();
         services.AddSingleton<IElementsListPresenter, ElementsListPresenter>();
         services.AddSingleton<BrowseModeController>();

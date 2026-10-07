@@ -27,11 +27,26 @@ public sealed class TextCaretTracker
     // The misspelled word last reported, so moving within it doesn't repeat the report
     private ITextRange? _reportedMisspelling;
 
-    public TextCaretTracker(Func<DateTimeOffset>? clock = null, Func<SpellingErrorReporting>? spellingErrors = null)
+    public TextCaretTracker(Func<DateTimeOffset>? clock = null, Func<SpellingErrorReporting>? spellingErrors = null,
+        Func<IndentationReporting>? indentation = null)
     {
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _spellingErrors = spellingErrors ?? (() => SpellingErrorReporting.Speech);
+        _indentation = indentation ?? (() => IndentationReporting.Off);
     }
+
+    private readonly Func<IndentationReporting> _indentation;
+    // The indentation (in columns) of the last line read, to report only changes; null after a focus change
+    private int? _lastIndent;
+
+    /// <summary>Columns a tab counts for when measuring indentation.</summary>
+    public const int TabWidth = 4;
+
+    /// <summary>
+    /// Raised (on the document's thread) with the new indentation in columns when a line read
+    /// moving by line is indented differently from the last one and indentation is reported by tone.
+    /// </summary>
+    public event EventHandler<int>? IndentationChanged;
 
     /// <summary>
     /// Raised (on the document's thread) when the caret enters a misspelled word and spelling
@@ -92,6 +107,7 @@ public sealed class TextCaretTracker
             _lastSelection = null;
             _lastLine = null;
             _reportedMisspelling = null;
+            _lastIndent = null;
         }
     }
 
@@ -194,8 +210,66 @@ public sealed class TextCaretTracker
             return null;
         var text = caret.ExpandToEnclosingUnit(key.Unit).GetText(MaxSpokenLength);
         var speech = TextSpeech.ForUnit(text, key.Unit);
+        if (key.Unit == TextUnit.Line && ReportIndentation(text) is { } indentation)
+            speech = $"{indentation}, {speech}";
         return CheckSpelling(caret) ? $"misspelled, {speech}" : speech;
     }
+
+    /// <summary>
+    /// Reports a line's indentation if it differs from the last line's: plays the tone (through
+    /// <see cref="IndentationChanged"/>) and/or returns the words to say first, per the setting.
+    /// Blank lines don't count (they'd report "no indent" in the middle of a block).
+    /// </summary>
+    private string? ReportIndentation(string line)
+    {
+        var mode = _indentation();
+        if (mode == IndentationReporting.Off || string.IsNullOrWhiteSpace(line))
+            return null;
+        var (columns, description) = Indentation(line);
+        lock (_lock)
+        {
+            if (_lastIndent == columns)
+                return null;
+            _lastIndent = columns;
+        }
+        if (mode is IndentationReporting.Tones or IndentationReporting.Both)
+            IndentationChanged?.Invoke(this, columns);
+        return mode is IndentationReporting.Speech or IndentationReporting.Both ? description : null;
+    }
+
+    /// <summary>A line's leading whitespace: its width in columns, and how to say it ("1 tab 2 spaces").</summary>
+    public static (int Columns, string Description) Indentation(string line)
+    {
+        int tabs = 0, spaces = 0, columns = 0;
+        foreach (var c in line)
+        {
+            if (c == '\t')
+            {
+                tabs++;
+                columns += TabWidth - columns % TabWidth;
+            }
+            else if (c == ' ' || c == '\u00A0')
+            {
+                spaces++;
+                columns++;
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (columns == 0)
+            return (0, "no indent");
+        var parts = new List<string>();
+        if (tabs > 0)
+            parts.Add(tabs == 1 ? "1 tab" : $"{tabs} tabs");
+        if (spaces > 0)
+            parts.Add(spaces == 1 ? "1 space" : $"{spaces} spaces");
+        return (columns, string.Join(" ", parts));
+    }
+
+    /// <summary>The tone for an indentation: 220 Hz at none, a semitone higher per column, up to 2 kHz.</summary>
+    public static double IndentationToneHz(int columns) => Math.Min(2000, 220 * Math.Pow(2, columns / 12.0));
 
     /// <summary>
     /// Whether the caret has just entered a misspelled word that should be reported by speech

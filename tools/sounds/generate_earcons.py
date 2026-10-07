@@ -36,6 +36,13 @@ CUES = {
     "landmark": notes((392, 70), (0, 10), (587, 90), gain=0.2),
     "clickable": notes((1568, 25), (0, 15), (1568, 25), gain=0.18),
     "progress": notes((1000, 30), gain=0.15),
+    # States, for "states as sound only"
+    "checked": notes((880, 30), (0, 10), (1320, 40), gain=0.2),
+    "not_checked": notes((1320, 30), (0, 10), (880, 40), gain=0.2),
+    "half_checked": notes((1100, 30), (0, 10), (1100, 40), gain=0.2),
+    "expanded": notes((440, 25), (554, 25), (659, 35), gain=0.2),
+    "collapsed": notes((659, 25), (554, 25), (440, 35), gain=0.2),
+    "selected": notes((1760, 35), gain=0.15),
 }
 
 
