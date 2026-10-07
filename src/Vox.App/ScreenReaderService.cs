@@ -37,6 +37,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly DialogReader _dialogReader;
     private readonly ProgressReporter _progressReporter;
     private readonly MenuTracker _menuTracker;
+    private readonly WhereAmICommands _whereAmI;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -85,6 +86,7 @@ public sealed class ScreenReaderService : IHostedService
         DialogReader dialogReader,
         ProgressReporter progressReporter,
         MenuTracker menuTracker,
+        WhereAmICommands whereAmI,
         NavigationManager navigationManager,
         BrowseModeController browseModeController,
         SayAllController sayAllController,
@@ -112,6 +114,7 @@ public sealed class ScreenReaderService : IHostedService
         _dialogReader = dialogReader;
         _progressReporter = progressReporter;
         _menuTracker = menuTracker;
+        _whereAmI = whereAmI;
         _navigationManager = navigationManager;
         _browseModeController = browseModeController;
         _sayAllController = sayAllController;
@@ -299,12 +302,16 @@ public sealed class ScreenReaderService : IHostedService
         _terminalMonitor.HandleRawKey(e);
     }
 
-    private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e) =>
-        _browseModeController.HandleCommand(e.Command);
+    private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e)
+    {
+        if (!_whereAmI.TryHandle(e.Command))
+            _browseModeController.HandleCommand(e.Command);
+    }
 
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
     {
         _browseModeController.HandleFocusChanged(e);
+        _whereAmI.HandleFocusChanged(e);
         TrackBackground(_focusedTextMonitor.HandleFocusChanged());
         TrackBackground(_documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence));
         TrackBackground(FollowFocusForTextAsync());

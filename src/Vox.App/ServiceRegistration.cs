@@ -59,6 +59,7 @@ public static class ServiceRegistration
         services.AddSingleton<ForegroundWindowMonitor>();
         services.AddSingleton<DialogReader>();
         services.AddSingleton<MenuTracker>();
+        services.AddSingleton<WhereAmICommands>();
         services.AddSingleton<ProgressReporter>(sp =>
         {
             var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();

@@ -50,5 +50,11 @@ public enum NavigationCommand
     RunSetup,
     ReadCurrentChar,
     ReadSelection,
-    ReadFormatting
+    ReadFormatting,
+    SayTitle,
+    SayFocus,
+    SayStatusBar,
+    SayTime,
+    SayBattery,
+    ReadWindow
 }
