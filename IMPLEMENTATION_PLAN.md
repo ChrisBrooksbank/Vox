@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 41
+- Build iterations: 42
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -85,7 +85,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 #### Robustness (spec: robustness-secure-desktop.md)
 
 - [x] Add a timeout parameter (default 2 s) to `UIAThread.RunAsync`; throw `UIATimeoutException` on expiry and abandon the call; unit tests with a blocking delegate (spec: robustness-secure-desktop.md)
-- [ ] Add `UIAWatchdog`: detect an STA thread blocked past 5 s, start a replacement `UIAThread`, raise a `UIAThreadReplaced` event; unit tests with a fake blocking call (spec: robustness-secure-desktop.md)
+- [x] Add `UIAWatchdog`: detect an STA thread blocked past 5 s, start a replacement `UIAThread`, raise a `UIAThreadReplaced` event; unit tests with a fake blocking call (spec: robustness-secure-desktop.md)
 - [ ] On `UIAThreadReplaced`, re-create `CUIAutomation` and the cache request in `UIAProvider` and re-subscribe `UIAEventSubscriber` and `BrowseDocumentTracker` (spec: robustness-secure-desktop.md)
 - [x] Set `IUIAutomation2.ConnectionTimeout` (2000 ms) and `TransactionTimeout` (1000 ms) when creating the automation object (spec: robustness-secure-desktop.md) — already in `UIAProvider.InitializeAsync` (2000 ms connection, 4000 ms transaction, 20 s for document capture); kept the tuned 4000 ms
 - [ ] Speak "<app> not responding" once per process per 10 s when UIA calls to it time out; add `AppNotRespondingEvent` to the pipeline (spec: robustness-secure-desktop.md)
