@@ -25,7 +25,9 @@ public record FocusChangedEvent(
     bool? IsValueReadOnly = null,
     int PositionInSet = 0,
     int SizeOfSet = 0,
-    int Level = 0
+    int Level = 0,
+    string? AcceleratorKey = null,
+    string? AccessKey = null
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(
@@ -215,4 +217,10 @@ public record ProgressChangedEvent(
     double Minimum,
     double Maximum,
     int ProcessId
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>A menu opened or closed, or menu mode started or ended (UIA menu events).</summary>
+public record MenuEvent(
+    DateTimeOffset Timestamp,
+    Navigation.MenuEventKind Kind
 ) : ScreenReaderEvent(Timestamp);

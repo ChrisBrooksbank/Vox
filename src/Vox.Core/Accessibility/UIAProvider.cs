@@ -33,6 +33,8 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_ValueIsReadOnlyPropertyId = 30046;
     internal const int UIA_IsRequiredForFormPropertyId = 30025;
     internal const int UIA_LegacyIAccessibleStatePropertyId = 30100;
+    internal const int UIA_AcceleratorKeyPropertyId = 30006;
+    internal const int UIA_AccessKeyPropertyId = 30007;
     internal const int UIA_PositionInSetPropertyId = 30152;
     internal const int UIA_SizeOfSetPropertyId = 30153;
     internal const int UIA_LevelPropertyId = 30154;
@@ -104,6 +106,8 @@ public sealed class UIAProvider : IDisposable
             _cacheRequest.AddProperty(UIA_PositionInSetPropertyId);
             _cacheRequest.AddProperty(UIA_SizeOfSetPropertyId);
             _cacheRequest.AddProperty(UIA_LevelPropertyId);
+            _cacheRequest.AddProperty(UIA_AcceleratorKeyPropertyId);
+            _cacheRequest.AddProperty(UIA_AccessKeyPropertyId);
             AddStateProperties(_cacheRequest);
 
             _subtreeCacheRequest = CreateSubtreeRequest(_automation);

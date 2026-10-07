@@ -354,4 +354,14 @@ public class ValueAnnouncementTests
 
         Assert.DoesNotContain(" of ", text);
     }
+
+    [Fact]
+    public void MenuItem_SaysItsShortcut()
+    {
+        var focus = new Vox.Core.Pipeline.FocusChangedEvent(DateTimeOffset.UtcNow, "Open...", "MenuItem",
+            AcceleratorKey: "Ctrl+O", AccessKey: "o");
+
+        Assert.Equal("Open..., menu item, Ctrl+O, o", new AnnouncementBuilder().Build(focus, VerbosityProfile.Beginner, true));
+        Assert.Equal("Open..., menu item, Ctrl+O", new AnnouncementBuilder().Build(focus, VerbosityProfile.Intermediate, true));
+    }
 }

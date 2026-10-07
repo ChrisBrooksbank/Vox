@@ -66,6 +66,12 @@ public sealed class VBufferNode
     /// <summary>Hierarchical level (tree item depth, 1-based), or 0 when unknown.</summary>
     public int Level { get; init; }
 
+    /// <summary>Keyboard shortcut that runs it (a menu item's "Ctrl+O"), or empty.</summary>
+    public string AcceleratorKey { get; init; } = string.Empty;
+
+    /// <summary>Access key ("Alt+F", or the underlined letter of a menu item), or empty.</summary>
+    public string AccessKey { get; init; } = string.Empty;
+
     /// <summary>
     /// Text content contributed by this node to the flat document text.
     /// Represents the character range (start, end) in VBufferDocument.FlatText.

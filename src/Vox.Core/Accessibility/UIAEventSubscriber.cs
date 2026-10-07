@@ -25,6 +25,10 @@ public sealed class UIAEventSubscriber :
     private const int UIA_NotificationEventId = 20035;
     private const int UIA_SelectionItem_ElementSelectedEventId = 20012;
     private const int UIA_AsyncContentLoadedEventId = 20023;
+    private const int UIA_MenuOpenedEventId = 20003;
+    private const int UIA_MenuClosedEventId = 20007;
+    private const int UIA_MenuModeStartEventId = 20018;
+    private const int UIA_MenuModeEndEventId = 20019;
     private const int UIA_Text_TextSelectionChangedEventId = 20014;
     private const int UIA_Text_TextChangedEventId = 20015;
 
@@ -106,6 +110,10 @@ public sealed class UIAEventSubscriber :
                 TreeScope.TreeScope_Subtree,
                 _uiaProvider.LiveRegionCacheRequest,
                 this);
+
+            // Menus opening and closing — desktop scope
+            foreach (var menuEvent in new[] { UIA_MenuOpenedEventId, UIA_MenuClosedEventId, UIA_MenuModeStartEventId, UIA_MenuModeEndEventId })
+                automation.AddAutomationEventHandler(menuEvent, automation.GetRootElement(), TreeScope.TreeScope_Subtree, null, this);
 
             // Progress bars — desktop scope; the handler keeps only ProgressBar senders
             automation.AddPropertyChangedEventHandler(
@@ -414,7 +422,9 @@ public sealed class UIAEventSubscriber :
                 IsValueReadOnly: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_ValueIsReadOnlyPropertyId),
                 PositionInSet: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_PositionInSetPropertyId) ?? 0,
                 SizeOfSet: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_SizeOfSetPropertyId) ?? 0,
-                Level: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_LevelPropertyId) ?? 0
+                Level: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_LevelPropertyId) ?? 0,
+                AcceleratorKey: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_AcceleratorKeyPropertyId),
+                AccessKey: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_AccessKeyPropertyId)
             ));
         }
         catch (Exception ex)
@@ -509,6 +519,16 @@ public sealed class UIAEventSubscriber :
                     Timestamp: DateTimeOffset.UtcNow,
                     RuntimeId: TryGetRuntimeId(sender),
                     Name: TryGetCachedString(sender, () => sender.CachedName) ?? string.Empty));
+            }
+            else if (eventId is UIA_MenuOpenedEventId or UIA_MenuClosedEventId or UIA_MenuModeStartEventId or UIA_MenuModeEndEventId)
+            {
+                _eventSink.Post(new MenuEvent(DateTimeOffset.UtcNow, eventId switch
+                {
+                    UIA_MenuOpenedEventId => Navigation.MenuEventKind.Opened,
+                    UIA_MenuClosedEventId => Navigation.MenuEventKind.Closed,
+                    UIA_MenuModeStartEventId => Navigation.MenuEventKind.ModeStart,
+                    _ => Navigation.MenuEventKind.ModeEnd,
+                }));
             }
             else if (eventId == UIA_Text_TextSelectionChangedEventId)
             {

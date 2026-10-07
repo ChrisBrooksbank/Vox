@@ -36,6 +36,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
     private readonly DialogReader _dialogReader;
     private readonly ProgressReporter _progressReporter;
+    private readonly MenuTracker _menuTracker;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -83,6 +84,7 @@ public sealed class ScreenReaderService : IHostedService
         ForegroundWindowMonitor foregroundWindowMonitor,
         DialogReader dialogReader,
         ProgressReporter progressReporter,
+        MenuTracker menuTracker,
         NavigationManager navigationManager,
         BrowseModeController browseModeController,
         SayAllController sayAllController,
@@ -109,6 +111,7 @@ public sealed class ScreenReaderService : IHostedService
         _foregroundWindowMonitor = foregroundWindowMonitor;
         _dialogReader = dialogReader;
         _progressReporter = progressReporter;
+        _menuTracker = menuTracker;
         _navigationManager = navigationManager;
         _browseModeController = browseModeController;
         _sayAllController = sayAllController;
@@ -162,8 +165,9 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.TextEditedProcessed += OnTextEditedProcessed;
         _eventPipeline.ForegroundWindowChangedProcessed += OnForegroundWindowChangedProcessed;
         _eventPipeline.ProgressChangedProcessed += OnProgressChangedProcessed;
+        _eventPipeline.MenuEventProcessed += OnMenuEventProcessed;
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
-        _eventPipeline.FocusContextProvider = _foregroundWindowMonitor.FocusContext;
+        _eventPipeline.FocusContextProvider = FocusContext;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
         _navigationManager.ModeChanged += OnModeChanged;
@@ -216,6 +220,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.TextEditedProcessed -= OnTextEditedProcessed;
         _eventPipeline.ForegroundWindowChangedProcessed -= OnForegroundWindowChangedProcessed;
         _eventPipeline.ProgressChangedProcessed -= OnProgressChangedProcessed;
+        _eventPipeline.MenuEventProcessed -= OnMenuEventProcessed;
         _navigationManager.ModeChanged -= OnModeChanged;
         _browseModeController.DocumentActiveChanged -= OnDocumentActiveChanged;
         _browseModeController.EscapeGoesToPageChanged -= OnEscapeGoesToPageChanged;
@@ -331,6 +336,17 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnCaretMovedProcessed(object? sender, CaretMovedEvent e) =>
         TrackBackground(_focusedTextMonitor.HandleCaretMovedAsync(e));
+
+    private void OnMenuEventProcessed(object? sender, MenuEvent e) => _menuTracker.Handle(e.Kind);
+
+    /// <summary>Said before a focus announcement: the window title when focus moved into another window, then menu context.</summary>
+    private string? FocusContext(FocusChangedEvent focus)
+    {
+        var parts = new[] { _foregroundWindowMonitor.FocusContext(focus), _menuTracker.TakeContext() }
+            .Where(p => !string.IsNullOrWhiteSpace(p));
+        var context = string.Join(". ", parts);
+        return context.Length == 0 ? null : context;
+    }
 
     private void OnProgressChangedProcessed(object? sender, ProgressChangedEvent e)
     {

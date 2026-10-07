@@ -86,6 +86,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// </summary>
     public Func<FocusChangedEvent, string?>? FocusContextProvider { get; set; }
 
+    /// <summary>Raised on the pipeline thread for menu events.</summary>
+    public event EventHandler<MenuEvent>? MenuEventProcessed;
+
     /// <summary>Raised on the pipeline thread when a progress bar's value changed.</summary>
     public event EventHandler<ProgressChangedEvent>? ProgressChangedProcessed;
 
@@ -243,6 +246,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     // Not the new value: it can be the text of an edit field
                     _logger.LogDebug("PropertyChanged: PropertyId={PropertyId}", propertyChanged.PropertyId);
                     PropertyChangedProcessed?.Invoke(this, propertyChanged);
+                    break;
+
+                case MenuEvent menuEvent:
+                    MenuEventProcessed?.Invoke(this, menuEvent);
                     break;
 
                 case ProgressChangedEvent progressChanged:
