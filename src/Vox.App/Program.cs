@@ -31,24 +31,27 @@ try
 {
     Log.Information("Vox Screen Reader starting");
     Log.Information(UIAccess.Describe(UIAccess.IsGranted()));
-    if (policy.IsSecure)
-        Log.Information("Secure mode: settings are read-only, no add-ons, network or user profile");
 
-    var host = Host.CreateDefaultBuilder(args)
-        .UseSerilog()
-        .ConfigureServices((context, services) =>
-        {
-            services.AddSingleton(policy);
-            ServiceRegistration.RegisterServices(context, services);
-        })
-        .Build();
+    if (!policy.IsSecure)
+    {
+        await RunScreenReaderAsync(CancellationToken.None);
+        return VoxExitCodes.Normal;
+    }
 
-    // A crash must never leave the keyboard hooked: release it before anything else
-    safetyNet = host.Services.GetRequiredService<HookSafetyNet>();
-    safetyNet.Register();
-
-    await host.RunAsync();
-    return VoxExitCodes.Normal;
+    // Secure mode: Vox.Service keeps this instance on the Winlogon desktop. It speaks only while
+    // that desktop has input (sign-in, lock, Ctrl+Alt+Del and UAC screens) and is silent, with no
+    // keyboard hook, the rest of the time, so it never doubles the user's own Vox.
+    Log.Information("Secure mode: settings are read-only, no add-ons, network or user profile");
+    while (true)
+    {
+        await InputDesktop.WaitUntilAsync(SecureDesktopActivation.ShouldBeActive);
+        using var leftSecureDesktop = new CancellationTokenSource();
+        var watch = InputDesktop.WaitUntilAsync(name => !SecureDesktopActivation.ShouldBeActive(name))
+            .ContinueWith(_ => leftSecureDesktop.Cancel(), TaskScheduler.Default);
+        await RunScreenReaderAsync(leftSecureDesktop.Token);
+        // Quit on a secure screen, or the screen went away: wait for the next one
+        await watch;
+    }
 }
 catch (Exception ex)
 {
@@ -59,4 +62,23 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+async Task RunScreenReaderAsync(CancellationToken stop)
+{
+    using var host = Host.CreateDefaultBuilder(args)
+        .UseSerilog()
+        .ConfigureServices((context, services) =>
+        {
+            services.AddSingleton(policy);
+            ServiceRegistration.RegisterServices(context, services);
+        })
+        .Build();
+
+    // A crash must never leave the keyboard hooked: release it before anything else
+    safetyNet?.Dispose();
+    safetyNet = host.Services.GetRequiredService<HookSafetyNet>();
+    safetyNet.Register();
+
+    await host.RunAsync(stop);
 }
