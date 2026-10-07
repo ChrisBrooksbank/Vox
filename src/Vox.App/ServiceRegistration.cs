@@ -40,6 +40,8 @@ public static class ServiceRegistration
         services.AddSingleton<UIAThread>();
         services.AddSingleton<UIAWatchdog>();
         services.AddSingleton<UIARecovery>();
+        services.AddSingleton<IForegroundApp, Win32ForegroundApp>();
+        services.AddSingleton<NotRespondingReporter>();
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
         services.AddSingleton<LiveRegionMonitor>();

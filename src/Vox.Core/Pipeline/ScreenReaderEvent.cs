@@ -170,3 +170,12 @@ public record ElementSelectedEvent(
     int[] RuntimeId,
     string Name
 ) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// UIA calls to an application are timing out: it isn't responding. Spoken as "{AppName} not responding".
+/// </summary>
+public record AppNotRespondingEvent(
+    DateTimeOffset Timestamp,
+    int ProcessId,
+    string AppName
+) : ScreenReaderEvent(Timestamp);

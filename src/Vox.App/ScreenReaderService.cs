@@ -29,6 +29,8 @@ public sealed class ScreenReaderService : IHostedService
     private readonly BrowseDocumentTracker _documentTracker;
     private readonly UIAWatchdog _uiaWatchdog;
     private readonly UIARecovery _uiaRecovery;
+    // Constructed to subscribe to UIA call timeouts ("<app> not responding")
+    private readonly NotRespondingReporter _notRespondingReporter;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -70,6 +72,7 @@ public sealed class ScreenReaderService : IHostedService
         BrowseDocumentTracker documentTracker,
         UIAWatchdog uiaWatchdog,
         UIARecovery uiaRecovery,
+        NotRespondingReporter notRespondingReporter,
         NavigationManager navigationManager,
         BrowseModeController browseModeController,
         SayAllController sayAllController,
@@ -90,6 +93,7 @@ public sealed class ScreenReaderService : IHostedService
         _documentTracker = documentTracker;
         _uiaWatchdog = uiaWatchdog;
         _uiaRecovery = uiaRecovery;
+        _notRespondingReporter = notRespondingReporter;
         _navigationManager = navigationManager;
         _browseModeController = browseModeController;
         _sayAllController = sayAllController;
@@ -175,6 +179,7 @@ public sealed class ScreenReaderService : IHostedService
         // No thread replacement or recovery while shutting down
         _uiaWatchdog.Dispose();
         _uiaRecovery.Dispose();
+        _notRespondingReporter.Dispose();
 
         // Unsubscribe event handlers
         _eventPipeline.RawKeyReceived -= OnRawKeyReceived;

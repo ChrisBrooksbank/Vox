@@ -212,6 +212,11 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     await HandleNotificationAsync(notification, token).ConfigureAwait(false);
                     break;
 
+                case AppNotRespondingEvent notResponding:
+                    await _speechQueue.EnqueueAsync(
+                        new Utterance($"{notResponding.AppName} not responding", SpeechPriority.High), token).ConfigureAwait(false);
+                    break;
+
                 case NotificationFlushEvent notificationFlush:
                     await HandleNotificationFlushAsync(notificationFlush, token).ConfigureAwait(false);
                     break;

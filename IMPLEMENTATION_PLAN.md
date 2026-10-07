@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 43
+- Build iterations: 44
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -88,7 +88,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add `UIAWatchdog`: detect an STA thread blocked past 5 s, start a replacement `UIAThread`, raise a `UIAThreadReplaced` event; unit tests with a fake blocking call (spec: robustness-secure-desktop.md)
 - [x] On `UIAThreadReplaced`, re-create `CUIAutomation` and the cache request in `UIAProvider` and re-subscribe `UIAEventSubscriber` and `BrowseDocumentTracker` (spec: robustness-secure-desktop.md)
 - [x] Set `IUIAutomation2.ConnectionTimeout` (2000 ms) and `TransactionTimeout` (1000 ms) when creating the automation object (spec: robustness-secure-desktop.md) — already in `UIAProvider.InitializeAsync` (2000 ms connection, 4000 ms transaction, 20 s for document capture); kept the tuned 4000 ms
-- [ ] Speak "<app> not responding" once per process per 10 s when UIA calls to it time out; add `AppNotRespondingEvent` to the pipeline (spec: robustness-secure-desktop.md)
+- [x] Speak "<app> not responding" once per process per 10 s when UIA calls to it time out; add `AppNotRespondingEvent` to the pipeline (spec: robustness-secure-desktop.md)
 - [ ] Make StopSpeech, Quit and other non-UIA commands run without awaiting the UIA thread; unit test that they complete while UIA is blocked (spec: robustness-secure-desktop.md)
 - [ ] Add an unhandled-exception and process-exit handler that uninstalls the keyboard hook first; test with a fake `IKeyboardHook` (spec: robustness-secure-desktop.md)
 - [ ] Add `Vox.Watchdog` console project: launches Vox.App, restarts it after a crash (max 3 per minute), then speaks a failure message through SAPI directly; restart policy unit-tested via an injectable process launcher (spec: robustness-secure-desktop.md)

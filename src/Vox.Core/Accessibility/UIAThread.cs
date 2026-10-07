@@ -57,6 +57,12 @@ public sealed class UIAThread : IDisposable
     /// </summary>
     public event EventHandler? ThreadReplaced;
 
+    /// <summary>
+    /// Raised (on a timer thread) when a call is abandoned because it didn't finish within its
+    /// timeout. The argument is that timeout. Handlers must return quickly.
+    /// </summary>
+    public event EventHandler<TimeSpan>? CallTimedOut;
+
     /// <summary>How many times the STA thread has been replaced.</summary>
     public int Generation => Volatile.Read(ref _generation);
 
@@ -91,7 +97,11 @@ public sealed class UIAThread : IDisposable
         var registration = timeoutCts?.Token.Register(() =>
         {
             if (tcs.TrySetException(new UIATimeoutException(limit)))
+            {
                 _logger.LogWarning("UIA call abandoned after {Timeout} ms", (int)limit.TotalMilliseconds);
+                try { CallTimedOut?.Invoke(this, limit); }
+                catch (Exception ex) { _logger.LogError(ex, "Error in CallTimedOut handler"); }
+            }
         });
 
         var work = new WorkItem(
