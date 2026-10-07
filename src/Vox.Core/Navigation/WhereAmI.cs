@@ -46,13 +46,17 @@ public static class WhereAmI
     }
 
     /// <summary>The window's contents in reading order: text, and controls with their roles.</summary>
-    public static string WindowText(IVBufferElement window, int maxItems = 200)
+    public static string WindowText(IVBufferElement window, int maxItems = 200) =>
+        string.Join(". ", WindowItems(window, maxItems));
+
+    /// <summary>The window's title, then its text and controls in reading order, one item each.</summary>
+    public static IReadOnlyList<string> WindowItems(IVBufferElement window, int maxItems = 200)
     {
         var texts = new List<string>();
         if (!string.IsNullOrWhiteSpace(window.Name))
             texts.Add(window.Name.Trim());
         Collect(window, texts, withRoles: true, maxItems);
-        return string.Join(". ", texts);
+        return texts;
     }
 
     private static void Collect(IVBufferElement element, List<string> texts, bool withRoles, int maxItems = 200)

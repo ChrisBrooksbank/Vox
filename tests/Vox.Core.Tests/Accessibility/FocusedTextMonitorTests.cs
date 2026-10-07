@@ -142,3 +142,13 @@ public class FocusedTextMonitorTests : IDisposable
         await _engine.WaitForTextAsync("two");
     }
 }
+
+public class FocusedTextSpellingTests
+{
+    [Theory]
+    [InlineData(Vox.Core.Navigation.TextReadKind.Word, Vox.Core.Text.SpellMode.Spell, "cap h, i")]
+    [InlineData(Vox.Core.Navigation.TextReadKind.Line, Vox.Core.Text.SpellMode.Phonetic, "cap Hotel, India, Space, Tango, Hotel, Echo, Romeo, Echo")]
+    public void Describe_SpellsWhenAsked(Vox.Core.Navigation.TextReadKind kind, Vox.Core.Text.SpellMode spell, string expected) =>
+        Assert.Equal(expected, Vox.Core.Accessibility.FocusedTextMonitor.Describe(
+            new Vox.Core.Text.StringTextDocument("Hi there", caret: 0), kind, spell));
+}

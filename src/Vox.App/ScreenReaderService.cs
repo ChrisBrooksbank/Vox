@@ -39,6 +39,8 @@ public sealed class ScreenReaderService : IHostedService
     private readonly ProgressReporter _progressReporter;
     private readonly MenuTracker _menuTracker;
     private readonly WhereAmICommands _whereAmI;
+    private readonly ObjectNavigationCommands _objectNavigation;
+    private readonly ReviewCommands _review;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -105,8 +107,12 @@ public sealed class ScreenReaderService : IHostedService
         IStartupRegistration startupRegistration,
         DuckingController duckingController,
         SpeechViewer speechViewer,
+        ObjectNavigationCommands objectNavigation,
+        ReviewCommands review,
         RunPolicy? runPolicy = null)
     {
+        _review = review;
+        _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
         _duckingController = duckingController;
         _startupRegistration = startupRegistration;
@@ -187,6 +193,8 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.MenuEventProcessed += OnMenuEventProcessed;
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
         _eventPipeline.FocusContextProvider = FocusContext;
+        // In browse mode the review cursor reviews the virtual buffer
+        _review.BrowseTether = _browseModeController.ReviewTether;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
         _navigationManager.ModeChanged += OnModeChanged;
@@ -247,6 +255,7 @@ public sealed class ScreenReaderService : IHostedService
         _browseModeController.SetupRequested -= OnSetupRequested;
         _eventPipeline.FocusAnnouncementFilter = null;
         _eventPipeline.FocusContextProvider = null;
+        _review.BrowseTether = null;
         _settingsSubscription?.Dispose();
 
         // Stop Say All if running
@@ -349,7 +358,7 @@ public sealed class ScreenReaderService : IHostedService
             _speechQueue.Enqueue(new Utterance(message, SpeechPriority.Interrupt));
             return;
         }
-        if (!_whereAmI.TryHandle(e.Command))
+        if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -357,6 +366,8 @@ public sealed class ScreenReaderService : IHostedService
     {
         _browseModeController.HandleFocusChanged(e);
         _whereAmI.HandleFocusChanged(e);
+        _review.HandleFocusChanged();
+        _objectNavigation.HandleFocusChanged();
         TrackBackground(_focusedTextMonitor.HandleFocusChanged());
         TrackBackground(_documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence));
         TrackBackground(FollowFocusForTextAsync());
@@ -386,8 +397,11 @@ public sealed class ScreenReaderService : IHostedService
         }
     }
 
-    private void OnCaretMovedProcessed(object? sender, CaretMovedEvent e) =>
+    private void OnCaretMovedProcessed(object? sender, CaretMovedEvent e)
+    {
+        _review.HandleCaretMoved();
         TrackBackground(_focusedTextMonitor.HandleCaretMovedAsync(e));
+    }
 
     private void OnMenuEventProcessed(object? sender, MenuEvent e) => _menuTracker.Handle(e.Kind);
 

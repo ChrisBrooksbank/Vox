@@ -72,16 +72,17 @@ public sealed class FocusedTextMonitor : IFocusedTextReader
 
     public bool HasFocusedText => _source.HasText;
 
-    public void Read(TextReadKind kind) => _ = ReadAsync(kind);
+    public void Read(TextReadKind kind, SpellMode spell = SpellMode.None) => _ = ReadAsync(kind, spell);
 
     public ISayAllSource CreateSayAllSource() =>
         new TextDocumentSayAllSource(_source.GetFocusedDocument, read => _uiaThread.RunAsync(read));
 
     /// <summary>Reads <paramref name="kind"/> at the caret of the focused control.</summary>
-    public Task ReadAsync(TextReadKind kind) => EvaluateAsync(document => Describe(document, kind), "reading the focused text");
+    public Task ReadAsync(TextReadKind kind, SpellMode spell = SpellMode.None) =>
+        EvaluateAsync(document => Describe(document, kind, spell), "reading the focused text");
 
     /// <summary>What a read command says for the focused document.</summary>
-    public static string? Describe(ITextDocument document, TextReadKind kind)
+    public static string? Describe(ITextDocument document, TextReadKind kind, SpellMode spell = SpellMode.None)
     {
         if (kind == TextReadKind.Selection)
         {
@@ -104,7 +105,7 @@ public sealed class FocusedTextMonitor : IFocusedTextReader
             TextReadKind.Word => TextUnit.Word,
             _ => TextUnit.Line,
         };
-        return TextSpeech.ForUnit(caret.ExpandToEnclosingUnit(unit).GetText(TextCaretTracker.MaxSpokenLength), unit);
+        return Spelling.Say(caret.ExpandToEnclosingUnit(unit).GetText(TextCaretTracker.MaxSpokenLength), unit, spell);
     }
 
     private async Task ReadAfterDelayAsync()
@@ -117,26 +118,24 @@ public sealed class FocusedTextMonitor : IFocusedTextReader
 
     private async Task EvaluateAsync(Func<ITextDocument, string?> evaluate, string what)
     {
-        string? speech;
         try
         {
-            speech = await _uiaThread.RunAsync(() =>
+            await _uiaThread.RunAsync(() =>
             {
                 var document = _source.GetFocusedDocument();
-                return document is null ? null : evaluate(document);
+                var speech = document is null ? null : evaluate(document);
+                // Spoken on the UIA thread, so quick reads (a word, then spelled) are said in the
+                // order they ran; their continuations could reach the queue out of order
+                if (!string.IsNullOrEmpty(speech))
+                    _speechQueue.Enqueue(new Utterance(speech, SpeechPriority.Interrupt));
             }).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
-            return;
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "UIA error while {What}", what);
-            return;
         }
-
-        if (!string.IsNullOrEmpty(speech))
-            _speechQueue.Enqueue(new Utterance(speech, SpeechPriority.Interrupt));
     }
 }

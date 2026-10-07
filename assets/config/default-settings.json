@@ -14,5 +14,8 @@
   "AudioOutputDevice": null,
   "AudioDucking": "Off",
   "KeepAudioDeviceAwake": true,
+  "SimpleReviewMode": true,
+  "ReviewFollowsFocus": true,
+  "ReviewFollowsCaret": true,
   "FirstRunCompleted": false
 }

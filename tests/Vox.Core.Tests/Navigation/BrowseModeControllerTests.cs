@@ -9,6 +9,7 @@ using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 using Vox.Core.Tests.Buffer;
+using Vox.Core.Text;
 using Xunit;
 
 namespace Vox.Core.Tests.Navigation;
@@ -397,7 +398,8 @@ public class BrowseModeControllerTests : IDisposable
     {
         public bool HasFocusedText { get; set; } = true;
         public List<TextReadKind> Reads { get; } = new();
-        public void Read(TextReadKind kind) => Reads.Add(kind);
+        public List<SpellMode> Spells { get; } = new();
+        public void Read(TextReadKind kind, SpellMode spell = SpellMode.None) { Reads.Add(kind); Spells.Add(spell); }
         public int SayAllSources { get; private set; }
         public ISayAllSource CreateSayAllSource()
         {
@@ -430,6 +432,54 @@ public class BrowseModeControllerTests : IDisposable
         controller.HandleCommand(command);
 
         Assert.Equal([kind], reader.Reads);
+    }
+
+    [Fact]
+    public void ReadCommand_PressedAgainQuickly_SpellsThenSpellsPhonetically()
+    {
+        var reader = new FakeTextReader();
+        var controller = ControllerWith(reader);
+
+        controller.HandleCommand(NavigationCommand.ReadCurrentWord);
+        controller.HandleCommand(NavigationCommand.ReadCurrentWord);
+        controller.HandleCommand(NavigationCommand.ReadCurrentWord);
+
+        Assert.Equal([SpellMode.None, SpellMode.Spell, SpellMode.Phonetic], reader.Spells);
+    }
+
+    [Fact]
+    public async Task ReadCurrentChar_InBrowseMode_TwiceQuickly_SaysItPhonetically()
+    {
+        LoadDocument();
+
+        _controller.HandleCommand(NavigationCommand.ReadCurrentChar);
+        _controller.HandleCommand(NavigationCommand.ReadCurrentChar);
+
+        await WaitForSpeech(u => u.Text == "cap Whiskey");
+    }
+
+    [Fact]
+    public void ReviewTether_WhileBrowsing_IsTheBufferAtTheBrowseCursor()
+    {
+        Assert.Null(_controller.ReviewTether());
+        var doc = LoadDocument(focusedId: [4]);
+
+        var tether = _controller.ReviewTether();
+
+        Assert.NotNull(tether);
+        Assert.Same(doc, tether!.Buffer);
+        Assert.Equal(_controller.Cursor!.TextOffset, tether.Offset);
+        var caret = tether.Document.GetCaret()!;
+        Assert.StartsWith("Read more", caret.ExpandToEnclosingUnit(TextUnit.Line).GetText());
+    }
+
+    [Fact]
+    public void ReviewTether_InFocusMode_IsNull()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.ToggleMode);
+
+        Assert.Null(_controller.ReviewTether());
     }
 
     [Fact]

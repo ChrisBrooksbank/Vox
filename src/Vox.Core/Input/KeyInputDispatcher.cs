@@ -163,17 +163,31 @@ public sealed class KeyInputDispatcher
     private bool TryResolve(KeyEvent evt, int context, bool escapeToPage,
         out NavigationCommand command, out bool passThrough)
     {
-        bool found = context == OutsideDocumentContext
-            ? _keyMap.TryResolveOutsideDocument(evt.Modifiers, evt.VkCode, out command, out passThrough)
-            : _keyMap.TryResolve(evt.Modifiers, evt.VkCode,
-                context == BrowseContext ? InteractionMode.Browse : InteractionMode.Focus,
-                out command, out passThrough);
+        // Keypad keys resolve by their own binding first, then as the key they stand for
+        var (primary, fallback) = NumpadKeys.BindingCodes(evt.VkCode, evt.IsKeypad);
+        bool found = Lookup(evt.Modifiers, primary, context, out command, out passThrough)
+            || (fallback is { } code && Lookup(evt.Modifiers, code, context, out command, out passThrough));
 
         // Escape closes an open popup rather than leaving Focus mode
         if (found && command == NavigationCommand.ExitFocusMode && escapeToPage)
             found = false;
 
         return found;
+    }
+
+    private bool Lookup(KeyModifiers modifiers, int vkCode, int context, out NavigationCommand command, out bool passThrough)
+    {
+        if (vkCode < 0)
+        {
+            command = default;
+            passThrough = false;
+            return false;
+        }
+        return context == OutsideDocumentContext
+            ? _keyMap.TryResolveOutsideDocument(modifiers, vkCode, out command, out passThrough)
+            : _keyMap.TryResolve(modifiers, vkCode,
+                context == BrowseContext ? InteractionMode.Browse : InteractionMode.Focus,
+                out command, out passThrough);
     }
 
     private readonly Diagnostics.LatencyTracker? _latency;

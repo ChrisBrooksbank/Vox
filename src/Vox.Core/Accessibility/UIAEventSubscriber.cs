@@ -396,47 +396,7 @@ public sealed class UIAEventSubscriber :
         // Fire-and-forget: only post to channel, return immediately
         try
         {
-            var name = TryGetCachedString(sender, () => sender.CachedName) ?? string.Empty;
-            var controlTypeId = TryGetValue(sender, () => sender.CachedControlType);
-            var controlType = ControlTypeIdToName(controlTypeId);
-            var ariaRole = TryGetCachedString(sender, () => sender.CachedAriaRole);
-            var ariaProps = TryGetCachedString(sender, () => sender.CachedAriaProperties);
-            var uiaHeadingLevel = UIAElementSnapshot.ReadHeadingLevel(sender);
-
-            var (headingLevel, isLandmark, landmarkType, isLink) = ParseAriaRole(ariaRole, ariaProps);
-            if (uiaHeadingLevel > 0)
-                headingLevel = Math.Min(uiaHeadingLevel, 6);
-            var isVisited = UIAElementSnapshot.ReadIsVisited(sender) || ParseAriaPropertyBool(ariaProps, "visited");
-            var isRequired = UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_IsRequiredForFormPropertyId) == true
-                || ParseAriaPropertyBool(ariaProps, "required");
-            var (isExpandable, isExpanded) = Vox.Core.Buffer.ControlState.Expansion(
-                UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_ExpandCollapseStatePropertyId),
-                ariaProps, controlType);
-
-            _eventSink.Post(new FocusChangedEvent(
-                Timestamp: DateTimeOffset.UtcNow,
-                ElementName: name,
-                ControlType: controlType,
-                AriaRole: ariaRole,
-                LandmarkType: landmarkType,
-                HeadingLevel: headingLevel,
-                IsLink: isLink,
-                IsVisited: isVisited,
-                IsRequired: isRequired,
-                IsExpanded: isExpanded,
-                IsExpandable: isExpandable,
-                RuntimeId: TryGetRuntimeId(sender),
-                IsPassword: TryGetValue(sender, () => sender.CachedIsPassword != 0),
-                ToggleState: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_ToggleStatePropertyId),
-                IsSelected: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_SelectionItemIsSelectedPropertyId),
-                Value: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_ValueValuePropertyId),
-                IsValueReadOnly: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_ValueIsReadOnlyPropertyId),
-                PositionInSet: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_PositionInSetPropertyId) ?? 0,
-                SizeOfSet: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_SizeOfSetPropertyId) ?? 0,
-                Level: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_LevelPropertyId) ?? 0,
-                AcceleratorKey: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_AcceleratorKeyPropertyId),
-                AccessKey: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_AccessKeyPropertyId)
-            ));
+            _eventSink.Post(DescribeCached(sender));
         }
         catch (Exception ex)
         {
@@ -448,6 +408,55 @@ public sealed class UIAEventSubscriber :
                 ControlType: "Unknown"
             ));
         }
+    }
+
+    /// <summary>
+    /// Describes an element from its cached properties (it must have been fetched with
+    /// <see cref="UIAProvider.CacheRequest"/>), as a focus event. Must run on the UIA thread.
+    /// </summary>
+    internal static FocusChangedEvent DescribeCached(IUIAutomationElement element)
+    {
+        var name = TryGetCachedString(element, () => element.CachedName) ?? string.Empty;
+        var controlTypeId = TryGetValue(element, () => element.CachedControlType);
+        var controlType = ControlTypeIdToName(controlTypeId);
+        var ariaRole = TryGetCachedString(element, () => element.CachedAriaRole);
+        var ariaProps = TryGetCachedString(element, () => element.CachedAriaProperties);
+        var uiaHeadingLevel = UIAElementSnapshot.ReadHeadingLevel(element);
+
+        var (headingLevel, isLandmark, landmarkType, isLink) = ParseAriaRole(ariaRole, ariaProps);
+        if (uiaHeadingLevel > 0)
+            headingLevel = Math.Min(uiaHeadingLevel, 6);
+        var isVisited = UIAElementSnapshot.ReadIsVisited(element) || ParseAriaPropertyBool(ariaProps, "visited");
+        var isRequired = UIAElementSnapshot.ReadCachedBool(element, UIAProvider.UIA_IsRequiredForFormPropertyId) == true
+            || ParseAriaPropertyBool(ariaProps, "required");
+        var (isExpandable, isExpanded) = Vox.Core.Buffer.ControlState.Expansion(
+            UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_ExpandCollapseStatePropertyId),
+            ariaProps, controlType);
+
+        return new FocusChangedEvent(
+            Timestamp: DateTimeOffset.UtcNow,
+            ElementName: name,
+            ControlType: controlType,
+            AriaRole: ariaRole,
+            LandmarkType: landmarkType,
+            HeadingLevel: headingLevel,
+            IsLink: isLink,
+            IsVisited: isVisited,
+            IsRequired: isRequired,
+            IsExpanded: isExpanded,
+            IsExpandable: isExpandable,
+            RuntimeId: TryGetRuntimeId(element),
+            IsPassword: TryGetValue(element, () => element.CachedIsPassword != 0),
+            ToggleState: UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_ToggleStatePropertyId),
+            IsSelected: UIAElementSnapshot.ReadCachedBool(element, UIAProvider.UIA_SelectionItemIsSelectedPropertyId),
+            Value: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_ValueValuePropertyId),
+            IsValueReadOnly: UIAElementSnapshot.ReadCachedBool(element, UIAProvider.UIA_ValueIsReadOnlyPropertyId),
+            PositionInSet: UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_PositionInSetPropertyId) ?? 0,
+            SizeOfSet: UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_SizeOfSetPropertyId) ?? 0,
+            Level: UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_LevelPropertyId) ?? 0,
+            AcceleratorKey: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_AcceleratorKeyPropertyId),
+            AccessKey: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_AccessKeyPropertyId)
+        );
     }
 
     // -------------------------------------------------------------------------
