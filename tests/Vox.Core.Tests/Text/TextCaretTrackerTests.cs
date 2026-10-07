@@ -82,4 +82,100 @@ public class TextCaretTrackerTests
     {
         Assert.False(Tracker().NoteKey(vk, modifiers));
     }
+
+    // -------------------------------------------------------------------------
+    // Selection
+    // -------------------------------------------------------------------------
+
+    private const string Sentence = "hello big world";
+
+    private static StringTextDocument Selected(int start, int end, int? caret = null) =>
+        new(Sentence, caret ?? end, start, end);
+
+    private string? Press(TextCaretTracker tracker, int vk, KeyModifiers modifiers, StringTextDocument after)
+    {
+        tracker.NoteKey(vk, modifiers);
+        return tracker.OnCaretMoved(after);
+    }
+
+    [Fact]
+    public void ShiftRight_SaysTheSelectedCharacter()
+    {
+        var tracker = Tracker();
+        tracker.OnCaretMoved(Selected(0, 0)); // the caret is known before selecting
+
+        Assert.Equal("selected h", Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Shift, Selected(0, 1)));
+        Assert.Equal("selected e", Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Shift, Selected(0, 2)));
+    }
+
+    [Fact]
+    public void ShiftLeftAfterShiftRight_SaysUnselected()
+    {
+        var tracker = Tracker();
+        tracker.OnCaretMoved(Selected(0, 0));
+        Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Shift, Selected(0, 2));
+
+        Assert.Equal("unselected e", Press(tracker, CaretKeys.VK_LEFT, KeyModifiers.Shift, Selected(0, 1)));
+    }
+
+    [Fact]
+    public void CtrlShiftRight_SaysTheSelectedWord()
+    {
+        var tracker = Tracker();
+        tracker.OnCaretMoved(Selected(6, 6));
+
+        Assert.Equal("selected big", Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Ctrl | KeyModifiers.Shift, Selected(6, 10)));
+    }
+
+    [Fact]
+    public void ShiftLeft_ExtendingBackwards_SaysSelected()
+    {
+        var tracker = Tracker();
+        tracker.OnCaretMoved(Selected(10, 10));
+
+        Assert.Equal("selected Space", Press(tracker, CaretKeys.VK_LEFT, KeyModifiers.Shift, Selected(9, 10, caret: 9)));
+    }
+
+    [Fact]
+    public void ShiftKeyCollapsingTheSelection_SaysUnselected()
+    {
+        var tracker = Tracker();
+        tracker.OnCaretMoved(Selected(0, 0));
+        Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Shift, Selected(0, 1));
+
+        Assert.Equal("unselected h", Press(tracker, CaretKeys.VK_LEFT, KeyModifiers.Shift, Selected(0, 0)));
+    }
+
+    [Fact]
+    public void ShiftKeyWithNothingKnownBefore_SaysEverythingSelected()
+    {
+        var tracker = Tracker();
+
+        Assert.Equal("selected hello", Press(tracker, CaretKeys.VK_RIGHT, KeyModifiers.Ctrl | KeyModifiers.Shift, Selected(0, 5)));
+    }
+
+    [Fact]
+    public void CtrlA_SaysAllSelected()
+    {
+        var tracker = Tracker();
+
+        Assert.Equal("all selected", Press(tracker, 0x41, KeyModifiers.Ctrl, Selected(0, Sentence.Length)));
+    }
+
+    [Fact]
+    public void CtrlA_InAControlThatDoesntSelectAll_SaysNothing()
+    {
+        Assert.Null(Press(Tracker(), 0x41, KeyModifiers.Ctrl, Selected(0, 0)));
+    }
+
+    [Fact]
+    public void ShiftDown_SaysTheSelectedLine()
+    {
+        var tracker = Tracker();
+        tracker.OnCaretMoved(new StringTextDocument(Text, 0));
+
+        var spoken = Press(tracker, CaretKeys.VK_DOWN, KeyModifiers.Shift, new StringTextDocument(Text, 20, 0, 20));
+
+        Assert.Equal("selected The quick brown fox", spoken);
+    }
 }
