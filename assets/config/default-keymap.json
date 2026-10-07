@@ -79,6 +79,10 @@
     { "modifiers": "Insert",      "vkCode": 103, "mode": "Any",    "command": "PrevReviewMode" },
     { "modifiers": "Insert",      "vkCode": 97,  "mode": "Any",    "command": "NextReviewMode" },
     { "modifiers": "Insert",      "vkCode": 77,  "mode": "Any",    "command": "ToggleMouseTracking" },
+    { "modifiers": "Insert",      "vkCode": 111, "mode": "Any",    "command": "RouteMouseToNavigator" },
+    { "modifiers": "None",        "vkCode": 111, "mode": "Any",    "command": "MouseLeftClick" },
+    { "modifiers": "None",        "vkCode": 106, "mode": "Any",    "command": "MouseRightClick" },
+    { "modifiers": "Shift",       "vkCode": 111, "mode": "Any",    "command": "ToggleLeftMouseLock" },
     { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },
     { "modifiers": "Insert|Ctrl", "vkCode": 83,  "mode": "Any",    "command": "RunSetup" }
   ]

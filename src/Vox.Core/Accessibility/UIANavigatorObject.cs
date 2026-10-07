@@ -114,6 +114,16 @@ public sealed class UIANavigatorObject : INavigatorObject
         return false;
     }
 
+    public (int X, int Y)? GetClickPoint()
+    {
+        if (_element.GetClickablePoint(out var point) != 0)
+            return (point.x, point.y);
+        var bounds = _element.CurrentBoundingRectangle;
+        if (bounds.right <= bounds.left || bounds.bottom <= bounds.top)
+            return null;
+        return ((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2);
+    }
+
     private object? Pattern(int patternId)
     {
         try { return _element.GetCurrentPattern(patternId); }

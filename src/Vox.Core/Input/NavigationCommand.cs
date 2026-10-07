@@ -81,5 +81,9 @@ public enum NavigationCommand
     ReviewBottom,
     NextReviewMode,
     PrevReviewMode,
-    ToggleMouseTracking
+    ToggleMouseTracking,
+    RouteMouseToNavigator,
+    MouseLeftClick,
+    MouseRightClick,
+    ToggleLeftMouseLock
 }

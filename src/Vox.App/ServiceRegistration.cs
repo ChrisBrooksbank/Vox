@@ -89,6 +89,8 @@ public static class ServiceRegistration
             sp.GetRequiredService<IFocusedTextSource>(), sp.GetRequiredService<IForegroundWindow>()));
         services.AddSingleton<ReviewCommands>();
         services.AddSingleton<IMousePointer, Win32MousePointer>();
+        services.AddSingleton<IMouseInput, Win32MouseInput>();
+        services.AddSingleton<MouseCommands>();
         services.AddSingleton<IPointerTargetSource>(sp => new UIAPointerTargetSource(sp.GetRequiredService<UIAProvider>()));
         services.AddSingleton<MouseTracker>(sp => ActivatorUtilities.CreateInstance<MouseTracker>(sp,
             new Action<VoxSettings>(sp.GetRequiredService<SettingsMonitor>().UpdateSettings)));

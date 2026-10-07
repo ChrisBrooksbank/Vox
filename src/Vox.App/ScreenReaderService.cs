@@ -42,6 +42,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly ObjectNavigationCommands _objectNavigation;
     private readonly ReviewCommands _review;
     private readonly MouseTracker _mouseTracker;
+    private readonly MouseCommands _mouseCommands;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -111,10 +112,12 @@ public sealed class ScreenReaderService : IHostedService
         ObjectNavigationCommands objectNavigation,
         ReviewCommands review,
         MouseTracker mouseTracker,
+        MouseCommands mouseCommands,
         RunPolicy? runPolicy = null)
     {
         _review = review;
         _mouseTracker = mouseTracker;
+        _mouseCommands = mouseCommands;
         _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
         _duckingController = duckingController;
@@ -279,6 +282,7 @@ public sealed class ScreenReaderService : IHostedService
         }
 
         _mouseTracker.Dispose();
+        _mouseCommands.Dispose();
 
         // Stop pending buffer updates, then release UIA (both run on the STA thread in order)
         _documentTracker.Dispose();
@@ -367,7 +371,7 @@ public sealed class ScreenReaderService : IHostedService
             return;
         }
         if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
-            && !_mouseTracker.TryHandle(e.Command))
+            && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
