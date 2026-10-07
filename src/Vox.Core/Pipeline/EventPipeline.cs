@@ -38,8 +38,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
         ILogger<EventPipeline> logger,
         LiveRegionMonitor? liveRegionMonitor = null,
         AnnouncementBuilder? announcementBuilder = null,
-        IOptionsMonitor<VoxSettings>? settings = null)
+        IOptionsMonitor<VoxSettings>? settings = null,
+        Diagnostics.LatencyTracker? latency = null)
     {
+        _latency = latency;
         _speechQueue = speechQueue;
         _audioCuePlayer = audioCuePlayer;
         _logger = logger;
@@ -428,8 +430,11 @@ public sealed class EventPipeline : IEventSink, IDisposable
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
     }
 
+    private readonly Diagnostics.LatencyTracker? _latency;
+
     private async Task HandleNavigationCommandAsync(NavigationCommandEvent evt, CancellationToken token)
     {
+        _latency?.Record(Diagnostics.LatencyTracker.CommandToPipeline, DateTimeOffset.UtcNow - evt.Timestamp);
         _logger.LogDebug("NavigationCommand dispatched: {Command}", evt.Command);
         NavigationCommandReceived?.Invoke(this, evt);
         await Task.CompletedTask.ConfigureAwait(false);

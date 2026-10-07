@@ -44,8 +44,10 @@ public sealed class KeyInputDispatcher
         IKeyboardHook hook,
         KeyMap keyMap,
         IEventSink pipeline,
-        ILogger<KeyInputDispatcher> logger)
+        ILogger<KeyInputDispatcher> logger,
+        Diagnostics.LatencyTracker? latency = null)
     {
+        _latency = latency;
         _hook = hook;
         _keyMap = keyMap;
         _pipeline = pipeline;
@@ -174,9 +176,20 @@ public sealed class KeyInputDispatcher
         return found;
     }
 
+    private readonly Diagnostics.LatencyTracker? _latency;
+
     private void OnKeyPressed(object? sender, KeyEvent evt)
     {
         var slot = evt.VkCode & 0xFF;
+
+        if (evt.IsKeyDown && _latency is not null)
+        {
+            // The hook's time is GetTickCount's: compare with the same 32-bit clock
+            uint elapsed = unchecked((uint)Environment.TickCount - (uint)evt.Timestamp);
+            if (evt.Timestamp != 0 && elapsed < 60_000)
+                _latency.Record(Diagnostics.LatencyTracker.HookToDispatcher, TimeSpan.FromMilliseconds(elapsed));
+            _latency.NoteKeyPress();
+        }
 
         if (evt.IsKeyDown)
         {

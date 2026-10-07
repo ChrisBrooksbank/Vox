@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
+using Vox.Core.Diagnostics;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
 using Vox.Core.Navigation;
@@ -37,10 +38,19 @@ public static class ServiceRegistration
         {
             var queue = new SpeechQueue(sp.GetRequiredService<ISpeechEngine>(), sp.GetRequiredService<ILogger<SpeechQueue>>());
             var history = sp.GetRequiredService<SpeechHistory>();
+            var latency = sp.GetRequiredService<LatencyTracker>();
             queue.UtteranceStarted += (_, u) => history.Add(u.Text);
+            queue.UtteranceStarted += (_, _) => latency.NoteSpeechStarted();
+            queue.QueueLatency = wait => latency.Record(LatencyTracker.QueueToEngine, wait);
             return queue;
         });
         services.AddSingleton<SpeechHistory>(_ => new SpeechHistory());
+        services.AddSingleton<LatencyTracker>(sp =>
+        {
+            var tracker = new LatencyTracker();
+            tracker.StartReporting(sp.GetRequiredService<ILogger<LatencyTracker>>(), TimeSpan.FromMinutes(1));
+            return tracker;
+        });
         services.AddSingleton<SpeechViewer>();
 
         // Audio
@@ -120,7 +130,7 @@ public static class ServiceRegistration
             var keyMap = sp.GetRequiredService<KeyMap>();
             var pipeline = sp.GetRequiredService<EventPipeline>();
             var logger = sp.GetRequiredService<ILogger<KeyInputDispatcher>>();
-            return new KeyInputDispatcher(hook, keyMap, pipeline, logger);
+            return new KeyInputDispatcher(hook, keyMap, pipeline, logger, sp.GetRequiredService<LatencyTracker>());
         });
         services.AddSingleton<TypingEchoHandler>(sp =>
         {

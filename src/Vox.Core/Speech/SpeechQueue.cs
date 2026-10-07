@@ -36,7 +36,10 @@ public sealed class SpeechQueue : IDisposable
     private sealed record QueuedUtterance(
         Utterance Utterance,
         long Epoch,
-        TaskCompletionSource? Completion);
+        TaskCompletionSource? Completion)
+    {
+        public long EnqueuedTick { get; } = Environment.TickCount64;
+    }
 
     public SpeechQueue(ISpeechEngine engine, ILogger<SpeechQueue> logger)
     {
@@ -244,6 +247,9 @@ public sealed class SpeechQueue : IDisposable
         }
     }
 
+    /// <summary>Receives how long each utterance waited in the queue (latency measurement).</summary>
+    public Action<TimeSpan>? QueueLatency { get; set; }
+
     /// <summary>Raised on the queue's thread just before an utterance is handed to the engine. Handlers must be quick.</summary>
     public event EventHandler<Utterance>? UtteranceStarted;
 
@@ -277,6 +283,7 @@ public sealed class SpeechQueue : IDisposable
         try
         {
             speechCts.Token.ThrowIfCancellationRequested();
+            QueueLatency?.Invoke(TimeSpan.FromMilliseconds(Environment.TickCount64 - group.Min(g => g.EnqueuedTick)));
             RaiseSafely(UtteranceStarted, utterance);
             try
             {
