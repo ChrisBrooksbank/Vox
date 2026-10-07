@@ -81,6 +81,10 @@ public sealed class WhereAmICommands
                 _ = ReadWindowAsync(window => WhereAmI.WindowText(window));
                 return true;
 
+            case NavigationCommand.DeveloperInfo:
+                _ = DeveloperInfoAsync();
+                return true;
+
             default:
                 return false;
         }
@@ -119,6 +123,69 @@ public sealed class WhereAmICommands
             _logger.LogDebug(ex, "Could not read the foreground window");
             Speak("Not available");
         }
+    }
+
+    /// <summary>Speaks the focused element's details and copies them to the clipboard.</summary>
+    private async Task DeveloperInfoAsync()
+    {
+        DeveloperInfo? info;
+        try
+        {
+            info = await _uiaThread.RunAsync(() =>
+            {
+                var element = _uiaProvider.Automation.GetFocusedElement();
+                if (element is null)
+                    return null;
+                string? Try(Func<string> read) { try { return read(); } catch { return null; } }
+                int pid = 0;
+                try { pid = element.CurrentProcessId; } catch { }
+                string? processName = null;
+                try { using var process = System.Diagnostics.Process.GetProcessById(pid); processName = process.ProcessName; } catch { }
+                return new DeveloperInfo(
+                    Try(() => element.CurrentName) ?? string.Empty,
+                    UIAEventSubscriber.ControlTypeIdToName(element.CurrentControlType),
+                    Try(() => element.CurrentAriaRole),
+                    Try(() => element.CurrentFrameworkId),
+                    Try(() => element.CurrentClassName),
+                    Try(() => element.CurrentAutomationId),
+                    pid,
+                    processName,
+                    UIAEventSubscriber.TryGetRuntimeId(element));
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not read the focused element");
+            Speak("Not available");
+            return;
+        }
+
+        if (info is null)
+        {
+            Speak("No focus");
+            return;
+        }
+        var text = info.Format();
+        CopyToClipboard(text);
+        Speak(text.Replace(Environment.NewLine, ". ") + ". Copied to clipboard");
+    }
+
+    /// <summary>The clipboard needs an STA thread.</summary>
+    private void CopyToClipboard(string text)
+    {
+        var thread = new Thread(() =>
+        {
+            try { System.Windows.Forms.Clipboard.SetText(text); }
+            catch (Exception ex) { _logger.LogDebug(ex, "Could not copy to the clipboard"); }
+        });
+        if (OperatingSystem.IsWindows())
+            thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(TimeSpan.FromSeconds(2));
     }
 
     private void Speak(string text) => _speechQueue.Enqueue(new Utterance(text, SpeechPriority.Interrupt));

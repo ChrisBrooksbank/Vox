@@ -56,6 +56,7 @@
     { "modifiers": "Insert",      "vkCode": 66,  "mode": "Any",    "command": "ReadWindow" },
     { "modifiers": "Insert|Ctrl|Shift", "vkCode": 83, "mode": "Any", "command": "CopySettingsToSecureScreens" },
     { "modifiers": "Insert|Shift", "vkCode": 86, "mode": "Any",    "command": "ToggleSpeechViewer" },
+    { "modifiers": "Insert",      "vkCode": 112, "mode": "Any",    "command": "DeveloperInfo" },
     { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },
     { "modifiers": "Insert|Ctrl", "vkCode": 83,  "mode": "Any",    "command": "RunSetup" }
   ]

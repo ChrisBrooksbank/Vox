@@ -58,5 +58,6 @@ public enum NavigationCommand
     SayBattery,
     ReadWindow,
     CopySettingsToSecureScreens,
-    ToggleSpeechViewer
+    ToggleSpeechViewer,
+    DeveloperInfo
 }

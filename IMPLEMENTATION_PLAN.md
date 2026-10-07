@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 80
+- Build iterations: 81
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -137,7 +137,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add audio ducking setting (Off / While speaking / Always) (spec: robustness-secure-desktop.md)
 - [x] Keep the audio device warm with a silent stream so the first syllable after idle isn't clipped (spec: robustness-secure-desktop.md)
 - [x] Add speech viewer window (non-focusable, lists recent utterances) toggled by a command (spec: robustness-secure-desktop.md)
-- [ ] Add developer info command (Insert+F1): speak and copy name, control type, ARIA role, framework, process and runtime id of the focused element (spec: robustness-secure-desktop.md)
+- [x] Add developer info command (Insert+F1): speak and copy name, control type, ARIA role, framework, process and runtime id of the focused element (spec: robustness-secure-desktop.md)
 - [ ] Add latency instrumentation (timestamps at hook, dispatcher, pipeline, queue, engine) and log p95 every minute; unit test the percentile tracker (spec: robustness-secure-desktop.md)
 - [ ] Add latency test: injected key → first `SpeakAsync` call, using `RecordingSpeechEngine`; fail above budget (spec: quality-engineering.md)
 
