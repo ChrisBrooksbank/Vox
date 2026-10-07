@@ -57,6 +57,7 @@ public static class ServiceRegistration
         services.AddSingleton<TerminalMonitor>();
         services.AddSingleton<IForegroundWindow, Win32ForegroundWindow>();
         services.AddSingleton<ForegroundWindowMonitor>();
+        services.AddSingleton<DialogReader>();
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
         services.AddSingleton<LiveRegionMonitor>();
