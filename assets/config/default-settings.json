@@ -4,6 +4,7 @@
   "SpeechPitch": 50,
   "SpeechVolume": 100,
   "VoiceName": null,
+  "SpeechEngine": null,
   "TypingEchoMode": "Both",
   "AudioCuesEnabled": true,
   "AnnounceVisitedLinks": true,

@@ -78,6 +78,8 @@ public record VoxSettings
     /// <summary>Speech volume, 0 to 100.</summary>
     public int SpeechVolume { get; init; } = 100;
     public string? VoiceName { get; init; }
+    /// <summary>Speech engine by id ("OneCore", "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
+    public string? SpeechEngine { get; init; }
     public TypingEchoMode TypingEchoMode { get; init; } = TypingEchoMode.Both;
     public bool AudioCuesEnabled { get; init; } = true;
     public bool AnnounceVisitedLinks { get; init; } = true;

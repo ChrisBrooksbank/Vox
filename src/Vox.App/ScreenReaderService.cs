@@ -42,6 +42,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly ObjectNavigationCommands _objectNavigation;
     private readonly ReviewCommands _review;
     private readonly MouseTracker _mouseTracker;
+    private readonly SpeechEngineRegistry _speechEngines;
     private readonly MouseCommands _mouseCommands;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
@@ -112,11 +113,13 @@ public sealed class ScreenReaderService : IHostedService
         ObjectNavigationCommands objectNavigation,
         ReviewCommands review,
         MouseTracker mouseTracker,
+        SpeechEngineRegistry speechEngines,
         MouseCommands mouseCommands,
         RunPolicy? runPolicy = null)
     {
         _review = review;
         _mouseTracker = mouseTracker;
+        _speechEngines = speechEngines;
         _mouseCommands = mouseCommands;
         _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
@@ -320,6 +323,10 @@ public sealed class ScreenReaderService : IHostedService
             var previous = _appliedSettings;
             _appliedSettings = settings;
 
+            // First, so the settings below go to the engine that will speak (the registry also
+            // re-applies them to a new engine)
+            if (previous is null || previous.SpeechEngine != settings.SpeechEngine)
+                _speechEngines.Select(settings.SpeechEngine);
             if (previous is null || previous.SpeechRateWpm != settings.SpeechRateWpm)
                 _speechEngine.SetRate(settings.SpeechRateWpm);
             if (previous is null || previous.SpeechPitch != settings.SpeechPitch)

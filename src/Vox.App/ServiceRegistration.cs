@@ -33,7 +33,27 @@ public static class ServiceRegistration
         services.AddSingleton<IOptionsMonitor<VoxSettings>>(sp => sp.GetRequiredService<SettingsMonitor>());
 
         // Speech
-        services.AddSingleton<ISpeechEngine, SapiSpeechEngine>();
+        // The registry is the engine everything speaks through; it starts the configured engine
+        // (OneCore by default) and falls back to SAPI
+        services.AddSingleton<SpeechEngineRegistry>(sp => new SpeechEngineRegistry(
+        [
+            new SpeechEngineDescriptor(SpeechEngineRegistry.OneCoreId, "OneCore", () =>
+            {
+                var synthesizer = new WinRtOneCoreSynthesizer();
+                if (synthesizer.Voices.Count == 0)
+                {
+                    synthesizer.Dispose();
+                    throw new InvalidOperationException("No OneCore voices are installed");
+                }
+                var engine = new OneCoreSpeechEngine(synthesizer, sp.GetRequiredService<IAudioStreamPlayer>(),
+                    sp.GetRequiredService<ILogger<OneCoreSpeechEngine>>());
+                engine.WarmUp();
+                return engine;
+            }),
+            new SpeechEngineDescriptor(SpeechEngineRegistry.SapiId, "SAPI 5",
+                () => new SapiSpeechEngine(sp.GetRequiredService<ILogger<SapiSpeechEngine>>())),
+        ], sp.GetRequiredService<ILogger<SpeechEngineRegistry>>()));
+        services.AddSingleton<ISpeechEngine>(sp => sp.GetRequiredService<SpeechEngineRegistry>());
         services.AddSingleton<SpeechQueue>(sp =>
         {
             var queue = new SpeechQueue(sp.GetRequiredService<ISpeechEngine>(), sp.GetRequiredService<ILogger<SpeechQueue>>());

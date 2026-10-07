@@ -28,7 +28,7 @@ public interface IOneCoreSynthesizer
 /// <see cref="IAudioStreamPlayer"/>, so speech uses the same output device as the earcons.
 /// Cancelling stops the audio at once; an utterance still being synthesized is dropped.
 /// </summary>
-public sealed class OneCoreSpeechEngine : ISpeechEngine
+public sealed class OneCoreSpeechEngine : ISpeechEngine, IDisposable
 {
     /// <summary>Words per minute at speaking rate 1.</summary>
     public const double NormalWpm = 180.0;
@@ -155,6 +155,24 @@ public sealed class OneCoreSpeechEngine : ISpeechEngine
 
     public IReadOnlyList<string> GetLanguages() =>
         _synthesizer.Voices.Select(v => v.Language).Where(l => l.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+    /// <summary>
+    /// Synthesizes a word in the background so the first real utterance doesn't wait for the
+    /// synthesizer to load its voice.
+    /// </summary>
+    public void WarmUp() => _ = WarmUpAsync();
+
+    private async Task WarmUpAsync()
+    {
+        try { await _synthesizer.SynthesizeAsync("ready", Options(), CancellationToken.None).ConfigureAwait(false); }
+        catch (Exception ex) { _logger.LogDebug(ex, "OneCore warm-up failed"); }
+    }
+
+    public void Dispose()
+    {
+        Cancel();
+        (_synthesizer as IDisposable)?.Dispose();
+    }
 
     private OneCoreOptions Options()
     {
