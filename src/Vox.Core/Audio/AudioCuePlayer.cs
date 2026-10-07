@@ -52,24 +52,34 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     }
 
     /// <param name="outputFactory">
-    /// Opens an output device playing the given mixer (a test seam); defaults to a started
-    /// <see cref="WaveOutEvent"/>.
+    /// Opens an output device playing the given mixer (a test seam); defaults to WASAPI on
+    /// <see cref="OutputDevice"/> (<see cref="AudioOutputDevices.Open"/>).
     /// </param>
     public AudioCuePlayer(ILogger<AudioCuePlayer> logger, string? soundsDirectory, Func<ISampleProvider, IDisposable>? outputFactory)
     {
         _logger = logger;
         _soundsDirectory = soundsDirectory ?? GetDefaultSoundsDirectory();
-        _outputFactory = outputFactory ?? OpenWaveOut;
+        _outputFactory = outputFactory ?? (mixer => AudioOutputDevices.Open(mixer, OutputDevice));
         _idleTimer = new System.Threading.Timer(_ => CloseIfIdle(), null, Timeout.Infinite, Timeout.Infinite);
         PreloadSounds();
     }
 
-    private static IDisposable OpenWaveOut(ISampleProvider mixer)
+    private string? _outputDevice;
+
+    /// <summary>
+    /// The output device's name (null: the default device). Changing it reopens the output on the
+    /// new device with the next cue.
+    /// </summary>
+    public string? OutputDevice
     {
-        var output = new WaveOutEvent { DesiredLatency = 100 };
-        output.Init(mixer);
-        output.Play();
-        return output;
+        get => _outputDevice;
+        set
+        {
+            if (_outputDevice == value)
+                return;
+            _outputDevice = value;
+            ResetOutput();
+        }
     }
 
     /// <summary>True while an output device is open (for tests).</summary>

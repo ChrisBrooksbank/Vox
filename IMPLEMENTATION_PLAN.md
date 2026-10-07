@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 76
+- Build iterations: 77
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -133,7 +133,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Audio and diagnostics (spec: robustness-secure-desktop.md)
 
-- [ ] Move speech and earcon output to WASAPI through NAudio with output device selection setting (spec: robustness-secure-desktop.md)
+- [x] Move speech and earcon output to WASAPI through NAudio with output device selection setting (spec: robustness-secure-desktop.md) — earcons and tones done (AudioOutputDevice setting); speech stays on the SAPI default device until the OneCore engine task, which picks the device for speech
 - [ ] Add audio ducking setting (Off / While speaking / Always) (spec: robustness-secure-desktop.md)
 - [ ] Keep the audio device warm with a silent stream so the first syllable after idle isn't clipped (spec: robustness-secure-desktop.md)
 - [ ] Add speech viewer window (non-focusable, lists recent utterances) toggled by a command (spec: robustness-secure-desktop.md)
@@ -160,7 +160,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 #### Speech and audio (spec: speech-and-audio.md)
 
 - [ ] Extend `ISpeechEngine` with pitch, volume and capability flags; implement in `SapiSpeechEngine` (spec: speech-and-audio.md)
-- [ ] Add `OneCoreSpeechEngine` over `Windows.Media.SpeechSynthesis` with voice listing, rate, pitch, volume (spec: speech-and-audio.md)
+- [ ] Add `OneCoreSpeechEngine` over `Windows.Media.SpeechSynthesis` with voice listing, rate, pitch, volume, playing through NAudio WASAPI on the `AudioOutputDevice` (so speech follows the output device setting) (spec: speech-and-audio.md)
 - [ ] Add `SpeechEngineRegistry`: list engines, switch at runtime, fall back to SAPI if an engine fails; prefer OneCore by default; unit tests (spec: speech-and-audio.md)
 - [ ] Add rate boost up to 900 wpm (engine boost or time-stretch) with `SpeechRateWpm` range update and wizard support (spec: speech-and-audio.md)
 - [ ] Add settings ring (Insert+Ctrl+Left/Right choose, Up/Down change: voice, rate, pitch, volume, punctuation, engine); saved and spoken; unit tests (spec: speech-and-audio.md)

@@ -61,4 +61,6 @@ public record VoxSettings
     public bool ReportBackgroundProgress { get; init; } = false;
     /// <summary>Start Vox when the user signs in to Windows.</summary>
     public bool StartAtLogon { get; init; } = false;
+    /// <summary>Output device for earcons and tones by name (null: the default device).</summary>
+    public string? AudioOutputDevice { get; init; }
 }

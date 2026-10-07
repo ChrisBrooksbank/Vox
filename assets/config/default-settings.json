@@ -11,5 +11,6 @@
   "ProgressBars": "Every10Percent",
   "ReportBackgroundProgress": false,
   "StartAtLogon": false,
+  "AudioOutputDevice": null,
   "FirstRunCompleted": false
 }

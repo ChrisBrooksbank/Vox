@@ -300,6 +300,8 @@ public sealed class ScreenReaderService : IHostedService
                 _speechEngine.SetVoice(settings.VoiceName ?? string.Empty);
             if (previous is null || previous.AudioCuesEnabled != settings.AudioCuesEnabled)
                 _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
+            if (previous is null || previous.AudioOutputDevice != settings.AudioOutputDevice)
+                _audioCuePlayer.OutputDevice = settings.AudioOutputDevice;
             if (previous is null || previous.ModifierKey != settings.ModifierKey)
                 _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
             if (previous is null || previous.StartAtLogon != settings.StartAtLogon)
