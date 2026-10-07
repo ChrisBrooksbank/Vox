@@ -276,11 +276,12 @@ public sealed class SpeechQueue : IDisposable
         catch (OperationCanceledException)
         {
             // Interrupted by a higher-priority utterance or CancelAll — normal operation
-            _logger.LogDebug("Speech interrupted: {Text}", utterance.Text);
+            _logger.LogDebug("Speech interrupted ({Priority}, {Length} chars)", utterance.Priority, utterance.Text.Length);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error speaking utterance: {Text}", utterance.Text);
+            // Never log the text: utterances carry typed characters and form field values
+            _logger.LogError(ex, "Error speaking utterance ({Priority}, {Length} chars)", utterance.Priority, utterance.Text.Length);
         }
         finally
         {

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 38
+- Build iterations: 39
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -80,7 +80,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 - [x] Add GitHub Actions workflow `.github/workflows/ci.yml` on `windows-latest`: setup .NET 9, restore, `dotnet build`, `dotnet test` on push and pull request; upload test results (spec: quality-engineering.md)
 - [x] Add `RecordingSpeechEngine` (test helper implementing `ISpeechEngine`) that records text, priority and timestamps; use it in one existing EventPipeline test (spec: quality-engineering.md)
-- [ ] Add a log-sink test proving typed characters, password field values and `TypingEchoEvent` text never reach Serilog; fix any leak found (spec: quality-engineering.md)
+- [x] Add a log-sink test proving typed characters, password field values and `TypingEchoEvent` text never reach Serilog; fix any leak found (spec: quality-engineering.md)
 
 #### Robustness (spec: robustness-secure-desktop.md)
 

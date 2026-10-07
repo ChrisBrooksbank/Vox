@@ -205,7 +205,7 @@ public sealed class TypingEchoHandler
         {
             var charText = GetCharacterName(ch);
             _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, charText, IsWord: false));
-            _logger.LogDebug("TypingEcho char: {Char}", charText);
+            _logger.LogTrace("TypingEcho char"); // never log what was typed
         }
     }
 
@@ -244,7 +244,7 @@ public sealed class TypingEchoHandler
         if (mode == TypingEchoMode.Characters || mode == TypingEchoMode.Both)
         {
             _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, boundaryName, IsWord: false));
-            _logger.LogDebug("TypingEcho boundary char: {Char}", boundaryName);
+            _logger.LogTrace("TypingEcho boundary char");
         }
 
         // Speak the word that was accumulated before this boundary (never in password fields)
@@ -253,7 +253,7 @@ public sealed class TypingEchoHandler
         {
             var word = _wordBuffer.ToString();
             _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, word, IsWord: true));
-            _logger.LogDebug("TypingEcho word: {Word}", word);
+            _logger.LogTrace("TypingEcho word");
         }
 
         _wordBuffer.Clear();

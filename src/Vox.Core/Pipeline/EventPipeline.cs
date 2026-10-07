@@ -217,8 +217,8 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     break;
 
                 case PropertyChangedEvent propertyChanged:
-                    _logger.LogDebug("PropertyChanged: PropertyId={PropertyId}, NewValue={NewValue}",
-                        propertyChanged.PropertyId, propertyChanged.NewValue);
+                    // Not the new value: it can be the text of an edit field
+                    _logger.LogDebug("PropertyChanged: PropertyId={PropertyId}", propertyChanged.PropertyId);
                     PropertyChangedProcessed?.Invoke(this, propertyChanged);
                     break;
 
