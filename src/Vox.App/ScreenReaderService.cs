@@ -32,6 +32,7 @@ public sealed class ScreenReaderService : IHostedService
     // Constructed to subscribe to UIA call timeouts ("<app> not responding")
     private readonly NotRespondingReporter _notRespondingReporter;
     private readonly FocusedTextMonitor _focusedTextMonitor;
+    private readonly TerminalMonitor _terminalMonitor;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -75,6 +76,7 @@ public sealed class ScreenReaderService : IHostedService
         UIARecovery uiaRecovery,
         NotRespondingReporter notRespondingReporter,
         FocusedTextMonitor focusedTextMonitor,
+        TerminalMonitor terminalMonitor,
         NavigationManager navigationManager,
         BrowseModeController browseModeController,
         SayAllController sayAllController,
@@ -97,6 +99,7 @@ public sealed class ScreenReaderService : IHostedService
         _uiaRecovery = uiaRecovery;
         _notRespondingReporter = notRespondingReporter;
         _focusedTextMonitor = focusedTextMonitor;
+        _terminalMonitor = terminalMonitor;
         _navigationManager = navigationManager;
         _browseModeController = browseModeController;
         _sayAllController = sayAllController;
@@ -273,6 +276,7 @@ public sealed class ScreenReaderService : IHostedService
     {
         _browseModeController.HandleRawKey(e);
         TrackBackground(_focusedTextMonitor.HandleRawKey(e));
+        _terminalMonitor.HandleRawKey(e);
     }
 
     private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e) =>
@@ -283,7 +287,14 @@ public sealed class ScreenReaderService : IHostedService
         _browseModeController.HandleFocusChanged(e);
         TrackBackground(_focusedTextMonitor.HandleFocusChanged());
         TrackBackground(_documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence));
-        TrackBackground(IgnoreUiaFailure(_uiaEventSubscriber.FollowFocusForTextAsync(), "following focus for caret events"));
+        TrackBackground(FollowFocusForTextAsync());
+    }
+
+    /// <summary>Finds the newly focused text control, then lets the terminal monitor take its first snapshot.</summary>
+    private async Task FollowFocusForTextAsync()
+    {
+        await IgnoreUiaFailure(_uiaEventSubscriber.FollowFocusForTextAsync(), "following focus for caret events").ConfigureAwait(false);
+        await _terminalMonitor.HandleFocusChangedAsync().ConfigureAwait(false);
     }
 
     /// <summary>Awaits background UIA work whose failure (timeout, element gone) only needs logging.</summary>
@@ -306,8 +317,11 @@ public sealed class ScreenReaderService : IHostedService
     private void OnCaretMovedProcessed(object? sender, CaretMovedEvent e) =>
         TrackBackground(_focusedTextMonitor.HandleCaretMovedAsync(e));
 
-    private void OnTextEditedProcessed(object? sender, TextEditedEvent e) =>
+    private void OnTextEditedProcessed(object? sender, TextEditedEvent e)
+    {
         TrackBackground(_focusedTextMonitor.HandleTextEditedAsync(e));
+        TrackBackground(_terminalMonitor.HandleTextEditedAsync(e));
+    }
 
     private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>
         _documentTracker.OnStructureChanged(e.RuntimeId);

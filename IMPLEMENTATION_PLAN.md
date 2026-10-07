@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 61
+- Build iterations: 62
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -109,7 +109,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add ReadFormatting (Insert+F): font name, size, bold/italic/underline, colour, spelling error from text attributes; keymap binding (spec: desktop-text-and-controls.md)
 - [x] Report "misspelled" when the caret enters a word with the spelling-error attribute (setting: speech / earcon / off) (spec: desktop-text-and-controls.md)
 - [x] Make `SayAllController` work over any `ITextDocument`, so Insert+Down reads native edit controls (spec: desktop-text-and-controls.md)
-- [ ] Add `TerminalMonitor` for Windows Terminal and conhost: diff text on change, speak new lines, throttle to one utterance per 100 ms, collapse >20 lines, suppress echo of typed characters; unit tests (spec: desktop-text-and-controls.md)
+- [x] Add `TerminalMonitor` for Windows Terminal and conhost: diff text on change, speak new lines, throttle to one utterance per 100 ms, collapse >20 lines, suppress echo of typed characters; unit tests (spec: desktop-text-and-controls.md)
 
 #### Desktop controls and events (spec: desktop-text-and-controls.md)
 

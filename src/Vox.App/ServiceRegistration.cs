@@ -54,6 +54,7 @@ public static class ServiceRegistration
         services.AddSingleton<IFocusedTextSource, UIAFocusedTextSource>();
         services.AddSingleton<FocusedTextMonitor>();
         services.AddSingleton<IFocusedTextReader>(sp => sp.GetRequiredService<FocusedTextMonitor>());
+        services.AddSingleton<TerminalMonitor>();
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
         services.AddSingleton<LiveRegionMonitor>();

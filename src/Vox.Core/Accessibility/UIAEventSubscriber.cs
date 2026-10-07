@@ -59,6 +59,15 @@ public sealed class UIAEventSubscriber :
     /// <summary>What kind of text the focused element has. Readable from any thread.</summary>
     public FocusedTextKind FocusedTextKind => _focusedTextKind;
 
+    private volatile bool _focusedIsTerminal;
+
+    /// <summary>Whether the focused text element is a terminal. Readable from any thread.</summary>
+    public bool FocusedIsTerminal => _focusedIsTerminal;
+
+    /// <summary>UIA class names of terminal text areas: Windows Terminal, and the classic console.</summary>
+    public static readonly IReadOnlySet<string> TerminalClassNames =
+        new HashSet<string>(StringComparer.Ordinal) { "TermControl", "TermControl2", "ConsoleWindowClass" };
+
     private const int UIA_ValuePatternId = 10002;
     private const int UIA_EditControlTypeId = 50004;
 
@@ -231,6 +240,8 @@ public sealed class UIAEventSubscriber :
                 _textScope = focused;
                 _focusedText = focused;
                 _focusedTextKind = FocusedTextKind.TextPattern;
+                _focusedIsTerminal = TerminalClassNames.Contains(
+                    TryGetCachedString(focused, () => focused.CachedClassName) ?? string.Empty);
             }
             catch (Exception ex)
             {
@@ -243,6 +254,7 @@ public sealed class UIAEventSubscriber :
     {
         _focusedText = null;
         _focusedTextKind = FocusedTextKind.None;
+        _focusedIsTerminal = false;
         if (_textScope is null) return;
         try
         {

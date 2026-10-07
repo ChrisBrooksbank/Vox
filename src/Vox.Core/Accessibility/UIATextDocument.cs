@@ -123,6 +123,16 @@ public sealed class UIATextDocument : ITextDocument
             OffsetOf(first, TextEndpoint.Start), OffsetOf(first, TextEndpoint.End));
     }
 
+    /// <summary>The text of the visible ranges, split into lines. STA thread only.</summary>
+    public IReadOnlyList<string> GetVisibleLines(int maxLength = 100_000)
+    {
+        var builder = new System.Text.StringBuilder();
+        var ranges = _pattern.GetVisibleRanges();
+        for (int i = 0; ranges is not null && i < ranges.Length && builder.Length < maxLength; i++)
+            builder.Append(ranges.GetElement(i).GetText(maxLength - builder.Length));
+        return builder.ToString().Replace("\r\n", "\n").Split('\n');
+    }
+
     private UIATextRange Wrap(IUIAutomationTextRange range) => new(range, _automation);
 }
 

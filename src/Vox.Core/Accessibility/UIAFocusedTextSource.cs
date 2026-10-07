@@ -25,6 +25,16 @@ public sealed class UIAFocusedTextSource : IFocusedTextSource
 
     public bool HasText => _subscriber.FocusedTextKind != FocusedTextKind.None;
 
+    public bool IsTerminal => _subscriber.FocusedIsTerminal;
+
+    public IReadOnlyList<string>? GetVisibleLines()
+    {
+        var element = _subscriber.FocusedTextElement;
+        if (element is null || _subscriber.FocusedTextKind != FocusedTextKind.TextPattern)
+            return null;
+        return UIATextDocument.TryCreate(element, _provider.Automation)?.GetVisibleLines();
+    }
+
     public ITextDocument? GetFocusedDocument()
     {
         var element = _subscriber.FocusedTextElement;
