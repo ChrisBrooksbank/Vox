@@ -272,6 +272,24 @@ public sealed class ScreenReaderService : IHostedService
     {
         _browseModeController.HandleFocusChanged(e);
         TrackBackground(_documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence));
+        TrackBackground(IgnoreUiaFailure(_uiaEventSubscriber.FollowFocusForTextAsync(), "following focus for caret events"));
+    }
+
+    /// <summary>Awaits background UIA work whose failure (timeout, element gone) only needs logging.</summary>
+    private async Task IgnoreUiaFailure(Task task, string what)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Shutting down
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "UIA error while {What}", what);
+        }
     }
 
     private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>

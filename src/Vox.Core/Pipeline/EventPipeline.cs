@@ -86,6 +86,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// <summary>Raised when an ElementSelectedEvent is processed.</summary>
     public event EventHandler<ElementSelectedEvent>? ElementSelectedProcessed;
 
+    /// <summary>Raised on the pipeline thread when the caret or selection of the focused text control moved.</summary>
+    public event EventHandler<CaretMovedEvent>? CaretMovedProcessed;
+
+    /// <summary>Raised on the pipeline thread when the text of the focused text control changed.</summary>
+    public event EventHandler<TextEditedEvent>? TextEditedProcessed;
+
     /// <summary>Raised when a StructureChangedEvent is processed (for virtual buffer updates).</summary>
     public event EventHandler<StructureChangedEvent>? StructureChangedProcessed;
 
@@ -225,6 +231,14 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     // Not the new value: it can be the text of an edit field
                     _logger.LogDebug("PropertyChanged: PropertyId={PropertyId}", propertyChanged.PropertyId);
                     PropertyChangedProcessed?.Invoke(this, propertyChanged);
+                    break;
+
+                case CaretMovedEvent caretMoved:
+                    CaretMovedProcessed?.Invoke(this, caretMoved);
+                    break;
+
+                case TextEditedEvent textEdited:
+                    TextEditedProcessed?.Invoke(this, textEdited);
                     break;
 
                 case ElementSelectedEvent elementSelected:

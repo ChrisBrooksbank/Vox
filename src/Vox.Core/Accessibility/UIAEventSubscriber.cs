@@ -25,6 +25,8 @@ public sealed class UIAEventSubscriber :
     private const int UIA_NotificationEventId = 20035;
     private const int UIA_SelectionItem_ElementSelectedEventId = 20012;
     private const int UIA_AsyncContentLoadedEventId = 20023;
+    private const int UIA_Text_TextSelectionChangedEventId = 20014;
+    private const int UIA_Text_TextChangedEventId = 20015;
 
     // UIA property IDs for PropertyChanged subscriptions
     private const int UIA_NamePropertyId = 30005;
@@ -41,6 +43,15 @@ public sealed class UIAEventSubscriber :
 
     // Element the structure/property handlers are registered on (STA thread only)
     private IUIAutomationElement? _documentScope;
+
+    // Focused element with a text pattern that the caret/text handlers are registered on (STA thread only)
+    private IUIAutomationElement? _textScope;
+
+    /// <summary>
+    /// The focused element whose caret and text changes are being reported (it has a TextPattern),
+    /// or null. STA thread only.
+    /// </summary>
+    public IUIAutomationElement? FocusedTextElement => _textScope;
 
     public UIAEventSubscriber(
         UIAThread uiaThread,
@@ -109,6 +120,7 @@ public sealed class UIAEventSubscriber :
         await _uiaThread.RunAsync(() =>
         {
             _documentScope = null;
+            _textScope = null;
             _subscribed = false;
         }, UIAThread.SetupTimeout).ConfigureAwait(false);
         await SubscribeAsync().ConfigureAwait(false);
@@ -167,6 +179,56 @@ public sealed class UIAEventSubscriber :
         {
             _logger.LogWarning(ex, "Failed to subscribe to document structure events");
         }
+    }
+
+    /// <summary>
+    /// Moves the caret (TextSelectionChanged) and text (TextChanged) subscriptions to the focused
+    /// element if it has a text pattern, or removes them. Handlers can't be registered from inside
+    /// an event callback, so focus changes call this, and it runs on the UIA thread.
+    /// </summary>
+    public Task FollowFocusForTextAsync()
+    {
+        if (!_subscribed || _disposed) return Task.CompletedTask;
+        return _uiaThread.RunAsync(() =>
+        {
+            var automation = _uiaProvider.Automation;
+            var focused = automation.GetFocusedElementBuildCache(_uiaProvider.CacheRequest);
+            if (_textScope is not null && focused is not null && automation.CompareElements(_textScope, focused) != 0)
+                return; // still the same element
+
+            RemoveTextScope(automation);
+            if (focused is null || UIATextDocument.TryCreate(focused) is null)
+                return;
+
+            try
+            {
+                automation.AddAutomationEventHandler(
+                    UIA_Text_TextSelectionChangedEventId, focused, TreeScope.TreeScope_Element, null, this);
+                automation.AddAutomationEventHandler(
+                    UIA_Text_TextChangedEventId, focused, TreeScope.TreeScope_Element, null, this);
+                _textScope = focused;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not subscribe to caret and text changes of the focused element");
+            }
+        });
+    }
+
+    private void RemoveTextScope(IUIAutomation automation)
+    {
+        if (_textScope is null) return;
+        try
+        {
+            automation.RemoveAutomationEventHandler(UIA_Text_TextSelectionChangedEventId, _textScope, this);
+            automation.RemoveAutomationEventHandler(UIA_Text_TextChangedEventId, _textScope, this);
+        }
+        catch (Exception ex)
+        {
+            // The element may already be gone
+            _logger.LogDebug(ex, "Error removing caret and text handlers");
+        }
+        _textScope = null;
     }
 
     // -------------------------------------------------------------------------
@@ -297,6 +359,14 @@ public sealed class UIAEventSubscriber :
                     Timestamp: DateTimeOffset.UtcNow,
                     RuntimeId: TryGetRuntimeId(sender),
                     Name: TryGetCachedString(sender, () => sender.CachedName) ?? string.Empty));
+            }
+            else if (eventId == UIA_Text_TextSelectionChangedEventId)
+            {
+                _eventSink.Post(new CaretMovedEvent(DateTimeOffset.UtcNow, TryGetRuntimeId(sender)));
+            }
+            else if (eventId == UIA_Text_TextChangedEventId)
+            {
+                _eventSink.Post(new TextEditedEvent(DateTimeOffset.UtcNow, TryGetRuntimeId(sender)));
             }
             else if (eventId == UIA_AsyncContentLoadedEventId)
             {

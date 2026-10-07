@@ -428,4 +428,25 @@ public class EventPipelineTests : IDisposable
         lock (_spokenUtterances)
             Assert.Equal(2, _spokenUtterances.Count(u => u.Text == "Item added"));
     }
+
+    // -------------------------------------------------------------------------
+    // Caret and text events are re-raised for the caret tracker
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task CaretMovedAndTextEdited_AreReRaised()
+    {
+        var caret = new TaskCompletionSource<CaretMovedEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var edited = new TaskCompletionSource<TextEditedEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pipeline.CaretMovedProcessed += (_, e) => caret.TrySetResult(e);
+        _pipeline.TextEditedProcessed += (_, e) => edited.TrySetResult(e);
+
+        _pipeline.Post(new CaretMovedEvent(DateTimeOffset.UtcNow, [7]));
+        _pipeline.Post(new TextEditedEvent(DateTimeOffset.UtcNow, [7]));
+
+        var caretEvent = await caret.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var editedEvent = await edited.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(new[] { 7 }, caretEvent.RuntimeId);
+        Assert.Equal(new[] { 7 }, editedEvent.RuntimeId);
+    }
 }

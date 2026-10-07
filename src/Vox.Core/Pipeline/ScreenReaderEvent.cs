@@ -179,3 +179,19 @@ public record AppNotRespondingEvent(
     int ProcessId,
     string AppName
 ) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// The caret or selection moved in the focused text control (UIA TextSelectionChanged).
+/// </summary>
+public record CaretMovedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// The text of the focused text control changed (UIA TextChanged).
+/// </summary>
+public record TextEditedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId
+) : ScreenReaderEvent(Timestamp);
