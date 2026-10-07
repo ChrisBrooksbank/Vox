@@ -42,6 +42,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
+    private readonly DuckingController _duckingController;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -101,8 +102,10 @@ public sealed class ScreenReaderService : IHostedService
         ILogger<ScreenReaderService> logger,
         SettingsManager settingsManager,
         IStartupRegistration startupRegistration,
+        DuckingController duckingController,
         RunPolicy? runPolicy = null)
     {
+        _duckingController = duckingController;
         _startupRegistration = startupRegistration;
         _settingsManager = settingsManager;
         _runPolicy = runPolicy ?? RunPolicy.Normal;
@@ -302,6 +305,8 @@ public sealed class ScreenReaderService : IHostedService
                 _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
             if (previous is null || previous.AudioOutputDevice != settings.AudioOutputDevice)
                 _audioCuePlayer.OutputDevice = settings.AudioOutputDevice;
+            if (previous is null || previous.AudioDucking != settings.AudioDucking)
+                _duckingController.SetMode(settings.AudioDucking);
             if (previous is null || previous.ModifierKey != settings.ModifierKey)
                 _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
             if (previous is null || previous.StartAtLogon != settings.StartAtLogon)

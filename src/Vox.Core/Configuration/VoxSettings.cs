@@ -21,6 +21,14 @@ public enum ModifierKey
     CapsLock
 }
 
+/// <summary>Whether other applications' audio is lowered while Vox speaks.</summary>
+public enum AudioDuckingMode
+{
+    Off,
+    WhileSpeaking,
+    Always
+}
+
 /// <summary>How progress bars are reported.</summary>
 public enum ProgressReporting
 {
@@ -63,4 +71,6 @@ public record VoxSettings
     public bool StartAtLogon { get; init; } = false;
     /// <summary>Output device for earcons and tones by name (null: the default device).</summary>
     public string? AudioOutputDevice { get; init; }
+    /// <summary>Lower other applications' audio: off, while Vox speaks, or always (needs UI access).</summary>
+    public AudioDuckingMode AudioDucking { get; init; } = AudioDuckingMode.Off;
 }

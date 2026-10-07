@@ -66,6 +66,15 @@ public static class ServiceRegistration
         services.AddSingleton<MenuTracker>();
         services.AddSingleton<WhereAmICommands>();
         services.AddSingleton<IStartupRegistration, RunKeyStartupRegistration>();
+        services.AddSingleton<IAudioDucker, Win32AudioDucker>();
+        services.AddSingleton<DuckingController>(sp =>
+        {
+            var controller = new DuckingController(sp.GetRequiredService<IAudioDucker>());
+            var queue = sp.GetRequiredService<SpeechQueue>();
+            queue.UtteranceStarted += (_, _) => controller.OnSpeechStarted();
+            queue.UtteranceFinished += (_, _) => controller.OnSpeechEnded();
+            return controller;
+        });
         services.AddSingleton<ProgressReporter>(sp =>
         {
             var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();

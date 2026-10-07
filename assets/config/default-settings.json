@@ -12,5 +12,6 @@
   "ReportBackgroundProgress": false,
   "StartAtLogon": false,
   "AudioOutputDevice": null,
+  "AudioDucking": "Off",
   "FirstRunCompleted": false
 }

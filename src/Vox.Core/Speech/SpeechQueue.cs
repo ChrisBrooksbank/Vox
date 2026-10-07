@@ -244,6 +244,18 @@ public sealed class SpeechQueue : IDisposable
         }
     }
 
+    /// <summary>Raised on the queue's thread just before an utterance is handed to the engine. Handlers must be quick.</summary>
+    public event EventHandler<Utterance>? UtteranceStarted;
+
+    /// <summary>Raised on the queue's thread when the engine has finished (or abandoned) an utterance.</summary>
+    public event EventHandler<Utterance>? UtteranceFinished;
+
+    private void RaiseSafely(EventHandler<Utterance>? handler, Utterance utterance)
+    {
+        try { handler?.Invoke(this, utterance); }
+        catch (Exception ex) { _logger.LogError(ex, "Error in a speech queue event handler"); }
+    }
+
     private async Task SpeakGroupAsync(List<QueuedUtterance> group, CancellationToken token)
     {
         var first = group[0].Utterance;
@@ -265,7 +277,15 @@ public sealed class SpeechQueue : IDisposable
         try
         {
             speechCts.Token.ThrowIfCancellationRequested();
-            await _engine.SpeakAsync(utterance, speechCts.Token).ConfigureAwait(false);
+            RaiseSafely(UtteranceStarted, utterance);
+            try
+            {
+                await _engine.SpeakAsync(utterance, speechCts.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                RaiseSafely(UtteranceFinished, utterance);
+            }
             spoken = true;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
