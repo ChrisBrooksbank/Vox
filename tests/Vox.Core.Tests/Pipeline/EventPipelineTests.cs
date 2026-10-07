@@ -4,6 +4,7 @@ using Vox.Core.Audio;
 using Vox.Core.Input;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Tests.TestSupport;
 using Xunit;
 
 namespace Vox.Core.Tests.Pipeline;
@@ -137,17 +138,14 @@ public class EventPipelineTests : IDisposable
     [Fact]
     public async Task LiveRegion_Assertive_EnqueuesHighPriority()
     {
-        var now = DateTimeOffset.UtcNow;
-        _pipeline.Post(new LiveRegionChangedEvent(now, "Alert: Error occurred", LiveRegionPoliteness.Assertive));
+        var engine = new RecordingSpeechEngine();
+        using var queue = new SpeechQueue(engine, NullLogger<SpeechQueue>.Instance);
+        using var pipeline = new EventPipeline(queue, _audioCueMock.Object, NullLogger<EventPipeline>.Instance);
 
-        await Task.Delay(200);
+        pipeline.Post(new LiveRegionChangedEvent(DateTimeOffset.UtcNow, "Alert: Error occurred", LiveRegionPoliteness.Assertive));
 
-        lock (_spokenUtterances)
-        {
-            var utterance = _spokenUtterances.FirstOrDefault(u => u.Text.Contains("Alert"));
-            Assert.NotNull(utterance);
-            Assert.Equal(SpeechPriority.High, utterance!.Priority);
-        }
+        var spoken = await engine.WaitForTextAsync("Alert: Error occurred");
+        Assert.Equal(SpeechPriority.High, spoken.Priority);
     }
 
     [Fact]
