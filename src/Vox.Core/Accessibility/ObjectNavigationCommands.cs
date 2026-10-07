@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
+using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
@@ -39,19 +40,84 @@ public sealed class ObjectNavigationCommands
         _logger = logger;
     }
 
-    /// <summary>Moves the navigator object and speaks it (or plays the boundary cue).</summary>
-    public async Task MoveAsync(NavigatorMove move)
+    /// <summary>Runs <paramref name="command"/> if it is an object navigation command; returns whether it was.</summary>
+    public bool TryHandle(NavigationCommand command)
     {
-        FocusChangedEvent? landed;
+        switch (command)
+        {
+            case NavigationCommand.NavigatorParent: _ = MoveAsync(NavigatorMove.Parent); return true;
+            case NavigationCommand.NavigatorFirstChild: _ = MoveAsync(NavigatorMove.FirstChild); return true;
+            case NavigationCommand.NavigatorPrevious: _ = MoveAsync(NavigatorMove.Previous); return true;
+            case NavigationCommand.NavigatorNext: _ = MoveAsync(NavigatorMove.Next); return true;
+            case NavigationCommand.ReportNavigator: _ = ReportAsync(); return true;
+            case NavigationCommand.NavigatorToFocus: _ = NavigatorToFocusAsync(); return true;
+            case NavigationCommand.FocusToNavigator: _ = FocusToNavigatorAsync(); return true;
+            case NavigationCommand.ActivateNavigator: _ = ActivateAsync(); return true;
+            default: return false;
+        }
+    }
+
+    /// <summary>Moves the navigator object and speaks it (or plays the boundary cue).</summary>
+    public Task MoveAsync(NavigatorMove move)
+    {
         bool simpleReview = _settings.CurrentValue.SimpleReviewMode;
+        return RunAsync(() =>
+        {
+            EnsureNavigator();
+            _navigator.SimpleReview = simpleReview;
+            return _navigator.Move(move) is { } landed ? Say(landed.Describe()) : Outcome.Boundary;
+        }, "move the navigator object");
+    }
+
+    /// <summary>Says the navigator object again.</summary>
+    public Task ReportAsync() => RunAsync(() =>
+    {
+        EnsureNavigator();
+        return _navigator.Current is { } current ? Say(current.Describe()) : Outcome.Speak("No navigator object");
+    }, "report the navigator object");
+
+    /// <summary>Moves the navigator object to the focused object and says it.</summary>
+    public Task NavigatorToFocusAsync() => RunAsync(() =>
+    {
+        _generation = _uiaThread.Generation;
+        _navigator.MoveTo(_source.GetFocused());
+        return _navigator.Current is { } current ? Say(current.Describe()) : Outcome.Speak("No focus");
+    }, "move the navigator object to focus");
+
+    /// <summary>Gives the navigator object keyboard focus (the focus change is then announced).</summary>
+    public Task FocusToNavigatorAsync() => RunAsync(() =>
+    {
+        EnsureNavigator();
+        if (_navigator.Current is not { } current)
+            return Outcome.Speak("No navigator object");
+        return current.SetFocus() ? Outcome.Silent : Outcome.Speak("Not focusable");
+    }, "focus the navigator object");
+
+    /// <summary>Runs the navigator object's default action.</summary>
+    public Task ActivateAsync() => RunAsync(() =>
+    {
+        EnsureNavigator();
+        if (_navigator.Current is not { } current)
+            return Outcome.Speak("No navigator object");
+        return current.Activate() ? Outcome.Silent : Outcome.Speak("No action");
+    }, "activate the navigator object");
+
+    /// <summary>What a command ends with, decided on the UIA thread and carried out off it.</summary>
+    private readonly record struct Outcome(string? Text, bool IsBoundary)
+    {
+        public static Outcome Silent => default;
+        public static Outcome Boundary => new(null, true);
+        public static Outcome Speak(string text) => new(text, false);
+    }
+
+    private Outcome Say(FocusChangedEvent target) => Outcome.Speak(Describe(target));
+
+    private async Task RunAsync(Func<Outcome> onUiaThread, string what)
+    {
+        Outcome outcome;
         try
         {
-            landed = await _uiaThread.RunAsync(() =>
-            {
-                EnsureNavigator();
-                _navigator.SimpleReview = simpleReview;
-                return _navigator.Move(move)?.Describe();
-            }).ConfigureAwait(false);
+            outcome = await _uiaThread.RunAsync(onUiaThread).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -59,15 +125,15 @@ public sealed class ObjectNavigationCommands
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Could not move the navigator object");
+            _logger.LogDebug(ex, "Could not {What}", what);
             Speak("Not available");
             return;
         }
 
-        if (landed is null)
+        if (outcome.IsBoundary)
             _audioCuePlayer.Play("boundary");
-        else
-            Speak(Describe(landed));
+        else if (outcome.Text is { } text)
+            Speak(text);
     }
 
     /// <summary>Seeds the navigator from focus when it has no object yet (UIA thread).</summary>

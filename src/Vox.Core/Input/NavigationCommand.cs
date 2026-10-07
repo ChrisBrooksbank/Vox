@@ -59,5 +59,13 @@ public enum NavigationCommand
     ReadWindow,
     CopySettingsToSecureScreens,
     ToggleSpeechViewer,
-    DeveloperInfo
+    DeveloperInfo,
+    NavigatorParent,
+    NavigatorFirstChild,
+    NavigatorPrevious,
+    NavigatorNext,
+    ReportNavigator,
+    NavigatorToFocus,
+    FocusToNavigator,
+    ActivateNavigator
 }

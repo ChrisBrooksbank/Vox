@@ -25,6 +25,12 @@ public readonly struct KeyEvent
     /// <summary>Hardware scan code (used to map the key through the active keyboard layout).</summary>
     public int ScanCode { get; init; }
 
+    /// <summary>
+    /// A navigation key or Enter pressed on the numeric keypad (Num Lock off) rather than the
+    /// dedicated key with the same virtual key code. See <see cref="NumpadKeys"/>.
+    /// </summary>
+    public bool IsKeypad { get; init; }
+
     /// <summary>True when Caps Lock is toggled on (and CapsLock is not the screen reader modifier).</summary>
     public bool CapsLockOn { get; init; }
 

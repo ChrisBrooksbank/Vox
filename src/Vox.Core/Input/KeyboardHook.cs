@@ -21,6 +21,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
     private const int WM_SYSKEYUP = 0x0105;
 
     private const int VK_CAPITAL = 0x14; // CapsLock
+    private const uint LLKHF_EXTENDED = 0x01;
 
     // dwExtraInfo on keys Vox injects itself, so the hook lets them through untouched
     private const nuint VoxInjectedMarker = 0x566F78; // "Vox"
@@ -374,6 +375,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                     IsKeyDown = isKeyDown,
                     Timestamp = kbStruct.time,
                     ScanCode = (int)kbStruct.scanCode,
+                    IsKeypad = NumpadKeys.IsKeypad(vkCode, (kbStruct.flags & LLKHF_EXTENDED) != 0),
                     // The tracked state, whatever the modifier: with Caps Lock as the Vox key it is
                     // only changed by a double tap passed through (and Vox turning it off)
                     CapsLockOn = _keyState.CapsLockOn

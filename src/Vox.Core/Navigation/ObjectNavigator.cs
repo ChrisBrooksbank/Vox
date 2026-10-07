@@ -16,6 +16,12 @@ public interface INavigatorObject
 
     /// <summary>What the object is, in the shape <see cref="AnnouncementBuilder"/> speaks.</summary>
     FocusChangedEvent Describe();
+
+    /// <summary>Gives the object keyboard focus; false when it can't take focus.</summary>
+    bool SetFocus() => false;
+
+    /// <summary>Runs the object's default action (press, toggle, select); false when it has none.</summary>
+    bool Activate() => false;
 }
 
 /// <summary>A navigator movement.</summary>
