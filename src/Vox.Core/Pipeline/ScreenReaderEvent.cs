@@ -22,7 +22,10 @@ public record FocusChangedEvent(
     int? ToggleState = null,
     bool? IsSelected = null,
     string? Value = null,
-    bool? IsValueReadOnly = null
+    bool? IsValueReadOnly = null,
+    int PositionInSet = 0,
+    int SizeOfSet = 0,
+    int Level = 0
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(

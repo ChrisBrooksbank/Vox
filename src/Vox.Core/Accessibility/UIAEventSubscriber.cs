@@ -411,7 +411,10 @@ public sealed class UIAEventSubscriber :
                 ToggleState: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_ToggleStatePropertyId),
                 IsSelected: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_SelectionItemIsSelectedPropertyId),
                 Value: UIAElementSnapshot.ReadCachedString(sender, UIAProvider.UIA_ValueValuePropertyId),
-                IsValueReadOnly: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_ValueIsReadOnlyPropertyId)
+                IsValueReadOnly: UIAElementSnapshot.ReadCachedBool(sender, UIAProvider.UIA_ValueIsReadOnlyPropertyId),
+                PositionInSet: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_PositionInSetPropertyId) ?? 0,
+                SizeOfSet: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_SizeOfSetPropertyId) ?? 0,
+                Level: UIAElementSnapshot.ReadCachedInt(sender, UIAProvider.UIA_LevelPropertyId) ?? 0
             ));
         }
         catch (Exception ex)

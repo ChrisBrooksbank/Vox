@@ -57,6 +57,15 @@ public sealed class VBufferNode
     /// <summary>True if this element can receive keyboard focus.</summary>
     public bool IsFocusable { get; init; }
 
+    /// <summary>Position among its siblings in a set (list item 3 of 10), or 0 when unknown.</summary>
+    public int PositionInSet { get; init; }
+
+    /// <summary>Size of the set it is in, or 0 when unknown.</summary>
+    public int SizeOfSet { get; init; }
+
+    /// <summary>Hierarchical level (tree item depth, 1-based), or 0 when unknown.</summary>
+    public int Level { get; init; }
+
     /// <summary>
     /// Text content contributed by this node to the flat document text.
     /// Represents the character range (start, end) in VBufferDocument.FlatText.

@@ -320,4 +320,38 @@ public class ValueAnnouncementTests
         var node = new VBufferNode { Name = "Go", ControlType = "Button", Value = "ignored" };
         Assert.Equal("Go, button", _builder.Build(node, Profile));
     }
+
+    // -------------------------------------------------------------------------
+    // Position info
+    // -------------------------------------------------------------------------
+
+    private static Vox.Core.Pipeline.FocusChangedEvent ListItem(int position = 3, int size = 10, int level = 0) =>
+        new(DateTimeOffset.UtcNow, "Inbox", "TreeItem", PositionInSet: position, SizeOfSet: size, Level: level);
+
+    [Fact]
+    public void PositionInfo_Beginner_SaysPositionAndLevel()
+    {
+        var text = new AnnouncementBuilder().Build(ListItem(level: 2), VerbosityProfile.Beginner, true);
+
+        Assert.EndsWith("3 of 10, level 2", text);
+    }
+
+    [Theory]
+    [InlineData(VerbosityLevel.Intermediate)]
+    [InlineData(VerbosityLevel.Advanced)]
+    public void PositionInfo_OtherLevels_LeftOut(VerbosityLevel level)
+    {
+        var text = new AnnouncementBuilder().Build(ListItem(level: 2), VerbosityProfile.For(level), true);
+
+        Assert.DoesNotContain("of 10", text);
+        Assert.DoesNotContain("level 2", text);
+    }
+
+    [Fact]
+    public void PositionInfo_Unknown_LeftOut()
+    {
+        var text = new AnnouncementBuilder().Build(ListItem(position: 0, size: 0), VerbosityProfile.Beginner, true);
+
+        Assert.DoesNotContain(" of ", text);
+    }
 }
