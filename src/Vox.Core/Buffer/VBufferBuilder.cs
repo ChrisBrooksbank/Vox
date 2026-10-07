@@ -54,6 +54,9 @@ public interface IVBufferElement
     /// <summary>True for a required form field (UIA IsRequiredForForm).</summary>
     bool IsRequired => false;
 
+    /// <summary>The element's own language (BCP 47, from the lang attribute), or empty when not set.</summary>
+    string Language => string.Empty;
+
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
 }
@@ -111,7 +114,8 @@ public sealed class VBufferBuilder
     /// parent/child and document-order links set within the subtree. The root has no parent.
     /// Shared with <see cref="IncrementalUpdater"/>.
     /// </summary>
-    internal static (List<VBufferNode> Nodes, string FlatText) BuildSubtree(IVBufferElement root)
+    /// <param name="inheritedLanguage">The language the subtree's root inherits (its old parent's, when splicing).</param>
+    internal static (List<VBufferNode> Nodes, string FlatText) BuildSubtree(IVBufferElement root, string inheritedLanguage = "")
     {
         var allNodes = new List<VBufferNode>(64);
         var flatText = new StringBuilder(256);
@@ -151,7 +155,7 @@ public sealed class VBufferBuilder
             try
             {
                 children = frame.Element.GetChildren();
-                node = CreateNode(frame.Element, frame.Parent, nextId);
+                node = CreateNode(frame.Element, frame.Parent, nextId, inheritedLanguage);
             }
             catch (Exception) when (frame.Parent is not null)
             {
@@ -238,7 +242,7 @@ public sealed class VBufferBuilder
         VBufferNode? Node,
         int TextStart);
 
-    private static VBufferNode CreateNode(IVBufferElement element, VBufferNode? parent, int id)
+    private static VBufferNode CreateNode(IVBufferElement element, VBufferNode? parent, int id, string inheritedLanguage = "")
     {
         var ariaRole = element.AriaRole;
         var ariaProps = element.AriaProperties;
@@ -283,6 +287,8 @@ public sealed class VBufferBuilder
             Value = element.Value ?? string.Empty,
             IsPassword = element.IsPassword,
             IsFocusable = isFocusable,
+            // Inherited, as lang is in HTML
+            Language = !string.IsNullOrEmpty(element.Language) ? element.Language : parent?.Language ?? inheritedLanguage,
             Parent = parent,
         };
 

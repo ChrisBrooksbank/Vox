@@ -226,6 +226,8 @@ public sealed class SpeechEngineRegistry : ISpeechEngine, IDisposable
 
     public IReadOnlyList<string> GetLanguages() => Current.GetLanguages();
 
+    public IReadOnlyList<SpeechVoice> GetVoiceDetails() => Current.GetVoiceDetails();
+
     public void Dispose()
     {
         ISpeechEngine? engine;

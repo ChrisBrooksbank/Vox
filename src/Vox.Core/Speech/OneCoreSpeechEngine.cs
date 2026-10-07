@@ -74,6 +74,8 @@ public sealed class OneCoreSpeechEngine : ISpeechEngine, IDisposable
 
         long epoch = Interlocked.Read(ref _epoch);
         var options = Options(utterance.PitchOffset);
+        if (utterance.Voice is { } voice && _synthesizer.Voices.Any(v => v.Name == voice))
+            options = options with { Voice = voice };
         var wav = await _synthesizer.SynthesizeAsync(utterance.Text, options, cancellationToken).ConfigureAwait(false);
 
         var playback = new Playback(new WaveFileReader(new MemoryStream(wav)).ToSampleProvider());
@@ -156,6 +158,8 @@ public sealed class OneCoreSpeechEngine : ISpeechEngine, IDisposable
     public string? CurrentVoice => _voice ?? _synthesizer.DefaultVoice;
 
     public IReadOnlyList<string> GetAvailableVoices() => _synthesizer.Voices.Select(v => v.Name).ToList();
+
+    public IReadOnlyList<SpeechVoice> GetVoiceDetails() => _synthesizer.Voices.Select(v => new SpeechVoice(v.Name, v.Language)).ToList();
 
     public IReadOnlyList<string> GetLanguages() =>
         _synthesizer.Voices.Select(v => v.Language).Where(l => l.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();

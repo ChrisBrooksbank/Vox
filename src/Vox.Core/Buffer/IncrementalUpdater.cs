@@ -98,7 +98,7 @@ public sealed class IncrementalUpdater
 
         if (newSubtreeRoot is not null)
         {
-            (newSubtreeNodes, newSubtreeText) = VBufferBuilder.BuildSubtree(newSubtreeRoot);
+            (newSubtreeNodes, newSubtreeText) = VBufferBuilder.BuildSubtree(newSubtreeRoot, oldSubtreeRoot.Parent?.Language ?? string.Empty);
         }
         else
         {

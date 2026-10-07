@@ -72,6 +72,9 @@ public sealed class VBufferNode
     /// <summary>Access key ("Alt+F", or the underlined letter of a menu item), or empty.</summary>
     public string AccessKey { get; init; } = string.Empty;
 
+    /// <summary>The text's language (BCP 47), its own or inherited from its ancestors; empty when unknown.</summary>
+    public string Language { get; init; } = string.Empty;
+
     /// <summary>
     /// Text content contributed by this node to the flat document text.
     /// Represents the character range (start, end) in VBufferDocument.FlatText.
@@ -127,6 +130,7 @@ public sealed class VBufferNode
         Value = Value,
         IsPassword = IsPassword,
         IsFocusable = IsFocusable,
+        Language = Language,
         TextRange = textRange,
     };
 

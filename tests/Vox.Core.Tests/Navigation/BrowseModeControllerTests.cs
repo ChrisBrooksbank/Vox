@@ -66,6 +66,29 @@ public class BrowseModeControllerTests : IDisposable
 
     public void Dispose() => _speechQueue.Dispose();
 
+    [Fact]
+    public async Task ReadingPageText_TagsItWithThePagesLanguage()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document", Language = "en-GB" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Hello" });
+        var french = new MockElement { RuntimeId = [3], ControlType = "Group", Language = "fr-FR" };
+        french.AddChild(new MockElement { RuntimeId = [4], Name = "Bonjour tout le monde" });
+        root.AddChild(french);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null));
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        Utterance? line = null;
+        while (line is null && DateTime.UtcNow < deadline)
+        {
+            lock (_spoken) line = _spoken.LastOrDefault(u => u.Text.Contains("Bonjour"));
+            await Task.Delay(10);
+        }
+        Assert.NotNull(line);
+        Assert.Equal("fr-FR", line!.Language);
+    }
+
     // Document: H1 "Welcome" / text "Intro text" / link "Read more" / edit "Search"
     private static VBufferDocument BuildDocument()
     {

@@ -115,6 +115,10 @@ public record VoxSettings
     public CapitalIndication CapitalsForWords { get; init; } = CapitalIndication.Off;
     /// <summary>Numbers as words or digit by digit.</summary>
     public NumberReading Numbers { get; init; } = NumberReading.Words;
+    /// <summary>Text in another language (a page's lang) is read with a voice for that language.</summary>
+    public bool AutoLanguageSwitching { get; init; } = true;
+    /// <summary>The voice to use for a language (BCP 47 tag or just the language, e.g. "fr"), overriding the automatic choice.</summary>
+    public Dictionary<string, string> LanguageVoices { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }

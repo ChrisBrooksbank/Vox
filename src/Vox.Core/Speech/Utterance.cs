@@ -14,4 +14,10 @@ public record Utterance(string Text, SpeechPriority Priority, string? SoundCue =
 {
     /// <summary>The <see cref="SoundCue"/> for a capital letter: a short high beep.</summary>
     public const string CapitalCue = "capital";
+
+    /// <summary>The text's language (BCP 47, e.g. "fr-FR"), when known: from the page it was read on.</summary>
+    public string? Language { get; init; }
+
+    /// <summary>A voice to say this utterance in instead of the current one (chosen for its <see cref="Language"/>).</summary>
+    public string? Voice { get; init; }
 }

@@ -103,27 +103,59 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         return percent >= 0 ? $"+{percent}%" : $"{percent}%";
     }
 
-    /// <summary>SSML speaking <paramref name="text"/> (escaped) at <paramref name="pitch"/>.</summary>
-    public static string BuildPitchSsml(string text, int pitch, string language) =>
-        "<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" " +
-        $"xml:lang=\"{SecurityElement.Escape(language)}\"><prosody pitch=\"{PitchToProsody(pitch)}\">" +
-        $"{SecurityElement.Escape(text)}</prosody></speak>";
+    /// <summary>SSML speaking <paramref name="text"/> (escaped) at <paramref name="pitch"/>, in <paramref name="voice"/> when given.</summary>
+    public static string BuildPitchSsml(string text, int pitch, string language, string? voice = null)
+    {
+        var body = $"<prosody pitch=\"{PitchToProsody(pitch)}\">{SecurityElement.Escape(text)}</prosody>";
+        if (voice is not null)
+            body = $"<voice name=\"{SecurityElement.Escape(voice)}\">{body}</voice>";
+        return "<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" " +
+            $"xml:lang=\"{SecurityElement.Escape(language)}\">{body}</speak>";
+    }
 
-    /// <summary>A prompt for <paramref name="text"/>, through SSML only when the pitch isn't normal.</summary>
-    private Prompt CreatePrompt(string text, int pitchOffset)
+    /// <summary>
+    /// A prompt for <paramref name="text"/>: plain text, or SSML when the pitch isn't normal or
+    /// another voice (installed) is asked for.
+    /// </summary>
+    private Prompt CreatePrompt(string text, int pitchOffset, string? voice)
     {
         int pitch = Math.Clamp(_pitch + pitchOffset, 0, 100);
-        if (pitch == ISpeechEngine.DefaultPitch)
-            return new Prompt(text);
-        string language;
-        lock (_synthLock)
+        string? language = null;
+        if (voice is not null)
         {
-            try { language = _synthesizer.Voice?.Culture?.Name ?? CultureInfo.CurrentUICulture.Name; }
-            catch { language = CultureInfo.CurrentUICulture.Name; }
+            lock (_synthLock)
+            {
+                var installed = _synthesizer.GetInstalledVoices().FirstOrDefault(v => v.Enabled && v.VoiceInfo.Name == voice);
+                if (installed is null || installed.VoiceInfo.Name == TryGetCurrentVoiceName())
+                    voice = null;
+                else
+                    language = installed.VoiceInfo.Culture?.Name;
+            }
+        }
+        if (pitch == ISpeechEngine.DefaultPitch && voice is null)
+            return new Prompt(text);
+        if (language is null)
+        {
+            lock (_synthLock)
+            {
+                try { language = _synthesizer.Voice?.Culture?.Name ?? CultureInfo.CurrentUICulture.Name; }
+                catch { language = CultureInfo.CurrentUICulture.Name; }
+            }
         }
         if (string.IsNullOrEmpty(language))
             language = "en-US";
-        return new Prompt(BuildPitchSsml(text, pitch, language), SynthesisTextFormat.Ssml);
+        return new Prompt(BuildPitchSsml(text, pitch, language, voice), SynthesisTextFormat.Ssml);
+    }
+
+    public IReadOnlyList<SpeechVoice> GetVoiceDetails()
+    {
+        lock (_synthLock)
+        {
+            return _synthesizer.GetInstalledVoices()
+                .Where(v => v.Enabled)
+                .Select(v => new SpeechVoice(v.VoiceInfo.Name, v.VoiceInfo.Culture?.Name ?? string.Empty))
+                .ToList();
+        }
     }
 
     public async Task SpeakAsync(Utterance utterance, CancellationToken cancellationToken = default)
@@ -139,7 +171,7 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var prompt = CreatePrompt(utterance.Text, utterance.PitchOffset);
+        var prompt = CreatePrompt(utterance.Text, utterance.PitchOffset, utterance.Voice);
 
         void OnCompleted(object? sender, SpeakCompletedEventArgs e)
         {

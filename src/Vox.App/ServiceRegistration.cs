@@ -76,6 +76,8 @@ public static class ServiceRegistration
         });
         services.AddSingleton<TextProcessor>(sp => new TextProcessor(
             [
+                new LanguageRule(sp.GetRequiredService<ISpeechEngine>(),
+                    () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue),
                 // On the text as it is on screen, before anything replaces words
                 new CapitalsRule(() => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue),
                 sp.GetRequiredService<PronunciationRule>(),

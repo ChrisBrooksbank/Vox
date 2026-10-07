@@ -13,6 +13,9 @@ public enum SpeechCapabilities
     Markup = 4,
 }
 
+/// <summary>An installed voice and the language it speaks (BCP 47; empty when unknown).</summary>
+public sealed record SpeechVoice(string Name, string Language);
+
 public interface ISpeechEngine
 {
     /// <summary>Normal pitch on the 0–100 scale of <see cref="SetPitch"/>.</summary>
@@ -50,4 +53,7 @@ public interface ISpeechEngine
 
     /// <summary>The languages (BCP 47 tags) the installed voices speak.</summary>
     IReadOnlyList<string> GetLanguages() => [];
+
+    /// <summary>The installed voices with their languages. Engines honour <see cref="Utterance.Voice"/> with one of these names.</summary>
+    IReadOnlyList<SpeechVoice> GetVoiceDetails() => GetAvailableVoices().Select(v => new SpeechVoice(v, string.Empty)).ToList();
 }
