@@ -84,6 +84,7 @@ public static class ServiceRegistration
         services.AddSingleton<MenuTracker>();
         services.AddSingleton<WhereAmICommands>();
         services.AddSingleton<INavigatorObjectSource>(sp => new UIANavigatorObjectSource(sp.GetRequiredService<UIAProvider>()));
+        services.AddSingleton<IClipboard, StaClipboard>();
         services.AddSingleton<ObjectNavigationCommands>();
         services.AddSingleton<IReviewTextSource>(sp => new UIAReviewTextSource(sp.GetRequiredService<UIAProvider>(),
             sp.GetRequiredService<IFocusedTextSource>(), sp.GetRequiredService<IForegroundWindow>()));

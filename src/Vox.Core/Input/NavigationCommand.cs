@@ -85,5 +85,6 @@ public enum NavigationCommand
     RouteMouseToNavigator,
     MouseLeftClick,
     MouseRightClick,
-    ToggleLeftMouseLock
+    ToggleLeftMouseLock,
+    CopyNavigatorText
 }

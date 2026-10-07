@@ -29,7 +29,8 @@ public class WhereAmICommandsTests : IDisposable
         _queue = new SpeechQueue(_engine, NullLogger<SpeechQueue>.Instance);
         var settings = Mock.Of<IOptionsMonitor<VoxSettings>>(m => m.CurrentValue == new VoxSettings());
         _commands = new WhereAmICommands(_uiaThread, new UIAProvider(_uiaThread, NullLogger<UIAProvider>.Instance),
-            new Foreground(), _queue, new AnnouncementBuilder(), settings, NullLogger<WhereAmICommands>.Instance)
+            new Foreground(), _queue, new AnnouncementBuilder(), settings,
+            Mock.Of<IClipboard>(), NullLogger<WhereAmICommands>.Instance)
         {
             Now = () => new DateTime(2026, 10, 7, 9, 5, 0),
             Power = () => new PowerInfo(true, 72, false, false),

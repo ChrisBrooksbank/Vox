@@ -65,6 +65,7 @@
     { "modifiers": "Insert",      "vkCode": 109, "mode": "Any",    "command": "NavigatorToFocus" },
     { "modifiers": "Insert|Shift", "vkCode": 109, "mode": "Any",   "command": "FocusToNavigator" },
     { "modifiers": "Insert",      "vkCode": 269, "mode": "Any",    "command": "ActivateNavigator" },
+    { "modifiers": "Insert|Ctrl", "vkCode": 67,  "mode": "Any",    "command": "CopyNavigatorText" },
     { "modifiers": "None",        "vkCode": 103, "mode": "Any",    "command": "ReviewPrevLine" },
     { "modifiers": "None",        "vkCode": 104, "mode": "Any",    "command": "ReviewCurrentLine" },
     { "modifiers": "None",        "vkCode": 105, "mode": "Any",    "command": "ReviewNextLine" },
