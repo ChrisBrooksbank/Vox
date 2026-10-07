@@ -74,6 +74,9 @@ public sealed class FocusedTextMonitor : IFocusedTextReader
 
     public void Read(TextReadKind kind) => _ = ReadAsync(kind);
 
+    public ISayAllSource CreateSayAllSource() =>
+        new TextDocumentSayAllSource(_source.GetFocusedDocument, read => _uiaThread.RunAsync(read));
+
     /// <summary>Reads <paramref name="kind"/> at the caret of the focused control.</summary>
     public Task ReadAsync(TextReadKind kind) => EvaluateAsync(document => Describe(document, kind), "reading the focused text");
 

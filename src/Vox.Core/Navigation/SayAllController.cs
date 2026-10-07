@@ -35,7 +35,13 @@ public sealed class SayAllController
     /// Starts continuous reading from the cursor's current position.
     /// If already reading, cancels the previous session first.
     /// </summary>
-    public void Start(VBufferCursor cursor)
+    public void Start(VBufferCursor cursor) => Start(new BufferSayAllSource(cursor));
+
+    /// <summary>
+    /// Starts continuous reading from <paramref name="source"/> (the buffer, or an edit control).
+    /// If already reading, cancels the previous session first.
+    /// </summary>
+    public void Start(ISayAllSource source)
     {
         // Cancel any existing session
         Cancel();
@@ -43,7 +49,7 @@ public sealed class SayAllController
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
-        _readingTask = Task.Run(async () => await ReadLoopAsync(cursor, token).ConfigureAwait(false), token);
+        _readingTask = Task.Run(async () => await ReadLoopAsync(source, token).ConfigureAwait(false), token);
     }
 
     /// <summary>
@@ -67,21 +73,21 @@ public sealed class SayAllController
     // Reading loop
     // -------------------------------------------------------------------------
 
-    private async Task ReadLoopAsync(VBufferCursor cursor, CancellationToken token)
+    private async Task ReadLoopAsync(ISayAllSource source, CancellationToken token)
     {
         try
         {
             // Read and speak the current line first
-            string currentLine = cursor.ReadLineAt(cursor.TextOffset);
+            string? currentLine = await source.CurrentLineAsync(token).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(currentLine))
             {
-                await SpeakLineAsync(currentLine, token).ConfigureAwait(false);
+                await SpeakLineAsync(currentLine.TrimEnd('\r', '\n'), token).ConfigureAwait(false);
             }
 
             // Advance line by line until end of document or cancellation
             while (!token.IsCancellationRequested)
             {
-                string? line = cursor.NextLine();
+                string? line = await source.NextLineAsync(token).ConfigureAwait(false);
                 if (line is null)
                 {
                     // Reached end of document
@@ -91,7 +97,7 @@ public sealed class SayAllController
 
                 if (!string.IsNullOrWhiteSpace(line))
                 {
-                    await SpeakLineAsync(line, token).ConfigureAwait(false);
+                    await SpeakLineAsync(line.TrimEnd('\r', '\n'), token).ConfigureAwait(false);
                 }
             }
         }

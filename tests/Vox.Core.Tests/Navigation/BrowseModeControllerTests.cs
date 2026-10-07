@@ -398,6 +398,12 @@ public class BrowseModeControllerTests : IDisposable
         public bool HasFocusedText { get; set; } = true;
         public List<TextReadKind> Reads { get; } = new();
         public void Read(TextReadKind kind) => Reads.Add(kind);
+        public int SayAllSources { get; private set; }
+        public ISayAllSource CreateSayAllSource()
+        {
+            SayAllSources++;
+            return new TextDocumentSayAllSource(() => new Vox.Core.Text.StringTextDocument("one"), f => Task.FromResult(f()));
+        }
     }
 
     private BrowseModeController ControllerWith(IFocusedTextReader reader)
@@ -424,6 +430,17 @@ public class BrowseModeControllerTests : IDisposable
         controller.HandleCommand(command);
 
         Assert.Equal([kind], reader.Reads);
+    }
+
+    [Fact]
+    public void SayAll_OutsideADocument_ReadsTheFocusedTextControl()
+    {
+        var reader = new FakeTextReader();
+        var controller = ControllerWith(reader);
+
+        controller.HandleCommand(NavigationCommand.SayAll);
+
+        Assert.Equal(1, reader.SayAllSources);
     }
 
     [Fact]

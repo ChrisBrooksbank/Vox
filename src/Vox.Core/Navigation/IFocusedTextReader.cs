@@ -21,4 +21,7 @@ public interface IFocusedTextReader
 
     /// <summary>Reads <paramref name="kind"/> at the caret of the focused control (asynchronously; speaks the result).</summary>
     void Read(TextReadKind kind);
+
+    /// <summary>Lines of the focused control from its caret, for Say All.</summary>
+    ISayAllSource CreateSayAllSource();
 }

@@ -197,6 +197,20 @@ public sealed class BrowseModeController
                 break;
 
             case NavigationCommand.SayAll:
+                // In an edit control (outside browse mode), read it from the caret
+                if (!(_documentActive && _navigationManager.CurrentMode == InteractionMode.Browse)
+                    && _focusedTextReader is { HasFocusedText: true } sayAllReader)
+                {
+                    _sayAllController.Start(sayAllReader.CreateSayAllSource());
+                    return;
+                }
+                if (_quickNavHandler.CurrentDocument is null || _cursor is null)
+                {
+                    Speak("Not in a document");
+                    return;
+                }
+                break;
+
             case NavigationCommand.ElementsList:
             case NavigationCommand.ToggleMode:
                 // These only apply to web documents; say so rather than silently eating the key
