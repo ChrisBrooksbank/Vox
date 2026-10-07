@@ -190,3 +190,62 @@ public class ReviewCommandsTests : IDisposable
     [Fact]
     public void OtherCommands_AreNotHandled() => Assert.False(_review.TryHandle(NavigationCommand.SayAll));
 }
+
+public class ReviewSpellingTests : IDisposable
+{
+    private readonly UIAThread _uiaThread = new(NullLogger<UIAThread>.Instance);
+    private readonly RecordingSpeechEngine _engine = new();
+    private readonly SpeechQueue _queue;
+    private readonly ReviewCommands _review;
+
+    private sealed class Focus(INavigatorObject focused) : INavigatorObjectSource
+    {
+        public INavigatorObject? GetFocused() => focused;
+    }
+
+    public ReviewSpellingTests()
+    {
+        _queue = new SpeechQueue(_engine, NullLogger<SpeechQueue>.Instance);
+        var settings = Mock.Of<IOptionsMonitor<VoxSettings>>(m => m.CurrentValue == new VoxSettings());
+        var edit = new MockNavigatorObject("Text editor", "Edit") { Text = "Vox reads" };
+        var navigation = new ObjectNavigationCommands(_uiaThread, new Focus(edit), _queue, new AnnouncementBuilder(),
+            Mock.Of<IAudioCuePlayer>(), settings, NullLogger<ObjectNavigationCommands>.Instance);
+        _review = new ReviewCommands(_uiaThread, navigation, Mock.Of<IReviewTextSource>(), _queue,
+            Mock.Of<IAudioCuePlayer>(), NullLogger<ReviewCommands>.Instance);
+    }
+
+    public void Dispose()
+    {
+        _queue.Dispose();
+        _uiaThread.Dispose();
+    }
+
+    [Fact]
+    public async Task CurrentWord_Twice_Spells_ThreeTimes_SpellsPhonetically()
+    {
+        _review.TryHandle(NavigationCommand.ReviewCurrentWord);
+        await _engine.WaitForTextAsync("Vox");
+        _review.TryHandle(NavigationCommand.ReviewCurrentWord);
+        await _engine.WaitForTextAsync("cap v, o, x");
+        _review.TryHandle(NavigationCommand.ReviewCurrentWord);
+        await _engine.WaitForTextAsync("cap Victor, Oscar, X-ray");
+    }
+
+    [Fact]
+    public async Task CurrentChar_Twice_IsPhonetic()
+    {
+        _review.TryHandle(NavigationCommand.ReviewCurrentChar);
+        _review.TryHandle(NavigationCommand.ReviewCurrentChar);
+
+        await _engine.WaitForTextAsync("cap Victor");
+    }
+
+    [Fact]
+    public async Task CurrentLine_Twice_Spells()
+    {
+        _review.TryHandle(NavigationCommand.ReviewCurrentLine);
+        _review.TryHandle(NavigationCommand.ReviewCurrentLine);
+
+        await _engine.WaitForTextAsync("cap v, o, x, Space, r, e, a, d, s");
+    }
+}

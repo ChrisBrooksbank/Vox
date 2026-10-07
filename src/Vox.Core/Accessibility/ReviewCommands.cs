@@ -33,6 +33,7 @@ public sealed class ReviewCommands
     private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly ILogger<ReviewCommands> _logger;
     private readonly ReviewCursor _cursor = new();
+    private readonly RepeatPressCounter _presses = new();
 
     private volatile ReviewMode _mode = ReviewMode.Object;
     private int _focusVersion;
@@ -63,16 +64,18 @@ public sealed class ReviewCommands
     /// <summary>Runs <paramref name="command"/> if it is a review command; returns whether it was.</summary>
     public bool TryHandle(NavigationCommand command)
     {
+        // Reading the current line, word or character again quickly spells it
+        int presses = _presses.Press((int)command);
         switch (command)
         {
             case NavigationCommand.ReviewPrevLine: _ = MoveAsync(TextUnit.Line, -1); return true;
-            case NavigationCommand.ReviewCurrentLine: _ = ReadAsync(TextUnit.Line); return true;
+            case NavigationCommand.ReviewCurrentLine: _ = ReadAsync(TextUnit.Line, Spelling.ForPress(presses, TextUnit.Line)); return true;
             case NavigationCommand.ReviewNextLine: _ = MoveAsync(TextUnit.Line, 1); return true;
             case NavigationCommand.ReviewPrevWord: _ = MoveAsync(TextUnit.Word, -1); return true;
-            case NavigationCommand.ReviewCurrentWord: _ = ReadAsync(TextUnit.Word); return true;
+            case NavigationCommand.ReviewCurrentWord: _ = ReadAsync(TextUnit.Word, Spelling.ForPress(presses, TextUnit.Word)); return true;
             case NavigationCommand.ReviewNextWord: _ = MoveAsync(TextUnit.Word, 1); return true;
             case NavigationCommand.ReviewPrevChar: _ = MoveAsync(TextUnit.Character, -1); return true;
-            case NavigationCommand.ReviewCurrentChar: _ = ReadAsync(TextUnit.Character); return true;
+            case NavigationCommand.ReviewCurrentChar: _ = ReadAsync(TextUnit.Character, Spelling.ForPress(presses, TextUnit.Character)); return true;
             case NavigationCommand.ReviewNextChar: _ = MoveAsync(TextUnit.Character, 1); return true;
             case NavigationCommand.ReviewTop: _ = RunAsync(c => c.Top(), "move to the top"); return true;
             case NavigationCommand.ReviewBottom: _ = RunAsync(c => c.Bottom(), "move to the bottom"); return true;
@@ -84,7 +87,11 @@ public sealed class ReviewCommands
 
     public Task MoveAsync(TextUnit unit, int direction) => RunAsync(c => c.Move(unit, direction), "move the review cursor");
 
-    public Task ReadAsync(TextUnit unit) => RunAsync(c => c.Read(unit), "read at the review cursor");
+    /// <summary>Reads the <paramref name="unit"/> at the review cursor, or spells it.</summary>
+    public Task ReadAsync(TextUnit unit, SpellMode spell = SpellMode.None) => RunAsync(c =>
+        spell == SpellMode.None ? c.Read(unit)
+        : c.TextOf(unit) is { } text ? new ReviewResult(Spelling.Say(text, unit, spell), false)
+        : null, "read at the review cursor");
 
     /// <summary>Switches to the next or previous review mode and says which.</summary>
     public void SwitchMode(int direction)
@@ -110,13 +117,17 @@ public sealed class ReviewCommands
         var mode = _mode;
         int focusVersion = Volatile.Read(ref _focusVersion);
         var window = mode == ReviewMode.Screen ? _source.ForegroundWindow : IntPtr.Zero;
-        ReviewResult? result;
+        bool atBoundary;
         try
         {
-            result = await _uiaThread.RunAsync(() =>
+            atBoundary = await _uiaThread.RunAsync(() =>
             {
                 EnsureDocument(mode, focusVersion, window);
-                return command(_cursor);
+                var result = command(_cursor);
+                // Spoken here, in the order commands ran: quick presses finish in order on the UIA
+                // thread, but their continuations could reach the queue out of order
+                Speak(result?.Text ?? "No text");
+                return result?.AtBoundary == true;
             }, mode == ReviewMode.Screen ? UIAThread.DocumentTimeout : null).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
@@ -130,14 +141,8 @@ public sealed class ReviewCommands
             return;
         }
 
-        if (result is not { } spoken)
-        {
-            Speak("No text");
-            return;
-        }
-        if (spoken.AtBoundary)
+        if (atBoundary)
             _audioCuePlayer.Play("boundary");
-        Speak(spoken.Text);
     }
 
     /// <summary>Attaches the cursor to the text the mode reviews, when that changed (UIA thread).</summary>

@@ -117,7 +117,14 @@ public sealed class ObjectNavigationCommands
         Outcome outcome;
         try
         {
-            outcome = await _uiaThread.RunAsync(onUiaThread).ConfigureAwait(false);
+            outcome = await _uiaThread.RunAsync(() =>
+            {
+                var result = onUiaThread();
+                // Spoken here, in the order commands ran (their continuations could race)
+                if (result.Text is { } text)
+                    Speak(text);
+                return result;
+            }).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -132,8 +139,6 @@ public sealed class ObjectNavigationCommands
 
         if (outcome.IsBoundary)
             _audioCuePlayer.Play("boundary");
-        else if (outcome.Text is { } text)
-            Speak(text);
     }
 
     /// <summary>

@@ -19,8 +19,11 @@ public interface IFocusedTextReader
     /// <summary>Whether the focused control has text to read.</summary>
     bool HasFocusedText { get; }
 
-    /// <summary>Reads <paramref name="kind"/> at the caret of the focused control (asynchronously; speaks the result).</summary>
-    void Read(TextReadKind kind);
+    /// <summary>
+    /// Reads <paramref name="kind"/> at the caret of the focused control, spelled when
+    /// <paramref name="spell"/> says so (asynchronously; speaks the result).
+    /// </summary>
+    void Read(TextReadKind kind, Text.SpellMode spell = Text.SpellMode.None);
 
     /// <summary>Lines of the focused control from its caret, for Say All.</summary>
     ISayAllSource CreateSayAllSource();

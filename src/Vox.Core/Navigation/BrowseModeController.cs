@@ -7,6 +7,8 @@ using Vox.Core.Input;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
+using Vox.Core.Text;
+
 namespace Vox.Core.Navigation;
 
 /// <summary>
@@ -63,6 +65,8 @@ public sealed class BrowseModeController
         int[]? FocusedRuntimeId);
 
     private readonly IFocusedTextReader? _focusedTextReader;
+    private readonly RepeatPressCounter _readPresses = new();
+    private SpellMode _readSpell;
 
     private const int UIA_NamePropertyId = 30005;
     private const int UIA_ExpandCollapseStatePropertyId = 30070;
@@ -183,6 +187,13 @@ public sealed class BrowseModeController
             case NavigationCommand.ReadFormatting:
                 // Browse mode reads the buffer; anywhere else, the focused text control
                 bool browsing = _documentActive && _navigationManager.CurrentMode == InteractionMode.Browse;
+                // Pressed again quickly: spell, then spell phonetically
+                _readSpell = Spelling.ForPress(_readPresses.Press((int)command), command switch
+                {
+                    NavigationCommand.ReadCurrentChar => TextUnit.Character,
+                    NavigationCommand.ReadCurrentWord => TextUnit.Word,
+                    _ => TextUnit.Line,
+                });
                 if (!browsing && _focusedTextReader is { HasFocusedText: true } reader)
                 {
                     reader.Read(command switch
@@ -192,7 +203,7 @@ public sealed class BrowseModeController
                         NavigationCommand.ReadCurrentChar => TextReadKind.Character,
                         NavigationCommand.ReadFormatting => TextReadKind.Formatting,
                         _ => TextReadKind.Selection,
-                    });
+                    }, _readSpell);
                     return;
                 }
                 if (_quickNavHandler.CurrentDocument is null || _cursor is null)
@@ -240,15 +251,21 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ReadCurrentLine:
                 ApplyCursorSettings(_cursor!);
-                Speak(LineText(_cursor!.ReadCurrentLine()));
+                Speak(_readSpell == SpellMode.None ? LineText(_cursor!.ReadCurrentLine())
+                    : Spelling.Say(_cursor!.ReadCurrentLine(), TextUnit.Line, _readSpell));
                 return;
 
             case NavigationCommand.ReadCurrentWord:
-                Speak(LineText(_cursor!.ReadCurrentWord()));
+                Speak(_readSpell == SpellMode.None ? LineText(_cursor!.ReadCurrentWord())
+                    : Spelling.Say(_cursor!.ReadCurrentWord(), TextUnit.Word, _readSpell));
                 return;
 
             case NavigationCommand.ReadCurrentChar:
-                Speak(_cursor!.CurrentChar == '\0' ? "blank" : CharText(_cursor.CurrentChar)!);
+                if (_cursor!.CurrentChar == '\0')
+                    Speak("blank");
+                else
+                    Speak(_readSpell == SpellMode.None ? CharText(_cursor.CurrentChar)!
+                        : Spelling.Say(_cursor.CurrentChar.ToString(), TextUnit.Character, _readSpell));
                 return;
 
             case NavigationCommand.ReadSelection:
