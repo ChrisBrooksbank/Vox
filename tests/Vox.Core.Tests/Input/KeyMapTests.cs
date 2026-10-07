@@ -1,3 +1,4 @@
+using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Pipeline;
 using Xunit;
@@ -305,4 +306,102 @@ public class DefaultKeyMapReadingKeysTests
     [InlineData(KeyModifiers.Ctrl, 39)]
     public void ReadingKeys_ReachTheControlInFocusMode(KeyModifiers modifiers, int vk) =>
         Assert.False(Map.TryResolve(modifiers, vk, InteractionMode.Focus, out _));
+
+    private static readonly string ConfigDirectory =
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "assets", "config");
+
+    [Fact]
+    public void LaptopLayout_HasEveryCommandOfTheDesktopLayout()
+    {
+        var desktop = KeyMap.LoadBuiltIn(KeyboardLayout.Desktop, out var desktopWarnings);
+        var laptop = KeyMap.LoadBuiltIn(KeyboardLayout.Laptop, out var laptopWarnings);
+        Assert.Empty(desktopWarnings);
+        Assert.Empty(laptopWarnings);
+
+        // Per mode, so a command bound only in Browse mode is still checked in Browse mode
+        foreach (var mode in new[] { InteractionMode.Browse, InteractionMode.Focus })
+        {
+            var desktopCommands = desktop.Bindings.Where(b => b.Key.Mode == mode).Select(b => b.Command).ToHashSet();
+            var laptopCommands = laptop.Bindings.Where(b => b.Key.Mode == mode).Select(b => b.Command).ToHashSet();
+            var missing = desktopCommands.Except(laptopCommands).ToList();
+            Assert.True(missing.Count == 0, $"Missing from the laptop layout in {mode} mode: {string.Join(", ", missing)}");
+        }
+    }
+
+    [Fact]
+    public void LaptopLayout_UsesNoKeypadKeys()
+    {
+        var laptop = KeyMap.LoadBuiltIn(KeyboardLayout.Laptop, out _);
+
+        Assert.DoesNotContain(laptop.Bindings, b => NumpadKeys.IsKeypadBindingCode(b.Key.VkCode));
+    }
+
+    [Fact]
+    public void LaptopFile_BindsEachKeyOnce()
+    {
+        var json = File.ReadAllText(Path.Combine(ConfigDirectory, KeyMap.LaptopFileName));
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        var keys = document.RootElement.GetProperty("bindings").EnumerateArray()
+            .Select(b => (b.GetProperty("modifiers").GetString(), b.GetProperty("vkCode").GetInt32(), b.GetProperty("mode").GetString()))
+            .ToList();
+
+        Assert.Equal(keys.Count, keys.Distinct().Count());
+    }
+
+    [Fact]
+    public void LaptopLayout_ReplacesDesktopBindingsOnTheSameKey()
+    {
+        var desktop = KeyMap.LoadBuiltIn(KeyboardLayout.Desktop, out _);
+        var laptop = KeyMap.LoadBuiltIn(KeyboardLayout.Laptop, out _);
+
+        Assert.True(desktop.TryResolveOutsideDocument(KeyModifiers.Insert, 38, out var desktopCommand, out _));
+        Assert.Equal(NavigationCommand.ReadCurrentLine, desktopCommand);
+        Assert.True(laptop.TryResolveOutsideDocument(KeyModifiers.Insert, 38, out var laptopCommand, out _));
+        Assert.Equal(NavigationCommand.ReviewPrevLine, laptopCommand);
+
+        // Keys the laptop layout doesn't rebind keep their desktop binding
+        Assert.True(laptop.TryResolve(KeyModifiers.None, 72, InteractionMode.Browse, out var heading));
+        Assert.Equal(NavigationCommand.NextHeading, heading);
+        // The keypad review keys are gone
+        Assert.False(laptop.TryResolveOutsideDocument(KeyModifiers.None, NumpadKeys.Numpad8, out _, out _));
+    }
+
+    [Theory]
+    [InlineData(KeyboardLayout.Desktop)]
+    [InlineData(KeyboardLayout.Laptop)]
+    public void LoadLayout_MatchesTheBuiltInLayout(KeyboardLayout layout)
+    {
+        var fromFiles = KeyMap.LoadLayout(ConfigDirectory, layout, out var error, out _);
+
+        Assert.Null(error);
+        Assert.Equal(KeyMap.LoadBuiltIn(layout, out _).Bindings.ToHashSet(), fromFiles.Bindings.ToHashSet());
+    }
+
+    [Fact]
+    public void LoadLayout_MissingFiles_FallsBackToTheBuiltInLayout()
+    {
+        var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+        var keyMap = KeyMap.LoadLayout(missing, KeyboardLayout.Laptop, out var error, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(KeyMap.LoadBuiltIn(KeyboardLayout.Laptop, out _).Count, keyMap.Count);
+    }
+
+    [Fact]
+    public void ModeBinding_ReplacingAnAnyBinding_RemovesItOutsideDocuments()
+    {
+        var keyMap = KeyMap.LoadFromJson("""
+            { "bindings": [
+              { "modifiers": "None", "vkCode": 65, "mode": "Any", "command": "SayAll" },
+              { "modifiers": "None", "vkCode": 65, "mode": "Browse", "command": "NextLink" }
+            ] }
+            """);
+
+        Assert.False(keyMap.TryResolveOutsideDocument(KeyModifiers.None, 65, out _, out _));
+        Assert.True(keyMap.TryResolve(KeyModifiers.None, 65, InteractionMode.Focus, out var focus));
+        Assert.Equal(NavigationCommand.SayAll, focus);
+        Assert.True(keyMap.TryResolve(KeyModifiers.None, 65, InteractionMode.Browse, out var browse));
+        Assert.Equal(NavigationCommand.NextLink, browse);
+    }
 }

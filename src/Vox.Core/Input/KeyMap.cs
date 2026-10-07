@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Vox.Core.Configuration;
 using Vox.Core.Pipeline;
 
 namespace Vox.Core.Input;
@@ -78,12 +79,61 @@ public sealed class KeyMap
     /// Loads the built-in keymap, also reporting any entries that were skipped because of an
     /// unrecognized modifier, command or mode name.
     /// </summary>
-    public static KeyMap LoadBuiltIn(out IReadOnlyList<string> warnings)
+    public static KeyMap LoadBuiltIn(out IReadOnlyList<string> warnings) => LoadBuiltIn(KeyboardLayout.Desktop, out warnings);
+
+    /// <summary>The built-in keymap for <paramref name="layout"/>.</summary>
+    public static KeyMap LoadBuiltIn(KeyboardLayout layout, out IReadOnlyList<string> warnings) =>
+        Compose(ReadResource(DesktopFileName), layout == KeyboardLayout.Laptop ? ReadResource(LaptopFileName) : null, out warnings);
+
+    /// <summary>File name of the desktop layout (the base of every layout).</summary>
+    public const string DesktopFileName = "default-keymap.json";
+
+    /// <summary>File name of the laptop layout's own bindings.</summary>
+    public const string LaptopFileName = "laptop-keymap.json";
+
+    /// <summary>
+    /// Loads <paramref name="layout"/> from the keymap files in <paramref name="configDirectory"/>,
+    /// falling back to the built-in keymap of that layout (and reporting why through
+    /// <paramref name="error"/>) if a file is missing or invalid. The desktop layout is
+    /// <see cref="DesktopFileName"/>; the laptop layout is that without its keypad bindings, plus
+    /// <see cref="LaptopFileName"/>, whose bindings replace any on the same key.
+    /// </summary>
+    public static KeyMap LoadLayout(string configDirectory, KeyboardLayout layout, out Exception? error,
+        out IReadOnlyList<string> warnings)
     {
-        using var stream = typeof(KeyMap).Assembly.GetManifestResourceStream("Vox.Core.default-keymap.json")
-            ?? throw new InvalidOperationException("Built-in keymap resource is missing.");
+        try
+        {
+            var desktop = File.ReadAllText(Path.Combine(configDirectory, DesktopFileName));
+            var laptop = layout == KeyboardLayout.Laptop ? File.ReadAllText(Path.Combine(configDirectory, LaptopFileName)) : null;
+            var map = Compose(desktop, laptop, out warnings);
+            error = null;
+            return map;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
+        {
+            error = ex;
+            return LoadBuiltIn(layout, out warnings);
+        }
+    }
+
+    private static string ReadResource(string fileName)
+    {
+        using var stream = typeof(KeyMap).Assembly.GetManifestResourceStream("Vox.Core." + fileName)
+            ?? throw new InvalidOperationException($"Built-in keymap resource {fileName} is missing.");
         using var reader = new StreamReader(stream);
-        return LoadFromJson(reader.ReadToEnd(), out warnings);
+        return reader.ReadToEnd();
+    }
+
+    /// <summary>The desktop bindings, or for the laptop layout those off the keypad plus the laptop's own.</summary>
+    private static KeyMap Compose(string desktopJson, string? laptopJson, out IReadOnlyList<string> warnings)
+    {
+        var entries = Parse(desktopJson).Bindings.AsEnumerable();
+        if (laptopJson is not null)
+        {
+            entries = entries.Where(e => !NumpadKeys.IsKeypadBindingCode(e.VkCode))
+                .Concat(Parse(laptopJson).Bindings);
+        }
+        return Build(entries, out warnings);
     }
 
     /// <summary>
@@ -123,7 +173,10 @@ public sealed class KeyMap
     /// an unrecognized modifier, command or mode name (a typo in the JSON otherwise fails silently:
     /// the key simply does nothing, with no indication why).
     /// </summary>
-    public static KeyMap LoadFromJson(string json, out IReadOnlyList<string> warnings)
+    public static KeyMap LoadFromJson(string json, out IReadOnlyList<string> warnings) =>
+        Build(Parse(json).Bindings, out warnings);
+
+    private static KeyMapFile Parse(string json)
     {
         var options = new JsonSerializerOptions
         {
@@ -132,12 +185,16 @@ public sealed class KeyMap
             ReadCommentHandling = JsonCommentHandling.Skip
         };
 
-        var file = JsonSerializer.Deserialize<KeyMapFile>(json, options)
+        return JsonSerializer.Deserialize<KeyMapFile>(json, options)
             ?? throw new InvalidOperationException("Failed to deserialize keymap JSON.");
+    }
 
+    /// <summary>A keymap of <paramref name="entries"/>; a later entry replaces an earlier one on the same key.</summary>
+    private static KeyMap Build(IEnumerable<KeyBindingEntry> entries, out IReadOnlyList<string> warnings)
+    {
         var map = new KeyMap();
         var warningList = new List<string>();
-        foreach (var entry in file.Bindings)
+        foreach (var entry in entries)
         {
             if (!TryParseModifiers(entry.Modifiers, out var modifiers))
             {
@@ -161,6 +218,8 @@ public sealed class KeyMap
             else if (TryParseName<InteractionMode>(entry.Mode, out var mode))
             {
                 map._bindings[new KeyMapKey(modifiers, entry.VkCode, mode)] = binding;
+                // A mode binding replacing an "Any" one: the key no longer has a binding outside documents
+                map._anyBindings.Remove((modifiers, entry.VkCode));
             }
             else
             {
@@ -218,6 +277,10 @@ public sealed class KeyMap
     /// Returns the total number of bindings in this keymap.
     /// </summary>
     public int Count => _bindings.Count;
+
+    /// <summary>Every binding (an "Any" binding appears once per mode).</summary>
+    public IEnumerable<(KeyMapKey Key, NavigationCommand Command)> Bindings =>
+        _bindings.Select(b => (b.Key, b.Value.Command));
 
     /// <summary>
     /// Parses an enum member by name. Enum.TryParse alone also accepts any number ("99"), which

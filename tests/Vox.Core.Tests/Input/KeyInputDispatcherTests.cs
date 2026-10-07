@@ -394,4 +394,16 @@ public class KeyInputDispatcherTests
         var raw = Assert.IsType<RawKeyEvent>(sink.Posted[1]);
         Assert.Equal(65, raw.Key.VkCode);
     }
+
+    [Fact]
+    public void SetKeyMap_NextKeyResolvesWithTheNewKeyMap()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildMap("Insert", 38, "Any", "ReadCurrentLine"));
+
+        dispatcher.SetKeyMap(BuildMap("Insert", 38, "Any", "ReviewPrevLine"));
+        fireKey(new KeyEvent { VkCode = 38, Modifiers = KeyModifiers.Insert, IsKeyDown = true });
+
+        var command = Assert.IsType<NavigationCommandEvent>(Assert.Single(sink.Posted));
+        Assert.Equal(NavigationCommand.ReviewPrevLine, command.Command);
+    }
 }

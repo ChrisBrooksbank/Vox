@@ -23,7 +23,7 @@ All projects target `net9.0-windows` and `Vox.Core`/tests use WinForms, so runni
 
 Projects: `Vox.Core` (everything testable), `Vox.App` (the screen reader; `--secure` for the sign-in/lock/UAC screens), `Vox.Watchdog` (restarts Vox.App after a crash), `Vox.Service` (Windows service that keeps a secure-mode Vox on the Winlogon desktop), `Vox.Core.Tests`. Signed builds ask for UI access (`docs/signing.md`).
 
-The `Vox.App` build copies `assets/config/default-settings.json`, `default-keymap.json` and `assets/sounds/*.wav` into `bin/.../assets/` (MSBuild target in `Vox.App.csproj`); they are resolved relative to `AppContext.BaseDirectory` at runtime. The keymap is also embedded in Vox.Core as a fallback (`KeyMap.LoadBuiltIn`). User settings live in `%APPDATA%/Vox/settings.json`; Serilog logs go to `%APPDATA%/Vox/logs/`.
+The `Vox.App` build copies `assets/config/default-settings.json`, `default-keymap.json`, `laptop-keymap.json` and `assets/sounds/*.wav` into `bin/.../assets/` (MSBuild target in `Vox.App.csproj`); they are resolved relative to `AppContext.BaseDirectory` at runtime. The keymaps are also embedded in Vox.Core as a fallback (`KeyMap.LoadBuiltIn`). The `KeyboardLayout` setting picks Desktop (`default-keymap.json`) or Laptop (the desktop bindings without keypad keys, overlaid by `laptop-keymap.json`; `KeyMap.LoadLayout`); a change is applied live with `KeyInputDispatcher.SetKeyMap`. User settings live in `%APPDATA%/Vox/settings.json`; Serilog logs go to `%APPDATA%/Vox/logs/`.
 
 ## Architecture
 

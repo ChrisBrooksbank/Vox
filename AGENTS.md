@@ -41,7 +41,7 @@ dotnet build && dotnet test           # Build + test = must both pass
 - `src/Vox.Core/` - Core library (all subsystems)
 - `src/Vox.App/` - Entry point, DI registration, ScreenReaderService
 - `tests/Vox.Core.Tests/` - Unit tests (xUnit)
-- `assets/config/` - Default keymap and settings JSON
+- `assets/config/` - Default settings, desktop and laptop keymap JSON
 
 ## Important Notes
 

@@ -21,6 +21,15 @@ public enum ModifierKey
     CapsLock
 }
 
+/// <summary>Which set of key bindings is used.</summary>
+public enum KeyboardLayout
+{
+    /// <summary>NVDA's desktop layout: review and object navigation on the numeric keypad.</summary>
+    Desktop,
+    /// <summary>NVDA's laptop layout: no numeric keypad, meant for CapsLock as the screen reader key.</summary>
+    Laptop
+}
+
 /// <summary>Whether other applications' audio is lowered while Vox speaks.</summary>
 public enum AudioDuckingMode
 {
@@ -69,6 +78,8 @@ public record VoxSettings
     public bool AudioCuesEnabled { get; init; } = true;
     public bool AnnounceVisitedLinks { get; init; } = true;
     public ModifierKey ModifierKey { get; init; } = ModifierKey.Insert;
+    /// <summary>Desktop (numeric keypad) or laptop key bindings.</summary>
+    public KeyboardLayout KeyboardLayout { get; init; } = KeyboardLayout.Desktop;
     /// <summary>Browse-mode lines longer than this are split at a word boundary (0 = never).</summary>
     public int MaxLineLength { get; init; } = 100;
     public bool FirstRunCompleted { get; init; } = false;

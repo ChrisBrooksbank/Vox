@@ -335,6 +335,9 @@ public sealed class ScreenReaderService : IHostedService
                 _duckingController.SetMode(settings.AudioDucking);
             if (previous is null || previous.ModifierKey != settings.ModifierKey)
                 _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
+            // At startup the keymap was loaded for the configured layout already
+            if (previous is not null && previous.KeyboardLayout != settings.KeyboardLayout)
+                _keyInputDispatcher.SetKeyMap(ServiceRegistration.LoadKeyMap(settings.KeyboardLayout, _logger));
             if (previous is null || previous.StartAtLogon != settings.StartAtLogon)
             {
                 try

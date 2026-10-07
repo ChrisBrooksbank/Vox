@@ -19,7 +19,8 @@ namespace Vox.Core.Input;
 public sealed class KeyInputDispatcher
 {
     private readonly IKeyboardHook _hook;
-    private readonly KeyMap _keyMap;
+    // Replaced whole when the layout changes; read on the hook thread
+    private volatile KeyMap _keyMap;
     private readonly IEventSink _pipeline;
     private readonly ILogger<KeyInputDispatcher> _logger;
 
@@ -53,6 +54,9 @@ public sealed class KeyInputDispatcher
         _pipeline = pipeline;
         _logger = logger;
     }
+
+    /// <summary>Switches to another keymap (another keyboard layout); takes effect with the next key.</summary>
+    public void SetKeyMap(KeyMap keyMap) => _keyMap = keyMap;
 
     /// <summary>
     /// Starts listening to keyboard events by subscribing to the hook.

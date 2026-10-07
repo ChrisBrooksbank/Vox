@@ -6,6 +6,7 @@
   "AudioCuesEnabled": true,
   "AnnounceVisitedLinks": true,
   "ModifierKey": "Insert",
+  "KeyboardLayout": "Desktop",
   "MaxLineLength": 100,
   "SpellingErrors": "Speech",
   "ProgressBars": "Every10Percent",

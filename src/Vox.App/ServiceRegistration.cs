@@ -120,22 +120,9 @@ public static class ServiceRegistration
         // Input
         services.AddSingleton<IKeyboardHook, KeyboardHook>();
         services.AddSingleton<HookSafetyNet>();
-        services.AddSingleton<KeyMap>(sp =>
-        {
-            var keyMapPath = Path.Combine(
-                AppContext.BaseDirectory,
-                "assets", "config", "default-keymap.json");
-            var keyMap = KeyMap.LoadFromFileOrBuiltIn(keyMapPath, out var error, out var warnings);
-            var logger = sp.GetRequiredService<ILogger<KeyMap>>();
-            if (error is not null)
-            {
-                logger.LogError(error,
-                    "Could not load keymap from {Path}; using the built-in default keymap", keyMapPath);
-            }
-            foreach (var warning in warnings)
-                logger.LogWarning("Keymap: {Warning}", warning);
-            return keyMap;
-        });
+        services.AddSingleton<KeyMap>(sp => LoadKeyMap(
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.KeyboardLayout,
+            sp.GetRequiredService<ILogger<KeyMap>>()));
         services.AddSingleton<KeyInputDispatcher>(sp =>
         {
             var hook = sp.GetRequiredService<IKeyboardHook>();
@@ -166,5 +153,23 @@ public static class ServiceRegistration
 
         // Hosted service
         services.AddHostedService<ScreenReaderService>();
+    }
+
+    /// <summary>
+    /// Loads the keymap for <paramref name="layout"/> from assets/config, falling back to the
+    /// built-in one; problems are logged.
+    /// </summary>
+    public static KeyMap LoadKeyMap(KeyboardLayout layout, ILogger logger)
+    {
+        var configDirectory = Path.Combine(AppContext.BaseDirectory, "assets", "config");
+        var keyMap = KeyMap.LoadLayout(configDirectory, layout, out var error, out var warnings);
+        if (error is not null)
+        {
+            logger.LogError(error,
+                "Could not load the {Layout} keymap from {Path}; using the built-in one", layout, configDirectory);
+        }
+        foreach (var warning in warnings)
+            logger.LogWarning("Keymap: {Warning}", warning);
+        return keyMap;
     }
 }

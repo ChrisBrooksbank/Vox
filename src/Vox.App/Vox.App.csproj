@@ -40,6 +40,7 @@
     <MakeDir Directories="$(OutputPath)assets\config" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-settings.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\laptop-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
     <MakeDir Directories="$(OutputPath)assets\sounds" />
     <Copy SourceFiles="@(SoundAssets)" DestinationFolder="$(OutputPath)assets\sounds" SkipUnchangedFiles="true" />
   </Target>

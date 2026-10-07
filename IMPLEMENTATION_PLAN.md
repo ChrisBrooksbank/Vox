@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 92
+- Build iterations: 93
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -154,7 +154,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add mouse tracking setting: speak element under pointer, throttled `ElementFromPoint` (100 ms), unit text setting (spec: review-object-navigation.md)
 - [x] Add mouse commands: route mouse to navigator, left click, right click, lock left button; keymap bindings (spec: review-object-navigation.md)
 - [x] Add copy navigator text to clipboard (Insert+Ctrl+C) (spec: review-object-navigation.md)
-- [ ] Add laptop keymap layout (CapsLock modifier, no numpad); `KeyMap` loads a named layout; test that it covers every desktop-layout command (spec: review-object-navigation.md)
+- [x] Add laptop keymap layout (CapsLock modifier, no numpad); `KeyMap` loads a named layout; test that it covers every desktop-layout command (spec: review-object-navigation.md)
 - [ ] Add Desktop/Laptop layout step to the first-run wizard (spec: review-object-navigation.md)
 
 #### Speech and audio (spec: speech-and-audio.md)
