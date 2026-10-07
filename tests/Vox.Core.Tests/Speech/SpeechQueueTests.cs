@@ -72,14 +72,27 @@ public class SpeechQueueTests
     public async Task Enqueue_HighPriorityBeforeLow_HighSpeaksFirst()
     {
         var speakOrder = new List<string>();
+        var busyStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseBusy = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         _engineMock
             .Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
-            .Callback<Utterance, CancellationToken>((u, _) => speakOrder.Add(u.Text))
-            .Returns(Task.CompletedTask);
+            .Returns<Utterance, CancellationToken>((u, _) =>
+            {
+                lock (speakOrder) speakOrder.Add(u.Text);
+                if (u.Text != "Busy")
+                    return Task.CompletedTask;
+                busyStarted.TrySetResult();
+                return releaseBusy.Task;
+            });
 
+        // Keep the engine busy so both are queued before either is taken (otherwise the reader
+        // can pick up Low before High has been enqueued)
+        _queue.Enqueue(new Utterance("Busy", SpeechPriority.Normal));
+        await busyStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
         _queue.Enqueue(new Utterance("Low", SpeechPriority.Low));
         _queue.Enqueue(new Utterance("High", SpeechPriority.High));
+        releaseBusy.SetResult();
 
         await Task.Delay(500);
 
