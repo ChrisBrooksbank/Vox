@@ -92,5 +92,6 @@ public enum NavigationCommand
     SettingsRingIncrease,
     SettingsRingDecrease,
     SpeechHistoryPrevious,
-    SpeechHistoryNext
+    SpeechHistoryNext,
+    ToggleSleepMode
 }

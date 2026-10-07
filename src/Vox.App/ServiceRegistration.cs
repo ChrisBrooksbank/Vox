@@ -112,6 +112,11 @@ public static class ServiceRegistration
         });
         services.AddSingleton<SpeechHistory>(_ => new SpeechHistory());
         services.AddSingleton<SpeechHistoryCommands>();
+        services.AddSingleton<SleepMode>(sp => new SleepMode(
+            sp.GetRequiredService<IForegroundWindow>(),
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+            sp.GetRequiredService<SpeechQueue>()));
         services.AddSingleton<LatencyTracker>(sp =>
         {
             var tracker = new LatencyTracker();

@@ -63,9 +63,23 @@ public sealed class SpeechQueue : IDisposable
     /// <summary>Plays an utterance's <see cref="Utterance.SoundCue"/> just before it is spoken. Set at startup.</summary>
     public Action<string>? CuePlayer { get; set; }
 
+    /// <summary>
+    /// While this returns true, nothing new is queued (sleep mode: the application with focus
+    /// speaks for itself). Set at startup; called on the enqueuing thread.
+    /// </summary>
+    public Func<bool>? IsMuted { get; set; }
+
+    private bool IsMutedNow()
+    {
+        try { return IsMuted?.Invoke() == true; }
+        catch { return false; }
+    }
+
     public ValueTask EnqueueAsync(Utterance utterance, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (IsMutedNow())
+            return ValueTask.CompletedTask;
         lock (_suspendLock)
         {
             if (_suspended) return ValueTask.CompletedTask;
@@ -76,6 +90,8 @@ public sealed class SpeechQueue : IDisposable
 
     public void Enqueue(Utterance utterance)
     {
+        if (IsMutedNow())
+            return;
         lock (_suspendLock)
         {
             if (_suspended) return;
@@ -122,6 +138,11 @@ public sealed class SpeechQueue : IDisposable
             completion.Task.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
         }
 
+        if (IsMutedNow())
+        {
+            completion.TrySetCanceled();
+            return completion.Task;
+        }
         lock (_suspendLock)
         {
             if (_suspended || !_channel.Writer.TryWrite(Prepare(utterance, completion)))

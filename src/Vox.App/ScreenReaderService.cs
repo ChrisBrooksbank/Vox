@@ -45,6 +45,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SpeechEngineRegistry _speechEngines;
     private readonly SettingsRing _settingsRing;
     private readonly SpeechHistoryCommands _speechHistoryCommands;
+    private readonly SleepMode _sleepMode;
     private readonly MouseCommands _mouseCommands;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
@@ -118,6 +119,7 @@ public sealed class ScreenReaderService : IHostedService
         SpeechEngineRegistry speechEngines,
         SettingsRing settingsRing,
         SpeechHistoryCommands speechHistoryCommands,
+        SleepMode sleepMode,
         MouseCommands mouseCommands,
         RunPolicy? runPolicy = null)
     {
@@ -126,6 +128,7 @@ public sealed class ScreenReaderService : IHostedService
         _speechEngines = speechEngines;
         _settingsRing = settingsRing;
         _speechHistoryCommands = speechHistoryCommands;
+        _sleepMode = sleepMode;
         _mouseCommands = mouseCommands;
         _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
@@ -223,6 +226,10 @@ public sealed class ScreenReaderService : IHostedService
         _keyInputDispatcher.SetMode(_navigationManager.CurrentMode);
         _keyInputDispatcher.SetDocumentActive(_browseModeController.IsDocumentActive);
 
+        // Sleep mode: nothing is said, and keys go to the application, while it has focus
+        _speechQueue.IsMuted = _sleepMode.IsAsleepNow;
+        _keyInputDispatcher.IsAsleep = () => _sleepMode.IsAsleepCached;
+
         // Start key input dispatcher (subscribes to keyboard hook, installs key suppression)
         _keyInputDispatcher.Start();
 
@@ -274,6 +281,8 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusAnnouncementFilter = null;
         _eventPipeline.FocusContextProvider = null;
         _review.BrowseTether = null;
+        _speechQueue.IsMuted = null;
+        _keyInputDispatcher.IsAsleep = null;
         _settingsSubscription?.Dispose();
 
         // Stop Say All if running
@@ -392,7 +401,8 @@ public sealed class ScreenReaderService : IHostedService
         }
         if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
             && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command)
-            && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command))
+            && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
+            && !_sleepMode.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -458,8 +468,12 @@ public sealed class ScreenReaderService : IHostedService
             _audioCuePlayer.PlayTone(hz, 40);
     }
 
-    private void OnForegroundWindowChangedProcessed(object? sender, ForegroundWindowChangedEvent e) =>
+    private void OnForegroundWindowChangedProcessed(object? sender, ForegroundWindowChangedEvent e)
+    {
+        // Keys typed into the new window are decided from the cached sleep state
+        _sleepMode.IsAsleepNow();
         TrackBackground(_dialogReader.HandleForegroundWindowChangedAsync(e));
+    }
 
     private void OnTextEditedProcessed(object? sender, TextEditedEvent e)
     {

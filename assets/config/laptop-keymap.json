@@ -31,6 +31,7 @@
     { "modifiers": "Insert|Shift", "vkCode": 83,  "mode": "Any", "command": "ReadSelection" },
     { "modifiers": "Insert",       "vkCode": 188, "mode": "Any", "command": "ReadCurrentChar" },
     { "modifiers": "Insert|Ctrl",  "vkCode": 188, "mode": "Any", "command": "ReadCurrentWord" },
+    { "modifiers": "Insert|Shift", "vkCode": 90,  "mode": "Any", "command": "ToggleSleepMode" },
     { "modifiers": "Insert|Ctrl|Shift", "vkCode": 37, "mode": "Any", "command": "SettingsRingPrevious" },
     { "modifiers": "Insert|Ctrl|Shift", "vkCode": 39, "mode": "Any", "command": "SettingsRingNext" },
     { "modifiers": "Insert|Ctrl|Shift", "vkCode": 38, "mode": "Any", "command": "SettingsRingIncrease" },

@@ -406,4 +406,47 @@ public class KeyInputDispatcherTests
         var command = Assert.IsType<NavigationCommandEvent>(Assert.Single(sink.Posted));
         Assert.Equal(NavigationCommand.ReviewPrevLine, command.Command);
     }
+
+    [Fact]
+    public void Asleep_KeysReachTheApplication_AndOnlyTheToggleIsVoxs()
+    {
+        var keyMap = KeyMap.LoadFromJson("""
+            { "bindings": [
+              { "modifiers": "Insert", "vkCode": 84, "mode": "Any", "command": "SayTitle" },
+              { "modifiers": "Insert|Shift", "vkCode": 83, "mode": "Any", "command": "ToggleSleepMode" }
+            ] }
+            """);
+        var (dispatcher, sink, fireKey) = Create(keyMap);
+        dispatcher.SetDocumentActive(false);
+        dispatcher.IsAsleep = () => true;
+
+        var title = new KeyEvent { VkCode = 84, Modifiers = KeyModifiers.Insert, IsKeyDown = true };
+        var unbound = new KeyEvent { VkCode = 90, Modifiers = KeyModifiers.Insert, IsKeyDown = true };
+        var toggle = new KeyEvent { VkCode = 83, Modifiers = KeyModifiers.Insert | KeyModifiers.Shift, IsKeyDown = true };
+        Assert.False(dispatcher.Decide(title).Suppress);
+        Assert.False(dispatcher.Decide(unbound).Suppress);
+        Assert.True(dispatcher.Decide(toggle).Suppress);
+
+        fireKey(title with { Decision = dispatcher.Decide(title) });
+        fireKey(toggle with { Decision = dispatcher.Decide(toggle) });
+
+        var command = Assert.Single(sink.Posted.OfType<NavigationCommandEvent>());
+        Assert.Equal(NavigationCommand.ToggleSleepMode, command.Command);
+    }
+
+    [Fact]
+    public void AKeyDecidedAsleep_StaysAsleep_EvenIfTheAppWokeSince()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildMap("Insert", 84, "Any", "SayTitle"));
+        dispatcher.SetDocumentActive(false);
+        bool asleep = true;
+        dispatcher.IsAsleep = () => asleep;
+
+        var title = new KeyEvent { VkCode = 84, Modifiers = KeyModifiers.Insert, IsKeyDown = true };
+        var decision = dispatcher.Decide(title);
+        asleep = false;
+        fireKey(title with { Decision = decision });
+
+        Assert.Empty(sink.Posted.OfType<NavigationCommandEvent>());
+    }
 }
