@@ -1,6 +1,7 @@
 using Serilog;
 using Vox.App;
 using Vox.Core.Input;
+using Vox.Core.Lifecycle;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -19,7 +20,7 @@ if (!isFirstInstance)
 {
     Log.Error("Vox is already running; exiting");
     Log.CloseAndFlush();
-    return 1;
+    return VoxExitCodes.AlreadyRunning;
 }
 
 HookSafetyNet? safetyNet = null;
@@ -37,13 +38,13 @@ try
     safetyNet.Register();
 
     await host.RunAsync();
-    return 0;
+    return VoxExitCodes.Normal;
 }
 catch (Exception ex)
 {
     safetyNet?.ReleaseHook();
     Log.Fatal(ex, "Vox terminated unexpectedly");
-    return 1;
+    return VoxExitCodes.Fatal;
 }
 finally
 {
