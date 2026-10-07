@@ -75,4 +75,6 @@ public record VoxSettings
     public AudioDuckingMode AudioDucking { get; init; } = AudioDuckingMode.Off;
     /// <summary>Keep the audio device awake between sounds so their start isn't clipped.</summary>
     public bool KeepAudioDeviceAwake { get; init; } = true;
+    /// <summary>Object navigation skips layout-only objects (unnamed groups and panes).</summary>
+    public bool SimpleReviewMode { get; init; } = true;
 }

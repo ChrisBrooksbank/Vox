@@ -81,3 +81,108 @@ public class ObjectNavigatorTests
         Assert.Null(navigator.Current);
     }
 }
+
+public class ObjectNavigatorSimpleReviewTests
+{
+    // Window "Settings"
+    //   (pane)
+    //     (group): Wi-Fi, Bluetooth
+    //     (group)            <- empty layout object
+    //   "Advanced" group: Proxy
+    //   OK
+    private readonly MockNavigatorObject _window = new("Settings", "Window",
+        new MockNavigatorObject("", "Pane",
+            new MockNavigatorObject("", "Group",
+                new MockNavigatorObject("Wi-Fi", "CheckBox"),
+                new MockNavigatorObject("Bluetooth", "CheckBox")),
+            new MockNavigatorObject("", "Group")),
+        new MockNavigatorObject("Advanced", "Group",
+            new MockNavigatorObject("Proxy", "Edit")),
+        new MockNavigatorObject("OK"));
+
+    private ObjectNavigator NavigatorAt(string name, bool simple = true)
+    {
+        var navigator = new ObjectNavigator { SimpleReview = simple };
+        navigator.MoveTo(_window.Find(name));
+        return navigator;
+    }
+
+    [Fact]
+    public void FirstChild_LooksThroughLayoutObjects()
+    {
+        var navigator = NavigatorAt("Settings");
+
+        Assert.Same(_window.Find("Wi-Fi"), navigator.Move(NavigatorMove.FirstChild));
+    }
+
+    [Fact]
+    public void Parent_SkipsLayoutAncestors()
+    {
+        var navigator = NavigatorAt("Bluetooth");
+
+        Assert.Same(_window, navigator.Move(NavigatorMove.Parent));
+    }
+
+    [Fact]
+    public void Next_LeavesLayoutParentsAndSkipsEmptyOnes()
+    {
+        var navigator = NavigatorAt("Bluetooth");
+
+        Assert.Same(_window.Find("Advanced"), navigator.Move(NavigatorMove.Next));
+        Assert.Same(_window.Find("OK"), navigator.Move(NavigatorMove.Next));
+        Assert.Null(navigator.Move(NavigatorMove.Next));
+    }
+
+    [Fact]
+    public void Previous_EntersLayoutSiblingsFromTheEnd()
+    {
+        var navigator = NavigatorAt("Advanced");
+
+        Assert.Same(_window.Find("Bluetooth"), navigator.Move(NavigatorMove.Previous));
+        Assert.Same(_window.Find("Wi-Fi"), navigator.Move(NavigatorMove.Previous));
+        Assert.Null(navigator.Move(NavigatorMove.Previous));
+    }
+
+    [Fact]
+    public void NamedGroups_AreNotSkipped()
+    {
+        var navigator = NavigatorAt("Proxy");
+
+        Assert.Same(_window.Find("Advanced"), navigator.Move(NavigatorMove.Parent));
+    }
+
+    [Fact]
+    public void WithoutSimpleReview_LayoutObjectsAreVisited()
+    {
+        var navigator = NavigatorAt("Settings", simple: false);
+
+        var pane = navigator.Move(NavigatorMove.FirstChild);
+
+        Assert.Equal("Pane", pane?.Describe().ControlType);
+    }
+
+    [Fact]
+    public void LayoutRoot_IsNotSkipped()
+    {
+        var root = new MockNavigatorObject("", "Pane", new MockNavigatorObject("OK"));
+        var navigator = new ObjectNavigator { SimpleReview = true };
+        navigator.MoveTo(root.Find("OK"));
+
+        Assert.Same(root, navigator.Move(NavigatorMove.Parent));
+    }
+
+    [Fact]
+    public void DeeplyNestedEmptyLayout_GivesUpInsteadOfHanging()
+    {
+        var deepest = new MockNavigatorObject("", "Group");
+        var node = deepest;
+        for (int i = 0; i < 5000; i++)
+            node = new MockNavigatorObject("", "Group", node);
+        var root = new MockNavigatorObject("Window", "Window", node);
+        var navigator = new ObjectNavigator { SimpleReview = true };
+        navigator.MoveTo(root);
+
+        Assert.Null(navigator.Move(NavigatorMove.FirstChild));
+        Assert.Same(root, navigator.Current);
+    }
+}

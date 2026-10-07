@@ -43,11 +43,13 @@ public sealed class ObjectNavigationCommands
     public async Task MoveAsync(NavigatorMove move)
     {
         FocusChangedEvent? landed;
+        bool simpleReview = _settings.CurrentValue.SimpleReviewMode;
         try
         {
             landed = await _uiaThread.RunAsync(() =>
             {
                 EnsureNavigator();
+                _navigator.SimpleReview = simpleReview;
                 return _navigator.Move(move)?.Describe();
             }).ConfigureAwait(false);
         }
