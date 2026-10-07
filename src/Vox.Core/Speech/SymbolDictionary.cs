@@ -57,8 +57,12 @@ public sealed class SymbolDictionary
         return new SymbolDictionary(file.Symbols.Select(e => new SymbolEntry(e.Symbol, e.Name.Trim(), e.Level, e.Preserve)));
     }
 
-    /// <summary>The built-in English symbols (symbols-en.json).</summary>
-    public static SymbolDictionary LoadBuiltIn(string fileName = "symbols-en.json")
+    /// <summary>The built-in English symbols: emoji-en.json, with symbols-en.json taking precedence.</summary>
+    public static SymbolDictionary LoadBuiltIn() =>
+        new(ReadBuiltIn("emoji-en.json").Entries.Concat(ReadBuiltIn("symbols-en.json").Entries));
+
+    /// <summary>One built-in dictionary file.</summary>
+    public static SymbolDictionary ReadBuiltIn(string fileName)
     {
         using var stream = typeof(SymbolDictionary).Assembly.GetManifestResourceStream("Vox.Core.speech." + fileName)
             ?? throw new InvalidOperationException($"Built-in symbol dictionary {fileName} is missing.");

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 101
+- Build iterations: 102
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -166,7 +166,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add settings ring (Insert+Ctrl+Left/Right choose, Up/Down change: voice, rate, pitch, volume, punctuation, engine); saved and spoken; unit tests (spec: speech-and-audio.md)
 - [x] Add `TextProcessor` stage before `SpeechQueue` with a pluggable rule chain; no-op by default; unit tests (spec: speech-and-audio.md)
 - [x] Add punctuation levels None/Some/Most/All and `assets/speech/symbols-en.json` seeded from CLDR; unit tests per level (spec: speech-and-audio.md)
-- [ ] Add CLDR emoji names to the symbol dictionary; unit tests (spec: speech-and-audio.md)
+- [x] Add CLDR emoji names to the symbol dictionary; unit tests (spec: speech-and-audio.md)
 - [ ] Add pronunciation dictionaries (default, per-voice, user; plain and regex; case options) loaded from `%APPDATA%/Vox/dictionaries/`; unit tests (spec: speech-and-audio.md)
 - [ ] Add capital indication settings (pitch / "cap" / beep, separately for char and word/line); unit tests (spec: speech-and-audio.md)
 - [ ] Add repeated-character collapsing ("4 dashes") and number-as-digits setting; unit tests (spec: speech-and-audio.md)

@@ -67,4 +67,48 @@ public class PunctuationRuleTests
     }
 
     private static string Collapse(string text) => System.Text.RegularExpressions.Regex.Replace(text, " {2,}", " ");
+
+    [Theory]
+    [InlineData("😀", "grinning face")]
+    [InlineData("👋🏽", "waving hand: medium skin tone")]
+    [InlineData("❤️", "red heart")] // with the variation selector
+    [InlineData("🇬🇧", "flag: United Kingdom")]
+    public void Emoji_OnTheirOwn_AreNamed(string text, string expected)
+    {
+        Assert.Equal(expected, Speak(text, PunctuationLevel.None));
+    }
+
+    [Fact]
+    public void Emoji_InText_AreSpokenAtEveryLevel()
+    {
+        Assert.Equal("Thanks grinning face see you", Speak("Thanks 😀 see you", PunctuationLevel.None));
+        Assert.Equal("Thanks grinning face", Speak("Thanks😀", PunctuationLevel.None));
+    }
+
+    [Fact]
+    public void EmojiSequences_AreNamedWhole()
+    {
+        // Man, woman, girl joined by zero-width joiners
+        Assert.Equal("our family: man, woman, girl", Speak("our \U0001F468\u200D\U0001F469\u200D\U0001F467", PunctuationLevel.None));
+    }
+
+    [Fact]
+    public void OtherCldrSymbols_AreSpokenFromSome()
+    {
+        Assert.Equal("next page", Speak("next → page", PunctuationLevel.None));
+        Assert.Equal("next right-pointing arrow page", Speak("next → page", PunctuationLevel.Some));
+    }
+
+    [Fact]
+    public void LongText_IsQuick()
+    {
+        var text = string.Concat(Enumerable.Repeat("The quick brown fox, it said (twice): jumps! 😀 ", 400));
+        var rule = new PunctuationRule(Symbols, () => PunctuationLevel.Most);
+        rule.Apply(text, new Utterance(text, SpeechPriority.Normal));
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        rule.Apply(text, new Utterance(text, SpeechPriority.Normal));
+
+        Assert.True(watch.ElapsedMilliseconds < 50, $"Took {watch.ElapsedMilliseconds} ms");
+    }
 }
