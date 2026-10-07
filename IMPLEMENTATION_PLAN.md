@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 75
+- Build iterations: 76
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -129,7 +129,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add `--secure` mode to Vox.App: no add-ons, no settings writes, no network/AI, settings read from a system location; unit tests of the mode switches (spec: robustness-secure-desktop.md)
 - [x] Add "use current settings on sign-in screens" command that copies settings to the system location (spec: robustness-secure-desktop.md)
 - [x] Add `Vox.Service` Windows service project: watch session/desktop switches and launch Vox in secure mode on the Winlogon desktop; switching logic unit-tested behind an interface (spec: robustness-secure-desktop.md)
-- [ ] Add start-at-logon setting (scheduled task or Run key) (spec: robustness-secure-desktop.md)
+- [x] Add start-at-logon setting (scheduled task or Run key) (spec: robustness-secure-desktop.md)
 
 #### Audio and diagnostics (spec: robustness-secure-desktop.md)
 

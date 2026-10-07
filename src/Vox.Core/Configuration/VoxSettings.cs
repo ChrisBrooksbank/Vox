@@ -59,4 +59,6 @@ public record VoxSettings
     public ProgressReporting ProgressBars { get; init; } = ProgressReporting.Every10Percent;
     /// <summary>Also report progress bars of applications other than the foreground one.</summary>
     public bool ReportBackgroundProgress { get; init; } = false;
+    /// <summary>Start Vox when the user signs in to Windows.</summary>
+    public bool StartAtLogon { get; init; } = false;
 }

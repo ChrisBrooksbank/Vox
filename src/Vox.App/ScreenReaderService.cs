@@ -41,6 +41,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly WhereAmICommands _whereAmI;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
+    private readonly IStartupRegistration _startupRegistration;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -99,8 +100,10 @@ public sealed class ScreenReaderService : IHostedService
         IHostApplicationLifetime lifetime,
         ILogger<ScreenReaderService> logger,
         SettingsManager settingsManager,
+        IStartupRegistration startupRegistration,
         RunPolicy? runPolicy = null)
     {
+        _startupRegistration = startupRegistration;
         _settingsManager = settingsManager;
         _runPolicy = runPolicy ?? RunPolicy.Normal;
         _lifetime = lifetime;
@@ -299,6 +302,18 @@ public sealed class ScreenReaderService : IHostedService
                 _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
             if (previous is null || previous.ModifierKey != settings.ModifierKey)
                 _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
+            if (previous is null || previous.StartAtLogon != settings.StartAtLogon)
+            {
+                try
+                {
+                    StartAtLogon.Apply(settings.StartAtLogon, _startupRegistration,
+                        StartAtLogon.CommandFor(AppContext.BaseDirectory), _runPolicy);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not change the start-at-logon registration");
+                }
+            }
         }
     }
 

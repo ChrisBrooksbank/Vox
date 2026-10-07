@@ -10,5 +10,6 @@
   "SpellingErrors": "Speech",
   "ProgressBars": "Every10Percent",
   "ReportBackgroundProgress": false,
+  "StartAtLogon": false,
   "FirstRunCompleted": false
 }
