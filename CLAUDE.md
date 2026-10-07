@@ -79,7 +79,8 @@ BrowseDocumentTracker (UIA thread: DocumentChanged / SubtreeChanged) ───�
 
 Development is driven by an autonomous "Ralph loop" (`loop.sh` / `loop.ps1`, prompts in `PROMPT_plan.md` / `PROMPT_build.md`):
 
-- `specs/*.md` — per-subsystem requirements (input, UIA, virtual buffer, navigation, speech, first-run)
+- `specs/*.md` — per-subsystem requirements: Phase 1 (input, UIA, virtual buffer, navigation, speech, first-run) and the commercial-parity workstreams (robustness, desktop text, review/object nav, speech & audio, web parity, braille, Office apps, product/settings, OCR & AI, extensibility, quality engineering)
 - `IMPLEMENTATION_PLAN.md` — task checklist; each task references its spec. Build mode implements the first unchecked `- [ ]` task, validates with `dotnet build && dotnet test`, marks it `- [x]`, and bumps the iteration count / date
 - `AGENTS.md` — short operational guide loaded every loop iteration (keep under 60 lines; keep it consistent with this file)
+- `COMMERCIAL_PARITY_PLAN.md` — gap analysis against JAWS/NVDA/Narrator and the milestone order (A–E) the parity tasks follow; it reorders `PLAN.md` Phases 2–4
 - `PLAN.md` — long-term phased roadmap (Phase 3 adds a C++/CLI `Vox.NativeHelper` for IAccessible2, not yet present)

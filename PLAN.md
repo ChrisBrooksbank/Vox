@@ -1,5 +1,7 @@
 # Vox: Windows 11 Screen Reader — Improved Implementation Plan
 
+> Phase 1 is complete. Phases 2–4 below are superseded in order and scope by `COMMERCIAL_PARITY_PLAN.md` (Milestones A–E), whose tasks are in `IMPLEMENTATION_PLAN.md`.
+
 ## Context
 
 The original plan is technically solid but has critical blind spots from the perspective of actual blind users. Based on WebAIM Screen Reader Survey #10 (1,539 respondents, 2024) and extensive UX research, this improved plan restructures priorities around what blind users truly need:

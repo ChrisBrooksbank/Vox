@@ -9,8 +9,9 @@ Dolphin SuperNova where low vision matters.
 
 **How this relates to the other plans:** `PLAN.md` is the original phased roadmap.
 `IMPLEMENTATION_PLAN.md` is the loop's task list (Phase 1, all 39 tasks done). This document
-is the gap analysis and the reordered roadmap after Phase 1. Each workstream below should get
-its own `specs/<name>.md` and a task block in `IMPLEMENTATION_PLAN.md` when it starts.
+is the gap analysis and the reordered roadmap after Phase 1. Each workstream has its own spec
+(named in its heading below), and all five milestones are broken into one-iteration tasks
+under "Commercial Parity Tasks" in `IMPLEMENTATION_PLAN.md`.
 
 ---
 
@@ -115,6 +116,8 @@ a blind user can do with speech only.
 
 ### W1. Robustness, privileges and secure screens (Milestone A)
 
+Spec: `specs/robustness-secure-desktop.md`
+
 A commercial screen reader must never leave the user stranded.
 
 - **Hung-app protection.** Today every UIA call runs on the single `UIAThread`, so one
@@ -151,6 +154,8 @@ Vox keeps talking. Lock the PC, unlock it by voice, approve a UAC prompt, open T
 (elevated) and read its process list. Restart Windows and hear Vox at the sign-in screen.
 
 ### W2. Desktop core: text editing and controls (Milestone A)
+
+Spec: `specs/desktop-text-and-controls.md`
 
 This is the biggest functional gap. Today Vox is a web reader.
 
@@ -194,6 +199,8 @@ progress bar.
 
 ### W3. Review cursor, object navigation, mouse (Milestone B)
 
+Spec: `specs/review-object-navigation.md`
+
 - **Object navigation** (`Navigation/ObjectNavigator.cs`): parent/child/next/previous in the
   UIA tree (NVDA `Insert+Numpad8/2/4/6`, plus laptop layout), move navigator to focus,
   activate or click the navigator object, report its location.
@@ -209,6 +216,8 @@ progress bar.
 no keyboard access, and review a terminal's scrollback, all on a laptop without a numpad.
 
 ### W4. Speech and audio (Milestone B)
+
+Spec: `specs/speech-and-audio.md`
 
 - **Engines** behind `ISpeechEngine`, selectable at runtime:
   - **OneCore** (`Windows.Media.SpeechSynthesis`), including the Windows 11 "natural"
@@ -242,6 +251,8 @@ currency amount and "Ⅻ" read correctly; read a bilingual page with automatic v
 add a pronunciation rule and hear it applied at once.
 
 ### W5. Web parity (Milestone B)
+
+Spec: `specs/web-parity.md`
 
 - **Firefox** (and Thunderbird): Gecko exposes IAccessible2. Add `IA2Bridge` (in-process
   IA2 needs the `Vox.NativeHelper` from `PLAN.md` Phase 3 for speed), or use Gecko's
@@ -292,6 +303,8 @@ tagged PDF, in both Chrome and Firefox.
 
 ### W6. Braille (Milestone C)
 
+Spec: `specs/braille.md`
+
 - **Translation:** liblouis via P/Invoke (`Braille/LibLouisTranslator.cs`); UEB grade 1/2,
   computer braille, and per-language tables. Contracted braille has to show the
   uncontracted word under the cursor.
@@ -310,6 +323,8 @@ tagged PDF, in both Chrome and Firefox.
 browses a news site on a 40-cell HID display, and on a Focus 40 through BRLTTY.
 
 ### W7. Office and productivity apps (Milestone D)
+
+Spec: `specs/office-apps.md`
 
 These are the main reason employers buy JAWS licences.
 
@@ -336,6 +351,8 @@ mail, accepts a meeting, edits a Word report with tracked changes, updates an Ex
 with formulas and joins a Teams call, without sighted help.
 
 ### W8. Product: settings, help, install, languages (Milestone B: a; D: b)
+
+Spec: `specs/product-settings-help-install.md`
 
 **W8a**
 
@@ -368,6 +385,8 @@ with formulas and joins a Teams call, without sighted help.
 
 ### W9. OCR and AI (Milestone E)
 
+Spec: `specs/ocr-ai.md`
+
 - **OCR** (`Windows.Media.Ocr`, fully local): recognize the window, the navigator object or
   an image, then show the result as a reviewable buffer with click-on-word.
 - **Image description:** local model first (Windows AI APIs on Copilot+ PCs), then an
@@ -383,6 +402,8 @@ with formulas and joins a Teams call, without sighted help.
 
 ### W10. Extensibility (Milestone E)
 
+Spec: `specs/extensibility.md`
+
 - **Add-on API**: a versioned, documented interface for app modules, commands,
   announcement overrides, speech/braille drivers and global plug-ins, loaded in a separate
   `AssemblyLoadContext`; signed add-ons; disabled on secure screens and in a safe mode.
@@ -391,6 +412,8 @@ with formulas and joins a Teams call, without sighted help.
   support and training.
 
 ### W11. Quality engineering (all the time)
+
+Spec: `specs/quality-engineering.md`
 
 - **CI on Windows** (GitHub Actions `windows-latest`): `dotnet build && dotnet test` on
   every PR. The repository has no CI today.
