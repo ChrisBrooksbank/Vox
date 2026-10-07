@@ -123,6 +123,32 @@ public class FirstRunWizardTests : IDisposable
         return (wizard, hook, engineMock, monitor, manager);
     }
 
+    private static readonly TimeSpan ReadyTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>Waits until the wizard listens for a key (or has finished).</summary>
+    private static async Task WaitUntilWaitingAsync(FirstRunWizard wizard, Task wizardTask)
+    {
+        var deadline = DateTime.UtcNow + ReadyTimeout;
+        while (!wizard.IsWaitingForKey && !wizardTask.IsCompleted)
+        {
+            if (DateTime.UtcNow > deadline)
+                throw new TimeoutException("The wizard never started waiting for a key");
+            await Task.Delay(5);
+        }
+    }
+
+    /// <summary>
+    /// Presses a key once the wizard is listening for one: the wizard only takes keys while a step
+    /// waits, so a key pressed in between (while it speaks) would be lost. Does nothing if the
+    /// wizard has finished.
+    /// </summary>
+    private static async Task PressAsync(FirstRunWizard wizard, Task wizardTask, FakeKeyboardHook hook, int vkCode)
+    {
+        await WaitUntilWaitingAsync(wizard, wizardTask);
+        if (!wizardTask.IsCompleted)
+            hook.SimulateKeyDown(vkCode);
+    }
+
     // -------------------------------------------------------------------------
     // Skip wizard with Escape
     // -------------------------------------------------------------------------
@@ -135,8 +161,7 @@ public class FirstRunWizardTests : IDisposable
 
         // Schedule Escape after a brief delay to let the wizard start speaking
         var wizardTask = wizard.RunAsync();
-        await Task.Delay(50);
-        hook.SimulateKeyDown(0x1B); // Escape
+        await PressAsync(wizard, wizardTask, hook, 0x1B); // Escape
 
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
 
@@ -159,8 +184,7 @@ public class FirstRunWizardTests : IDisposable
             });
 
         var wizardTask = wizard.RunAsync();
-        await Task.Delay(50);
-        hook.SimulateKeyDown(0x1B); // Escape
+        await PressAsync(wizard, wizardTask, hook, 0x1B); // Escape
 
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
 
@@ -186,8 +210,7 @@ public class FirstRunWizardTests : IDisposable
         // Drive through all steps by pressing Enter repeatedly
         for (int i = 0; i < 10; i++)
         {
-            await Task.Delay(80);
-            hook.SimulateKeyDown(0x0D); // Enter
+            await PressAsync(wizard, wizardTask, hook, 0x0D); // Enter
             if (wizardTask.IsCompleted) break;
         }
 
@@ -215,8 +238,7 @@ public class FirstRunWizardTests : IDisposable
 
         for (int i = 0; i < 10; i++)
         {
-            await Task.Delay(80);
-            hook.SimulateKeyDown(0x0D); // Enter
+            await PressAsync(wizard, wizardTask, hook, 0x0D); // Enter
             if (wizardTask.IsCompleted) break;
         }
 
@@ -248,20 +270,16 @@ public class FirstRunWizardTests : IDisposable
         var wizardTask = wizard.RunAsync();
 
         // Welcome step → Enter
-        await Task.Delay(50);
-        hook.SimulateKeyDown(0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x0D);
 
         // Rate step: press Up to increase, then Enter to confirm
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x26); // Up arrow
-        await Task.Delay(50);
-        hook.SimulateKeyDown(0x0D); // Enter
+        await PressAsync(wizard, wizardTask, hook, 0x26); // Up arrow
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Enter
 
         // Drive remaining steps with Enter
         for (int i = 0; i < 10; i++)
         {
-            await Task.Delay(80);
-            hook.SimulateKeyDown(0x0D);
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
             if (wizardTask.IsCompleted) break;
         }
 
@@ -284,28 +302,22 @@ public class FirstRunWizardTests : IDisposable
         var wizardTask = wizard.RunAsync();
 
         // Welcome → Enter
-        await Task.Delay(50);
-        hook.SimulateKeyDown(0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x0D);
 
         // Rate step → Enter
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x0D);
 
         // Voice step → Enter
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x0D);
 
         // Verbosity step → press 3 for Advanced
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x33); // '3'
+        await PressAsync(wizard, wizardTask, hook, 0x33); // '3'
 
         // Modifier step → Enter (1 for Insert)
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x31); // '1'
+        await PressAsync(wizard, wizardTask, hook, 0x31); // '1'
 
         // Tutorial → Enter
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x0D);
 
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -325,23 +337,17 @@ public class FirstRunWizardTests : IDisposable
         var wizardTask = wizard.RunAsync();
 
         // Welcome → Enter
-        await Task.Delay(50);
-        hook.SimulateKeyDown(0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x0D);
         // Rate → Enter
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x0D);
         // Voice → Enter
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x0D);
         // Verbosity → 1
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x31);
+        await PressAsync(wizard, wizardTask, hook, 0x31);
         // Modifier → 2 for CapsLock
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x32);
+        await PressAsync(wizard, wizardTask, hook, 0x32);
         // Tutorial → Enter
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x0D);
 
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -361,7 +367,7 @@ public class FirstRunWizardTests : IDisposable
         using var cts = new CancellationTokenSource();
         var wizardTask = wizard.RunAsync(cts.Token);
 
-        await Task.Delay(50);
+        await WaitUntilWaitingAsync(wizard, wizardTask);
         cts.Cancel();
 
         // Should complete (possibly with cancellation) within a reasonable time
@@ -385,8 +391,7 @@ public class FirstRunWizardTests : IDisposable
         // Drive through all steps
         for (int i = 0; i < 10; i++)
         {
-            await Task.Delay(80);
-            hook.SimulateKeyDown(0x0D); // Enter works for all steps now
+            await PressAsync(wizard, wizardTask, hook, 0x0D); // Enter works for all steps now
             if (wizardTask.IsCompleted) break;
         }
 
@@ -415,8 +420,7 @@ public class FirstRunWizardTests : IDisposable
         engine.Setup(e => e.Cancel()).Callback(() => speaking.TrySetCanceled());
 
         var wizardTask = wizard.RunAsync();
-        await Task.Delay(50);
-        hook.SimulateKeyDown(0x1B); // Escape while the welcome prompt is still speaking
+        await PressAsync(wizard, wizardTask, hook, 0x1B); // Escape while the welcome prompt is still speaking
 
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
 
@@ -433,14 +437,14 @@ public class FirstRunWizardTests : IDisposable
         hook.SuppressionFilter = original;
 
         var wizardTask = wizard.RunAsync();
-        await Task.Delay(50);
+        await WaitUntilWaitingAsync(wizard, wizardTask);
 
         var filter = hook.SuppressionFilter!;
         Assert.True(filter(new KeyEvent { VkCode = 0x0D, IsKeyDown = true }).Suppress);  // Enter
         Assert.True(filter(new KeyEvent { VkCode = 0x26, IsKeyDown = true }).Suppress);  // Up
         Assert.False(filter(new KeyEvent { VkCode = 0x09, IsKeyDown = true }).Suppress); // Tab
 
-        hook.SimulateKeyDown(0x1B);
+        await PressAsync(wizard, wizardTask, hook, 0x1B);
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
 
         Assert.Same(original, hook.SuppressionFilter);
@@ -453,14 +457,10 @@ public class FirstRunWizardTests : IDisposable
             new VoxSettings { FirstRunCompleted = false, SpeechRateWpm = 200 });
 
         var wizardTask = wizard.RunAsync();
-        await Task.Delay(50);
-        hook.SimulateKeyDown(0x0D); // begin
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x26); // rate up
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x0D); // accept rate
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x1B); // Escape at the voice step
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // begin
+        await PressAsync(wizard, wizardTask, hook, 0x26); // rate up
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // accept rate
+        await PressAsync(wizard, wizardTask, hook, 0x1B); // Escape at the voice step
 
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
 
@@ -475,8 +475,7 @@ public class FirstRunWizardTests : IDisposable
         wizard.InactivityTimeout = TimeSpan.FromMilliseconds(300);
 
         var wizardTask = wizard.RunAsync();
-        await Task.Delay(50);
-        hook.SimulateKeyDown(0x0D); // begin, then walk away
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // begin, then walk away
 
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
 
@@ -489,23 +488,29 @@ public class FirstRunWizardTests : IDisposable
         var (wizard, hook, engine, _, _) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
         // The confirmation after the rate step speaks for a while: no key is awaited then
         var confirming = new TaskCompletionSource();
+        var confirmationStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         engine
             .Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
             .Returns((Utterance u, CancellationToken _) =>
-                u.Text.StartsWith("Speech rate set") ? confirming.Task : Task.CompletedTask);
+            {
+                if (!u.Text.StartsWith("Speech rate set"))
+                    return Task.CompletedTask;
+                confirmationStarted.TrySetResult();
+                return confirming.Task;
+            });
 
         var wizardTask = wizard.RunAsync();
-        await Task.Delay(50);
+        await WaitUntilWaitingAsync(wizard, wizardTask);
         Assert.True(hook.SuppressionFilter!(new KeyEvent { VkCode = 0x0D, IsKeyDown = true }).Suppress); // waiting
-        hook.SimulateKeyDown(0x0D); // begin
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x0D); // accept rate -> confirmation speaking, nothing awaited
-        await Task.Delay(80);
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // begin
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // accept rate -> confirmation speaking, nothing awaited
+        await confirmationStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
+        Assert.False(wizard.IsWaitingForKey);
         Assert.False(hook.SuppressionFilter!(new KeyEvent { VkCode = 0x0D, IsKeyDown = true }).Suppress);
 
         confirming.SetResult();
-        hook.SimulateKeyDown(0x1B);
+        await PressAsync(wizard, wizardTask, hook, 0x1B);
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
@@ -525,11 +530,9 @@ public class FirstRunWizardTests : IDisposable
         var wizardTask = wizard.RunAsync();
         foreach (var vk in new[] { 0x0D, 0x0D, 0x0D }) // welcome, rate, voice (keep)
         {
-            await Task.Delay(80);
-            hook.SimulateKeyDown(vk);
+            await PressAsync(wizard, wizardTask, hook, vk);
         }
-        await Task.Delay(80);
-        hook.SimulateKeyDown(0x1B); // leave the wizard
+        await PressAsync(wizard, wizardTask, hook, 0x1B); // leave the wizard
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
 
         lock (spoken)
@@ -549,8 +552,7 @@ public class FirstRunWizardTests : IDisposable
         var wizardTask = wizard.RunAsync();
         foreach (var vk in new[] { 0x0D, 0x26, 0x1B }) // welcome, Up (preview 210), Escape
         {
-            await Task.Delay(80);
-            hook.SimulateKeyDown(vk);
+            await PressAsync(wizard, wizardTask, hook, vk);
         }
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(5));
 
