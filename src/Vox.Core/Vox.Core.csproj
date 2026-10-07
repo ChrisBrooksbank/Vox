@@ -19,5 +19,6 @@
     <!-- Built-in fallback keymap, used when assets/config/default-keymap.json is missing or invalid -->
     <EmbeddedResource Include="..\..\assets\config\default-keymap.json" LogicalName="Vox.Core.default-keymap.json" />
     <EmbeddedResource Include="..\..\assets\config\laptop-keymap.json" LogicalName="Vox.Core.laptop-keymap.json" />
+    <EmbeddedResource Include="..\..\assets\speech\*.json" LogicalName="Vox.Core.speech.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

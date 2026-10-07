@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 100
+- Build iterations: 101
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -165,7 +165,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add rate boost up to 900 wpm (engine boost or time-stretch) with `SpeechRateWpm` range update and wizard support (spec: speech-and-audio.md) — engine boost: OneCore speaks up to 900 wpm natively (speaking rate 5), SAPI up to its rate 10 (~540 wpm); engines report `MaxRateWpm` and the wizard follows it; no time-stretching
 - [x] Add settings ring (Insert+Ctrl+Left/Right choose, Up/Down change: voice, rate, pitch, volume, punctuation, engine); saved and spoken; unit tests (spec: speech-and-audio.md)
 - [x] Add `TextProcessor` stage before `SpeechQueue` with a pluggable rule chain; no-op by default; unit tests (spec: speech-and-audio.md)
-- [ ] Add punctuation levels None/Some/Most/All and `assets/speech/symbols-en.json` seeded from CLDR; unit tests per level (spec: speech-and-audio.md)
+- [x] Add punctuation levels None/Some/Most/All and `assets/speech/symbols-en.json` seeded from CLDR; unit tests per level (spec: speech-and-audio.md)
 - [ ] Add CLDR emoji names to the symbol dictionary; unit tests (spec: speech-and-audio.md)
 - [ ] Add pronunciation dictionaries (default, per-voice, user; plain and regex; case options) loaded from `%APPDATA%/Vox/dictionaries/`; unit tests (spec: speech-and-audio.md)
 - [ ] Add capital indication settings (pitch / "cap" / beep, separately for char and word/line); unit tests (spec: speech-and-audio.md)

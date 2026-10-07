@@ -62,7 +62,10 @@ public static class ServiceRegistration
             sp.GetRequiredService<SpeechQueue>()));
         // Rules run in this order on every utterance
         services.AddSingleton<TextProcessor>(sp => new TextProcessor(
-            Array.Empty<ITextRule>(),
+            [
+                new PunctuationRule(SymbolDictionary.LoadBuiltIn(),
+                    () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.PunctuationLevel),
+            ],
             sp.GetRequiredService<ILogger<TextProcessor>>()));
         services.AddSingleton<SpeechQueue>(sp =>
         {
