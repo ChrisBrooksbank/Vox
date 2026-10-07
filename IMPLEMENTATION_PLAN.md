@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 83
+- Build iterations: 84
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -145,7 +145,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Review cursor and object navigation (spec: review-object-navigation.md)
 
-- [ ] Add `ObjectNavigator` over the UIA control view (parent, first child, next/previous sibling) with boundary cue; unit tests over a mock tree (spec: review-object-navigation.md)
+- [x] Add `ObjectNavigator` over the UIA control view (parent, first child, next/previous sibling) with boundary cue; unit tests over a mock tree (spec: review-object-navigation.md)
 - [ ] Add simple-review mode (skip unnamed Group/Pane layout objects); unit tests (spec: review-object-navigation.md)
 - [ ] Add object navigation commands and keymap bindings: Insert+Numpad8/2/4/6, report Insert+Numpad5, to focus Insert+Numpad-, focus to navigator Insert+Shift+Numpad-, activate Insert+NumpadEnter (spec: review-object-navigation.md)
 - [ ] Add `ReviewCursor` over `ITextDocument` for the navigator object, focused document or window; Numpad 7/8/9, 4/5/6, 1/2/3; unit tests (spec: review-object-navigation.md)
