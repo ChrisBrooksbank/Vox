@@ -27,6 +27,7 @@ HookSafetyNet? safetyNet = null;
 try
 {
     Log.Information("Vox Screen Reader starting");
+    Log.Information(UIAccess.Describe(UIAccess.IsGranted()));
 
     var host = Host.CreateDefaultBuilder(args)
         .UseSerilog()

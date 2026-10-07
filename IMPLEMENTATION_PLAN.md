@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 71
+- Build iterations: 72
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -125,7 +125,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Privileges and secure screens (spec: robustness-secure-desktop.md)
 
-- [ ] Add app manifest with `uiAccess="true"` to Vox.App and an MSBuild signing target that runs only when a certificate is configured; detect and log missing `uiAccess` at startup (spec: robustness-secure-desktop.md)
+- [x] Add app manifest with `uiAccess="true"` to Vox.App and an MSBuild signing target that runs only when a certificate is configured; detect and log missing `uiAccess` at startup (spec: robustness-secure-desktop.md)
 - [ ] Add `--secure` mode to Vox.App: no add-ons, no settings writes, no network/AI, settings read from a system location; unit tests of the mode switches (spec: robustness-secure-desktop.md)
 - [ ] Add "use current settings on sign-in screens" command that copies settings to the system location (spec: robustness-secure-desktop.md)
 - [ ] Add `Vox.Service` Windows service project: watch session/desktop switches and launch Vox in secure mode on the Winlogon desktop; switching logic unit-tested behind an interface (spec: robustness-secure-desktop.md)
