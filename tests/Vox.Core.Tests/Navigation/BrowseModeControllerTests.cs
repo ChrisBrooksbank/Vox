@@ -503,6 +503,51 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task PropertyChanged_SliderRangeValue_IsAnnounced()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Volume", "Slider", RuntimeId: [7]));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30047, 42.0));
+
+        await WaitForSpeech(u => u.Text == "42");
+    }
+
+    [Fact]
+    public async Task PropertyChanged_ProgressBarRangeValue_IsLeftToTheProgressReporter()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Copying", "ProgressBar", RuntimeId: [7]));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30047, 42.0));
+
+        await Task.Delay(100);
+        lock (_spoken) Assert.DoesNotContain(_spoken, u => u.Text == "42");
+    }
+
+    [Fact]
+    public async Task PropertyChanged_IsEnabled_SaysAvailableOrUnavailable()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Save", "Button", RuntimeId: [7]));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30010, false));
+        await WaitForSpeech(u => u.Text == "unavailable");
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30010, true));
+        await WaitForSpeech(u => u.Text == "available");
+    }
+
+    [Fact]
+    public async Task PropertyChanged_SameChangeFromTwoSubscriptions_IsSpokenOnce()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Remember me", "CheckBox", RuntimeId: [7], ToggleState: 0));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30086, 1));
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30086, 1));
+        await WaitForSpeech(u => u.Text == "checked");
+        await Task.Delay(100);
+
+        lock (_spoken) Assert.Single(_spoken, u => u.Text == "checked");
+    }
+
+    [Fact]
     public async Task PropertyChanged_ValueOfEditOrOtherElement_IsNotAnnounced()
     {
         _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Name", "Edit", RuntimeId: [7]));

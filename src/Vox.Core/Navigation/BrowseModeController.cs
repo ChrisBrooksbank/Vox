@@ -69,6 +69,12 @@ public sealed class BrowseModeController
     private const int UIA_ValueValuePropertyId = 30045;
     private const int UIA_ToggleToggleStatePropertyId = 30086;
     private const int UIA_SelectionItemIsSelectedPropertyId = 30079;
+    private const int UIA_RangeValueValuePropertyId = 30047;
+    private const int UIA_IsEnabledPropertyId = 30010;
+
+    // The last property change handled, to drop the copy a second subscription delivers
+    private (int[] RuntimeId, int PropertyId, object? Value, long Tick)? _lastPropertyChange;
+    private const int DuplicatePropertyChangeMs = 100;
 
     public BrowseModeController(
         SpeechQueue speechQueue,
@@ -414,6 +420,14 @@ public sealed class BrowseModeController
         if (focus?.RuntimeId is null || !focus.RuntimeId.AsSpan().SequenceEqual(evt.RuntimeId))
             return;
 
+        // The focused element's own handler and the document's both report changes of a focused
+        // page element: handle each change once
+        var now = Environment.TickCount64;
+        if (_lastPropertyChange is { } last && last.PropertyId == evt.PropertyId && Equals(last.Value, evt.NewValue)
+            && now - last.Tick < DuplicatePropertyChangeMs && last.RuntimeId.AsSpan().SequenceEqual(evt.RuntimeId))
+            return;
+        _lastPropertyChange = (evt.RuntimeId, evt.PropertyId, evt.NewValue, now);
+
         // State changes (expanded, checked, selected) are queued after the focus announcement
         // rather than interrupting it, and skipped when the focus announcement already said it
         // (Chromium raises focus and then the new item's state change when arrowing a list)
@@ -457,6 +471,19 @@ public sealed class BrowseModeController
                     if (selectedText is not null && !selectionSaid)
                         SpeakQueued(selectedText);
                 }
+                break;
+
+            case UIA_IsEnabledPropertyId:
+                if (evt.NewValue is bool enabled)
+                    SpeakQueued(enabled ? "available" : "unavailable");
+                break;
+
+            case UIA_RangeValueValuePropertyId:
+                // Sliders and spin boxes; progress bars are reported by ProgressReporter
+                if (focus.ControlType == "ProgressBar")
+                    return;
+                if (evt.NewValue is double range)
+                    SpeakSelectionText(range.ToString("0.##", System.Globalization.CultureInfo.CurrentCulture));
                 break;
 
             case UIA_ValueValuePropertyId:

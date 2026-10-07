@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 62
+- Build iterations: 63
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -115,7 +115,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 - [ ] Add `ForegroundWindowChangedEvent` (WinEvent `EVENT_SYSTEM_FOREGROUND` or UIA window opened) and speak the window title (spec: desktop-text-and-controls.md)
 - [ ] Add dialog auto-read: on a dialog opening, speak title plus static text that has no focusable target; unit tests over a mock tree (spec: desktop-text-and-controls.md)
-- [ ] Speak focused-element property changes: ToggleState, ExpandCollapseState, Value, RangeValue, IsEnabled, Name; announcement text per verbosity; unit tests (spec: desktop-text-and-controls.md)
+- [x] Speak focused-element property changes: ToggleState, ExpandCollapseState, Value, RangeValue, IsEnabled, Name; announcement text per verbosity; unit tests (spec: desktop-text-and-controls.md)
 - [ ] Add progress-bar reporting with setting (every 10 % / 25 % / beep / off) and throttling; unit tests (spec: desktop-text-and-controls.md)
 - [ ] Speak `SelectionItem`/`Selection` changes in lists, grids, tabs and trees (spec: desktop-text-and-controls.md)
 - [ ] Add position info ("3 of 10", "level 2") from PositionInSet/SizeOfSet/Level to `AnnouncementBuilder`, controlled by `VerbosityProfile`; unit tests (spec: desktop-text-and-controls.md)

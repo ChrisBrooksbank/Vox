@@ -139,6 +139,7 @@ public sealed class UIAEventSubscriber :
         {
             _documentScope = null;
             _textScope = null;
+            _propertyScope = null;
             _focusedText = null;
             _focusedTextKind = FocusedTextKind.None;
             _subscribed = false;
@@ -213,6 +214,7 @@ public sealed class UIAEventSubscriber :
         {
             var automation = _uiaProvider.Automation;
             var focused = automation.GetFocusedElementBuildCache(_uiaProvider.CacheRequest);
+            FollowFocusForProperties(automation, focused);
             if (_focusedText is not null && focused is not null && automation.CompareElements(_focusedText, focused) != 0)
                 return; // still the same element
 
@@ -248,6 +250,49 @@ public sealed class UIAEventSubscriber :
                 _logger.LogDebug(ex, "Could not subscribe to caret and text changes of the focused element");
             }
         });
+    }
+
+    // Focused element the property handler is registered on, outside documents too (STA thread only)
+    private IUIAutomationElement? _propertyScope;
+
+    /// <summary>Property changes reported for the focused element itself (state, value, name, enabled).</summary>
+    internal static readonly int[] FocusedElementProperties =
+    [
+        UIA_NamePropertyId, UIA_ExpandCollapseStatePropertyId, UIA_ValueValuePropertyId,
+        UIAProvider.UIA_ToggleStatePropertyId, UIAProvider.UIA_SelectionItemIsSelectedPropertyId,
+        UIA_RangeValueValuePropertyId, UIA_IsEnabledPropertyId,
+    ];
+
+    private const int UIA_RangeValueValuePropertyId = 30047;
+    private const int UIA_IsEnabledPropertyId = 30010;
+
+    /// <summary>
+    /// Moves the element-scoped property handler to the focused element, so state and value changes
+    /// of desktop controls are reported (inside web documents the document-scoped handler also
+    /// reports them; BrowseModeController drops the duplicates).
+    /// </summary>
+    private void FollowFocusForProperties(IUIAutomation automation, IUIAutomationElement? focused)
+    {
+        if (_propertyScope is not null && focused is not null && automation.CompareElements(_propertyScope, focused) != 0)
+            return;
+
+        if (_propertyScope is not null)
+        {
+            try { automation.RemovePropertyChangedEventHandler(_propertyScope, this); }
+            catch (Exception ex) { _logger.LogDebug(ex, "Error removing the focused element's property handler"); }
+            _propertyScope = null;
+        }
+        if (focused is null)
+            return;
+        try
+        {
+            automation.AddPropertyChangedEventHandler(focused, TreeScope.TreeScope_Element, null, this, FocusedElementProperties);
+            _propertyScope = focused;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not subscribe to the focused element's property changes");
+        }
     }
 
     private void RemoveTextScope(IUIAutomation automation)
