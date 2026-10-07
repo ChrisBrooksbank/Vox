@@ -73,7 +73,7 @@ public sealed class OneCoreSpeechEngine : ISpeechEngine, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         long epoch = Interlocked.Read(ref _epoch);
-        var options = Options();
+        var options = Options(utterance.PitchOffset);
         var wav = await _synthesizer.SynthesizeAsync(utterance.Text, options, cancellationToken).ConfigureAwait(false);
 
         var playback = new Playback(new WaveFileReader(new MemoryStream(wav)).ToSampleProvider());
@@ -178,10 +178,10 @@ public sealed class OneCoreSpeechEngine : ISpeechEngine, IDisposable
         (_synthesizer as IDisposable)?.Dispose();
     }
 
-    private OneCoreOptions Options()
+    private OneCoreOptions Options(int pitchOffset = 0)
     {
         lock (_lock)
-            return new OneCoreOptions(_voice, _speakingRate, _pitch / 50.0, _volume / 100.0);
+            return new OneCoreOptions(_voice, _speakingRate, Math.Clamp(_pitch + pitchOffset, 0, 100) / 50.0, _volume / 100.0);
     }
 
     /// <summary>

@@ -11,6 +11,16 @@ public interface ITextRule
 {
     /// <summary>The text to speak instead of <paramref name="text"/> (part of <paramref name="utterance"/>).</summary>
     string Apply(string text, Utterance utterance);
+
+    /// <summary>
+    /// The utterance to speak instead of <paramref name="utterance"/>. By default only its text
+    /// changes; a rule can also change how it is said (pitch, a cue before it).
+    /// </summary>
+    Utterance ApplyTo(Utterance utterance)
+    {
+        var text = Apply(utterance.Text, utterance) ?? utterance.Text;
+        return text == utterance.Text ? utterance : utterance with { Text = text };
+    }
 }
 
 /// <summary>
@@ -34,15 +44,14 @@ public sealed class TextProcessor
 
     public IReadOnlyList<ITextRule> Rules => _rules;
 
-    /// <summary>The text to speak for <paramref name="utterance"/>.</summary>
-    public string Process(Utterance utterance)
+    /// <summary>What to speak for <paramref name="utterance"/>.</summary>
+    public Utterance Process(Utterance utterance)
     {
-        var text = utterance.Text;
         foreach (var rule in _rules)
         {
             try
             {
-                text = rule.Apply(text, utterance) ?? text;
+                utterance = rule.ApplyTo(utterance);
             }
             catch (Exception ex)
             {
@@ -50,6 +59,6 @@ public sealed class TextProcessor
                 _logger?.LogWarning(ex, "Text rule {Rule} failed; skipped", rule.GetType().Name);
             }
         }
-        return text;
+        return utterance;
     }
 }

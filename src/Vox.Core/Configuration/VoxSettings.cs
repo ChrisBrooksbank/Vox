@@ -30,6 +30,18 @@ public enum PunctuationLevel
     All
 }
 
+/// <summary>How capital letters are indicated.</summary>
+public enum CapitalIndication
+{
+    Off,
+    /// <summary>Spoken at a higher pitch.</summary>
+    Pitch,
+    /// <summary>"cap" is said first ("all caps" for a word in capitals).</summary>
+    SayCap,
+    /// <summary>A short high beep first.</summary>
+    Beep
+}
+
 /// <summary>Which set of key bindings is used.</summary>
 public enum KeyboardLayout
 {
@@ -88,6 +100,10 @@ public record VoxSettings
     public int SpeechVolume { get; init; } = 100;
     /// <summary>How much punctuation is spoken.</summary>
     public PunctuationLevel PunctuationLevel { get; init; } = PunctuationLevel.Some;
+    /// <summary>How a capital letter is indicated when reading by character.</summary>
+    public CapitalIndication CapitalsForCharacters { get; init; } = CapitalIndication.Pitch;
+    /// <summary>How capitals are indicated when reading a word or line (only "cap" applies within a line).</summary>
+    public CapitalIndication CapitalsForWords { get; init; } = CapitalIndication.Off;
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }

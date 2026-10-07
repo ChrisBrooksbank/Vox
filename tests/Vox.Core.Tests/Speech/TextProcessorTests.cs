@@ -17,7 +17,7 @@ public class TextProcessorTests
     [Fact]
     public void NoRules_LeavesTheTextAsItIs()
     {
-        Assert.Equal("Hello, world!", TextProcessor.None.Process(Say("Hello, world!")));
+        Assert.Equal("Hello, world!", TextProcessor.None.Process(Say("Hello, world!")).Text);
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class TextProcessorTests
     {
         var processor = new TextProcessor([new Rule(t => t + " one"), new Rule(t => t + " two")]);
 
-        Assert.Equal("start one two", processor.Process(Say("start")));
+        Assert.Equal("start one two", processor.Process(Say("start")).Text);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class TextProcessorTests
         var processor = new TextProcessor(
             [new Rule(_ => throw new InvalidOperationException("boom")), new Rule(t => t.ToUpperInvariant())], logger);
 
-        Assert.Equal("SECRET", processor.Process(Say("secret")));
+        Assert.Equal("SECRET", processor.Process(Say("secret")).Text);
         Assert.DoesNotContain(logger.Entries, e => e.Message.Contains("secret"));
     }
 

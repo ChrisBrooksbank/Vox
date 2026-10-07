@@ -4,6 +4,8 @@
   "SpeechPitch": 50,
   "SpeechVolume": 100,
   "PunctuationLevel": "Some",
+  "CapitalsForCharacters": "Pitch",
+  "CapitalsForWords": "Off",
   "VoiceName": null,
   "SpeechEngine": null,
   "TypingEchoMode": "Both",

@@ -60,6 +60,9 @@ public sealed class SpeechQueue : IDisposable
     /// </summary>
     public TextProcessor TextProcessor { get; set; } = TextProcessor.None;
 
+    /// <summary>Plays an utterance's <see cref="Utterance.SoundCue"/> just before it is spoken. Set at startup.</summary>
+    public Action<string>? CuePlayer { get; set; }
+
     public ValueTask EnqueueAsync(Utterance utterance, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -293,9 +296,13 @@ public sealed class SpeechQueue : IDisposable
             RaiseSafely(UtteranceStarted, utterance);
             try
             {
-                var text = TextProcessor.Process(utterance);
-                await _engine.SpeakAsync(text == utterance.Text ? utterance : utterance with { Text = text }, speechCts.Token)
-                    .ConfigureAwait(false);
+                var processed = TextProcessor.Process(utterance);
+                if (processed.SoundCue is { } cue && CuePlayer is { } playCue)
+                {
+                    try { playCue(cue); }
+                    catch (Exception ex) { _logger.LogDebug(ex, "Could not play the cue {Cue}", cue); }
+                }
+                await _engine.SpeakAsync(processed, speechCts.Token).ConfigureAwait(false);
             }
             finally
             {

@@ -76,6 +76,8 @@ public static class ServiceRegistration
         });
         services.AddSingleton<TextProcessor>(sp => new TextProcessor(
             [
+                // On the text as it is on screen, before anything replaces words
+                new CapitalsRule(() => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue),
                 sp.GetRequiredService<PronunciationRule>(),
                 new PunctuationRule(SymbolDictionary.LoadBuiltIn(),
                     () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.PunctuationLevel),
@@ -85,6 +87,14 @@ public static class ServiceRegistration
         {
             var queue = new SpeechQueue(sp.GetRequiredService<ISpeechEngine>(), sp.GetRequiredService<ILogger<SpeechQueue>>());
             queue.TextProcessor = sp.GetRequiredService<TextProcessor>();
+            var cues = sp.GetRequiredService<IAudioCuePlayer>();
+            queue.CuePlayer = cue =>
+            {
+                if (cue == Utterance.CapitalCue)
+                    cues.PlayTone(2000, 30);
+                else
+                    cues.Play(cue);
+            };
             var history = sp.GetRequiredService<SpeechHistory>();
             var latency = sp.GetRequiredService<LatencyTracker>();
             queue.UtteranceStarted += (_, u) => history.Add(u.Text);

@@ -110,9 +110,9 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         $"{SecurityElement.Escape(text)}</prosody></speak>";
 
     /// <summary>A prompt for <paramref name="text"/>, through SSML only when the pitch isn't normal.</summary>
-    private Prompt CreatePrompt(string text)
+    private Prompt CreatePrompt(string text, int pitchOffset)
     {
-        int pitch = _pitch;
+        int pitch = Math.Clamp(_pitch + pitchOffset, 0, 100);
         if (pitch == ISpeechEngine.DefaultPitch)
             return new Prompt(text);
         string language;
@@ -139,7 +139,7 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var prompt = CreatePrompt(utterance.Text);
+        var prompt = CreatePrompt(utterance.Text, utterance.PitchOffset);
 
         void OnCompleted(object? sender, SpeakCompletedEventArgs e)
         {
