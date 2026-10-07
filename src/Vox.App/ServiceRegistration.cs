@@ -33,7 +33,15 @@ public static class ServiceRegistration
 
         // Speech
         services.AddSingleton<ISpeechEngine, SapiSpeechEngine>();
-        services.AddSingleton<SpeechQueue>();
+        services.AddSingleton<SpeechQueue>(sp =>
+        {
+            var queue = new SpeechQueue(sp.GetRequiredService<ISpeechEngine>(), sp.GetRequiredService<ILogger<SpeechQueue>>());
+            var history = sp.GetRequiredService<SpeechHistory>();
+            queue.UtteranceStarted += (_, u) => history.Add(u.Text);
+            return queue;
+        });
+        services.AddSingleton<SpeechHistory>(_ => new SpeechHistory());
+        services.AddSingleton<SpeechViewer>();
 
         // Audio
         services.AddSingleton<IAudioCuePlayer, AudioCuePlayer>();

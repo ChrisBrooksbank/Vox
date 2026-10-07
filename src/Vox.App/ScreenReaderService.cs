@@ -43,6 +43,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
     private readonly DuckingController _duckingController;
+    private readonly SpeechViewer _speechViewer;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -103,8 +104,10 @@ public sealed class ScreenReaderService : IHostedService
         SettingsManager settingsManager,
         IStartupRegistration startupRegistration,
         DuckingController duckingController,
+        SpeechViewer speechViewer,
         RunPolicy? runPolicy = null)
     {
+        _speechViewer = speechViewer;
         _duckingController = duckingController;
         _startupRegistration = startupRegistration;
         _settingsManager = settingsManager;
@@ -335,6 +338,11 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e)
     {
+        if (e.Command == NavigationCommand.ToggleSpeechViewer)
+        {
+            _speechViewer.Toggle();
+            return;
+        }
         if (e.Command == NavigationCommand.CopySettingsToSecureScreens)
         {
             var message = SecureScreenSettings.Copy(_settingsManager, _settings.CurrentValue, _runPolicy);
