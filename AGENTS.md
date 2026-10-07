@@ -45,7 +45,9 @@ dotnet build && dotnet test           # Build + test = must both pass
 
 ## Important Notes
 
-- Requires Windows 11 and admin privileges for keyboard hooks
+- Requires Windows 11; tests run on Windows (CI); on Linux build with `-p:EnableWindowsTargeting=true`
+- Every `UIAThread.RunAsync` call has a timeout; never await the UIA thread from a command handler
+- Never log typed text or field values
 - COM objects are apartment-threaded; never share UIA objects across threads
 - Keyboard hook callback must be < 1ms - only post to channel, never process
 - Pre-init speech engine at startup to avoid first-utterance delay
