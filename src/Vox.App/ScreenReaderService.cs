@@ -44,6 +44,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly MouseTracker _mouseTracker;
     private readonly SpeechEngineRegistry _speechEngines;
     private readonly SettingsRing _settingsRing;
+    private readonly SpeechHistoryCommands _speechHistoryCommands;
     private readonly MouseCommands _mouseCommands;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
@@ -116,6 +117,7 @@ public sealed class ScreenReaderService : IHostedService
         MouseTracker mouseTracker,
         SpeechEngineRegistry speechEngines,
         SettingsRing settingsRing,
+        SpeechHistoryCommands speechHistoryCommands,
         MouseCommands mouseCommands,
         RunPolicy? runPolicy = null)
     {
@@ -123,6 +125,7 @@ public sealed class ScreenReaderService : IHostedService
         _mouseTracker = mouseTracker;
         _speechEngines = speechEngines;
         _settingsRing = settingsRing;
+        _speechHistoryCommands = speechHistoryCommands;
         _mouseCommands = mouseCommands;
         _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
@@ -389,7 +392,7 @@ public sealed class ScreenReaderService : IHostedService
         }
         if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
             && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command)
-            && !_settingsRing.TryHandle(e.Command))
+            && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 

@@ -20,4 +20,7 @@ public record Utterance(string Text, SpeechPriority Priority, string? SoundCue =
 
     /// <summary>A voice to say this utterance in instead of the current one (chosen for its <see cref="Language"/>).</summary>
     public string? Voice { get; init; }
+
+    /// <summary>Whether it goes into the speech history (not when it is an entry being reviewed).</summary>
+    public bool RecordInHistory { get; init; } = true;
 }

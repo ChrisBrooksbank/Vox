@@ -90,5 +90,7 @@ public enum NavigationCommand
     SettingsRingPrevious,
     SettingsRingNext,
     SettingsRingIncrease,
-    SettingsRingDecrease
+    SettingsRingDecrease,
+    SpeechHistoryPrevious,
+    SpeechHistoryNext
 }

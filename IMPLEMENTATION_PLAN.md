@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 106
+- Build iterations: 107
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -171,7 +171,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add capital indication settings (pitch / "cap" / beep, separately for char and word/line); unit tests (spec: speech-and-audio.md)
 - [x] Add repeated-character collapsing ("4 dashes") and number-as-digits setting; unit tests (spec: speech-and-audio.md)
 - [x] Add language tag to `Utterance`, carry `lang` from buffer nodes, and `LanguageSwitcher` voice selection with user mapping; unit tests (spec: speech-and-audio.md)
-- [ ] Add speech history (last 100; Insert+Shift+F11/F12 step back/forward, press twice to copy); unit tests (spec: speech-and-audio.md)
+- [x] Add speech history (last 100; Insert+Shift+F11/F12 step back/forward, press twice to copy); unit tests (spec: speech-and-audio.md)
 - [ ] Add sleep mode per app (Insert+Shift+S): no speech and no key swallowing while that app has focus; persisted; unit tests (spec: speech-and-audio.md)
 - [ ] Add eSpeak NG engine as an optional separately-downloaded component loaded through the registry (spec: speech-and-audio.md)
 - [ ] Add earcon scheme folder with manifest and new cues (list, table, landmark, clickable, error, progress); `AudioCuePlayer` loads the selected scheme; asset tests (spec: speech-and-audio.md)

@@ -101,12 +101,17 @@ public static class ServiceRegistration
             };
             var history = sp.GetRequiredService<SpeechHistory>();
             var latency = sp.GetRequiredService<LatencyTracker>();
-            queue.UtteranceStarted += (_, u) => history.Add(u.Text);
+            queue.UtteranceStarted += (_, u) =>
+            {
+                if (u.RecordInHistory)
+                    history.Add(u.Text);
+            };
             queue.UtteranceStarted += (_, _) => latency.NoteSpeechStarted();
             queue.QueueLatency = wait => latency.Record(LatencyTracker.QueueToEngine, wait);
             return queue;
         });
         services.AddSingleton<SpeechHistory>(_ => new SpeechHistory());
+        services.AddSingleton<SpeechHistoryCommands>();
         services.AddSingleton<LatencyTracker>(sp =>
         {
             var tracker = new LatencyTracker();
