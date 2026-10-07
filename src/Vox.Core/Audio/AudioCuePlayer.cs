@@ -79,6 +79,44 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
                 return;
             _outputDevice = value;
             ResetOutput();
+            if (_keepAwake)
+                OpenSilently();
+        }
+    }
+
+    private volatile bool _keepAwake;
+
+    /// <summary>
+    /// Keeps the output device open, playing silence, instead of closing it when idle: some
+    /// devices (Bluetooth, HDMI) take a moment to wake and clip the start of the next sound, and an
+    /// active device keeps speech on the same device from being clipped too.
+    /// </summary>
+    public bool KeepAwake
+    {
+        get => _keepAwake;
+        set
+        {
+            _keepAwake = value;
+            if (value)
+                OpenSilently();
+            else
+                lock (_outputLock) RestartIdleTimer();
+        }
+    }
+
+    private void OpenSilently()
+    {
+        try
+        {
+            lock (_outputLock)
+            {
+                _idleTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                EnsureMixer();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not open the audio output");
         }
     }
 
@@ -123,6 +161,8 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     {
         lock (_outputLock)
         {
+            if (_keepAwake)
+                return;
             long remaining = (long)IdleClose.TotalMilliseconds - (Environment.TickCount64 - _lastCueTick);
             if (_mixer is not null && remaining > 0)
             {

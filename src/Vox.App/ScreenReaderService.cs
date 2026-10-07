@@ -305,6 +305,8 @@ public sealed class ScreenReaderService : IHostedService
                 _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
             if (previous is null || previous.AudioOutputDevice != settings.AudioOutputDevice)
                 _audioCuePlayer.OutputDevice = settings.AudioOutputDevice;
+            if (previous is null || previous.KeepAudioDeviceAwake != settings.KeepAudioDeviceAwake)
+                _audioCuePlayer.KeepAwake = settings.KeepAudioDeviceAwake;
             if (previous is null || previous.AudioDucking != settings.AudioDucking)
                 _duckingController.SetMode(settings.AudioDucking);
             if (previous is null || previous.ModifierKey != settings.ModifierKey)

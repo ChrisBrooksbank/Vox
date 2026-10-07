@@ -45,4 +45,27 @@ public class AudioOutputDevicesTests
         Assert.True(opened[0].Disposed);
         Assert.False(opened[1].Disposed);
     }
+
+    [Fact]
+    public void KeepAwake_OpensTheOutputAtOnce_AndIdleNeverClosesIt()
+    {
+        var opened = new List<FakeOutput>();
+        using var player = new AudioCuePlayer(NullLogger<AudioCuePlayer>.Instance, Path.GetTempPath(), _ =>
+        {
+            var output = new FakeOutput();
+            opened.Add(output);
+            return output;
+        }) { IdleClose = TimeSpan.Zero };
+
+        player.KeepAwake = true;
+        Assert.True(player.IsOutputOpen);
+
+        player.CloseIfIdle();
+        Assert.True(player.IsOutputOpen);
+
+        player.KeepAwake = false;
+        player.CloseIfIdle();
+        Assert.False(player.IsOutputOpen);
+        Assert.Single(opened);
+    }
 }

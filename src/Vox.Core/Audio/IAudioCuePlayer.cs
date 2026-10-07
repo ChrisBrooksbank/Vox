@@ -10,4 +10,7 @@ public interface IAudioCuePlayer
 
     /// <summary>The output device's name (null: the default device). Optional.</summary>
     string? OutputDevice { get => null; set { } }
+
+    /// <summary>Keep the output device open between sounds. Optional.</summary>
+    bool KeepAwake { get => false; set { } }
 }

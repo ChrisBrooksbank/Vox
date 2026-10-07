@@ -73,4 +73,6 @@ public record VoxSettings
     public string? AudioOutputDevice { get; init; }
     /// <summary>Lower other applications' audio: off, while Vox speaks, or always (needs UI access).</summary>
     public AudioDuckingMode AudioDucking { get; init; } = AudioDuckingMode.Off;
+    /// <summary>Keep the audio device awake between sounds so their start isn't clipped.</summary>
+    public bool KeepAudioDeviceAwake { get; init; } = true;
 }

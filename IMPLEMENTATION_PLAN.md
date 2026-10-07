@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 78
+- Build iterations: 79
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -135,7 +135,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 - [x] Move speech and earcon output to WASAPI through NAudio with output device selection setting (spec: robustness-secure-desktop.md) — earcons and tones done (AudioOutputDevice setting); speech stays on the SAPI default device until the OneCore engine task, which picks the device for speech
 - [x] Add audio ducking setting (Off / While speaking / Always) (spec: robustness-secure-desktop.md)
-- [ ] Keep the audio device warm with a silent stream so the first syllable after idle isn't clipped (spec: robustness-secure-desktop.md)
+- [x] Keep the audio device warm with a silent stream so the first syllable after idle isn't clipped (spec: robustness-secure-desktop.md)
 - [ ] Add speech viewer window (non-focusable, lists recent utterances) toggled by a command (spec: robustness-secure-desktop.md)
 - [ ] Add developer info command (Insert+F1): speak and copy name, control type, ARIA role, framework, process and runtime id of the focused element (spec: robustness-secure-desktop.md)
 - [ ] Add latency instrumentation (timestamps at hook, dispatcher, pipeline, queue, engine) and log p95 every minute; unit test the percentile tracker (spec: robustness-secure-desktop.md)

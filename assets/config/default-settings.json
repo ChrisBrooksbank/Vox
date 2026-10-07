@@ -13,5 +13,6 @@
   "StartAtLogon": false,
   "AudioOutputDevice": null,
   "AudioDucking": "Off",
+  "KeepAudioDeviceAwake": true,
   "FirstRunCompleted": false
 }
