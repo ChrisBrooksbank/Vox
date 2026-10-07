@@ -286,6 +286,19 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public void RawKey_AfterFocusLeavesTheDocumentForANativeEdit_IsEchoed()
+    {
+        LoadDocument();
+        // Ctrl+L: focus moves to the browser's address bar, which isn't in the buffer
+        _controller.HandleFocusChanged(new FocusChangedEvent(
+            DateTimeOffset.UtcNow, "Address and search bar", "Edit", RuntimeId: [42, 1]));
+
+        _controller.HandleRawKey(KeyUp(0x41));
+
+        Assert.Single(_sink.OfType<TypingEchoEvent>());
+    }
+
+    [Fact]
     public void SubtreeChanged_KeepsCurrentElement()
     {
         LoadDocument(focusedId: [4]);
