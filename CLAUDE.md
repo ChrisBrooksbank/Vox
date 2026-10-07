@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Vox is a Windows 11 screen reader built in C#/.NET 9 (`net9.0-windows`). It uses UI Automation (UIA) for accessibility, SAPI5 (`System.Speech`) for speech, NAudio for earcons, and a virtual buffer model for web browsing. Phase 1 (browse-mode reading of web pages in Edge/Chrome) is done; the commercial-parity milestones in `COMMERCIAL_PARITY_PLAN.md` follow (Milestone A — robustness, desktop text and controls, secure screens, audio and diagnostics — is done).
+Vox is a Windows 11 screen reader built in C#/.NET 9 (`net9.0-windows10.0.19041.0`). It uses UI Automation (UIA) for accessibility, SAPI5 (`System.Speech`) and OneCore (`Windows.Media.SpeechSynthesis`, `OneCoreSpeechEngine`, played through the earcon output) for speech, NAudio for earcons, and a virtual buffer model for web browsing. Phase 1 (browse-mode reading of web pages in Edge/Chrome) is done; the commercial-parity milestones in `COMMERCIAL_PARITY_PLAN.md` follow (Milestone A — robustness, desktop text and controls, secure screens, audio and diagnostics — is done).
 
 ## Build, Run & Test
 
@@ -19,7 +19,7 @@ dotnet test --filter "FullyQualifiedName~Vox.Core.Tests.Buffer.VBufferCursorTest
 dotnet test --filter "FullyQualifiedName~VBufferCursorTests.NextChar_AdvancesOffsetByOne"
 ```
 
-All projects target `net9.0-windows` and `Vox.Core`/tests use WinForms, so running tests requires Windows; CI (`.github/workflows/ci.yml`, `windows-latest`) builds and tests every push. On Linux, `dotnet build -p:EnableWindowsTargeting=true` builds the solution. Tests needing live UIA COM are marked `[Fact(Skip = ...)]`.
+All projects target `net9.0-windows10.0.19041.0` (the versioned Windows TFM gives the WinRT projection, used for OneCore speech) and `Vox.Core`/tests use WinForms, so running tests requires Windows; CI (`.github/workflows/ci.yml`, `windows-latest`) builds and tests every push. On Linux, `dotnet build -p:EnableWindowsTargeting=true` builds the solution. Tests needing live UIA COM are marked `[Fact(Skip = ...)]`.
 
 Projects: `Vox.Core` (everything testable), `Vox.App` (the screen reader; `--secure` for the sign-in/lock/UAC screens), `Vox.Watchdog` (restarts Vox.App after a crash), `Vox.Service` (Windows service that keeps a secure-mode Vox on the Winlogon desktop), `Vox.Core.Tests`. Signed builds ask for UI access (`docs/signing.md`).
 
@@ -65,7 +65,7 @@ BrowseDocumentTracker (UIA thread: DocumentChanged / SubtreeChanged) ───�
 
 ## Key Conventions
 
-- Target framework: `net9.0-windows` (all projects); nullable and implicit usings enabled
+- Target framework: `net9.0-windows10.0.19041.0` (all projects); nullable and implicit usings enabled
 - Use `Microsoft.Extensions.Hosting` for DI and app lifecycle; register new components in `ServiceRegistration.cs`
 - Use `System.Threading.Channels` for inter-component communication
 - Prefer `IUIAutomationCacheRequest` for batching UIA property reads

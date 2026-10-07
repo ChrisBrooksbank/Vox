@@ -68,4 +68,19 @@ public class AudioOutputDevicesTests
         Assert.False(player.IsOutputOpen);
         Assert.Single(opened);
     }
+
+    [Fact]
+    public void AStreamStillPlaying_KeepsTheOutputOpen()
+    {
+        using var player = new AudioCuePlayer(NullLogger<AudioCuePlayer>.Instance, Path.GetTempPath(), _ => new FakeOutput())
+        {
+            IdleClose = TimeSpan.Zero,
+        };
+
+        // An utterance longer than the idle time, which the (fake) device hasn't played yet
+        player.PlayStream(new SilenceProvider(AudioCuePlayer.MixFormat).ToSampleProvider().Take(TimeSpan.FromSeconds(30)));
+        player.CloseIfIdle();
+
+        Assert.True(player.IsOutputOpen);
+    }
 }

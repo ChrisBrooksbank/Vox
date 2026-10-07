@@ -24,7 +24,7 @@ The original plan is technically solid but has critical blind spots from the per
 8. Cookie banner/overlay detection: Phase 2
 9. AI image description + CAPTCHA assistance: Phase 3
 
-**Target framework**: `net9.0-windows`
+**Target framework**: `net9.0-windows10.0.19041.0`
 
 ---
 
@@ -37,8 +37,8 @@ The original plan is technically solid but has critical blind spots from the per
 **Files to create:**
 
 - `Vox.sln` — Solution with Vox.Core, Vox.App, Vox.Core.Tests projects
-- `src/Vox.Core/Vox.Core.csproj` — `net9.0-windows` class library. Packages: `Interop.UIAutomationClient`, `System.Speech`, `Vanara.PInvoke.User32`, `NAudio`, `Serilog`, `Microsoft.Extensions.Hosting.Abstractions`
-- `src/Vox.App/Vox.App.csproj` — `net9.0-windows` worker service. Packages: `Microsoft.Extensions.Hosting`, `Serilog.Sinks.File`
+- `src/Vox.Core/Vox.Core.csproj` — `net9.0-windows10.0.19041.0` class library. Packages: `Interop.UIAutomationClient`, `System.Speech`, `Vanara.PInvoke.User32`, `NAudio`, `Serilog`, `Microsoft.Extensions.Hosting.Abstractions`
+- `src/Vox.App/Vox.App.csproj` — `net9.0-windows10.0.19041.0` worker service. Packages: `Microsoft.Extensions.Hosting`, `Serilog.Sinks.File`
 - `tests/Vox.Core.Tests/Vox.Core.Tests.csproj` — xUnit test project
 
 **`src/Vox.App/Program.cs`** — Host builder entry point, registers all services, starts `ScreenReaderService` as `IHostedService`

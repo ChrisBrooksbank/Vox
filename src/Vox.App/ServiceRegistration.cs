@@ -54,7 +54,10 @@ public static class ServiceRegistration
         services.AddSingleton<SpeechViewer>();
 
         // Audio
-        services.AddSingleton<IAudioCuePlayer, AudioCuePlayer>();
+        // One output for earcons and for speech engines that play their own audio (OneCore)
+        services.AddSingleton<AudioCuePlayer>();
+        services.AddSingleton<IAudioCuePlayer>(sp => sp.GetRequiredService<AudioCuePlayer>());
+        services.AddSingleton<IAudioStreamPlayer>(sp => sp.GetRequiredService<AudioCuePlayer>());
 
         // Pipeline
         services.AddSingleton<EventPipeline>();

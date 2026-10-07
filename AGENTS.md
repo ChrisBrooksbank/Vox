@@ -4,7 +4,7 @@ Keep this file under 60 lines. It's loaded every iteration.
 
 ## Project
 
-Vox is a Windows 11 screen reader in C#/.NET 9 (`net9.0-windows`). UIA for accessibility, SAPI5 for speech, virtual buffer for web browsing.
+Vox is a Windows 11 screen reader in C#/.NET 9 (`net9.0-windows10.0.19041.0`). UIA for accessibility, SAPI5 for speech, virtual buffer for web browsing.
 
 ## Build Commands
 
@@ -28,7 +28,7 @@ dotnet build && dotnet test           # Build + test = must both pass
 
 ## Key Conventions
 
-- Target framework: `net9.0-windows` (all projects)
+- Target framework: `net9.0-windows10.0.19041.0` (all projects)
 - Use `Microsoft.Extensions.Hosting` for DI and app lifecycle
 - Use `System.Threading.Channels` for inter-component communication
 - All UIA interop goes in `Vox.Core/Accessibility/`
