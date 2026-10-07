@@ -46,6 +46,7 @@ public static class ServiceRegistration
         services.AddSingleton<TextCaretTracker>(_ => new TextCaretTracker());
         services.AddSingleton<IFocusedTextSource, UIAFocusedTextSource>();
         services.AddSingleton<FocusedTextMonitor>();
+        services.AddSingleton<IFocusedTextReader>(sp => sp.GetRequiredService<FocusedTextMonitor>());
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
         services.AddSingleton<LiveRegionMonitor>();

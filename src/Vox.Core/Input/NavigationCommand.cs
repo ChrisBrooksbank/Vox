@@ -47,5 +47,7 @@ public enum NavigationCommand
     NextParagraph,
     PrevParagraph,
     Quit,
-    RunSetup
+    RunSetup,
+    ReadCurrentChar,
+    ReadSelection
 }

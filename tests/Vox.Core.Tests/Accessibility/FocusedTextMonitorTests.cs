@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Vox.Core.Accessibility;
 using Vox.Core.Input;
+using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 using Vox.Core.Tests.TestSupport;
@@ -114,5 +115,30 @@ public class FocusedTextMonitorTests : IDisposable
         await _monitor.HandleRawKey(KeyDown(0x2E));
 
         await _engine.WaitForTextAsync("b");
+    }
+
+    [Theory]
+    [InlineData(TextReadKind.Character, 6, null, "w")]
+    [InlineData(TextReadKind.Word, 6, null, "world")]
+    [InlineData(TextReadKind.Line, 13, null, "second line")]
+    [InlineData(TextReadKind.Selection, 0, 5, "hello")]
+    [InlineData(TextReadKind.Selection, 3, null, "No selection")]
+    public void Describe_ReadCommands(TextReadKind kind, int caret, int? selectionEnd, string expected)
+    {
+        var document = selectionEnd is { } end
+            ? new StringTextDocument("hello world\nsecond line", end, 0, end)
+            : new StringTextDocument("hello world\nsecond line", caret);
+
+        Assert.Equal(expected, FocusedTextMonitor.Describe(document, kind));
+    }
+
+    [Fact]
+    public async Task ReadAsync_SpeaksTheLineOfTheFocusedControl()
+    {
+        _source.Document = new StringTextDocument("one\ntwo", 5);
+
+        await _monitor.ReadAsync(TextReadKind.Line);
+
+        await _engine.WaitForTextAsync("two");
     }
 }

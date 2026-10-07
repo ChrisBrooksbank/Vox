@@ -45,6 +45,8 @@
     { "modifiers": "Insert",      "vkCode": 118, "mode": "Any",    "command": "ElementsList" },
     { "modifiers": "Insert",      "vkCode": 38,  "mode": "Any",    "command": "ReadCurrentLine" },
     { "modifiers": "Insert|Ctrl", "vkCode": 38,  "mode": "Any",    "command": "ReadCurrentWord" },
+    { "modifiers": "Insert",      "vkCode": 190, "mode": "Any",    "command": "ReadCurrentChar" },
+    { "modifiers": "Insert|Shift", "vkCode": 38, "mode": "Any",    "command": "ReadSelection" },
     { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },
     { "modifiers": "Insert|Ctrl", "vkCode": 83,  "mode": "Any",    "command": "RunSetup" }
   ]

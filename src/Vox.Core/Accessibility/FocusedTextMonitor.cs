@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 using Vox.Core.Text;
@@ -13,7 +14,7 @@ namespace Vox.Core.Accessibility;
 /// which raise none, are read <see cref="FallbackDelay"/> after each caret key.
 /// Call the Handle methods on the pipeline thread.
 /// </summary>
-public sealed class FocusedTextMonitor
+public sealed class FocusedTextMonitor : IFocusedTextReader
 {
     /// <summary>How long after a caret key a control without caret events is read (time for it to move the caret).</summary>
     public static readonly TimeSpan DefaultFallbackDelay = TimeSpan.FromMilliseconds(50);
@@ -68,6 +69,38 @@ public sealed class FocusedTextMonitor
     public Task HandleCaretMovedAsync(CaretMovedEvent e) => EvaluateAsync(_caretTracker.OnCaretMoved, "reading the caret");
 
     public Task HandleTextEditedAsync(TextEditedEvent e) => EvaluateAsync(_caretTracker.OnTextChanged, "reading a text change");
+
+    public bool HasFocusedText => _source.HasText;
+
+    public void Read(TextReadKind kind) => _ = ReadAsync(kind);
+
+    /// <summary>Reads <paramref name="kind"/> at the caret of the focused control.</summary>
+    public Task ReadAsync(TextReadKind kind) => EvaluateAsync(document => Describe(document, kind), "reading the focused text");
+
+    /// <summary>What a read command says for the focused document.</summary>
+    public static string? Describe(ITextDocument document, TextReadKind kind)
+    {
+        if (kind == TextReadKind.Selection)
+        {
+            var selection = document.GetSelection();
+            var selected = selection.Count > 0 ? selection[0] : null;
+            if (selected is null || selected.IsDegenerate)
+                return "No selection";
+            var text = selected.GetText(TextCaretTracker.MaxSpokenLength);
+            return text.Length <= 2 ? TextSpeech.ForCharacter(text) : TextSpeech.ForUnit(text, TextUnit.Word);
+        }
+
+        var caret = document.GetCaret();
+        if (caret is null)
+            return null;
+        var unit = kind switch
+        {
+            TextReadKind.Character => TextUnit.Character,
+            TextReadKind.Word => TextUnit.Word,
+            _ => TextUnit.Line,
+        };
+        return TextSpeech.ForUnit(caret.ExpandToEnclosingUnit(unit).GetText(TextCaretTracker.MaxSpokenLength), unit);
+    }
 
     private async Task ReadAfterDelayAsync()
     {

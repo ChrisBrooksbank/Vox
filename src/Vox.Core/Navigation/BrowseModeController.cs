@@ -62,6 +62,8 @@ public sealed class BrowseModeController
         InteractionMode Mode,
         int[]? FocusedRuntimeId);
 
+    private readonly IFocusedTextReader? _focusedTextReader;
+
     private const int UIA_NamePropertyId = 30005;
     private const int UIA_ExpandCollapseStatePropertyId = 30070;
     private const int UIA_ValueValuePropertyId = 30045;
@@ -80,8 +82,10 @@ public sealed class BrowseModeController
         IEventSink pipeline,
         IBrowseDocumentActions documentActions,
         IElementsListPresenter elementsListPresenter,
-        ILogger<BrowseModeController> logger)
+        ILogger<BrowseModeController> logger,
+        IFocusedTextReader? focusedTextReader = null)
     {
+        _focusedTextReader = focusedTextReader;
         _speechQueue = speechQueue;
         _audioCuePlayer = audioCuePlayer;
         _navigationManager = navigationManager;
@@ -166,10 +170,32 @@ public sealed class BrowseModeController
                 SetupRequested?.Invoke(this, EventArgs.Empty);
                 return;
 
-            case NavigationCommand.SayAll:
-            case NavigationCommand.ElementsList:
             case NavigationCommand.ReadCurrentLine:
             case NavigationCommand.ReadCurrentWord:
+            case NavigationCommand.ReadCurrentChar:
+            case NavigationCommand.ReadSelection:
+                // Browse mode reads the buffer; anywhere else, the focused text control
+                bool browsing = _documentActive && _navigationManager.CurrentMode == InteractionMode.Browse;
+                if (!browsing && _focusedTextReader is { HasFocusedText: true } reader)
+                {
+                    reader.Read(command switch
+                    {
+                        NavigationCommand.ReadCurrentLine => TextReadKind.Line,
+                        NavigationCommand.ReadCurrentWord => TextReadKind.Word,
+                        NavigationCommand.ReadCurrentChar => TextReadKind.Character,
+                        _ => TextReadKind.Selection,
+                    });
+                    return;
+                }
+                if (_quickNavHandler.CurrentDocument is null || _cursor is null)
+                {
+                    Speak("No text");
+                    return;
+                }
+                break;
+
+            case NavigationCommand.SayAll:
+            case NavigationCommand.ElementsList:
             case NavigationCommand.ToggleMode:
                 // These only apply to web documents; say so rather than silently eating the key
                 if (_quickNavHandler.CurrentDocument is null || _cursor is null)
@@ -197,6 +223,14 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ReadCurrentWord:
                 Speak(LineText(_cursor!.ReadCurrentWord()));
+                return;
+
+            case NavigationCommand.ReadCurrentChar:
+                Speak(_cursor!.CurrentChar == '\0' ? "blank" : CharText(_cursor.CurrentChar)!);
+                return;
+
+            case NavigationCommand.ReadSelection:
+                Speak("No selection"); // browse mode has no selection
                 return;
         }
 

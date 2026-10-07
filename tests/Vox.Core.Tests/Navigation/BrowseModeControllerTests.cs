@@ -375,7 +375,6 @@ public class BrowseModeControllerTests : IDisposable
 
     [Theory]
     [InlineData(NavigationCommand.SayAll)]
-    [InlineData(NavigationCommand.ReadCurrentLine)]
     [InlineData(NavigationCommand.ElementsList)]
     [InlineData(NavigationCommand.ToggleMode)]
     public async Task DocumentCommand_WithoutDocument_SaysNotInADocument(NavigationCommand command)
@@ -384,6 +383,69 @@ public class BrowseModeControllerTests : IDisposable
 
         await WaitForSpeech(u => u.Text == "Not in a document");
         Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
+    public async Task ReadCommand_WithoutDocumentOrText_SaysNoText()
+    {
+        _controller.HandleCommand(NavigationCommand.ReadCurrentLine);
+
+        await WaitForSpeech(u => u.Text == "No text");
+    }
+
+    private sealed class FakeTextReader : IFocusedTextReader
+    {
+        public bool HasFocusedText { get; set; } = true;
+        public List<TextReadKind> Reads { get; } = new();
+        public void Read(TextReadKind kind) => Reads.Add(kind);
+    }
+
+    private BrowseModeController ControllerWith(IFocusedTextReader reader)
+    {
+        var settingsMonitor = new Mock<IOptionsMonitor<VoxSettings>>();
+        settingsMonitor.SetupGet(m => m.CurrentValue).Returns(() => _settings);
+        return new BrowseModeController(_speechQueue, _audio.Object, _navigationManager, _quickNav,
+            new SayAllController(_speechQueue, NullLogger<SayAllController>.Instance), new AnnouncementBuilder(),
+            new TypingEchoHandler(_sink, () => TypingEchoMode.Characters, NullLogger<TypingEchoHandler>.Instance),
+            settingsMonitor.Object, _sink, _actions.Object, _presenter.Object,
+            NullLogger<BrowseModeController>.Instance, reader);
+    }
+
+    [Theory]
+    [InlineData(NavigationCommand.ReadCurrentLine, TextReadKind.Line)]
+    [InlineData(NavigationCommand.ReadCurrentWord, TextReadKind.Word)]
+    [InlineData(NavigationCommand.ReadCurrentChar, TextReadKind.Character)]
+    [InlineData(NavigationCommand.ReadSelection, TextReadKind.Selection)]
+    public void ReadCommand_OutsideADocument_ReadsTheFocusedTextControl(NavigationCommand command, TextReadKind kind)
+    {
+        var reader = new FakeTextReader();
+        var controller = ControllerWith(reader);
+
+        controller.HandleCommand(command);
+
+        Assert.Equal([kind], reader.Reads);
+    }
+
+    [Fact]
+    public void ReadCommand_InBrowseMode_ReadsTheBufferNotTheFocusedControl()
+    {
+        var reader = new FakeTextReader();
+        var controller = ControllerWith(reader);
+        controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, BuildDocument(), null));
+
+        controller.HandleCommand(NavigationCommand.ReadCurrentLine);
+
+        Assert.Empty(reader.Reads);
+    }
+
+    [Fact]
+    public async Task ReadCurrentChar_InBrowseMode_SpeaksTheCharacterAtTheCursor()
+    {
+        LoadDocument();
+
+        _controller.HandleCommand(NavigationCommand.ReadCurrentChar);
+
+        await WaitForSpeech(u => u.Text == "W"); // "Welcome"
     }
 
     [Fact]
