@@ -81,6 +81,8 @@ public static class ServiceRegistration
                 sp.GetRequiredService<PronunciationRule>(),
                 new PunctuationRule(SymbolDictionary.LoadBuiltIn(),
                     () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.PunctuationLevel),
+                // After symbols, which leave separators inside numbers alone
+                new NumbersRule(() => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.Numbers),
             ],
             sp.GetRequiredService<ILogger<TextProcessor>>()));
         services.AddSingleton<SpeechQueue>(sp =>

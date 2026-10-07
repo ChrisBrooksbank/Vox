@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 104
+- Build iterations: 105
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -169,7 +169,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add CLDR emoji names to the symbol dictionary; unit tests (spec: speech-and-audio.md)
 - [x] Add pronunciation dictionaries (default, per-voice, user; plain and regex; case options) loaded from `%APPDATA%/Vox/dictionaries/`; unit tests (spec: speech-and-audio.md)
 - [x] Add capital indication settings (pitch / "cap" / beep, separately for char and word/line); unit tests (spec: speech-and-audio.md)
-- [ ] Add repeated-character collapsing ("4 dashes") and number-as-digits setting; unit tests (spec: speech-and-audio.md)
+- [x] Add repeated-character collapsing ("4 dashes") and number-as-digits setting; unit tests (spec: speech-and-audio.md)
 - [ ] Add language tag to `Utterance`, carry `lang` from buffer nodes, and `LanguageSwitcher` voice selection with user mapping; unit tests (spec: speech-and-audio.md)
 - [ ] Add speech history (last 100; Insert+Shift+F11/F12 step back/forward, press twice to copy); unit tests (spec: speech-and-audio.md)
 - [ ] Add sleep mode per app (Insert+Shift+S): no speech and no key swallowing while that app has focus; persisted; unit tests (spec: speech-and-audio.md)

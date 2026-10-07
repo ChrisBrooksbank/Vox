@@ -42,6 +42,15 @@ public enum CapitalIndication
     Beep
 }
 
+/// <summary>How numbers are read.</summary>
+public enum NumberReading
+{
+    /// <summary>As the synthesizer says them ("twelve hundred").</summary>
+    Words,
+    /// <summary>Digit by digit ("1 2 0 0").</summary>
+    Digits
+}
+
 /// <summary>Which set of key bindings is used.</summary>
 public enum KeyboardLayout
 {
@@ -104,6 +113,8 @@ public record VoxSettings
     public CapitalIndication CapitalsForCharacters { get; init; } = CapitalIndication.Pitch;
     /// <summary>How capitals are indicated when reading a word or line (only "cap" applies within a line).</summary>
     public CapitalIndication CapitalsForWords { get; init; } = CapitalIndication.Off;
+    /// <summary>Numbers as words or digit by digit.</summary>
+    public NumberReading Numbers { get; init; } = NumberReading.Words;
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }

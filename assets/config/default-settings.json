@@ -6,6 +6,7 @@
   "PunctuationLevel": "Some",
   "CapitalsForCharacters": "Pitch",
   "CapitalsForWords": "Off",
+  "Numbers": "Words",
   "VoiceName": null,
   "SpeechEngine": null,
   "TypingEchoMode": "Both",

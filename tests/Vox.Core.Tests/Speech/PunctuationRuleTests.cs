@@ -111,4 +111,34 @@ public class PunctuationRuleTests
 
         Assert.True(watch.ElapsedMilliseconds < 50, $"Took {watch.ElapsedMilliseconds} ms");
     }
+
+    [Theory]
+    [InlineData("----", PunctuationLevel.Most, "4 dashes")]
+    [InlineData("Title\n==========", PunctuationLevel.Some, "Title\n 10 equals")]
+    [InlineData("wait!!!!!", PunctuationLevel.All, "wait 5 bangs")]
+    [InlineData("😀😀😀😀", PunctuationLevel.None, "4 grinning faces")]
+    [InlineData("a---b", PunctuationLevel.Most, "a dash dash dash b")]
+    public void RunsOfASymbol_AreCounted(string text, PunctuationLevel level, string expected)
+    {
+        Assert.Equal(expected, Speak(text, level));
+    }
+
+    [Fact]
+    public void RunsOfASymbolNotSpokenAtTheLevel_StaySilent()
+    {
+        Assert.Equal("Title", Speak("Title ----------", PunctuationLevel.Some).TrimEnd('-', ' '));
+        Assert.Equal("Title", Speak("Title __________", PunctuationLevel.None));
+    }
+
+    [Theory]
+    [InlineData("dash", "dashes")]
+    [InlineData("question mark", "question marks")]
+    [InlineData("hash", "hashes")]
+    [InlineData("star", "stars")]
+    [InlineData("equals", "equals")]
+    [InlineData("plus", "pluses")]
+    public void Plural(string name, string expected)
+    {
+        Assert.Equal(expected, PunctuationRule.Plural(name));
+    }
 }

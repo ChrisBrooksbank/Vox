@@ -8,7 +8,8 @@ namespace Vox.Core.Speech;
 /// Speaks symbols (punctuation, emoji) by name according to the punctuation level: a symbol is
 /// named when its level is at or below the setting; otherwise it is dropped, or kept (for the
 /// synthesizer's pause) when the dictionary says so. A symbol on its own (reading a character)
-/// is always named, and a dot or comma between digits (3.14, 1,000) is left to the synthesizer.
+/// is always named, a dot or comma between digits (3.14, 1,000) is left to the synthesizer, and
+/// a run of <see cref="MinRepeats"/> or more of the same symbol is counted ("4 dashes").
 /// The invisible emoji variation selector (U+FE0F) is ignored.
 /// </summary>
 public sealed class PunctuationRule : ITextRule
@@ -55,13 +56,26 @@ public sealed class PunctuationRule : ITextRule
                 continue;
 
             _symbols.TryGet(symbol, out var entry);
+            int repeats = 1;
+            while (string.CompareOrdinal(text, i + repeats * symbol.Length, symbol, 0, symbol.Length) == 0)
+                repeats++;
             result ??= new StringBuilder(text.Length + 16);
             result.Append(text, copiedTo, i - copiedTo);
-            if (entry.Level <= level)
-                result.Append(' ').Append(entry.Name).Append(' ');
-            else
+            if (entry.Level > level)
+            {
+                // Not spoken at this level: a run of it isn't either
                 result.Append(entry.Preserve ? symbol : " ");
-            i += symbol.Length - 1;
+            }
+            else if (repeats >= MinRepeats)
+            {
+                result.Append(' ').Append(repeats).Append(' ').Append(Plural(entry.Name)).Append(' ');
+            }
+            else
+            {
+                for (int r = 0; r < repeats; r++)
+                    result.Append(' ').Append(entry.Name).Append(' ');
+            }
+            i += repeats * symbol.Length - 1;
             copiedTo = i + 1;
         }
 
@@ -69,6 +83,21 @@ public sealed class PunctuationRule : ITextRule
             return ReferenceEquals(text, original) ? original : text;
         result.Append(text, copiedTo, text.Length - copiedTo);
         return SpaceBeforePunctuation.Replace(Spaces.Replace(result.ToString(), " "), "").Trim();
+    }
+
+    /// <summary>How many of the same symbol in a row are counted instead of named one by one ("4 dashes").</summary>
+    public const int MinRepeats = 4;
+
+    /// <summary>
+    /// The plural of a symbol's name, made by its last word ("question mark" → "question marks",
+    /// "hash" → "hashes"); a name already ending in s ("equals") stays as it is.
+    /// </summary>
+    public static string Plural(string name)
+    {
+        if (name.EndsWith("ss", StringComparison.Ordinal) || name.EndsWith("us", StringComparison.Ordinal)
+            || name.EndsWith("sh", StringComparison.Ordinal) || name.EndsWith("ch", StringComparison.Ordinal) || name.EndsWith('x'))
+            return name + "es";
+        return name.EndsWith('s') ? name : name + "s";
     }
 
     /// <summary>The longest symbol starting at <paramref name="index"/>, or null.</summary>
