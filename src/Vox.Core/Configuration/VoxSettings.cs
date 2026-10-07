@@ -21,6 +21,18 @@ public enum ModifierKey
     CapsLock
 }
 
+/// <summary>How progress bars are reported.</summary>
+public enum ProgressReporting
+{
+    /// <summary>Speak the percentage every 10 %.</summary>
+    Every10Percent,
+    /// <summary>Speak the percentage every 25 %.</summary>
+    Every25Percent,
+    /// <summary>A beep whose pitch rises with the percentage.</summary>
+    Beep,
+    Off
+}
+
 /// <summary>How a misspelled word is reported when the caret enters it.</summary>
 public enum SpellingErrorReporting
 {
@@ -43,4 +55,8 @@ public record VoxSettings
     public bool FirstRunCompleted { get; init; } = false;
     /// <summary>How a misspelled word is reported when the caret enters it in an edit control.</summary>
     public SpellingErrorReporting SpellingErrors { get; init; } = SpellingErrorReporting.Speech;
+    /// <summary>How progress bars are reported.</summary>
+    public ProgressReporting ProgressBars { get; init; } = ProgressReporting.Every10Percent;
+    /// <summary>Also report progress bars of applications other than the foreground one.</summary>
+    public bool ReportBackgroundProgress { get; init; } = false;
 }

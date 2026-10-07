@@ -58,6 +58,12 @@ public static class ServiceRegistration
         services.AddSingleton<IForegroundWindow, Win32ForegroundWindow>();
         services.AddSingleton<ForegroundWindowMonitor>();
         services.AddSingleton<DialogReader>();
+        services.AddSingleton<ProgressReporter>(sp =>
+        {
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var foreground = sp.GetRequiredService<IForegroundWindow>();
+            return new ProgressReporter(() => settings.CurrentValue, () => foreground.Get()?.ProcessId);
+        });
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
         services.AddSingleton<LiveRegionMonitor>();

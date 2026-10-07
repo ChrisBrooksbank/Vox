@@ -8,5 +8,7 @@
   "ModifierKey": "Insert",
   "MaxLineLength": 100,
   "SpellingErrors": "Speech",
+  "ProgressBars": "Every10Percent",
+  "ReportBackgroundProgress": false,
   "FirstRunCompleted": false
 }

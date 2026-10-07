@@ -203,3 +203,13 @@ public record ForegroundWindowChangedEvent(
     string Title,
     int ProcessId
 ) : ScreenReaderEvent(Timestamp);
+
+/// <summary>A progress bar's value changed (UIA RangeValue), anywhere on the desktop.</summary>
+public record ProgressChangedEvent(
+    DateTimeOffset Timestamp,
+    int[] RuntimeId,
+    double Value,
+    double Minimum,
+    double Maximum,
+    int ProcessId
+) : ScreenReaderEvent(Timestamp);

@@ -149,6 +149,27 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
         }
     }
 
+    public void PlayTone(double frequencyHz, int durationMs)
+    {
+        if (!IsEnabled || frequencyHz <= 0 || durationMs <= 0)
+            return;
+        try
+        {
+            var tone = new SignalGenerator(MixFormat.SampleRate, MixFormat.Channels)
+            {
+                Type = SignalGeneratorType.Sin,
+                Frequency = frequencyHz,
+                Gain = 0.15,
+            };
+            AddToMixer(tone.Take(TimeSpan.FromMilliseconds(durationMs)));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error playing a tone");
+            ResetOutput();
+        }
+    }
+
     /// <summary>The mixer's format: every cue is converted to it.</summary>
     public static readonly WaveFormat MixFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 1);
 

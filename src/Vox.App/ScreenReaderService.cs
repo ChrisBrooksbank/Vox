@@ -35,6 +35,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly TerminalMonitor _terminalMonitor;
     private readonly ForegroundWindowMonitor _foregroundWindowMonitor;
     private readonly DialogReader _dialogReader;
+    private readonly ProgressReporter _progressReporter;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -81,6 +82,7 @@ public sealed class ScreenReaderService : IHostedService
         TerminalMonitor terminalMonitor,
         ForegroundWindowMonitor foregroundWindowMonitor,
         DialogReader dialogReader,
+        ProgressReporter progressReporter,
         NavigationManager navigationManager,
         BrowseModeController browseModeController,
         SayAllController sayAllController,
@@ -106,6 +108,7 @@ public sealed class ScreenReaderService : IHostedService
         _terminalMonitor = terminalMonitor;
         _foregroundWindowMonitor = foregroundWindowMonitor;
         _dialogReader = dialogReader;
+        _progressReporter = progressReporter;
         _navigationManager = navigationManager;
         _browseModeController = browseModeController;
         _sayAllController = sayAllController;
@@ -158,6 +161,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.CaretMovedProcessed += OnCaretMovedProcessed;
         _eventPipeline.TextEditedProcessed += OnTextEditedProcessed;
         _eventPipeline.ForegroundWindowChangedProcessed += OnForegroundWindowChangedProcessed;
+        _eventPipeline.ProgressChangedProcessed += OnProgressChangedProcessed;
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
         _eventPipeline.FocusContextProvider = _foregroundWindowMonitor.FocusContext;
 
@@ -211,6 +215,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.CaretMovedProcessed -= OnCaretMovedProcessed;
         _eventPipeline.TextEditedProcessed -= OnTextEditedProcessed;
         _eventPipeline.ForegroundWindowChangedProcessed -= OnForegroundWindowChangedProcessed;
+        _eventPipeline.ProgressChangedProcessed -= OnProgressChangedProcessed;
         _navigationManager.ModeChanged -= OnModeChanged;
         _browseModeController.DocumentActiveChanged -= OnDocumentActiveChanged;
         _browseModeController.EscapeGoesToPageChanged -= OnEscapeGoesToPageChanged;
@@ -326,6 +331,16 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnCaretMovedProcessed(object? sender, CaretMovedEvent e) =>
         TrackBackground(_focusedTextMonitor.HandleCaretMovedAsync(e));
+
+    private void OnProgressChangedProcessed(object? sender, ProgressChangedEvent e)
+    {
+        if (_progressReporter.Evaluate(e) is not { } report)
+            return;
+        if (report.Speech is { } speech)
+            _speechQueue.Enqueue(new Utterance(speech, SpeechPriority.Normal));
+        if (report.ToneHz is { } hz)
+            _audioCuePlayer.PlayTone(hz, 40);
+    }
 
     private void OnForegroundWindowChangedProcessed(object? sender, ForegroundWindowChangedEvent e) =>
         TrackBackground(_dialogReader.HandleForegroundWindowChangedAsync(e));

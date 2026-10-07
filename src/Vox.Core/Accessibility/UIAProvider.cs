@@ -46,6 +46,10 @@ public sealed class UIAProvider : IDisposable
     private IUIAutomationCacheRequest? _cacheRequest;
     private IUIAutomationCacheRequest? _subtreeCacheRequest;
     private IUIAutomationCacheRequest? _liveRegionCacheRequest;
+    private IUIAutomationCacheRequest? _progressCacheRequest;
+
+    internal const int UIA_RangeValueMinimumPropertyId = 30049;
+    internal const int UIA_RangeValueMaximumPropertyId = 30050;
     private bool _disposed;
 
     public UIAProvider(UIAThread uiaThread, ILogger<UIAProvider> logger)
@@ -98,6 +102,13 @@ public sealed class UIAProvider : IDisposable
 
             _subtreeCacheRequest = CreateSubtreeRequest(_automation);
             _liveRegionCacheRequest = CreateLiveRegionRequest(_automation);
+
+            // Progress bars anywhere: their type, process and range come with each change
+            _progressCacheRequest = _automation.CreateCacheRequest();
+            _progressCacheRequest.AddProperty(UIA_ControlTypePropertyId);
+            _progressCacheRequest.AddProperty(UIA_ProcessIdPropertyId);
+            _progressCacheRequest.AddProperty(UIA_RangeValueMinimumPropertyId);
+            _progressCacheRequest.AddProperty(UIA_RangeValueMaximumPropertyId);
 
             _logger.LogDebug("UIAProvider initialized with cache requests");
         }, UIAThread.SetupTimeout);
@@ -232,6 +243,10 @@ public sealed class UIAProvider : IDisposable
         }
     }
 
+    /// <summary>Cache request for desktop-wide progress bar changes. Must be used on the STA thread.</summary>
+    public IUIAutomationCacheRequest ProgressCacheRequest =>
+        _progressCacheRequest ?? throw new InvalidOperationException("UIAProvider not initialized. Call InitializeAsync first.");
+
     /// <summary>
     /// Gets the UIA automation object. Must be called on the STA thread.
     /// </summary>
@@ -276,6 +291,11 @@ public sealed class UIAProvider : IDisposable
             {
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(_subtreeCacheRequest);
                 _subtreeCacheRequest = null;
+            }
+            if (_progressCacheRequest is not null)
+            {
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(_progressCacheRequest);
+                _progressCacheRequest = null;
             }
             if (_liveRegionCacheRequest is not null)
             {

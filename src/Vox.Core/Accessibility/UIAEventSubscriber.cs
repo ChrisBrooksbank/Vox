@@ -107,6 +107,14 @@ public sealed class UIAEventSubscriber :
                 _uiaProvider.LiveRegionCacheRequest,
                 this);
 
+            // Progress bars — desktop scope; the handler keeps only ProgressBar senders
+            automation.AddPropertyChangedEventHandler(
+                automation.GetRootElement(),
+                TreeScope.TreeScope_Subtree,
+                _uiaProvider.ProgressCacheRequest,
+                this,
+                [UIA_RangeValueValuePropertyId]);
+
             // Notification event (IUIAutomation5) — desktop scope
             if (automation is IUIAutomation5 automation5)
             {
@@ -264,6 +272,7 @@ public sealed class UIAEventSubscriber :
     ];
 
     private const int UIA_RangeValueValuePropertyId = 30047;
+    private const int UIA_ProgressBarControlTypeId = 50012;
     private const int UIA_IsEnabledPropertyId = 30010;
 
     /// <summary>
@@ -411,6 +420,16 @@ public sealed class UIAEventSubscriber :
         try
         {
             var runtimeId = TryGetRuntimeId(sender);
+            if (propertyId == UIA_RangeValueValuePropertyId && newValue is double value
+                && TryGetValue(sender, () => sender.CachedControlType) == UIA_ProgressBarControlTypeId)
+            {
+                _eventSink.Post(new ProgressChangedEvent(
+                    DateTimeOffset.UtcNow, runtimeId, value,
+                    Minimum: TryGetValue(sender, () => sender.GetCachedPropertyValue(UIAProvider.UIA_RangeValueMinimumPropertyId) is double min ? min : 0),
+                    Maximum: TryGetValue(sender, () => sender.GetCachedPropertyValue(UIAProvider.UIA_RangeValueMaximumPropertyId) is double max ? max : 100),
+                    ProcessId: TryGetValue(sender, () => sender.CachedProcessId)));
+                return;
+            }
             _eventSink.Post(new PropertyChangedEvent(
                 Timestamp: DateTimeOffset.UtcNow,
                 RuntimeId: runtimeId,
