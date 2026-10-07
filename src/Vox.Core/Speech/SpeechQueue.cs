@@ -54,6 +54,12 @@ public sealed class SpeechQueue : IDisposable
         _processingTask = Task.Run(ProcessQueueAsync, _cts.Token);
     }
 
+    /// <summary>
+    /// Processing applied to each utterance's text just before it goes to the engine (history and
+    /// the utterance events keep the original text). Set at startup.
+    /// </summary>
+    public TextProcessor TextProcessor { get; set; } = TextProcessor.None;
+
     public ValueTask EnqueueAsync(Utterance utterance, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -287,7 +293,9 @@ public sealed class SpeechQueue : IDisposable
             RaiseSafely(UtteranceStarted, utterance);
             try
             {
-                await _engine.SpeakAsync(utterance, speechCts.Token).ConfigureAwait(false);
+                var text = TextProcessor.Process(utterance);
+                await _engine.SpeakAsync(text == utterance.Text ? utterance : utterance with { Text = text }, speechCts.Token)
+                    .ConfigureAwait(false);
             }
             finally
             {

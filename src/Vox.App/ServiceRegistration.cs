@@ -60,9 +60,14 @@ public static class ServiceRegistration
             sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
             sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
             sp.GetRequiredService<SpeechQueue>()));
+        // Rules run in this order on every utterance
+        services.AddSingleton<TextProcessor>(sp => new TextProcessor(
+            Array.Empty<ITextRule>(),
+            sp.GetRequiredService<ILogger<TextProcessor>>()));
         services.AddSingleton<SpeechQueue>(sp =>
         {
             var queue = new SpeechQueue(sp.GetRequiredService<ISpeechEngine>(), sp.GetRequiredService<ILogger<SpeechQueue>>());
+            queue.TextProcessor = sp.GetRequiredService<TextProcessor>();
             var history = sp.GetRequiredService<SpeechHistory>();
             var latency = sp.GetRequiredService<LatencyTracker>();
             queue.UtteranceStarted += (_, u) => history.Add(u.Text);
