@@ -47,11 +47,20 @@ public sealed class UIAEventSubscriber :
     // Focused element with a text pattern that the caret/text handlers are registered on (STA thread only)
     private IUIAutomationElement? _textScope;
 
+    // Focused element with text: the one above, or a value-only edit control (STA thread only)
+    private IUIAutomationElement? _focusedText;
+    private volatile FocusedTextKind _focusedTextKind;
+
     /// <summary>
-    /// The focused element whose caret and text changes are being reported (it has a TextPattern),
-    /// or null. STA thread only.
+    /// The focused element with text (see <see cref="FocusedTextKind"/>), or null. STA thread only.
     /// </summary>
-    public IUIAutomationElement? FocusedTextElement => _textScope;
+    public IUIAutomationElement? FocusedTextElement => _focusedText;
+
+    /// <summary>What kind of text the focused element has. Readable from any thread.</summary>
+    public FocusedTextKind FocusedTextKind => _focusedTextKind;
+
+    private const int UIA_ValuePatternId = 10002;
+    private const int UIA_EditControlTypeId = 50004;
 
     public UIAEventSubscriber(
         UIAThread uiaThread,
@@ -121,6 +130,8 @@ public sealed class UIAEventSubscriber :
         {
             _documentScope = null;
             _textScope = null;
+            _focusedText = null;
+            _focusedTextKind = FocusedTextKind.None;
             _subscribed = false;
         }, UIAThread.SetupTimeout).ConfigureAwait(false);
         await SubscribeAsync().ConfigureAwait(false);
@@ -193,12 +204,23 @@ public sealed class UIAEventSubscriber :
         {
             var automation = _uiaProvider.Automation;
             var focused = automation.GetFocusedElementBuildCache(_uiaProvider.CacheRequest);
-            if (_textScope is not null && focused is not null && automation.CompareElements(_textScope, focused) != 0)
+            if (_focusedText is not null && focused is not null && automation.CompareElements(_focusedText, focused) != 0)
                 return; // still the same element
 
             RemoveTextScope(automation);
-            if (focused is null || UIATextDocument.TryCreate(focused) is null)
+            if (focused is null)
                 return;
+            if (UIATextDocument.TryCreate(focused) is null)
+            {
+                // An edit control with only a value: its caret is read through Win32 after caret keys
+                bool isEdit = TryGetValue(focused, () => focused.CachedControlType) == UIA_EditControlTypeId;
+                if (isEdit && TryGetValue(focused, () => focused.GetCurrentPattern(UIA_ValuePatternId) is not null))
+                {
+                    _focusedText = focused;
+                    _focusedTextKind = FocusedTextKind.ValueOnly;
+                }
+                return;
+            }
 
             try
             {
@@ -207,6 +229,8 @@ public sealed class UIAEventSubscriber :
                 automation.AddAutomationEventHandler(
                     UIA_Text_TextChangedEventId, focused, TreeScope.TreeScope_Element, null, this);
                 _textScope = focused;
+                _focusedText = focused;
+                _focusedTextKind = FocusedTextKind.TextPattern;
             }
             catch (Exception ex)
             {
@@ -217,6 +241,8 @@ public sealed class UIAEventSubscriber :
 
     private void RemoveTextScope(IUIAutomation automation)
     {
+        _focusedText = null;
+        _focusedTextKind = FocusedTextKind.None;
         if (_textScope is null) return;
         try
         {

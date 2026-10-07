@@ -270,7 +270,7 @@ public sealed class ScreenReaderService : IHostedService
     private void OnRawKeyReceived(object? sender, RawKeyEvent e)
     {
         _browseModeController.HandleRawKey(e);
-        _focusedTextMonitor.HandleRawKey(e);
+        TrackBackground(_focusedTextMonitor.HandleRawKey(e));
     }
 
     private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e) =>

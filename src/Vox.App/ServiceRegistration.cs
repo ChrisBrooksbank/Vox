@@ -44,6 +44,7 @@ public static class ServiceRegistration
         services.AddSingleton<IForegroundApp, Win32ForegroundApp>();
         services.AddSingleton<NotRespondingReporter>();
         services.AddSingleton<TextCaretTracker>(_ => new TextCaretTracker());
+        services.AddSingleton<IFocusedTextSource, UIAFocusedTextSource>();
         services.AddSingleton<FocusedTextMonitor>();
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
