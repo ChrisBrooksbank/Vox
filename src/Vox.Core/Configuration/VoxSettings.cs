@@ -122,7 +122,7 @@ public record VoxSettings
     /// <summary>Applications (process names) in sleep mode: Vox neither speaks nor takes keys while they have focus.</summary>
     public List<string> SleepApps { get; init; } = [];
     public string? VoiceName { get; init; }
-    /// <summary>Speech engine by id ("OneCore", "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
+    /// <summary>Speech engine by id ("OneCore", "eSpeak" when installed, "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }
     public TypingEchoMode TypingEchoMode { get; init; } = TypingEchoMode.Both;
     public bool AudioCuesEnabled { get; init; } = true;

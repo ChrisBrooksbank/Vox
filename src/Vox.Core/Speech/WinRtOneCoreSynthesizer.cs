@@ -3,10 +3,10 @@ using Windows.Media.SpeechSynthesis;
 namespace Vox.Core.Speech;
 
 /// <summary>
-/// <see cref="IOneCoreSynthesizer"/> over Windows.Media.SpeechSynthesis. Creating it fails where
+/// <see cref="IWaveSynthesizer"/> over Windows.Media.SpeechSynthesis. Creating it fails where
 /// OneCore speech isn't available (the engine registry then falls back to SAPI).
 /// </summary>
-public sealed class WinRtOneCoreSynthesizer : IOneCoreSynthesizer, IDisposable
+public sealed class WinRtOneCoreSynthesizer : IWaveSynthesizer, IDisposable
 {
     private readonly SpeechSynthesizer _synthesizer = new();
     private readonly object _lock = new();
@@ -18,12 +18,12 @@ public sealed class WinRtOneCoreSynthesizer : IOneCoreSynthesizer, IDisposable
         _synthesizer.Options.PunctuationSilence = SpeechPunctuationSilence.Min;
     }
 
-    public IReadOnlyList<OneCoreVoice> Voices =>
-        SpeechSynthesizer.AllVoices.Select(v => new OneCoreVoice(v.DisplayName, v.Language)).ToList();
+    public IReadOnlyList<SynthesizerVoice> Voices =>
+        SpeechSynthesizer.AllVoices.Select(v => new SynthesizerVoice(v.DisplayName, v.Language)).ToList();
 
     public string? DefaultVoice => SpeechSynthesizer.DefaultVoice?.DisplayName;
 
-    public async Task<byte[]> SynthesizeAsync(string text, OneCoreOptions options, CancellationToken cancellationToken)
+    public async Task<byte[]> SynthesizeAsync(string text, SynthesisOptions options, CancellationToken cancellationToken)
     {
         Windows.Foundation.IAsyncOperation<SpeechSynthesisStream> operation;
         // Options belong to the synthesizer: set them and start synthesis together

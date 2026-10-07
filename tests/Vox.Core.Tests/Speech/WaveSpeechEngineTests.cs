@@ -6,19 +6,19 @@ using Xunit;
 
 namespace Vox.Core.Tests.Speech;
 
-public class OneCoreSpeechEngineTests
+public class WaveSpeechEngineTests
 {
-    private sealed class Synthesizer : IOneCoreSynthesizer
+    private sealed class Synthesizer : IWaveSynthesizer
     {
-        public List<(string Text, OneCoreOptions Options)> Calls { get; } = new();
+        public List<(string Text, SynthesisOptions Options)> Calls { get; } = new();
         public TaskCompletionSource? Gate { get; set; }
 
-        public IReadOnlyList<OneCoreVoice> Voices { get; } =
+        public IReadOnlyList<SynthesizerVoice> Voices { get; } =
             [new("Microsoft Aria", "en-US"), new("Microsoft Libby", "en-GB"), new("Microsoft Ryan", "en-GB")];
 
         public string? DefaultVoice => "Microsoft Aria";
 
-        public async Task<byte[]> SynthesizeAsync(string text, OneCoreOptions options, CancellationToken cancellationToken)
+        public async Task<byte[]> SynthesizeAsync(string text, SynthesisOptions options, CancellationToken cancellationToken)
         {
             Calls.Add((text, options));
             if (Gate is { } gate)
@@ -80,11 +80,11 @@ public class OneCoreSpeechEngineTests
 
     private readonly Synthesizer _synthesizer = new();
     private readonly Player _player = new();
-    private readonly OneCoreSpeechEngine _engine;
+    private readonly WaveSpeechEngine _engine;
 
-    public OneCoreSpeechEngineTests()
+    public WaveSpeechEngineTests()
     {
-        _engine = new OneCoreSpeechEngine(_synthesizer, _player, NullLogger<OneCoreSpeechEngine>.Instance);
+        _engine = new WaveSpeechEngine(_synthesizer, _player, NullLogger<WaveSpeechEngine>.Instance);
     }
 
     [Fact]
@@ -190,7 +190,7 @@ public class OneCoreSpeechEngineTests
     [InlineData(5000, 5.0)]
     public void WpmToSpeakingRate_IsProportional_WithinTheEnginesRange(int wpm, double expected)
     {
-        Assert.Equal(expected, OneCoreSpeechEngine.WpmToSpeakingRate(wpm), 3);
+        Assert.Equal(expected, WaveSpeechEngine.WpmToSpeakingRate(wpm), 3);
     }
 
     [Fact]

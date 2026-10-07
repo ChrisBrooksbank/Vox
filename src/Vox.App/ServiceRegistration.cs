@@ -35,24 +35,37 @@ public static class ServiceRegistration
         // Speech
         // The registry is the engine everything speaks through; it starts the configured engine
         // (OneCore by default) and falls back to SAPI
-        services.AddSingleton<SpeechEngineRegistry>(sp => new SpeechEngineRegistry(
-        [
-            new SpeechEngineDescriptor(SpeechEngineRegistry.OneCoreId, "OneCore", () =>
+        services.AddSingleton<SpeechEngineRegistry>(sp =>
+        {
+            var player = sp.GetRequiredService<IAudioStreamPlayer>();
+            var engines = new List<SpeechEngineDescriptor>
             {
-                var synthesizer = new WinRtOneCoreSynthesizer();
-                if (synthesizer.Voices.Count == 0)
+                new(SpeechEngineRegistry.OneCoreId, "OneCore", () =>
                 {
-                    synthesizer.Dispose();
-                    throw new InvalidOperationException("No OneCore voices are installed");
-                }
-                var engine = new OneCoreSpeechEngine(synthesizer, sp.GetRequiredService<IAudioStreamPlayer>(),
-                    sp.GetRequiredService<ILogger<OneCoreSpeechEngine>>());
-                engine.WarmUp();
-                return engine;
-            }),
-            new SpeechEngineDescriptor(SpeechEngineRegistry.SapiId, "SAPI 5",
-                () => new SapiSpeechEngine(sp.GetRequiredService<ILogger<SapiSpeechEngine>>())),
-        ], sp.GetRequiredService<ILogger<SpeechEngineRegistry>>()));
+                    var synthesizer = new WinRtOneCoreSynthesizer();
+                    if (synthesizer.Voices.Count == 0)
+                    {
+                        synthesizer.Dispose();
+                        throw new InvalidOperationException("No OneCore voices are installed");
+                    }
+                    var engine = new WaveSpeechEngine(synthesizer, player, sp.GetRequiredService<ILogger<WaveSpeechEngine>>());
+                    engine.WarmUp();
+                    return engine;
+                }),
+            };
+            // eSpeak NG is an optional component the user installs (GPL); never on secure screens
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var espeakDirectory = EspeakComponent.DefaultDirectory;
+            if (policy.AllowAddOns && EspeakComponent.IsInstalled(espeakDirectory))
+            {
+                engines.Add(new(SpeechEngineRegistry.EspeakId, "eSpeak NG", () =>
+                    new WaveSpeechEngine(new EspeakSynthesizer(EspeakNative.Load(espeakDirectory)), player,
+                        sp.GetRequiredService<ILogger<WaveSpeechEngine>>())));
+            }
+            engines.Add(new(SpeechEngineRegistry.SapiId, "SAPI 5",
+                () => new SapiSpeechEngine(sp.GetRequiredService<ILogger<SapiSpeechEngine>>())));
+            return new SpeechEngineRegistry(engines, sp.GetRequiredService<ILogger<SpeechEngineRegistry>>());
+        });
         services.AddSingleton<ISpeechEngine>(sp => sp.GetRequiredService<SpeechEngineRegistry>());
         services.AddSingleton<SettingsRing>(sp => new SettingsRing(
             sp.GetRequiredService<ISpeechEngine>(),

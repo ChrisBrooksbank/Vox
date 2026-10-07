@@ -16,6 +16,7 @@ public sealed class SpeechEngineRegistry : ISpeechEngine, IDisposable
 {
     public const string OneCoreId = "OneCore";
     public const string SapiId = "SAPI";
+    public const string EspeakId = "eSpeak";
 
     private readonly IReadOnlyList<SpeechEngineDescriptor> _engines;
     private readonly ILogger<SpeechEngineRegistry> _logger;
