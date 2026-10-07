@@ -54,6 +54,7 @@
     { "modifiers": "Insert",      "vkCode": 123, "mode": "Any",    "command": "SayTime" },
     { "modifiers": "Insert|Shift", "vkCode": 66, "mode": "Any",    "command": "SayBattery" },
     { "modifiers": "Insert",      "vkCode": 66,  "mode": "Any",    "command": "ReadWindow" },
+    { "modifiers": "Insert|Ctrl|Shift", "vkCode": 83, "mode": "Any", "command": "CopySettingsToSecureScreens" },
     { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },
     { "modifiers": "Insert|Ctrl", "vkCode": 83,  "mode": "Any",    "command": "RunSetup" }
   ]

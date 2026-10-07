@@ -40,6 +40,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly MenuTracker _menuTracker;
     private readonly WhereAmICommands _whereAmI;
     private readonly RunPolicy _runPolicy;
+    private readonly SettingsManager _settingsManager;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -97,8 +98,10 @@ public sealed class ScreenReaderService : IHostedService
         IOptionsMonitor<VoxSettings> settings,
         IHostApplicationLifetime lifetime,
         ILogger<ScreenReaderService> logger,
+        SettingsManager settingsManager,
         RunPolicy? runPolicy = null)
     {
+        _settingsManager = settingsManager;
         _runPolicy = runPolicy ?? RunPolicy.Normal;
         _lifetime = lifetime;
         _speechEngine = speechEngine;
@@ -308,6 +311,12 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e)
     {
+        if (e.Command == NavigationCommand.CopySettingsToSecureScreens)
+        {
+            var message = SecureScreenSettings.Copy(_settingsManager, _settings.CurrentValue, _runPolicy);
+            _speechQueue.Enqueue(new Utterance(message, SpeechPriority.Interrupt));
+            return;
+        }
         if (!_whereAmI.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }

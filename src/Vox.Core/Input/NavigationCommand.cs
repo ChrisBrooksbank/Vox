@@ -56,5 +56,6 @@ public enum NavigationCommand
     SayStatusBar,
     SayTime,
     SayBattery,
-    ReadWindow
+    ReadWindow,
+    CopySettingsToSecureScreens
 }
