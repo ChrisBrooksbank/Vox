@@ -186,10 +186,17 @@ public class OneCoreSpeechEngineTests
     [InlineData(180, 1.0)]
     [InlineData(450, 2.5)]
     [InlineData(50, 0.5)]
-    [InlineData(5000, 6.0)]
+    [InlineData(900, 5.0)]
+    [InlineData(5000, 5.0)]
     public void WpmToSpeakingRate_IsProportional_WithinTheEnginesRange(int wpm, double expected)
     {
         Assert.Equal(expected, OneCoreSpeechEngine.WpmToSpeakingRate(wpm), 3);
+    }
+
+    [Fact]
+    public void MaxRate_IsTheFullRangeVoxOffers()
+    {
+        Assert.Equal(ISpeechEngine.MaxSupportedWpm, _engine.MaxRateWpm);
     }
 
     [Fact]

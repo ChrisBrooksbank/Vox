@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 97
+- Build iterations: 98
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -162,7 +162,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Extend `ISpeechEngine` with pitch, volume and capability flags; implement in `SapiSpeechEngine` (spec: speech-and-audio.md)
 - [x] Add `OneCoreSpeechEngine` over `Windows.Media.SpeechSynthesis` with voice listing, rate, pitch, volume, playing through NAudio WASAPI on the `AudioOutputDevice` (so speech follows the output device setting) (spec: speech-and-audio.md)
 - [x] Add `SpeechEngineRegistry`: list engines, switch at runtime, fall back to SAPI if an engine fails; prefer OneCore by default; unit tests (spec: speech-and-audio.md)
-- [ ] Add rate boost up to 900 wpm (engine boost or time-stretch) with `SpeechRateWpm` range update and wizard support (spec: speech-and-audio.md)
+- [x] Add rate boost up to 900 wpm (engine boost or time-stretch) with `SpeechRateWpm` range update and wizard support (spec: speech-and-audio.md) — engine boost: OneCore speaks up to 900 wpm natively (speaking rate 5), SAPI up to its rate 10 (~540 wpm); engines report `MaxRateWpm` and the wizard follows it; no time-stretching
 - [ ] Add settings ring (Insert+Ctrl+Left/Right choose, Up/Down change: voice, rate, pitch, volume, punctuation, engine); saved and spoken; unit tests (spec: speech-and-audio.md)
 - [ ] Add `TextProcessor` stage before `SpeechQueue` with a pluggable rule chain; no-op by default; unit tests (spec: speech-and-audio.md)
 - [ ] Add punctuation levels None/Some/Most/All and `assets/speech/symbols-en.json` seeded from CLDR; unit tests per level (spec: speech-and-audio.md)

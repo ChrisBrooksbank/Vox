@@ -61,6 +61,9 @@ public sealed class OneCoreSpeechEngine : ISpeechEngine, IDisposable
 
     public SpeechCapabilities Capabilities => SpeechCapabilities.Pitch | SpeechCapabilities.Volume;
 
+    // OneCore speaks up to six times its normal speed itself: the full range Vox offers
+    public int MaxRateWpm => ISpeechEngine.MaxSupportedWpm;
+
     public async Task SpeakAsync(Utterance utterance, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(utterance.Text))
@@ -113,7 +116,8 @@ public sealed class OneCoreSpeechEngine : ISpeechEngine, IDisposable
     }
 
     /// <summary>Speaking rate (1 = normal) for a rate in words per minute.</summary>
-    public static double WpmToSpeakingRate(int wpm) => Math.Clamp(wpm / NormalWpm, MinSpeakingRate, MaxSpeakingRate);
+    public static double WpmToSpeakingRate(int wpm) =>
+        Math.Clamp(Math.Min(wpm, ISpeechEngine.MaxSupportedWpm) / NormalWpm, MinSpeakingRate, MaxSpeakingRate);
 
     public void SetRate(int wpm)
     {

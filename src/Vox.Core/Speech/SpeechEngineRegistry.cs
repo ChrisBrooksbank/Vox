@@ -222,6 +222,8 @@ public sealed class SpeechEngineRegistry : ISpeechEngine, IDisposable
 
     public SpeechCapabilities Capabilities => Current.Capabilities;
 
+    public int MaxRateWpm => Current.MaxRateWpm;
+
     public IReadOnlyList<string> GetLanguages() => Current.GetLanguages();
 
     public void Dispose()

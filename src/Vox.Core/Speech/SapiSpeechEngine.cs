@@ -26,9 +26,9 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
     private volatile int _pitch = ISpeechEngine.DefaultPitch;
     private volatile int _volume = 100;
 
-    // Supported WPM range (matches the first-run wizard)
-    private const int MinWpm = 150;
-    private const int MaxWpm = 450;
+    // SAPI's own range: rate 10 is about three times the normal speed (~540 WPM)
+    private const int MinWpm = ISpeechEngine.MinSupportedWpm;
+    private const int MaxWpm = 540;
     private const int MinSapiRate = -10;
     private const int MaxSapiRate = 10;
 
@@ -37,6 +37,8 @@ public sealed class SapiSpeechEngine : ISpeechEngine, IDisposable
     private const double BaseWpm = 180.0;
 
     public bool IsSpeaking => _isSpeaking;
+
+    public int MaxRateWpm => MaxWpm;
 
     public SapiSpeechEngine(ILogger<SapiSpeechEngine> logger)
     {

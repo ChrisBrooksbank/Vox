@@ -21,9 +21,12 @@ namespace Vox.Core.Configuration;
 /// </summary>
 public sealed class FirstRunWizard
 {
+    // Finer steps at everyday rates, coarser ones up to the fastest
     private const int RateStep = 10;
-    private const int MinRateWpm = 150;
-    private const int MaxRateWpm = 450;
+    private const int FastRateStep = 25;
+    private const int FastRateFromWpm = 400;
+    private const int MinRateWpm = ISpeechEngine.MinSupportedWpm;
+    private const int DefaultMaxRateWpm = 450;
 
     private readonly ISpeechEngine _speechEngine;
     private readonly SettingsManager _settingsManager;
@@ -190,6 +193,17 @@ public sealed class FirstRunWizard
         }
     }
 
+    /// <summary>The fastest rate the speech engine speaks (up to <see cref="ISpeechEngine.MaxSupportedWpm"/>).</summary>
+    private int MaxRateWpm
+    {
+        get
+        {
+            int max = _speechEngine.MaxRateWpm;
+            // 0: the engine doesn't say
+            return max <= 0 ? DefaultMaxRateWpm : Math.Clamp(max, MinRateWpm, ISpeechEngine.MaxSupportedWpm);
+        }
+    }
+
     private async Task<VoxSettings> RunSpeechRateStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
         int rate = settings.SpeechRateWpm;
@@ -205,8 +219,8 @@ public sealed class FirstRunWizard
             if (key.VkCode == VirtualKeys.Up || key.VkCode == VirtualKeys.Down)
             {
                 rate = key.VkCode == VirtualKeys.Up
-                    ? Math.Min(rate + RateStep, MaxRateWpm)
-                    : Math.Max(rate - RateStep, MinRateWpm);
+                    ? Math.Min(rate + (rate >= FastRateFromWpm ? FastRateStep : RateStep), MaxRateWpm)
+                    : Math.Max(rate - (rate > FastRateFromWpm ? FastRateStep : RateStep), MinRateWpm);
                 _speechEngine.SetRate(rate);
                 key = await PromptAsync($"{rate} words per minute. The quick brown fox jumps over the lazy dog.", cancellationToken);
                 continue;

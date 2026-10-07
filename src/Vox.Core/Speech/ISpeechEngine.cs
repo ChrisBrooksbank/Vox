@@ -30,6 +30,15 @@ public interface ISpeechEngine
     /// <summary>The name of the voice currently speaking, or null when unknown.</summary>
     string? CurrentVoice => null;
 
+    /// <summary>The fastest rate Vox offers, in words per minute (engines may support less).</summary>
+    public const int MaxSupportedWpm = 900;
+
+    /// <summary>The slowest rate Vox offers, in words per minute.</summary>
+    public const int MinSupportedWpm = 150;
+
+    /// <summary>The fastest rate this engine speaks, in words per minute; faster rates are spoken at this one.</summary>
+    int MaxRateWpm => 450;
+
     /// <summary>What the engine supports beyond rate and voice.</summary>
     SpeechCapabilities Capabilities => SpeechCapabilities.None;
 
