@@ -6,6 +6,7 @@ using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Text;
 
 namespace Vox.App;
 
@@ -42,6 +43,8 @@ public static class ServiceRegistration
         services.AddSingleton<UIARecovery>();
         services.AddSingleton<IForegroundApp, Win32ForegroundApp>();
         services.AddSingleton<NotRespondingReporter>();
+        services.AddSingleton<TextCaretTracker>(_ => new TextCaretTracker());
+        services.AddSingleton<FocusedTextMonitor>();
         services.AddSingleton<UIAProvider>();
         services.AddSingleton<UIAEventSubscriber>();
         services.AddSingleton<LiveRegionMonitor>();

@@ -31,6 +31,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly UIARecovery _uiaRecovery;
     // Constructed to subscribe to UIA call timeouts ("<app> not responding")
     private readonly NotRespondingReporter _notRespondingReporter;
+    private readonly FocusedTextMonitor _focusedTextMonitor;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -73,6 +74,7 @@ public sealed class ScreenReaderService : IHostedService
         UIAWatchdog uiaWatchdog,
         UIARecovery uiaRecovery,
         NotRespondingReporter notRespondingReporter,
+        FocusedTextMonitor focusedTextMonitor,
         NavigationManager navigationManager,
         BrowseModeController browseModeController,
         SayAllController sayAllController,
@@ -94,6 +96,7 @@ public sealed class ScreenReaderService : IHostedService
         _uiaWatchdog = uiaWatchdog;
         _uiaRecovery = uiaRecovery;
         _notRespondingReporter = notRespondingReporter;
+        _focusedTextMonitor = focusedTextMonitor;
         _navigationManager = navigationManager;
         _browseModeController = browseModeController;
         _sayAllController = sayAllController;
@@ -143,6 +146,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.ElementsListClosedProcessed += OnElementsListClosedProcessed;
         _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
+        _eventPipeline.CaretMovedProcessed += OnCaretMovedProcessed;
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
@@ -192,6 +196,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.ElementsListClosedProcessed -= OnElementsListClosedProcessed;
         _eventPipeline.PropertyChangedProcessed -= OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed -= OnElementSelectedProcessed;
+        _eventPipeline.CaretMovedProcessed -= OnCaretMovedProcessed;
         _navigationManager.ModeChanged -= OnModeChanged;
         _browseModeController.DocumentActiveChanged -= OnDocumentActiveChanged;
         _browseModeController.EscapeGoesToPageChanged -= OnEscapeGoesToPageChanged;
@@ -262,8 +267,11 @@ public sealed class ScreenReaderService : IHostedService
         }
     }
 
-    private void OnRawKeyReceived(object? sender, RawKeyEvent e) =>
+    private void OnRawKeyReceived(object? sender, RawKeyEvent e)
+    {
         _browseModeController.HandleRawKey(e);
+        _focusedTextMonitor.HandleRawKey(e);
+    }
 
     private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e) =>
         _browseModeController.HandleCommand(e.Command);
@@ -271,6 +279,7 @@ public sealed class ScreenReaderService : IHostedService
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
     {
         _browseModeController.HandleFocusChanged(e);
+        _focusedTextMonitor.HandleFocusChanged();
         TrackBackground(_documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence));
         TrackBackground(IgnoreUiaFailure(_uiaEventSubscriber.FollowFocusForTextAsync(), "following focus for caret events"));
     }
@@ -291,6 +300,9 @@ public sealed class ScreenReaderService : IHostedService
             _logger.LogDebug(ex, "UIA error while {What}", what);
         }
     }
+
+    private void OnCaretMovedProcessed(object? sender, CaretMovedEvent e) =>
+        TrackBackground(_focusedTextMonitor.HandleCaretMovedAsync(e));
 
     private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>
         _documentTracker.OnStructureChanged(e.RuntimeId);
