@@ -136,6 +136,16 @@ public sealed class ObjectNavigationCommands
             Speak(text);
     }
 
+    /// <summary>
+    /// The navigator object (seeded from focus), for reviewing its text. UIA thread only. Each
+    /// move gives a new object, so callers can tell a moved navigator by reference.
+    /// </summary>
+    public INavigatorObject? CurrentObject()
+    {
+        EnsureNavigator();
+        return _navigator.Current;
+    }
+
     /// <summary>Seeds the navigator from focus when it has no object yet (UIA thread).</summary>
     private void EnsureNavigator()
     {

@@ -1,4 +1,5 @@
 using Vox.Core.Pipeline;
+using Vox.Core.Text;
 
 namespace Vox.Core.Navigation;
 
@@ -22,6 +23,9 @@ public interface INavigatorObject
 
     /// <summary>Runs the object's default action (press, toggle, select); false when it has none.</summary>
     bool Activate() => false;
+
+    /// <summary>The object's text for review: its own text (an edit's or document's), or its name and value.</summary>
+    ITextDocument GetText() => new StringTextDocument(ObjectNavigator.TextOf(Describe()));
 }
 
 /// <summary>A navigator movement.</summary>
@@ -90,6 +94,19 @@ public sealed class ObjectNavigator
     {
         var description = obj.Describe();
         return description.ControlType is "Group" or "Pane" && string.IsNullOrWhiteSpace(description.ElementName);
+    }
+
+    /// <summary>
+    /// The text an object shows when it has no text of its own: its name and value (never a
+    /// password's value), on separate lines.
+    /// </summary>
+    public static string TextOf(FocusChangedEvent description)
+    {
+        var name = description.ElementName.Trim();
+        var value = description.IsPassword ? string.Empty : (description.Value ?? string.Empty).Trim();
+        if (value.Length == 0 || value == name)
+            return name;
+        return name.Length == 0 ? value : name + "\n" + value;
     }
 
     private bool OverBudget() => ++_lookups > MaxLookups;

@@ -85,6 +85,9 @@ public static class ServiceRegistration
         services.AddSingleton<WhereAmICommands>();
         services.AddSingleton<INavigatorObjectSource>(sp => new UIANavigatorObjectSource(sp.GetRequiredService<UIAProvider>()));
         services.AddSingleton<ObjectNavigationCommands>();
+        services.AddSingleton<IReviewTextSource>(sp => new UIAReviewTextSource(sp.GetRequiredService<UIAProvider>(),
+            sp.GetRequiredService<IFocusedTextSource>(), sp.GetRequiredService<IForegroundWindow>()));
+        services.AddSingleton<ReviewCommands>();
         services.AddSingleton<IStartupRegistration, RunKeyStartupRegistration>();
         services.AddSingleton<IAudioDucker, Win32AudioDucker>();
         services.AddSingleton<DuckingController>(sp =>

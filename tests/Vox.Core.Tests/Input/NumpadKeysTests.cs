@@ -88,8 +88,9 @@ public class NumpadKeysTests
         var keys = new Harness(documentActive: true);
         keys.Dispatcher.SetMode(InteractionMode.Browse);
 
-        Assert.Equal(NavigationCommand.NextLine,
-            keys.Press(new KeyEvent { VkCode = 0x28, IsKeypad = true }));
+        // Ctrl+Numpad2 has no binding of its own: it is Ctrl+Down
+        Assert.Equal(NavigationCommand.NextParagraph,
+            keys.Press(new KeyEvent { VkCode = 0x28, IsKeypad = true, Modifiers = KeyModifiers.Ctrl }));
     }
 
     [Fact]

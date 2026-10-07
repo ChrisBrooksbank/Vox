@@ -1,6 +1,7 @@
 using Interop.UIAutomationClient;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
+using Vox.Core.Text;
 
 namespace Vox.Core.Accessibility;
 
@@ -61,6 +62,15 @@ public sealed class UIANavigatorObject : INavigatorObject
     public INavigatorObject? GetPreviousSibling() => Wrap(_walker.GetPreviousSiblingElementBuildCache(_element, _cacheRequest));
 
     public FocusChangedEvent Describe() => UIAEventSubscriber.DescribeCached(_element);
+
+    public ITextDocument GetText()
+    {
+        var description = Describe();
+        // A password box's text pattern would give away its length (or worse)
+        if (!description.IsPassword && UIATextDocument.TryCreate(_element) is { } document)
+            return document;
+        return new StringTextDocument(ObjectNavigator.TextOf(description));
+    }
 
     public bool SetFocus()
     {

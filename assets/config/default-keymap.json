@@ -1,5 +1,5 @@
 {
-  "comment": "NVDA-convention keybindings. VkCode values are Windows virtual key codes (the low-level hook reports left/right-specific modifier keys, e.g. 162/163 for Ctrl). Mode: Browse, Focus, or Any. The Insert modifier means the screen reader key (Insert or CapsLock per settings). Bound keys are swallowed unless passThrough is true. Browse- and Focus-mode bindings only apply while a web document has focus; outside documents only Any bindings apply. In Browse mode, unbound typing keys are swallowed so they can't trigger page shortcuts. Tab is not bound: it moves real focus in the browser and the virtual cursor follows focus. Numeric keypad keys (Num Lock off) have their own codes, as in NVDA's desktop layout: Numpad0-9 are 96-105, Numpad. is 110, Numpad- 109, Numpad* 106, Numpad/ 111 and Numpad Enter 269; an unbound keypad key works as the key it stands for (Numpad8 as Up). With Num Lock on the keypad types digits.",
+  "comment": "NVDA-convention keybindings. VkCode values are Windows virtual key codes (the low-level hook reports left/right-specific modifier keys, e.g. 162/163 for Ctrl). Mode: Browse, Focus, or Any. The Insert modifier means the screen reader key (Insert or CapsLock per settings). Bound keys are swallowed unless passThrough is true. Browse- and Focus-mode bindings only apply while a web document has focus; outside documents only Any bindings apply. In Browse mode, unbound typing keys are swallowed so they can't trigger page shortcuts. Tab is not bound: it moves real focus in the browser and the virtual cursor follows focus. Numeric keypad keys (Num Lock off) have their own codes, as in NVDA's desktop layout: Numpad0-9 are 96-105, Numpad. is 110, Numpad- 109, Numpad* 106, Numpad/ 111 and Numpad Enter 269; an unbound keypad key works as the key it stands for (Numpad8 as Up); the plain keypad keys are the review cursor. With Num Lock on the keypad types digits.",
   "bindings": [
     { "modifiers": "None",        "vkCode": 72,  "mode": "Browse", "command": "NextHeading" },
     { "modifiers": "Shift",       "vkCode": 72,  "mode": "Browse", "command": "PrevHeading" },
@@ -65,6 +65,19 @@
     { "modifiers": "Insert",      "vkCode": 109, "mode": "Any",    "command": "NavigatorToFocus" },
     { "modifiers": "Insert|Shift", "vkCode": 109, "mode": "Any",   "command": "FocusToNavigator" },
     { "modifiers": "Insert",      "vkCode": 269, "mode": "Any",    "command": "ActivateNavigator" },
+    { "modifiers": "None",        "vkCode": 103, "mode": "Any",    "command": "ReviewPrevLine" },
+    { "modifiers": "None",        "vkCode": 104, "mode": "Any",    "command": "ReviewCurrentLine" },
+    { "modifiers": "None",        "vkCode": 105, "mode": "Any",    "command": "ReviewNextLine" },
+    { "modifiers": "None",        "vkCode": 100, "mode": "Any",    "command": "ReviewPrevWord" },
+    { "modifiers": "None",        "vkCode": 101, "mode": "Any",    "command": "ReviewCurrentWord" },
+    { "modifiers": "None",        "vkCode": 102, "mode": "Any",    "command": "ReviewNextWord" },
+    { "modifiers": "None",        "vkCode": 97,  "mode": "Any",    "command": "ReviewPrevChar" },
+    { "modifiers": "None",        "vkCode": 98,  "mode": "Any",    "command": "ReviewCurrentChar" },
+    { "modifiers": "None",        "vkCode": 99,  "mode": "Any",    "command": "ReviewNextChar" },
+    { "modifiers": "Shift",       "vkCode": 103, "mode": "Any",    "command": "ReviewTop" },
+    { "modifiers": "Shift",       "vkCode": 105, "mode": "Any",    "command": "ReviewBottom" },
+    { "modifiers": "Insert",      "vkCode": 103, "mode": "Any",    "command": "PrevReviewMode" },
+    { "modifiers": "Insert",      "vkCode": 97,  "mode": "Any",    "command": "NextReviewMode" },
     { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },
     { "modifiers": "Insert|Ctrl", "vkCode": 83,  "mode": "Any",    "command": "RunSetup" }
   ]

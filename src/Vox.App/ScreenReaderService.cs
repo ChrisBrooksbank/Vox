@@ -40,6 +40,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly MenuTracker _menuTracker;
     private readonly WhereAmICommands _whereAmI;
     private readonly ObjectNavigationCommands _objectNavigation;
+    private readonly ReviewCommands _review;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -107,8 +108,10 @@ public sealed class ScreenReaderService : IHostedService
         DuckingController duckingController,
         SpeechViewer speechViewer,
         ObjectNavigationCommands objectNavigation,
+        ReviewCommands review,
         RunPolicy? runPolicy = null)
     {
+        _review = review;
         _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
         _duckingController = duckingController;
@@ -352,7 +355,7 @@ public sealed class ScreenReaderService : IHostedService
             _speechQueue.Enqueue(new Utterance(message, SpeechPriority.Interrupt));
             return;
         }
-        if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command))
+        if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -360,6 +363,7 @@ public sealed class ScreenReaderService : IHostedService
     {
         _browseModeController.HandleFocusChanged(e);
         _whereAmI.HandleFocusChanged(e);
+        _review.HandleFocusChanged();
         TrackBackground(_focusedTextMonitor.HandleFocusChanged());
         TrackBackground(_documentTracker.OnFocusChangedAsync(_browseModeController.FocusSequence));
         TrackBackground(FollowFocusForTextAsync());

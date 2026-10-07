@@ -67,5 +67,18 @@ public enum NavigationCommand
     ReportNavigator,
     NavigatorToFocus,
     FocusToNavigator,
-    ActivateNavigator
+    ActivateNavigator,
+    ReviewPrevLine,
+    ReviewCurrentLine,
+    ReviewNextLine,
+    ReviewPrevWord,
+    ReviewCurrentWord,
+    ReviewNextWord,
+    ReviewPrevChar,
+    ReviewCurrentChar,
+    ReviewNextChar,
+    ReviewTop,
+    ReviewBottom,
+    NextReviewMode,
+    PrevReviewMode
 }

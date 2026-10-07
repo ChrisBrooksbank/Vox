@@ -1,5 +1,6 @@
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
+using Vox.Core.Text;
 
 namespace Vox.Core.Tests.TestSupport;
 
@@ -37,6 +38,8 @@ public sealed class MockNavigatorObject : INavigatorObject
     public INavigatorObject? GetPreviousSibling() => Sibling(-1);
 
     public FocusChangedEvent Describe() => new(DateTimeOffset.UtcNow, Name, ControlType);
+
+    public ITextDocument GetText() => new StringTextDocument(Text ?? Name);
 
     /// <summary>Finds a descendant (or this object) by name.</summary>
     public MockNavigatorObject Find(string name) =>
