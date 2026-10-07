@@ -6,6 +6,7 @@ using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Lifecycle;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
@@ -38,6 +39,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly ProgressReporter _progressReporter;
     private readonly MenuTracker _menuTracker;
     private readonly WhereAmICommands _whereAmI;
+    private readonly RunPolicy _runPolicy;
     private readonly NavigationManager _navigationManager;
     private readonly BrowseModeController _browseModeController;
     private readonly SayAllController _sayAllController;
@@ -94,8 +96,10 @@ public sealed class ScreenReaderService : IHostedService
         FirstRunWizard firstRunWizard,
         IOptionsMonitor<VoxSettings> settings,
         IHostApplicationLifetime lifetime,
-        ILogger<ScreenReaderService> logger)
+        ILogger<ScreenReaderService> logger,
+        RunPolicy? runPolicy = null)
     {
+        _runPolicy = runPolicy ?? RunPolicy.Normal;
         _lifetime = lifetime;
         _speechEngine = speechEngine;
         _speechQueue = speechQueue;
@@ -140,7 +144,7 @@ public sealed class ScreenReaderService : IHostedService
 
         // Run the first-run wizard before subscribing to UIA events: focus announcements are
         // Interrupt speech and would cut off the wizard's prompts
-        if (hookInstalled && !_settings.CurrentValue.FirstRunCompleted)
+        if (hookInstalled && _runPolicy.AllowSetupWizard && !_settings.CurrentValue.FirstRunCompleted)
         {
             _logger.LogInformation("First run not completed — starting wizard");
             await _firstRunWizard.RunAsync(cancellationToken);
@@ -419,7 +423,15 @@ public sealed class ScreenReaderService : IHostedService
         _lifetime.StopApplication();
     }
 
-    private void OnSetupRequested(object? sender, EventArgs e) => _ = RunSetupAgainAsync();
+    private void OnSetupRequested(object? sender, EventArgs e)
+    {
+        if (!_runPolicy.AllowSetupWizard)
+        {
+            _speechQueue.Enqueue(new Utterance("Not available on this screen", SpeechPriority.Interrupt));
+            return;
+        }
+        _ = RunSetupAgainAsync();
+    }
 
     /// <summary>
     /// Runs the first-run wizard again. Browse-mode key handling is paused meanwhile, so the

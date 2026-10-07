@@ -3,6 +3,7 @@ using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Lifecycle;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
@@ -21,7 +22,11 @@ public static class ServiceRegistration
             var defaultSettingsPath = Path.Combine(
                 AppContext.BaseDirectory,
                 "assets", "config", "default-settings.json");
-            return new SettingsManager(logger, defaultSettingsPath);
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            return new SettingsManager(logger, defaultSettingsPath, policy.SettingsPath)
+            {
+                ReadOnly = !policy.AllowSettingsWrites,
+            };
         });
         services.AddSingleton<SettingsMonitor>();
         services.AddSingleton<IOptionsMonitor<VoxSettings>>(sp => sp.GetRequiredService<SettingsMonitor>());
