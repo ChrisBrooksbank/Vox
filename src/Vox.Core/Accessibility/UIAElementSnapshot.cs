@@ -32,6 +32,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
     public bool IsVisited { get; init; }
     public bool IsRequired { get; init; }
     public string Language { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
     public int RowSpan { get; init; } = 1;
     public int ColumnSpan { get; init; } = 1;
 
@@ -83,6 +84,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
         IsPassword = Try(() => element.CachedIsPassword != 0),
         IsVisited = ReadIsVisited(element),
         IsRequired = ReadCachedBool(element, UIAProvider.UIA_IsRequiredForFormPropertyId) == true,
+        Description = ReadDescription(element),
         Language = LanguageName(ReadCachedInt(element, UIAProvider.UIA_CulturePropertyId)),
         RowSpan = ReadCachedInt(element, UIAProvider.UIA_GridItemRowSpanPropertyId) ?? 1,
         ColumnSpan = ReadCachedInt(element, UIAProvider.UIA_GridItemColumnSpanPropertyId) ?? 1,
@@ -101,6 +103,21 @@ public sealed class UIAElementSnapshot : IVBufferElement
     /// <summary>A cached string property, or null when not supported.</summary>
     internal static string? ReadCachedString(IUIAutomationElement element, int propertyId) =>
         Try(() => element.GetCachedPropertyValue(propertyId)) as string;
+
+    /// <summary>
+    /// The cached description: FullDescription (Chromium's aria-description / aria-describedby
+    /// text), else HelpText (a desktop control's help or tooltip text); empty when neither is set.
+    /// </summary>
+    internal static string ReadDescription(IUIAutomationElement element) =>
+        DescriptionFrom(
+            ReadCachedString(element, UIAProvider.UIA_FullDescriptionPropertyId),
+            ReadCachedString(element, UIAProvider.UIA_HelpTextPropertyId));
+
+    /// <summary>The full description when it has text, else the help text, trimmed; empty when neither has.</summary>
+    public static string DescriptionFrom(string? fullDescription, string? helpText) =>
+        !string.IsNullOrWhiteSpace(fullDescription) ? fullDescription.Trim()
+        : !string.IsNullOrWhiteSpace(helpText) ? helpText.Trim()
+        : string.Empty;
 
     private const int STATE_SYSTEM_TRAVERSED = 0x800000;
 

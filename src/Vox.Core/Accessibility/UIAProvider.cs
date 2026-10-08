@@ -41,6 +41,8 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_CulturePropertyId = 30015;
     internal const int UIA_GridItemRowSpanPropertyId = 30066;
     internal const int UIA_GridItemColumnSpanPropertyId = 30067;
+    internal const int UIA_HelpTextPropertyId = 30013;
+    internal const int UIA_FullDescriptionPropertyId = 30159;
 
     internal const uint ConnectionTimeoutMs = 2000;
     internal const uint TransactionTimeoutMs = 4000;
@@ -174,7 +176,7 @@ public sealed class UIAProvider : IDisposable
 
     /// <summary>
     /// Expand/collapse, toggle (checked) and selection state, the value (and whether it is
-    /// editable), required, and the legacy state bits (visited links).
+    /// editable), required, the legacy state bits (visited links) and the description.
     /// </summary>
     private static void AddStateProperties(IUIAutomationCacheRequest request)
     {
@@ -185,6 +187,9 @@ public sealed class UIAProvider : IDisposable
         request.AddProperty(UIA_ValueIsReadOnlyPropertyId);
         request.AddProperty(UIA_IsRequiredForFormPropertyId);
         request.AddProperty(UIA_LegacyIAccessibleStatePropertyId);
+        // The description (aria-description / aria-describedby; a desktop control's help text)
+        request.AddProperty(UIA_FullDescriptionPropertyId);
+        request.AddProperty(UIA_HelpTextPropertyId);
     }
 
     /// <summary>

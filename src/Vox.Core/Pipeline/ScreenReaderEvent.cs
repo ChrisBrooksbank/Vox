@@ -28,7 +28,8 @@ public record FocusChangedEvent(
     int SizeOfSet = 0,
     int Level = 0,
     string? AcceleratorKey = null,
-    string? AccessKey = null
+    string? AccessKey = null,
+    string? Description = null
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(

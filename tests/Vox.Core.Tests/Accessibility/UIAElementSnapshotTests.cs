@@ -35,3 +35,15 @@ public class LegacyStateTests
     public void IsTraversed_ReadsVisitedBit(int state, bool expected) =>
         Assert.Equal(expected, UIAElementSnapshot.IsTraversed(state));
 }
+
+public class DescriptionTests
+{
+    [Theory]
+    [InlineData(" Opens in a new window ", "Tooltip", "Opens in a new window")]
+    [InlineData(null, " Tooltip ", "Tooltip")]
+    [InlineData("  ", "Tooltip", "Tooltip")]
+    [InlineData(null, null, "")]
+    [InlineData("", " ", "")]
+    public void DescriptionFrom_PrefersFullDescription(string? fullDescription, string? helpText, string expected) =>
+        Assert.Equal(expected, UIAElementSnapshot.DescriptionFrom(fullDescription, helpText));
+}

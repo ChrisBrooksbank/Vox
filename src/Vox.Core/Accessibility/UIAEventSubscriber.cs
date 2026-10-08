@@ -455,7 +455,8 @@ public sealed class UIAEventSubscriber :
             SizeOfSet: UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_SizeOfSetPropertyId) ?? 0,
             Level: UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_LevelPropertyId) ?? 0,
             AcceleratorKey: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_AcceleratorKeyPropertyId),
-            AccessKey: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_AccessKeyPropertyId)
+            AccessKey: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_AccessKeyPropertyId),
+            Description: UIAElementSnapshot.ReadDescription(element)
         );
     }
 

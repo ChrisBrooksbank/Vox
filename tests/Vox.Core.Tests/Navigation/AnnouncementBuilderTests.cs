@@ -364,4 +364,52 @@ public class ValueAnnouncementTests
         Assert.Equal("Open..., menu item, Ctrl+O, o", new AnnouncementBuilder().Build(focus, VerbosityProfile.Beginner, true));
         Assert.Equal("Open..., menu item, Ctrl+O", new AnnouncementBuilder().Build(focus, VerbosityProfile.Intermediate, true));
     }
+
+    [Theory]
+    [InlineData(VerbosityLevel.Beginner)]
+    [InlineData(VerbosityLevel.Intermediate)]
+    public void Description_SaidLast(VerbosityLevel level)
+    {
+        var node = new VBufferNode { Name = "Email", ControlType = "Edit", IsRequired = true, Description = "We never share your address" };
+
+        var text = new AnnouncementBuilder().Build(node, VerbosityProfile.For(level), true);
+
+        Assert.Equal("Email, edit, required, We never share your address", text);
+    }
+
+    [Fact]
+    public void Description_AdvancedVerbosity_LeftOut()
+    {
+        var node = new VBufferNode { Name = "Email", ControlType = "Edit", Description = "We never share your address" };
+
+        Assert.Equal("Email, edit", new AnnouncementBuilder().Build(node, VerbosityProfile.Advanced, true));
+    }
+
+    [Theory]
+    [InlineData("Close")]
+    [InlineData(" close ")]
+    public void Description_SameAsName_NotRepeated(string description)
+    {
+        var node = new VBufferNode { Name = "Close", ControlType = "Button", Description = description };
+
+        Assert.Equal("Close, button", new AnnouncementBuilder().Build(node, VerbosityProfile.Beginner, true));
+    }
+
+    [Fact]
+    public void Description_SameAsValue_NotRepeated()
+    {
+        var node = new VBufferNode { Name = "Country", ControlType = "ComboBox", Value = "France", Description = "France" };
+
+        Assert.DoesNotContain("France, France", new AnnouncementBuilder().Build(node, VerbosityProfile.Beginner, true));
+    }
+
+    [Fact]
+    public void Description_FromFocusEvent_Said()
+    {
+        var focus = new Vox.Core.Pipeline.FocusChangedEvent(DateTimeOffset.UtcNow, "Delete", "Button",
+            Description: "Removes the file permanently");
+
+        Assert.Equal("Delete, button, Removes the file permanently",
+            new AnnouncementBuilder().Build(focus, VerbosityProfile.Intermediate, true));
+    }
 }

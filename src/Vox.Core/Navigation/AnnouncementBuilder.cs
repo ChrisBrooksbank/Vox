@@ -9,7 +9,8 @@ namespace Vox.Core.Navigation;
 /// a natural-language spoken announcement string.
 ///
 /// Announcement order:
-///   [heading level] [landmark type] [name] [control type] [visited] [required] [expanded/collapsed]
+///   [heading level] [landmark type] [name] [control type] [value] [visited] [required]
+///   [expanded/collapsed] [checked/selected] [shortcut keys] [position] [description]
 ///
 /// Each field is gated by the corresponding flag on <see cref="VerbosityProfile"/>.
 /// </summary>
@@ -127,6 +128,17 @@ public sealed class AnnouncementBuilder
                 Append(sb, $"level {node.Level}");
         }
 
+        // Description — "Email, edit, We never share your address" (aria-description /
+        // aria-describedby), unless it only repeats the name or value
+        if (profile.AnnounceElementDescription)
+        {
+            var description = node.Description.Trim();
+            if (description.Length > 0
+                && !string.Equals(description, node.Name.Trim(), StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(description, value?.Trim(), StringComparison.OrdinalIgnoreCase))
+                Append(sb, description);
+        }
+
         return sb.ToString();
     }
 
@@ -156,6 +168,7 @@ public sealed class AnnouncementBuilder
             Level = focus.Level,
             AcceleratorKey = focus.AcceleratorKey ?? string.Empty,
             AccessKey = focus.AccessKey ?? string.Empty,
+            Description = focus.Description ?? string.Empty,
         }, profile, announceVisitedLinks);
 
     /// <summary>Spoken text for a UIA ToggleState, or null when not a toggle.</summary>

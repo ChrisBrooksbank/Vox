@@ -72,6 +72,9 @@ public sealed class VBufferNode
     /// <summary>Access key ("Alt+F", or the underlined letter of a menu item), or empty.</summary>
     public string AccessKey { get; init; } = string.Empty;
 
+    /// <summary>Description (aria-description / aria-describedby), or empty.</summary>
+    public string Description { get; init; } = string.Empty;
+
     /// <summary>The text's language (BCP 47), its own or inherited from its ancestors; empty when unknown.</summary>
     public string Language { get; init; } = string.Empty;
 
@@ -136,6 +139,7 @@ public sealed class VBufferNode
         Value = Value,
         IsPassword = IsPassword,
         IsFocusable = IsFocusable,
+        Description = Description,
         Language = Language,
         RowSpan = RowSpan,
         ColumnSpan = ColumnSpan,

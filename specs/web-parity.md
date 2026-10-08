@@ -39,7 +39,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 
 ### ARIA and HTML
 
-- [ ] Description (`aria-describedby`, `aria-description`) announced per verbosity
+- [x] Description (`aria-describedby`, `aria-description`) announced per verbosity
 - [ ] `aria-invalid` + `aria-errormessage` ("invalid entry", error text), `aria-current`, `aria-pressed`, `aria-sort`, `aria-roledescription`, `aria-keyshortcuts`, `aria-details`
 - [ ] Annotations: comments, insertions, deletions, marks/highlights announced on entry/exit
 - [ ] `<dialog>` / `aria-modal`: restrict the buffer to the modal while it is open

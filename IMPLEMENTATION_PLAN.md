@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 122
+- Build iterations: 123
 - Last updated: 2026-10-08
 
 ## Tasks
@@ -190,7 +190,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add `FindInBuffer` with accessible prompt (Insert+Ctrl+F), next/previous (Insert+F3 / Insert+Shift+F3), wrap cue, history; unit tests (spec: web-parity.md)
 - [x] Add browse-mode selection (Shift/Ctrl+Shift+arrows, Shift+Home/End) with "selected" speech and Ctrl+C copy; unit tests (spec: web-parity.md)
 - [x] Add mark (Insert+F9) and select-from-mark (Insert+F10); unit tests (spec: web-parity.md)
-- [ ] Capture and announce descriptions (`aria-describedby`, `aria-description`) per verbosity; unit tests (spec: web-parity.md)
+- [x] Capture and announce descriptions (`aria-describedby`, `aria-description`) per verbosity; unit tests (spec: web-parity.md)
 - [ ] Capture and announce `aria-invalid` + error message, `aria-current`, `aria-pressed`, `aria-sort`, `aria-roledescription`, `aria-keyshortcuts`, `aria-details`; unit tests (spec: web-parity.md)
 - [ ] Announce annotations (comments, insertions, deletions, highlights) on entry/exit; unit tests (spec: web-parity.md)
 - [ ] Restrict the buffer to an open `<dialog>`/`aria-modal` element; unit tests (spec: web-parity.md)

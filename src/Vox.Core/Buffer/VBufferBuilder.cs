@@ -54,6 +54,12 @@ public interface IVBufferElement
     /// <summary>True for a required form field (UIA IsRequiredForForm).</summary>
     bool IsRequired => false;
 
+    /// <summary>
+    /// The element's description (aria-description, or the text of the aria-describedby
+    /// elements; UIA FullDescription, else HelpText), or empty.
+    /// </summary>
+    string Description => string.Empty;
+
     /// <summary>The element's own language (BCP 47, from the lang attribute), or empty when not set.</summary>
     string Language => string.Empty;
 
@@ -293,6 +299,7 @@ public sealed class VBufferBuilder
             Value = element.Value ?? string.Empty,
             IsPassword = element.IsPassword,
             IsFocusable = isFocusable,
+            Description = element.Description?.Trim() ?? string.Empty,
             // Inherited, as lang is in HTML
             Language = !string.IsNullOrEmpty(element.Language) ? element.Language : parent?.Language ?? inheritedLanguage,
             RowSpan = Math.Max(1, element.RowSpan),
