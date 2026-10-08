@@ -27,7 +27,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 ### Tables and lists
 
 - [x] `TableModel` in the buffer: grid of cells with row/column spans, header cells (`th`, `columnheader`, `rowheader`), dimensions; layout-table heuristic (no headers, one row or column, presentation role)
-- [ ] `TableNavigator`: Ctrl+Alt+arrows cell to cell, Ctrl+Alt+Home/End first/last cell; announce row/column number and headers when they change; boundary cue at edges
+- [x] `TableNavigator`: Ctrl+Alt+arrows cell to cell, Ctrl+Alt+Home/End first/last cell; announce row/column number and headers when they change; boundary cue at edges
 - [ ] Read current row / column (Insert+Shift+Up / Insert+Shift+Num5 style bindings), report table dimensions on entry
 - [ ] Manually set header row/column for tables without markup (persisted per URL + table index)
 - [ ] Lists: "list with N items" on entry, nesting level, "out of list" while reading

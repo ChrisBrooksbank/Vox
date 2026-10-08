@@ -1365,6 +1365,38 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task TableCommands_MoveCellByCellAndSayHeaders()
+    {
+        var table = TableModelTests.Table("Prices", "table",
+            TableModelTests.Row(
+                TableModelTests.Header("Item"), TableModelTests.Header("Price")),
+            TableModelTests.Row(
+                TableModelTests.Cell("Tea"), TableModelTests.Cell("2")));
+        var (doc, model) = TableModelTests.Build(table);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+
+        _controller.HandleCommand(NavigationCommand.NextTable);
+        _controller.HandleCommand(NavigationCommand.TableNextColumn);
+        await WaitForSpeech(u => u.Text == "table with 2 rows and 2 columns, row 1, column 2, Price");
+        Assert.Same(model.CellAt(0, 1)!.Node, _quickNav.CurrentNode);
+
+        _controller.HandleCommand(NavigationCommand.TableNextRow);
+        await WaitForSpeech(u => u.Text == "row 2, 2");
+        Assert.Equal(model.CellAt(1, 1)!.Node.Children[0].TextRange.Start, _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.TableNextRow);
+        _audio.Verify(a => a.Play("boundary"), Times.AtLeastOnce());
+    }
+
+    [Fact]
+    public async Task TableCommands_OutsideATable_SaySo()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TableNextColumn);
+        await WaitForSpeech(u => u.Text == "Not in a table");
+    }
+
+    [Fact]
     public async Task NextUnvisitedLink_SaysTheLink()
     {
         var root = new MockElement { RuntimeId = [1], ControlType = "Document" };

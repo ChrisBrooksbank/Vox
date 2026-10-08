@@ -129,5 +129,11 @@ public enum NavigationCommand
     NextUnvisitedHeading,
     PrevUnvisitedHeading,
     EndOfContainer,
-    StartOfContainer
+    StartOfContainer,
+    TableNextColumn,
+    TablePrevColumn,
+    TableNextRow,
+    TablePrevRow,
+    TableFirstCell,
+    TableLastCell
 }
