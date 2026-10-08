@@ -30,7 +30,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 - [x] `TableNavigator`: Ctrl+Alt+arrows cell to cell, Ctrl+Alt+Home/End first/last cell; announce row/column number and headers when they change; boundary cue at edges
 - [x] Read current row / column (Insert+Shift+Up / Insert+Shift+Num5 style bindings), report table dimensions on entry
 - [x] Manually set header row/column for tables without markup (persisted per URL + table index)
-- [ ] Lists: "list with N items" on entry, nesting level, "out of list" while reading
+- [x] Lists: "list with N items" on entry, nesting level, "out of list" while reading
 
 ### Find, select, copy
 

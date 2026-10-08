@@ -1108,6 +1108,7 @@ public sealed class BrowseModeController
     {
         if (_cursor is null) return;
         ApplyCursorSettings(_cursor);
+        var from = _cursor.CurrentNode;
 
         string? text = command switch
         {
@@ -1133,8 +1134,14 @@ public sealed class BrowseModeController
 
         // Entering a link, button or heading: say what it is, not just its text
         var role = RoleEnteredAtCursor();
-        // Page text alone is said in its language; with a role (said in Vox's) it isn't
-        if (role is null && !IsCharacterCommand(command))
+        // Entering or leaving a list: "out of list", "list with 3 items" before the text
+        var list = IsCharacterCommand(command) || !VerbosityProfile.For(_settings.CurrentValue.VerbosityLevel).AnnounceControlType
+            ? null
+            : ListAnnouncer.Transition(from, _cursor.CurrentNode);
+        if (list is not null)
+            text = $"{list}, {text}";
+        // Page text alone is said in its language; with a role or list (said in Vox's) it isn't
+        if (role is null && list is null && !IsCharacterCommand(command))
             SpeakContent(text);
         else
             Speak(role is null ? text : $"{text}, {role}");

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 118
+- Build iterations: 119
 - Last updated: 2026-10-08
 
 ## Tasks
@@ -186,7 +186,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add `TableModel` (cells, spans, header cells, dimensions, layout-table heuristic) built by `VBufferBuilder`; unit tests (spec: web-parity.md)
 - [x] Add `TableNavigator`: Ctrl+Alt+arrows/Home/End, row/column and changed-header announcements, boundary cue, dimensions on entry; unit tests (spec: web-parity.md)
 - [x] Add read current row / column commands and manual header row/column set, persisted per URL and table index (spec: web-parity.md)
-- [ ] Add list entry ("list with N items"), nesting level and "out of list" announcements while reading; unit tests (spec: web-parity.md)
+- [x] Add list entry ("list with N items"), nesting level and "out of list" announcements while reading; unit tests (spec: web-parity.md)
 - [ ] Add `FindInBuffer` with accessible prompt (Insert+Ctrl+F), next/previous (Insert+F3 / Insert+Shift+F3), wrap cue, history; unit tests (spec: web-parity.md)
 - [ ] Add browse-mode selection (Shift/Ctrl+Shift+arrows, Shift+Home/End) with "selected" speech and Ctrl+C copy; unit tests (spec: web-parity.md)
 - [ ] Add mark (Insert+F9) and select-from-mark (Insert+F10); unit tests (spec: web-parity.md)

@@ -1301,6 +1301,56 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task ReadingByLine_SaysListEntryNestingAndExit()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        var list = new MockElement { RuntimeId = [3], ControlType = "List" };
+        var apples = new MockElement { RuntimeId = [4], ControlType = "ListItem" };
+        apples.AddChild(new MockElement { RuntimeId = [5], Name = "Apples" });
+        var nested = new MockElement { RuntimeId = [6], ControlType = "List" };
+        var green = new MockElement { RuntimeId = [7], ControlType = "ListItem" };
+        green.AddChild(new MockElement { RuntimeId = [8], Name = "Green" });
+        nested.AddChild(green);
+        apples.AddChild(nested);
+        list.AddChild(apples);
+        var pears = new MockElement { RuntimeId = [9], ControlType = "ListItem" };
+        pears.AddChild(new MockElement { RuntimeId = [10], Name = "Pears" });
+        list.AddChild(pears);
+        root.AddChild(list);
+        root.AddChild(new MockElement { RuntimeId = [11], Name = "Outro" });
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "list with 2 items, Apples");
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "list with 1 item, nesting level 2, Green");
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "out of list, Pears");
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "out of list, Outro");
+        _controller.HandleCommand(NavigationCommand.PrevLine);
+        await WaitForSpeech(u => u.Text == "list with 2 items, Pears");
+    }
+
+    [Fact]
+    public async Task ReadingByLine_AtAdvancedVerbosity_DoesNotSayLists()
+    {
+        _settings = new VoxSettings { VerbosityLevel = VerbosityLevel.Advanced };
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        var list = new MockElement { RuntimeId = [3], ControlType = "List" };
+        var item = new MockElement { RuntimeId = [4], ControlType = "ListItem" };
+        item.AddChild(new MockElement { RuntimeId = [5], Name = "Apples" });
+        list.AddChild(item);
+        root.AddChild(list);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "Apples");
+    }
+
+    [Fact]
     public async Task NextGraphic_SaysItsAltTextOnce()
     {
         var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
