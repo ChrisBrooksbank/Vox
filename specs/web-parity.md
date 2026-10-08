@@ -35,7 +35,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 ### Find, select, copy
 
 - [x] `FindInBuffer`: Insert+Ctrl+F opens a find prompt (accessible text box), Insert+F3 / Insert+Shift+F3 next/previous, case-insensitive by default, wraps with cue, keeps history
-- [ ] Browse-mode selection: Shift+arrows (char/line), Ctrl+Shift+arrows (word), Shift+Home/End; "selected" speech; Ctrl+C copies plain text; Insert+F9 sets mark, Insert+F10 selects from mark
+- [x] Browse-mode selection: Shift+arrows (char/line), Ctrl+Shift+arrows (word), Shift+Home/End; "selected" speech; Ctrl+C copies plain text; Insert+F9 sets mark, Insert+F10 selects from mark
 
 ### ARIA and HTML
 

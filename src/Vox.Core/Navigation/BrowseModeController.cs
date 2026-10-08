@@ -72,6 +72,7 @@ public sealed class BrowseModeController
 
     private readonly IFocusedTextReader? _focusedTextReader;
     private readonly RepeatPressCounter _readPresses = new();
+    private readonly RepeatPressCounter _selectFromMarkPresses = new();
     private SpellMode _readSpell;
 
     private const int UIA_NamePropertyId = 30005;
@@ -370,6 +371,19 @@ public sealed class BrowseModeController
             return;
         }
 
+        if (command == NavigationCommand.MarkStart)
+        {
+            _selection.SetMark(_cursor!);
+            Speak("Start marked");
+            return;
+        }
+
+        if (command == NavigationCommand.SelectFromMark)
+        {
+            SelectFromMark();
+            return;
+        }
+
         if (TableNavigator.IsTableCommand(command))
         {
             MoveInTable(command);
@@ -505,6 +519,28 @@ public sealed class BrowseModeController
         Speak("Copied to clipboard");
     }
 
+    /// <summary>
+    /// Insert+F10: selects from the mark (Insert+F9) to the cursor and says it; pressed again
+    /// quickly, copies it.
+    /// </summary>
+    private void SelectFromMark()
+    {
+        if (_cursor is null)
+            return;
+        bool again = _selectFromMarkPresses.Press(0) > 1;
+        if (again && _selection.IsValidFor(_cursor))
+        {
+            CopySelection();
+            return;
+        }
+        if (!_selection.SelectFromMark(_cursor))
+        {
+            Speak("No start marker set");
+            return;
+        }
+        Speak($"selected {SelectionText(_selection.TextFor(_cursor))}");
+    }
+
     // Longer than this, a selection is said by its length rather than read out
     private const int MaxSpokenSelection = 2000;
 
@@ -521,6 +557,7 @@ public sealed class BrowseModeController
     private static bool KeepsSelection(NavigationCommand command) =>
         BrowseSelection.IsSelectionCommand(command) || command is
         NavigationCommand.CopySelection or NavigationCommand.ReadSelection or
+        NavigationCommand.MarkStart or NavigationCommand.SelectFromMark or
         NavigationCommand.ReadCurrentLine or NavigationCommand.ReadCurrentWord or
         NavigationCommand.ReadCurrentChar or NavigationCommand.ReadFormatting or
         NavigationCommand.StopSpeech;
@@ -887,6 +924,7 @@ public sealed class BrowseModeController
         int oldOffset = _cursor.TextOffset;
         var node = oldNode is not null ? updated.FindByRuntimeId(oldNode.UIARuntimeId) : null;
         bool selecting = _selection.IsValidFor(_cursor);
+        _selection.RebaseMark(document, updated, result.OldTextStart, result.OldTextEnd, result.TextDelta);
 
         int newOffset;
         if (node is not null && oldNode is not null)

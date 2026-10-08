@@ -10,13 +10,16 @@ public readonly record struct SelectionChange(string Text, bool Selected);
 /// The browse-mode selection: from an anchor (where selecting started) to the active end, which
 /// the browse cursor follows (Shift+arrows, Ctrl+Shift+arrows, Shift+Home/End, as in an edit
 /// control). The active end may be the end of the text, where the cursor itself can't go.
-/// Moving the cursor any other way, or a new document, ends the selection.
+/// Moving the cursor any other way, or a new document, ends the selection. It also keeps the
+/// mark (Insert+F9) that Insert+F10 selects from; a new document drops the mark too.
 /// Pipeline thread only.
 /// </summary>
 public sealed class BrowseSelection
 {
     private VBufferDocument? _document;
     private int _cursorOffset;
+    private VBufferDocument? _markDocument;
+    private int _mark;
 
     public int Anchor { get; private set; }
     public int Active { get; private set; }
@@ -38,6 +41,34 @@ public sealed class BrowseSelection
         && End <= cursor.Document.FlatText.Length;
 
     public void Clear() => _document = null;
+
+    /// <summary>The mark's offset in <paramref name="document"/>, or null when none is set there.</summary>
+    public int? MarkFor(VBufferDocument document) =>
+        ReferenceEquals(_markDocument, document) && _mark < document.FlatText.Length ? _mark : null;
+
+    /// <summary>Insert+F9: marks the character at the cursor as the start of text to select.</summary>
+    public void SetMark(VBufferCursor cursor)
+    {
+        _markDocument = cursor.Document;
+        _mark = cursor.TextOffset;
+    }
+
+    /// <summary>
+    /// Insert+F10: selects from the mark to the cursor, both characters included, leaving the
+    /// cursor where it is (the active end is on the cursor's side). Returns false without a mark.
+    /// </summary>
+    public bool SelectFromMark(VBufferCursor cursor)
+    {
+        if (MarkFor(cursor.Document) is not { } mark)
+            return false;
+        int offset = cursor.TextOffset;
+        int start = Math.Min(mark, offset);
+        int end = Math.Min(Math.Max(mark, offset) + 1, cursor.Document.FlatText.Length);
+        _document = cursor.Document;
+        (Anchor, Active) = offset >= mark ? (start, end) : (end, start);
+        _cursorOffset = offset;
+        return true;
+    }
 
     public static bool IsSelectionCommand(NavigationCommand command) => command is
         NavigationCommand.SelectNextChar or NavigationCommand.SelectPrevChar or
@@ -106,6 +137,22 @@ public sealed class BrowseSelection
         }
         _document = updated;
         _cursorOffset = cursorOffset;
+    }
+
+    /// <summary>
+    /// <paramref name="old"/> was updated to <paramref name="updated"/>: moves a mark in it by
+    /// <paramref name="delta"/> when it was after the replaced text, or to the replaced text's
+    /// start when it was in it.
+    /// </summary>
+    public void RebaseMark(VBufferDocument old, VBufferDocument updated, int oldStart, int oldEnd, int delta)
+    {
+        if (!ReferenceEquals(_markDocument, old))
+            return;
+        if (_mark >= oldEnd)
+            _mark += delta;
+        else if (_mark >= oldStart)
+            _mark = oldStart;
+        _markDocument = updated;
     }
 
     /// <summary>Where the active end moves to from <paramref name="active"/>, or null at the edge.</summary>

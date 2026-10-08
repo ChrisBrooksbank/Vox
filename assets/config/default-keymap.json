@@ -94,6 +94,8 @@
     { "modifiers": "Ctrl|Shift",  "vkCode": 35,  "mode": "Browse", "command": "SelectToBottom" },
     { "modifiers": "Ctrl",        "vkCode": 65,  "mode": "Browse", "command": "SelectAll" },
     { "modifiers": "Ctrl",        "vkCode": 67,  "mode": "Browse", "command": "CopySelection" },
+    { "modifiers": "Insert",      "vkCode": 120, "mode": "Browse", "command": "MarkStart" },
+    { "modifiers": "Insert",      "vkCode": 121, "mode": "Browse", "command": "SelectFromMark" },
     { "modifiers": "None",        "vkCode": 39,  "mode": "Browse", "command": "NextChar" },
     { "modifiers": "None",        "vkCode": 37,  "mode": "Browse", "command": "PrevChar" },
     { "modifiers": "None",        "vkCode": 13,  "mode": "Browse", "command": "ActivateElement" },

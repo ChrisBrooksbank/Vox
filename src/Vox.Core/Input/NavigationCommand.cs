@@ -154,5 +154,7 @@ public enum NavigationCommand
     SelectToTop,
     SelectToBottom,
     SelectAll,
-    CopySelection
+    CopySelection,
+    MarkStart,
+    SelectFromMark
 }

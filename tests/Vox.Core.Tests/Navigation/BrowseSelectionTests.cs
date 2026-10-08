@@ -195,4 +195,72 @@ public class BrowseSelectionTests
         _selection.Rebase(replaced, 3, 8, -2, cursor.TextOffset);
         Assert.Equal("", _selection.TextFor(cursor));
     }
+
+    [Fact]
+    public void SelectFromMark_SelectsFromTheMarkToTheCursor_BothIncluded_WithoutMovingIt()
+    {
+        var cursor = Cursor("Hello world");
+        Assert.False(_selection.SelectFromMark(cursor)); // no mark yet
+
+        cursor.MoveTo(1);
+        _selection.SetMark(cursor);
+        cursor.MoveTo(4);
+
+        Assert.True(_selection.SelectFromMark(cursor));
+        Assert.Equal("ello", _selection.TextFor(cursor));
+        Assert.Equal(4, cursor.TextOffset);
+        Assert.Equal(1, _selection.Anchor);
+    }
+
+    [Fact]
+    public void SelectFromMark_BeforeTheMark_SelectsBackwards_AndShiftExtendsFromTheCursor()
+    {
+        var cursor = Cursor("Hello world", 6);
+        _selection.SetMark(cursor); // "w"
+        cursor.MoveTo(4);
+
+        _selection.SelectFromMark(cursor);
+        Assert.Equal("o w", _selection.TextFor(cursor));
+        Assert.Equal(4, _selection.Active);
+
+        var change = _selection.Extend(cursor, NavigationCommand.SelectPrevChar);
+        Assert.Equal(new SelectionChange("l", true), change);
+        Assert.Equal("lo w", _selection.TextFor(cursor));
+    }
+
+    [Fact]
+    public void SelectFromMark_OnTheMark_SelectsItsCharacter_AndTheMarkIsPerDocument()
+    {
+        var cursor = Cursor("Hello world", 10);
+        _selection.SetMark(cursor);
+
+        Assert.True(_selection.SelectFromMark(cursor));
+        Assert.Equal("d", _selection.TextFor(cursor));
+
+        // Another document has no mark
+        cursor.SetDocument(BuildDoc("Hello world"), 10);
+        Assert.Null(_selection.MarkFor(cursor.Document));
+        Assert.False(_selection.SelectFromMark(cursor));
+    }
+
+    [Fact]
+    public void RebaseMark_ShiftsAMarkAfterTheChange_AndMovesOneInsideItToItsStart()
+    {
+        var doc = BuildDoc("Hello world");
+        var cursor = new VBufferCursor(doc, Mock.Of<IAudioCuePlayer>());
+        cursor.MoveTo(6);
+        _selection.SetMark(cursor);
+
+        var inserted = BuildDoc(">> Hello world");
+        _selection.RebaseMark(doc, inserted, 0, 0, 3);
+        Assert.Equal(9, _selection.MarkFor(inserted));
+
+        var replaced = BuildDoc(">> Hello there");
+        _selection.RebaseMark(inserted, replaced, 9, 14, 0);
+        Assert.Equal(9, _selection.MarkFor(replaced));
+
+        // An update of another document leaves the mark alone
+        _selection.RebaseMark(inserted, BuildDoc("x"), 0, 0, 1);
+        Assert.Equal(9, _selection.MarkFor(replaced));
+    }
 }

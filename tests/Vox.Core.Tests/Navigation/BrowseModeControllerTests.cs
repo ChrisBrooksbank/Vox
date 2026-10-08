@@ -1923,4 +1923,35 @@ public class BrowseModeControllerTests : IDisposable
         Assert.Equal(offset, _controller.Cursor.TextOffset);
         _clipboard.Verify(c => c.SetText(It.IsAny<string>()), Times.Never);
     }
+
+    [Fact]
+    public async Task MarkThenSelectFromMark_SelectsAndSaysIt_AndPressedAgainCopies()
+    {
+        _clipboard.Setup(c => c.SetText(It.IsAny<string>())).Returns(true);
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+
+        _controller.HandleCommand(NavigationCommand.MarkStart);
+        await WaitForSpeech(u => u.Text == "Start marked");
+        _controller.HandleCommand(NavigationCommand.NextChar);
+        _controller.HandleCommand(NavigationCommand.NextChar);
+
+        _controller.HandleCommand(NavigationCommand.SelectFromMark);
+        await WaitForSpeech(u => u.Text == "selected Wel");
+        _controller.HandleCommand(NavigationCommand.SelectFromMark);
+
+        _clipboard.Verify(c => c.SetText("Wel"), Times.Once);
+        await WaitForSpeech(u => u.Text == "Copied to clipboard");
+    }
+
+    [Fact]
+    public async Task SelectFromMark_WithoutAMark_SaysSo()
+    {
+        LoadDocument();
+
+        _controller.HandleCommand(NavigationCommand.SelectFromMark);
+
+        await WaitForSpeech(u => u.Text == "No start marker set");
+    }
 }
+

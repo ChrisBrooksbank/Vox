@@ -311,6 +311,8 @@ public class DefaultKeyMapReadingKeysTests
     [InlineData(KeyModifiers.Shift, 36, NavigationCommand.SelectToStartOfLine)]
     [InlineData(KeyModifiers.Shift, 35, NavigationCommand.SelectToEndOfLine)]
     [InlineData(KeyModifiers.Ctrl, 67, NavigationCommand.CopySelection)]
+    [InlineData(KeyModifiers.Insert, 120, NavigationCommand.MarkStart)]
+    [InlineData(KeyModifiers.Insert, 121, NavigationCommand.SelectFromMark)]
     public void BrowseModeSelectionKeys_FollowNvda(KeyModifiers modifiers, int vk, NavigationCommand expected)
     {
         Assert.True(Map.TryResolve(modifiers, vk, InteractionMode.Browse, out var command));
