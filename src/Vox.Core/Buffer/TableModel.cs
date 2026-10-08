@@ -91,10 +91,25 @@ public sealed class TableModel
         return null;
     }
 
-    /// <summary>The column header cells above a cell, top to bottom (not the cell itself).</summary>
-    public IReadOnlyList<TableCell> ColumnHeadersFor(TableCell cell)
+    /// <summary>
+    /// The column header cells above a cell, top to bottom (not the cell itself). With
+    /// <paramref name="headerRow"/> (set by the user for a table without header markup), the
+    /// cells of that row are its column headers instead, for cells below it.
+    /// </summary>
+    public IReadOnlyList<TableCell> ColumnHeadersFor(TableCell cell, int? headerRow = null)
     {
         var headers = new List<TableCell>();
+        if (headerRow is { } manual)
+        {
+            if (manual < 0 || manual >= RowCount || cell.Row <= manual)
+                return headers;
+            for (int c = cell.Column; c < cell.Column + cell.ColumnSpan; c++)
+            {
+                if (_grid[manual, c] is { } header && header != cell && !headers.Contains(header))
+                    headers.Add(header);
+            }
+            return headers;
+        }
         for (int r = 0; r < cell.Row; r++)
         {
             for (int c = cell.Column; c < cell.Column + cell.ColumnSpan; c++)
@@ -107,10 +122,25 @@ public sealed class TableModel
         return headers;
     }
 
-    /// <summary>The row header cells left of a cell, left to right (not the cell itself).</summary>
-    public IReadOnlyList<TableCell> RowHeadersFor(TableCell cell)
+    /// <summary>
+    /// The row header cells left of a cell, left to right (not the cell itself). With
+    /// <paramref name="headerColumn"/> (set by the user), the cells of that column are its row
+    /// headers instead, for cells right of it.
+    /// </summary>
+    public IReadOnlyList<TableCell> RowHeadersFor(TableCell cell, int? headerColumn = null)
     {
         var headers = new List<TableCell>();
+        if (headerColumn is { } manual)
+        {
+            if (manual < 0 || manual >= ColumnCount || cell.Column <= manual)
+                return headers;
+            for (int r = cell.Row; r < cell.Row + cell.RowSpan; r++)
+            {
+                if (_grid[r, manual] is { } header && header != cell && !headers.Contains(header))
+                    headers.Add(header);
+            }
+            return headers;
+        }
         for (int c = 0; c < cell.Column; c++)
         {
             for (int r = cell.Row; r < cell.Row + cell.RowSpan; r++)

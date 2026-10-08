@@ -135,5 +135,9 @@ public enum NavigationCommand
     TableNextRow,
     TablePrevRow,
     TableFirstCell,
-    TableLastCell
+    TableLastCell,
+    ReadTableRow,
+    ReadTableColumn,
+    SetColumnHeaders,
+    SetRowHeaders
 }

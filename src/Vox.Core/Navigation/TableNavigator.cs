@@ -4,22 +4,27 @@ using Vox.Core.Input;
 namespace Vox.Core.Navigation;
 
 /// <summary>
-/// The outcome of a table navigation command: the cell moved to and what to say, or that the
-/// cursor isn't in a table, or that it is at the table's edge (the cell is unchanged).
+/// The outcome of a table command: the cell moved to (null when the cursor stays) and what to
+/// say, or that the cursor isn't in a table, or that it is at the table's edge.
 /// </summary>
 public sealed record TableMoveResult(TableCell? Cell, string? Text, bool NotInTable = false, bool AtEdge = false);
 
 /// <summary>
-/// Moves cell by cell through the table around the browse cursor (Ctrl+Alt+arrows, Ctrl+Alt+Home
-/// / End) over the document's <see cref="TableModel"/>s.
+/// Table commands over the document's <see cref="TableModel"/>s, from the cell around the browse
+/// cursor: move cell by cell (Ctrl+Alt+arrows, Ctrl+Alt+Home / End), read the current row or
+/// column, and set the row or column holding headers for a table without header markup (kept
+/// per page and table in a <see cref="TableHeaderStore"/>; pressed again on the same row or
+/// column, cleared).
 ///
-/// Says the table's dimensions on entering a table, the row or column number when it changes
-/// (with its row or column headers when those changed), then the cell's text. Moving down or up
-/// through a cell spanning several columns keeps the column the user came from.
+/// Moving says the table's dimensions on entering a table, the row or column number when it
+/// changes (with its row or column headers when those changed), then the cell's text. Moving down
+/// or up through a cell spanning several columns keeps the column the user came from.
 /// Pure: the caller moves the cursor and speaks; call on the pipeline thread.
 /// </summary>
 public sealed class TableNavigator
 {
+    private readonly TableHeaderStore _headerStore;
+
     // Where the user last was: table, logical row and column (inside a spanning cell's slots)
     private TableModel? _table;
     private int _row;
@@ -27,8 +32,17 @@ public sealed class TableNavigator
     private string _rowHeaders = string.Empty;
     private string _columnHeaders = string.Empty;
 
-    /// <summary>True for the cell-to-cell commands.</summary>
-    public static bool IsTableCommand(NavigationCommand command) => command is
+    public TableNavigator(TableHeaderStore? headerStore = null)
+    {
+        _headerStore = headerStore ?? new TableHeaderStore();
+    }
+
+    /// <summary>True for the commands this class handles.</summary>
+    public static bool IsTableCommand(NavigationCommand command) => IsMoveCommand(command) || command is
+        NavigationCommand.ReadTableRow or NavigationCommand.ReadTableColumn or
+        NavigationCommand.SetColumnHeaders or NavigationCommand.SetRowHeaders;
+
+    private static bool IsMoveCommand(NavigationCommand command) => command is
         NavigationCommand.TableNextColumn or NavigationCommand.TablePrevColumn or
         NavigationCommand.TableNextRow or NavigationCommand.TablePrevRow or
         NavigationCommand.TableFirstCell or NavigationCommand.TableLastCell;
@@ -42,9 +56,23 @@ public sealed class TableNavigator
     }
 
     /// <summary>
-    /// Moves from the cell containing <paramref name="current"/> as the command says.
+    /// The key a table's headers are kept under: the page's address (a web document's value; its
+    /// name when it has none) and the table's index on the page.
     /// </summary>
-    public TableMoveResult Move(VBufferDocument document, VBufferNode? current, NavigationCommand command)
+    public static string TableKey(VBufferDocument document, TableModel table)
+    {
+        var page = !string.IsNullOrWhiteSpace(document.Root.Value) ? document.Root.Value.Trim() : document.Root.Name.Trim();
+        int index = 0;
+        for (; index < document.TableModels.Count; index++)
+        {
+            if (ReferenceEquals(document.TableModels[index], table))
+                break;
+        }
+        return $"{page}#{index}";
+    }
+
+    /// <summary>Runs a table command from the cell containing <paramref name="current"/>.</summary>
+    public TableMoveResult Handle(VBufferDocument document, VBufferNode? current, NavigationCommand command)
     {
         if (document.FindTableCell(current) is not { } found)
             return new TableMoveResult(null, null, NotInTable: true);
@@ -56,6 +84,21 @@ public sealed class TableNavigator
         int row = cell.Row, column = cell.Column;
         if (!entering && cell.CoversRow(_row) && cell.CoversColumn(_column))
             (row, column) = (_row, _column);
+
+        var headers = _headerStore.Get(TableKey(document, table));
+        switch (command)
+        {
+            case NavigationCommand.ReadTableRow:
+                return new TableMoveResult(null, ReadLine(document,
+                    Enumerable.Range(0, table.ColumnCount).Select(c => table.CellAt(row, c))));
+            case NavigationCommand.ReadTableColumn:
+                return new TableMoveResult(null, ReadLine(document,
+                    Enumerable.Range(0, table.RowCount).Select(r => table.CellAt(r, column))));
+            case NavigationCommand.SetColumnHeaders:
+                return new TableMoveResult(null, SetHeaders(document, table, isRow: true, row, headers.Row));
+            case NavigationCommand.SetRowHeaders:
+                return new TableMoveResult(null, SetHeaders(document, table, isRow: false, column, headers.Column));
+        }
 
         (int Row, int Column)? target = command switch
         {
@@ -76,8 +119,8 @@ public sealed class TableNavigator
         if (entering)
             parts.Add(Dimensions(table));
 
-        var rowHeaders = HeaderText(document, table.RowHeadersFor(next));
-        var columnHeaders = HeaderText(document, table.ColumnHeadersFor(next));
+        var rowHeaders = HeaderText(document, table.RowHeadersFor(next, headers.Column));
+        var columnHeaders = HeaderText(document, table.ColumnHeadersFor(next, headers.Row));
         if (rowChanged)
         {
             if (rowHeaders.Length > 0 && (entering || rowHeaders != _rowHeaders))
@@ -105,6 +148,32 @@ public sealed class TableNavigator
         $"table with {Count(table.RowCount, "row")} and {Count(table.ColumnCount, "column")}";
 
     private static string Count(int n, string noun) => n == 1 ? $"1 {noun}" : $"{n} {noun}s";
+
+    /// <summary>The text of each distinct cell (a spanning cell once), skipping empty ones.</summary>
+    private static string ReadLine(VBufferDocument document, IEnumerable<TableCell?> cells)
+    {
+        var texts = cells.OfType<TableCell>().Distinct()
+            .Select(c => CellText(document, c.Node)).Where(s => s.Length > 0).ToList();
+        return texts.Count > 0 ? string.Join(", ", texts) : "blank";
+    }
+
+    /// <summary>Sets the row (or column) as the table's headers, or clears it when it already is.</summary>
+    private string SetHeaders(VBufferDocument document, TableModel table, bool isRow, int index, int? current)
+    {
+        var key = TableKey(document, table);
+        var kind = isRow ? "column headers" : "row headers";
+        // The headers said while moving are the new ones from the next move on
+        _rowHeaders = _columnHeaders = string.Empty;
+        if (current == index)
+        {
+            if (isRow) _headerStore.SetRow(key, null);
+            else _headerStore.SetColumn(key, null);
+            return $"{kind} cleared";
+        }
+        if (isRow) _headerStore.SetRow(key, index);
+        else _headerStore.SetColumn(key, index);
+        return $"{(isRow ? "row" : "column")} {index + 1} set as {kind}";
+    }
 
     // The same table across document updates is the same table node
     private bool IsSameTable(TableModel table) =>

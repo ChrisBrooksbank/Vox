@@ -35,7 +35,7 @@ public sealed class BrowseModeController
     private readonly IElementsListPresenter _elementsListPresenter;
     private readonly ILogger<BrowseModeController> _logger;
     private readonly IncrementalUpdater _incrementalUpdater = new();
-    private readonly TableNavigator _tableNavigator = new();
+    private readonly TableNavigator _tableNavigator;
 
     private VBufferCursor? _cursor;
     private VBufferCursor? _sayAllCursor;
@@ -94,9 +94,11 @@ public sealed class BrowseModeController
         IBrowseDocumentActions documentActions,
         IElementsListPresenter elementsListPresenter,
         ILogger<BrowseModeController> logger,
-        IFocusedTextReader? focusedTextReader = null)
+        IFocusedTextReader? focusedTextReader = null,
+        TableHeaderStore? tableHeaders = null)
     {
         _focusedTextReader = focusedTextReader;
+        _tableNavigator = new TableNavigator(tableHeaders);
         _speechQueue = speechQueue;
         _audioCuePlayer = audioCuePlayer;
         _navigationManager = navigationManager;
@@ -387,6 +389,7 @@ public sealed class BrowseModeController
     /// <summary>
     /// Ctrl+Alt+arrows / Home / End: moves the cursor to the next cell of the table it is in and
     /// says the cell (with the changed row or column and headers); the boundary cue at the edge.
+    /// Also reads the current row or column, and sets the header row or column.
     /// </summary>
     private void MoveInTable(NavigationCommand command)
     {
@@ -397,19 +400,20 @@ public sealed class BrowseModeController
         if (document.FindTableCell(current) is null)
             current = _cursor?.CurrentNode;
 
-        var result = _tableNavigator.Move(document, current, command);
+        var result = _tableNavigator.Handle(document, current, command);
         if (result.NotInTable)
         {
             Speak("Not in a table");
             return;
         }
-        if (result.Cell is not { } cell)
+        if (result.AtEdge)
         {
             _audioCuePlayer.Play("boundary");
             return;
         }
 
-        MoveTo(cell.Node);
+        if (result.Cell is { } cell)
+            MoveTo(cell.Node);
         Speak(result.Text!);
     }
 
