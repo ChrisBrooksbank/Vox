@@ -20,6 +20,8 @@ internal sealed class MockElement : IVBufferElement
     public int? ToggleState { get; set; }
     public bool? IsSelected { get; set; }
     public string Language { get; set; } = string.Empty;
+    public int RowSpan { get; set; } = 1;
+    public int ColumnSpan { get; set; } = 1;
 
     private readonly List<IVBufferElement> _children = new();
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;

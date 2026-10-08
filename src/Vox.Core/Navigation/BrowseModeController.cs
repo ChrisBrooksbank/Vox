@@ -35,6 +35,7 @@ public sealed class BrowseModeController
     private readonly IElementsListPresenter _elementsListPresenter;
     private readonly ILogger<BrowseModeController> _logger;
     private readonly IncrementalUpdater _incrementalUpdater = new();
+    private readonly TableNavigator _tableNavigator;
 
     private VBufferCursor? _cursor;
     private VBufferCursor? _sayAllCursor;
@@ -93,9 +94,11 @@ public sealed class BrowseModeController
         IBrowseDocumentActions documentActions,
         IElementsListPresenter elementsListPresenter,
         ILogger<BrowseModeController> logger,
-        IFocusedTextReader? focusedTextReader = null)
+        IFocusedTextReader? focusedTextReader = null,
+        TableHeaderStore? tableHeaders = null)
     {
         _focusedTextReader = focusedTextReader;
+        _tableNavigator = new TableNavigator(tableHeaders);
         _speechQueue = speechQueue;
         _audioCuePlayer = audioCuePlayer;
         _navigationManager = navigationManager;
@@ -321,6 +324,12 @@ public sealed class BrowseModeController
             return;
         }
 
+        if (TableNavigator.IsTableCommand(command))
+        {
+            MoveInTable(command);
+            return;
+        }
+
         if (QuickNavHandler.IsQuickNavCommand(command))
         {
             var node = _quickNavHandler.Handle(command);
@@ -375,6 +384,37 @@ public sealed class BrowseModeController
         else
             AnnounceElement(container, PageElements.IsList(container) ? "list"
                 : PageElements.IsBlockQuote(container) ? "block quote" : "frame");
+    }
+
+    /// <summary>
+    /// Ctrl+Alt+arrows / Home / End: moves the cursor to the next cell of the table it is in and
+    /// says the cell (with the changed row or column and headers); the boundary cue at the edge.
+    /// Also reads the current row or column, and sets the header row or column.
+    /// </summary>
+    private void MoveInTable(NavigationCommand command)
+    {
+        var document = _quickNavHandler.CurrentDocument!;
+        // The current element when it is in a cell (an empty cell's range sits at the next
+        // cell's text); otherwise where the cursor is (after T, the current element is the table)
+        var current = _quickNavHandler.CurrentNode;
+        if (document.FindTableCell(current) is null)
+            current = _cursor?.CurrentNode;
+
+        var result = _tableNavigator.Handle(document, current, command);
+        if (result.NotInTable)
+        {
+            Speak("Not in a table");
+            return;
+        }
+        if (result.AtEdge)
+        {
+            _audioCuePlayer.Play("boundary");
+            return;
+        }
+
+        if (result.Cell is { } cell)
+            MoveTo(cell.Node);
+        Speak(result.Text!);
     }
 
     /// <summary>The buffer line ('\n'-separated) starting at <paramref name="start"/>.</summary>
@@ -634,6 +674,7 @@ public sealed class BrowseModeController
         var document = evt.Document;
         _quickNavHandler.SetDocument(document);
         _fullRecaptureRequestedAt = null;
+        _tableNavigator.Reset();
 
         // A new (or no) document starts in Browse mode; nothing to announce. The focus a page sets
         // while loading (e.g. an autofocused search box) deliberately doesn't enter Focus mode.

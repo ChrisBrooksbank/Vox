@@ -57,6 +57,12 @@ public interface IVBufferElement
     /// <summary>The element's own language (BCP 47, from the lang attribute), or empty when not set.</summary>
     string Language => string.Empty;
 
+    /// <summary>Rows a table cell spans (UIA GridItem.RowSpan; rowspan), 1 when not a spanning cell.</summary>
+    int RowSpan => 1;
+
+    /// <summary>Columns a table cell spans (UIA GridItem.ColumnSpan; colspan), 1 when not a spanning cell.</summary>
+    int ColumnSpan => 1;
+
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
 }
@@ -289,6 +295,8 @@ public sealed class VBufferBuilder
             IsFocusable = isFocusable,
             // Inherited, as lang is in HTML
             Language = !string.IsNullOrEmpty(element.Language) ? element.Language : parent?.Language ?? inheritedLanguage,
+            RowSpan = Math.Max(1, element.RowSpan),
+            ColumnSpan = Math.Max(1, element.ColumnSpan),
             Parent = parent,
         };
 

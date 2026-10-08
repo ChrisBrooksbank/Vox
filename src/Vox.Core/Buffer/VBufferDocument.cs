@@ -73,7 +73,11 @@ public sealed class VBufferDocument
     /// <summary>Embedded objects (plug-ins, applications, audio and video), in document order.</summary>
     public IReadOnlyList<VBufferNode> EmbeddedObjects { get; }
 
+    /// <summary>The model of each table in <see cref="Tables"/> that has cells, in document order.</summary>
+    public IReadOnlyList<TableModel> TableModels { get; }
+
     // Fast lookup tables
+    private readonly Dictionary<VBufferNode, TableModel> _tableModels;
     private readonly Dictionary<string, VBufferNode> _byRuntimeId;
     private readonly VBufferNode[] _allNodesArray;
 
@@ -151,6 +155,36 @@ public sealed class VBufferDocument
         Frames = frames;
         Separators = separators;
         EmbeddedObjects = embeddedObjects;
+
+        var tableModels = new List<TableModel>();
+        _tableModels = new Dictionary<VBufferNode, TableModel>();
+        foreach (var table in tables)
+        {
+            if (TableModel.Build(table) is { } model)
+            {
+                tableModels.Add(model);
+                _tableModels[table] = model;
+            }
+        }
+        TableModels = tableModels;
+    }
+
+    /// <summary>The model of a table node, or null when it isn't a table with cells.</summary>
+    public TableModel? GetTableModel(VBufferNode table) =>
+        _tableModels.TryGetValue(table, out var model) ? model : null;
+
+    /// <summary>
+    /// The innermost table whose cell contains a node (the node itself when it is a cell), with
+    /// that cell; null when the node isn't in a table cell.
+    /// </summary>
+    public (TableModel Table, TableCell Cell)? FindTableCell(VBufferNode? node)
+    {
+        for (var n = node; n is not null; n = n.Parent)
+        {
+            if (_tableModels.TryGetValue(n, out var model) && model.CellContaining(node!) is { } cell)
+                return (model, cell);
+        }
+        return null;
     }
 
     /// <summary>
