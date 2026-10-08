@@ -329,6 +329,8 @@ public sealed class BrowseModeController
                 _cursor?.MoveTo(node.TextRange.Start);
                 if (VBufferDocument.IsTable(node))
                     AnnounceTable(node);
+                else if (QuickNavHandler.ElementKindName(command) is { } kind)
+                    AnnounceElement(node, kind);
                 else
                     Announce(node);
             }
@@ -1108,6 +1110,25 @@ public sealed class BrowseModeController
             ApplyCursorSettings(_cursor);
             var firstLine = _cursor.ReadCurrentLine();
             if (!string.IsNullOrWhiteSpace(firstLine))
+                text = $"{text}, {firstLine}";
+        }
+        Speak(text);
+    }
+
+    /// <summary>
+    /// "Fruit, list" followed by the element's first line ("list item, Apples"), unless that line
+    /// is only its name (an image's alt text).
+    /// </summary>
+    private void AnnounceElement(VBufferNode node, string kind)
+    {
+        var name = node.Name.Trim();
+        var text = string.IsNullOrEmpty(name) ? kind : $"{name}, {kind}";
+        // Only an element with text of its own: an empty one's range sits at the following content
+        if (_cursor is not null && node.TextRange.Start < _cursor.Document.FlatText.Length && SubtreeHasText(node))
+        {
+            ApplyCursorSettings(_cursor);
+            var firstLine = _cursor.ReadCurrentLine().Trim();
+            if (!string.IsNullOrWhiteSpace(firstLine) && firstLine != name)
                 text = $"{text}, {firstLine}";
         }
         Speak(text);

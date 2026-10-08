@@ -52,6 +52,27 @@ public sealed class VBufferDocument
     /// <summary>Radio buttons, in document order.</summary>
     public IReadOnlyList<VBufferNode> RadioButtons { get; }
 
+    /// <summary>Lists, in document order.</summary>
+    public IReadOnlyList<VBufferNode> Lists { get; }
+
+    /// <summary>List items, in document order.</summary>
+    public IReadOnlyList<VBufferNode> ListItems { get; }
+
+    /// <summary>Images and other graphics, in document order.</summary>
+    public IReadOnlyList<VBufferNode> Graphics { get; }
+
+    /// <summary>Block quotes, in document order.</summary>
+    public IReadOnlyList<VBufferNode> BlockQuotes { get; }
+
+    /// <summary>Frames (iframes and nested documents), in document order.</summary>
+    public IReadOnlyList<VBufferNode> Frames { get; }
+
+    /// <summary>Separators, in document order.</summary>
+    public IReadOnlyList<VBufferNode> Separators { get; }
+
+    /// <summary>Embedded objects (plug-ins, applications, audio and video), in document order.</summary>
+    public IReadOnlyList<VBufferNode> EmbeddedObjects { get; }
+
     // Fast lookup tables
     private readonly Dictionary<string, VBufferNode> _byRuntimeId;
     private readonly VBufferNode[] _allNodesArray;
@@ -78,6 +99,13 @@ public sealed class VBufferDocument
         var comboBoxes = new List<VBufferNode>();
         var checkBoxes = new List<VBufferNode>();
         var radioButtons = new List<VBufferNode>();
+        var lists = new List<VBufferNode>();
+        var listItems = new List<VBufferNode>();
+        var graphics = new List<VBufferNode>();
+        var blockQuotes = new List<VBufferNode>();
+        var frames = new List<VBufferNode>();
+        var separators = new List<VBufferNode>();
+        var embeddedObjects = new List<VBufferNode>();
         _byRuntimeId = new Dictionary<string, VBufferNode>(allNodes.Count);
 
         foreach (var node in allNodes)
@@ -93,6 +121,13 @@ public sealed class VBufferDocument
             if (FormControls.IsComboBox(node)) comboBoxes.Add(node);
             if (FormControls.IsCheckBox(node)) checkBoxes.Add(node);
             if (FormControls.IsRadioButton(node)) radioButtons.Add(node);
+            if (PageElements.IsList(node)) lists.Add(node);
+            if (PageElements.IsListItem(node)) listItems.Add(node);
+            if (PageElements.IsGraphic(node)) graphics.Add(node);
+            if (PageElements.IsBlockQuote(node)) blockQuotes.Add(node);
+            if (PageElements.IsFrame(node)) frames.Add(node);
+            if (PageElements.IsSeparator(node)) separators.Add(node);
+            if (PageElements.IsEmbeddedObject(node)) embeddedObjects.Add(node);
 
             var key = RuntimeIdKey(node.UIARuntimeId);
             _byRuntimeId[key] = node;
@@ -109,6 +144,13 @@ public sealed class VBufferDocument
         ComboBoxes = comboBoxes;
         CheckBoxes = checkBoxes;
         RadioButtons = radioButtons;
+        Lists = lists;
+        ListItems = listItems;
+        Graphics = graphics;
+        BlockQuotes = blockQuotes;
+        Frames = frames;
+        Separators = separators;
+        EmbeddedObjects = embeddedObjects;
     }
 
     /// <summary>

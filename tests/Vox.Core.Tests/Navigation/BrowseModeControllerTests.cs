@@ -1279,6 +1279,54 @@ public class BrowseModeControllerTests : IDisposable
         Assert.Same(doc.FindByRuntimeId([3]), _quickNav.CurrentNode);
     }
 
+    [Fact]
+    public async Task NextList_SaysTheListAndItsFirstLine()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        var list = new MockElement { RuntimeId = [3], ControlType = "List" };
+        var item = new MockElement { RuntimeId = [4], ControlType = "ListItem" };
+        item.AddChild(new MockElement { RuntimeId = [5], Name = "Apples" });
+        list.AddChild(item);
+        root.AddChild(list);
+        var doc = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+
+        _controller.HandleCommand(NavigationCommand.NextList);
+        await WaitForSpeech(u => u.Text == "list, Apples");
+
+        _controller.HandleCommand(NavigationCommand.NextListItem);
+        await WaitForSpeech(u => u.Text == "list item, Apples");
+        Assert.Same(doc.FindByRuntimeId([4]), _quickNav.CurrentNode);
+    }
+
+    [Fact]
+    public async Task NextGraphic_SaysItsAltTextOnce()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        root.AddChild(new MockElement { RuntimeId = [3], Name = "Logo", ControlType = "Image" });
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleCommand(NavigationCommand.NextGraphic);
+
+        await WaitForSpeech(u => u.Text == "Logo, graphic");
+    }
+
+    [Fact]
+    public async Task NextSeparator_SaysSeparator()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        root.AddChild(new MockElement { RuntimeId = [3], ControlType = "Separator" });
+        root.AddChild(new MockElement { RuntimeId = [4], Name = "Outro" });
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleCommand(NavigationCommand.NextSeparator);
+
+        await WaitForSpeech(u => u.Text == "separator");
+    }
+
     // -------------------------------------------------------------------------
     // Round 6 fixes
     // -------------------------------------------------------------------------

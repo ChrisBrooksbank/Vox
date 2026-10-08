@@ -512,4 +512,99 @@ public class QuickNavHandlerTests
     {
         Assert.True(QuickNavHandler.IsQuickNavCommand(command));
     }
+
+    // -------------------------------------------------------------------------
+    // Page elements by kind (L, I, G, Q, M, S, O)
+    // -------------------------------------------------------------------------
+
+    private static VBufferDocument PageDoc() => BuildDoc(
+    [
+        new() { UIARuntimeId = [1], Name = "Fruit", ControlType = "List" },
+        new() { UIARuntimeId = [2], Name = "Apples", ControlType = "ListItem" },
+        new() { UIARuntimeId = [3], Name = "Logo", ControlType = "Image" },
+        new() { UIARuntimeId = [4], Name = "Pears", ControlType = "ListItem", AriaRole = "listitem" },
+        new() { UIARuntimeId = [5], Name = "Sizes", ControlType = "List", AriaRole = "listbox" },
+        new() { UIARuntimeId = [6], Name = "Small", ControlType = "ListItem", AriaRole = "option" },
+        new() { UIARuntimeId = [7], Name = "Quote", ControlType = "Group", AriaRole = "blockquote" },
+        new() { UIARuntimeId = [8], Name = "", ControlType = "Separator" },
+        new() { UIARuntimeId = [9], Name = "Ad", ControlType = "Pane", AriaRole = "iframe" },
+        new() { UIARuntimeId = [10], Name = "Player", ControlType = "Pane", AriaRole = "application" },
+        new() { UIARuntimeId = [11], Name = "Chart", ControlType = "Group", AriaRole = "img" },
+        new() { UIARuntimeId = [12], Name = "Steps", ControlType = "Group", AriaRole = "list" },
+        new() { UIARuntimeId = [13], Name = "Video", ControlType = "Group", AriaRole = "video" },
+        new() { UIARuntimeId = [14], Name = "Rule", ControlType = "Group", AriaRole = "separator" },
+        new() { UIARuntimeId = [15], Name = "Said", ControlType = "Group", AriaRole = "blockquote" },
+        new() { UIARuntimeId = [16], Name = "Map", ControlType = "Pane", AriaRole = "frame" },
+    ]);
+
+    [Theory]
+    [InlineData(NavigationCommand.NextList, "Fruit", "Steps")]
+    [InlineData(NavigationCommand.NextListItem, "Apples", "Pears")]
+    [InlineData(NavigationCommand.NextGraphic, "Logo", "Chart")]
+    [InlineData(NavigationCommand.NextBlockQuote, "Quote", "Said")]
+    [InlineData(NavigationCommand.NextSeparator, "", "Rule")]
+    [InlineData(NavigationCommand.NextFrame, "Ad", "Map")]
+    [InlineData(NavigationCommand.NextEmbeddedObject, "Player", "Video")]
+    public void NextPageElementOfAKind_FindsEachInTurn(NavigationCommand command, string first, string second)
+    {
+        var (handler, _) = MakeHandler(PageDoc());
+
+        Assert.Equal(first, handler.Handle(command)?.Name);
+        Assert.Equal(second, handler.Handle(command)?.Name);
+    }
+
+    [Fact]
+    public void NextList_SkipsListBoxes_AndWrapsToTheFirstList()
+    {
+        var (handler, audio) = MakeHandler(PageDoc());
+
+        handler.Handle(NavigationCommand.NextList);
+        handler.Handle(NavigationCommand.NextList);
+        var third = handler.Handle(NavigationCommand.NextList);
+
+        Assert.Equal("Fruit", third?.Name);
+        audio.Verify(a => a.Play("wrap"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(NavigationCommand.PrevList, "Steps")]
+    [InlineData(NavigationCommand.PrevListItem, "Pears")]
+    [InlineData(NavigationCommand.PrevGraphic, "Chart")]
+    [InlineData(NavigationCommand.PrevFrame, "Map")]
+    public void PrevPageElementOfAKind_FromTheStart_WrapsToTheLast(NavigationCommand command, string expected)
+    {
+        var (handler, _) = MakeHandler(PageDoc());
+
+        Assert.Equal(expected, handler.Handle(command)?.Name);
+    }
+
+    [Fact]
+    public void NoPageElementOfAKind_PlaysTheBoundary()
+    {
+        var (handler, audio) = MakeHandler(BuildDoc([new() { UIARuntimeId = [1], Name = "Just text" }]));
+
+        Assert.Null(handler.Handle(NavigationCommand.NextBlockQuote));
+        audio.Verify(a => a.Play("boundary"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(NavigationCommand.NextList, "list")]
+    [InlineData(NavigationCommand.PrevListItem, "list item")]
+    [InlineData(NavigationCommand.NextGraphic, "graphic")]
+    [InlineData(NavigationCommand.PrevBlockQuote, "block quote")]
+    [InlineData(NavigationCommand.NextFrame, "frame")]
+    [InlineData(NavigationCommand.NextSeparator, "separator")]
+    [InlineData(NavigationCommand.PrevEmbeddedObject, "embedded object")]
+    public void PageElementCommands_AreQuickNavCommandsWithAKindName(NavigationCommand command, string kind)
+    {
+        Assert.True(QuickNavHandler.IsQuickNavCommand(command));
+        Assert.Equal(kind, QuickNavHandler.ElementKindName(command));
+    }
+
+    [Fact]
+    public void OtherCommands_HaveNoKindName()
+    {
+        Assert.Null(QuickNavHandler.ElementKindName(NavigationCommand.NextButton));
+        Assert.Null(QuickNavHandler.ElementKindName(NavigationCommand.NextTable));
+    }
 }

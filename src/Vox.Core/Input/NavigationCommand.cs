@@ -103,5 +103,19 @@ public enum NavigationCommand
     NextCheckBox,
     PrevCheckBox,
     NextRadioButton,
-    PrevRadioButton
+    PrevRadioButton,
+    NextList,
+    PrevList,
+    NextListItem,
+    PrevListItem,
+    NextGraphic,
+    PrevGraphic,
+    NextBlockQuote,
+    PrevBlockQuote,
+    NextFrame,
+    PrevFrame,
+    NextSeparator,
+    PrevSeparator,
+    NextEmbeddedObject,
+    PrevEmbeddedObject
 }

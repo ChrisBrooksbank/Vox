@@ -17,6 +17,7 @@ namespace Vox.Core.Navigation;
 ///   NextTable / PrevTable      — T / Shift+T: next/prev table (not yet indexed; plays boundary)
 ///   NextFocusable / PrevFocusable — Tab / Shift+Tab: next/prev focusable element
 ///   Next/Prev Button, Edit, ComboBox, CheckBox, RadioButton — B, E, C, X, R (Shift: previous)
+///   Next/Prev List, ListItem, Graphic, BlockQuote, Frame, Separator, EmbeddedObject — L, I, G, Q, M, S, O
 ///
 /// Plays boundary.wav when no element is found and wrapping is disabled.
 /// Plays wrap.wav when wrapping to the other end of the collection.
@@ -72,7 +73,30 @@ public sealed class QuickNavHandler
         NavigationCommand.NextEdit or NavigationCommand.PrevEdit or
         NavigationCommand.NextComboBox or NavigationCommand.PrevComboBox or
         NavigationCommand.NextCheckBox or NavigationCommand.PrevCheckBox or
-        NavigationCommand.NextRadioButton or NavigationCommand.PrevRadioButton;
+        NavigationCommand.NextRadioButton or NavigationCommand.PrevRadioButton or
+        NavigationCommand.NextList or NavigationCommand.PrevList or
+        NavigationCommand.NextListItem or NavigationCommand.PrevListItem or
+        NavigationCommand.NextGraphic or NavigationCommand.PrevGraphic or
+        NavigationCommand.NextBlockQuote or NavigationCommand.PrevBlockQuote or
+        NavigationCommand.NextFrame or NavigationCommand.PrevFrame or
+        NavigationCommand.NextSeparator or NavigationCommand.PrevSeparator or
+        NavigationCommand.NextEmbeddedObject or NavigationCommand.PrevEmbeddedObject;
+
+    /// <summary>
+    /// What an element found by <paramref name="command"/> is called when it is announced
+    /// ("list", "graphic"), for the kinds whose control type doesn't say it; null for the others.
+    /// </summary>
+    public static string? ElementKindName(NavigationCommand command) => command switch
+    {
+        NavigationCommand.NextList or NavigationCommand.PrevList => "list",
+        NavigationCommand.NextListItem or NavigationCommand.PrevListItem => "list item",
+        NavigationCommand.NextGraphic or NavigationCommand.PrevGraphic => "graphic",
+        NavigationCommand.NextBlockQuote or NavigationCommand.PrevBlockQuote => "block quote",
+        NavigationCommand.NextFrame or NavigationCommand.PrevFrame => "frame",
+        NavigationCommand.NextSeparator or NavigationCommand.PrevSeparator => "separator",
+        NavigationCommand.NextEmbeddedObject or NavigationCommand.PrevEmbeddedObject => "embedded object",
+        _ => null,
+    };
 
     /// <summary>
     /// Handles a quick-navigation command in Browse mode.
@@ -126,6 +150,21 @@ public sealed class QuickNavHandler
             NavigationCommand.PrevCheckBox    => FindPrev(_document.CheckBoxes, _ => true),
             NavigationCommand.NextRadioButton => FindNext(_document.RadioButtons, _ => true),
             NavigationCommand.PrevRadioButton => FindPrev(_document.RadioButtons, _ => true),
+
+            NavigationCommand.NextList           => FindNext(_document.Lists, _ => true),
+            NavigationCommand.PrevList           => FindPrev(_document.Lists, _ => true),
+            NavigationCommand.NextListItem       => FindNext(_document.ListItems, _ => true),
+            NavigationCommand.PrevListItem       => FindPrev(_document.ListItems, _ => true),
+            NavigationCommand.NextGraphic        => FindNext(_document.Graphics, _ => true),
+            NavigationCommand.PrevGraphic        => FindPrev(_document.Graphics, _ => true),
+            NavigationCommand.NextBlockQuote     => FindNext(_document.BlockQuotes, _ => true),
+            NavigationCommand.PrevBlockQuote     => FindPrev(_document.BlockQuotes, _ => true),
+            NavigationCommand.NextFrame          => FindNext(_document.Frames, _ => true),
+            NavigationCommand.PrevFrame          => FindPrev(_document.Frames, _ => true),
+            NavigationCommand.NextSeparator      => FindNext(_document.Separators, _ => true),
+            NavigationCommand.PrevSeparator      => FindPrev(_document.Separators, _ => true),
+            NavigationCommand.NextEmbeddedObject => FindNext(_document.EmbeddedObjects, _ => true),
+            NavigationCommand.PrevEmbeddedObject => FindPrev(_document.EmbeddedObjects, _ => true),
 
             _ => null,
         };
