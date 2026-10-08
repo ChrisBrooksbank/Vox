@@ -21,8 +21,8 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 
 ### Quick navigation
 
-- [ ] Index and commands (next/prev with Shift): B button, E edit, C combo box, X check box, R radio button, L list, I list item, G graphic, Q block quote, M frame, S separator, O embedded object, V visited link, U unvisited link, N text after a block of links, P paragraph, J heading not yet visited on this page; `,`/Shift+`,` to end/start of container
-- [ ] Elements List: add Buttons, Form fields by kind, and Tables tabs
+- [x] Index and commands (next/prev with Shift): B button, E edit, C combo box, X check box, R radio button, L list, I list item, G graphic, Q block quote, M frame, S separator, O embedded object, V visited link, U unvisited link, N text after a block of links, P paragraph, J heading not yet visited on this page; `,`/Shift+`,` to end/start of container
+- [x] Elements List: add Buttons, Form fields by kind, and Tables tabs
 
 ### Tables and lists
 

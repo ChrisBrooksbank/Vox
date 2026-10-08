@@ -158,6 +158,81 @@ public class ElementsListDialogTests
     }
 
     [Fact]
+    public void ViewModel_HasButtonsAndTablesTabs()
+    {
+        var vm = new ElementsListViewModel(EmptyDocument());
+
+        Assert.Equal(6, vm.TabCount);
+        Assert.Equal(["Headings", "Links", "Landmarks", "Form Fields", "Buttons", "Tables"], ElementsListViewModel.TabNames);
+    }
+
+    [Fact]
+    public void ViewModel_ButtonsTab_ReturnsButtons()
+    {
+        var doc = BuildDocument(new[]
+        {
+            new VBufferNode { UIARuntimeId = [40, 0], Name = "Send", ControlType = "Button" },
+            FormField("Search"),
+            new VBufferNode { UIARuntimeId = [41, 0], Name = "Help", ControlType = "Custom", AriaRole = "button" },
+        });
+
+        var vm = new ElementsListViewModel(doc) { SelectedTabIndex = 4 };
+
+        Assert.Equal(["Send", "Help"], vm.GetFilteredItems().Select(n => n.Name));
+    }
+
+    [Fact]
+    public void ViewModel_TablesTab_ReturnsTables()
+    {
+        var doc = BuildDocument(new[]
+        {
+            new VBufferNode { UIARuntimeId = [50, 0], Name = "Prices", ControlType = "Table" },
+            Heading(1, "Not a table"),
+            new VBufferNode { UIARuntimeId = [51, 0], Name = "Results", ControlType = "Group", AriaRole = "grid" },
+        });
+
+        var vm = new ElementsListViewModel(doc) { SelectedTabIndex = 5 };
+
+        Assert.Equal(["Prices", "Results"], vm.GetFilteredItems().Select(n => n.Name));
+        vm.FilterText = "pri";
+        Assert.Equal("Prices", Assert.Single(vm.GetFilteredItems()).Name);
+    }
+
+    [Theory]
+    [InlineData(ElementsFormFieldKind.All, new[] { "Name", "Country", "Subscribe", "Small" })]
+    [InlineData(ElementsFormFieldKind.Edits, new[] { "Name" })]
+    [InlineData(ElementsFormFieldKind.ComboBoxes, new[] { "Country" })]
+    [InlineData(ElementsFormFieldKind.CheckBoxes, new[] { "Subscribe" })]
+    [InlineData(ElementsFormFieldKind.RadioButtons, new[] { "Small" })]
+    public void ViewModel_FormFieldsTab_NarrowsToTheChosenKind(ElementsFormFieldKind kind, string[] expected)
+    {
+        var doc = BuildDocument(new[]
+        {
+            FormField("Name"),
+            new VBufferNode { UIARuntimeId = [31, 0], Name = "Country", ControlType = "ComboBox" },
+            new VBufferNode { UIARuntimeId = [32, 0], Name = "Subscribe", ControlType = "CheckBox" },
+            new VBufferNode { UIARuntimeId = [33, 0], Name = "Small", ControlType = "RadioButton" },
+            new VBufferNode { UIARuntimeId = [34, 0], Name = "Send", ControlType = "Button" },
+        });
+
+        var vm = new ElementsListViewModel(doc) { SelectedTabIndex = ElementsListViewModel.FormFieldsTab, FormFieldKind = kind };
+
+        Assert.Equal(expected, vm.GetFilteredItems().Select(n => n.Name));
+    }
+
+    [Fact]
+    public void ViewModel_FormFieldKind_OnlyAppliesToTheFormFieldsTab()
+    {
+        var doc = BuildDocument(new[] { Heading(1, "Intro"), FormField("Name") });
+
+        var vm = new ElementsListViewModel(doc) { FormFieldKind = ElementsFormFieldKind.CheckBoxes };
+
+        Assert.Equal("Intro", Assert.Single(vm.GetFilteredItems()).Name);
+        Assert.Equal(ElementsListViewModel.FormFieldKindNames.Count, Enum.GetValues<ElementsFormFieldKind>().Length);
+        Assert.Throws<ArgumentOutOfRangeException>(() => vm.FormFieldKind = (ElementsFormFieldKind)99);
+    }
+
+    [Fact]
     public void ViewModel_TabSwitch_ResetsFilter()
     {
         var doc = BuildDocument(new[]

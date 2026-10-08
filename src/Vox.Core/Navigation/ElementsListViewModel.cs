@@ -6,14 +6,27 @@ namespace Vox.Core.Navigation;
 /// Pure-logic view model for the Elements List dialog.
 /// Contains no WinForms dependencies so it can be unit tested without a message pump.
 ///
-/// Tabs (by index):
+/// Tabs (by index, named by <see cref="TabNames"/>):
 ///   0 = Headings
 ///   1 = Links
 ///   2 = Landmarks
-///   3 = Form Fields
+///   3 = Form Fields (narrowed to one kind by <see cref="FormFieldKind"/>)
+///   4 = Buttons
+///   5 = Tables
 /// </summary>
 public sealed class ElementsListViewModel
 {
+    /// <summary>The tabs' names, by index.</summary>
+    public static IReadOnlyList<string> TabNames { get; } =
+        ["Headings", "Links", "Landmarks", "Form Fields", "Buttons", "Tables"];
+
+    /// <summary>Index of the Form Fields tab, the one <see cref="FormFieldKind"/> applies to.</summary>
+    public const int FormFieldsTab = 3;
+
+    /// <summary>The form field kinds' names, by <see cref="ElementsFormFieldKind"/> value.</summary>
+    public static IReadOnlyList<string> FormFieldKindNames { get; } =
+        ["All", "Edits", "Combo boxes", "Check boxes", "Radio buttons"];
+
     // -------------------------------------------------------------------------
     // State
     // -------------------------------------------------------------------------
@@ -22,6 +35,7 @@ public sealed class ElementsListViewModel
 
     private int _selectedTabIndex;
     private string _filterText = string.Empty;
+    private ElementsFormFieldKind _formFieldKind;
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -36,10 +50,10 @@ public sealed class ElementsListViewModel
     // Public API
     // -------------------------------------------------------------------------
 
-    /// <summary>Number of available tabs (always 4).</summary>
-    public int TabCount => 4;
+    /// <summary>Number of available tabs.</summary>
+    public int TabCount => TabNames.Count;
 
-    /// <summary>Currently active tab index (0–3).</summary>
+    /// <summary>Currently active tab index (0 to <see cref="TabCount"/> - 1).</summary>
     public int SelectedTabIndex
     {
         get => _selectedTabIndex;
@@ -53,6 +67,18 @@ public sealed class ElementsListViewModel
                 _selectedTabIndex = value;
                 _filterText = string.Empty;   // reset filter on tab switch
             }
+        }
+    }
+
+    /// <summary>Which kind of form field the Form Fields tab lists (all of them by default).</summary>
+    public ElementsFormFieldKind FormFieldKind
+    {
+        get => _formFieldKind;
+        set
+        {
+            if (!Enum.IsDefined(value))
+                throw new ArgumentOutOfRangeException(nameof(value));
+            _formFieldKind = value;
         }
     }
 
@@ -193,7 +219,26 @@ public sealed class ElementsListViewModel
             0 => _document.Headings,
             1 => _document.Links,
             2 => _document.Landmarks,
-            3 => _document.FormFields,
+            FormFieldsTab => _formFieldKind switch
+            {
+                ElementsFormFieldKind.Edits => _document.Edits,
+                ElementsFormFieldKind.ComboBoxes => _document.ComboBoxes,
+                ElementsFormFieldKind.CheckBoxes => _document.CheckBoxes,
+                ElementsFormFieldKind.RadioButtons => _document.RadioButtons,
+                _ => _document.FormFields,
+            },
+            4 => _document.Buttons,
+            5 => _document.Tables,
             _ => Array.Empty<VBufferNode>(),
         };
+}
+
+/// <summary>The kinds of form field the Elements List's Form Fields tab can be narrowed to.</summary>
+public enum ElementsFormFieldKind
+{
+    All,
+    Edits,
+    ComboBoxes,
+    CheckBoxes,
+    RadioButtons,
 }
