@@ -607,4 +607,226 @@ public class QuickNavHandlerTests
         Assert.Null(QuickNavHandler.ElementKindName(NavigationCommand.NextButton));
         Assert.Null(QuickNavHandler.ElementKindName(NavigationCommand.NextTable));
     }
+
+    // -------------------------------------------------------------------------
+    // Visited / unvisited links (V, U) and unvisited headings (J)
+    // -------------------------------------------------------------------------
+
+    private static VBufferDocument VisitedLinksDoc() => BuildDoc(
+    [
+        new() { UIARuntimeId = [1], Name = "Home", ControlType = "Hyperlink", IsLink = true, IsVisited = true },
+        new() { UIARuntimeId = [2], Name = "News", ControlType = "Hyperlink", IsLink = true },
+        new() { UIARuntimeId = [3], Name = "About", ControlType = "Hyperlink", IsLink = true, IsVisited = true },
+    ]);
+
+    [Fact]
+    public void NextVisitedLink_SkipsUnvisitedLinks()
+    {
+        var doc = VisitedLinksDoc();
+        var (handler, _) = MakeHandler(doc);
+        handler.CurrentNode = doc.FindByRuntimeId([1]);
+
+        Assert.Equal([3], handler.Handle(NavigationCommand.NextVisitedLink)!.UIARuntimeId);
+        Assert.Equal([1], handler.Handle(NavigationCommand.PrevVisitedLink)!.UIARuntimeId);
+    }
+
+    [Fact]
+    public void NextUnvisitedLink_SkipsVisitedLinks()
+    {
+        var (handler, audio) = MakeHandler(VisitedLinksDoc(), wrap: false);
+
+        Assert.Equal([2], handler.Handle(NavigationCommand.NextUnvisitedLink)!.UIARuntimeId);
+        Assert.Null(handler.Handle(NavigationCommand.NextUnvisitedLink));
+        audio.Verify(a => a.Play("boundary"), Times.Once);
+        Assert.Null(handler.Handle(NavigationCommand.PrevUnvisitedLink));
+    }
+
+    private static VBufferDocument HeadingsDoc(int rootId = 0)
+    {
+        var doc = BuildDoc([MakeHeading(1, 1, "One"), MakeHeading(2, 2, "Two"), MakeHeading(3, 2, "Three")]);
+        return rootId == 0 ? doc : new VBufferDocument(doc.FlatText,
+            new VBufferNode { UIARuntimeId = [rootId], ControlType = "Document" }, doc.AllNodes);
+    }
+
+    [Fact]
+    public void NextUnvisitedHeading_SkipsHeadingsTheCursorHasBeenOn()
+    {
+        var doc = HeadingsDoc();
+        var (handler, audio) = MakeHandler(doc, wrap: true);
+        handler.CurrentNode = doc.FindByRuntimeId([2]);
+        handler.CurrentNode = null; // back at the top
+
+        Assert.Equal([1], handler.Handle(NavigationCommand.NextUnvisitedHeading)!.UIARuntimeId);
+        Assert.Equal([3], handler.Handle(NavigationCommand.NextUnvisitedHeading)!.UIARuntimeId);
+        Assert.Null(handler.Handle(NavigationCommand.NextUnvisitedHeading));
+        Assert.Null(handler.Handle(NavigationCommand.PrevUnvisitedHeading));
+        audio.Verify(a => a.Play("boundary"), Times.Exactly(2));
+    }
+
+    [Fact]
+    public void VisitedHeadings_SurviveAnUpdateButNotAnotherPage()
+    {
+        var doc = HeadingsDoc();
+        var (handler, _) = MakeHandler(doc);
+        handler.CurrentNode = doc.FindByRuntimeId([1]);
+
+        handler.SetDocument(HeadingsDoc()); // the same page, updated
+        Assert.Equal([2], handler.Handle(NavigationCommand.NextUnvisitedHeading)!.UIARuntimeId);
+
+        handler.SetDocument(HeadingsDoc(rootId: 99)); // another page
+        Assert.Equal([1], handler.Handle(NavigationCommand.NextUnvisitedHeading)!.UIARuntimeId);
+    }
+
+    [Theory]
+    [InlineData(NavigationCommand.NextVisitedLink)]
+    [InlineData(NavigationCommand.PrevUnvisitedLink)]
+    [InlineData(NavigationCommand.NextUnvisitedHeading)]
+    public void VisitedCommands_AreQuickNavCommands(NavigationCommand command)
+    {
+        Assert.True(QuickNavHandler.IsQuickNavCommand(command));
+        Assert.False(QuickNavHandler.IsTextLineCommand(command));
+    }
+
+    // -------------------------------------------------------------------------
+    // Text after links (N) and text paragraphs (P)
+    // -------------------------------------------------------------------------
+
+    private static Vox.Core.Tests.Buffer.MockElement Text(int id, string name) =>
+        new() { RuntimeId = [id], Name = name };
+
+    private static Vox.Core.Tests.Buffer.MockElement Item(int id, Vox.Core.Tests.Buffer.MockElement child) =>
+        new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [id], ControlType = "ListItem" }.AddChild(child);
+
+    /// <summary>Lines: Title (heading), Intro paragraph, Home, About (links), Welcome back, Search (edit), Footer text.</summary>
+    private static VBufferDocument TextLinesDoc()
+    {
+        var root = new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [2], ControlType = "Group", AriaRole = "heading", HeadingLevel = 1 }
+            .AddChild(Text(3, "Title")));
+        root.AddChild(Text(4, "Intro paragraph"));
+        root.AddChild(new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [5], ControlType = "List" }
+            .AddChild(Item(6, new() { RuntimeId = [7], Name = "Home", ControlType = "Hyperlink" }))
+            .AddChild(Item(8, new() { RuntimeId = [9], Name = "About", ControlType = "Hyperlink" })));
+        root.AddChild(Text(10, "Welcome back"));
+        root.AddChild(new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [11], Name = "Search", ControlType = "Edit" });
+        root.AddChild(Text(12, "Footer text"));
+        return new VBufferBuilder().Build(root);
+    }
+
+    private static int Offset(VBufferDocument doc, string line) => doc.FlatText.IndexOf(line, StringComparison.Ordinal);
+
+    [Fact]
+    public void NextNonLinkText_FindsTheTextAfterABlockOfLinks()
+    {
+        var doc = TextLinesDoc();
+        var (handler, audio) = MakeHandler(doc, wrap: false);
+
+        Assert.Equal(Offset(doc, "Welcome back"), handler.FindTextLine(NavigationCommand.NextNonLinkText, 0));
+        Assert.Equal(Offset(doc, "Welcome back"), handler.FindTextLine(NavigationCommand.NextNonLinkText, Offset(doc, "About")));
+        Assert.Null(handler.FindTextLine(NavigationCommand.NextNonLinkText, Offset(doc, "Welcome back")));
+        audio.Verify(a => a.Play("boundary"), Times.Once);
+    }
+
+    [Fact]
+    public void PrevNonLinkText_FindsTheTextAfterThePreviousBlockOfLinks()
+    {
+        var doc = TextLinesDoc();
+        var (handler, _) = MakeHandler(doc, wrap: false);
+
+        Assert.Equal(Offset(doc, "Welcome back"), handler.FindTextLine(NavigationCommand.PrevNonLinkText, Offset(doc, "Footer text")));
+        Assert.Null(handler.FindTextLine(NavigationCommand.PrevNonLinkText, Offset(doc, "Welcome back") + 3));
+    }
+
+    [Fact]
+    public void NextTextParagraph_SkipsHeadingsLinksAndFormFields()
+    {
+        var doc = TextLinesDoc();
+        var (handler, audio) = MakeHandler(doc, wrap: true);
+
+        Assert.Equal(Offset(doc, "Intro paragraph"), handler.FindTextLine(NavigationCommand.NextTextParagraph, 0));
+        Assert.Equal(Offset(doc, "Welcome back"), handler.FindTextLine(NavigationCommand.NextTextParagraph, Offset(doc, "Intro paragraph")));
+        Assert.Equal(Offset(doc, "Footer text"), handler.FindTextLine(NavigationCommand.NextTextParagraph, Offset(doc, "Welcome back")));
+        Assert.Equal(Offset(doc, "Intro paragraph"), handler.FindTextLine(NavigationCommand.NextTextParagraph, Offset(doc, "Footer text")));
+        audio.Verify(a => a.Play("wrap"), Times.Once);
+    }
+
+    [Fact]
+    public void PrevTextParagraph_FindsThePreviousPlainText()
+    {
+        var doc = TextLinesDoc();
+        var (handler, _) = MakeHandler(doc);
+
+        Assert.Equal(Offset(doc, "Welcome back"), handler.FindTextLine(NavigationCommand.PrevTextParagraph, Offset(doc, "Footer text") + 4));
+        Assert.Equal(Offset(doc, "Intro paragraph"), handler.FindTextLine(NavigationCommand.PrevTextParagraph, Offset(doc, "Home")));
+    }
+
+    [Fact]
+    public void TextLineCommands_AreNotElementCommands()
+    {
+        Assert.True(QuickNavHandler.IsTextLineCommand(NavigationCommand.NextNonLinkText));
+        Assert.True(QuickNavHandler.IsTextLineCommand(NavigationCommand.PrevTextParagraph));
+        Assert.False(QuickNavHandler.IsQuickNavCommand(NavigationCommand.NextTextParagraph));
+    }
+
+    // -------------------------------------------------------------------------
+    // Container start / end (, and Shift+,)
+    // -------------------------------------------------------------------------
+
+    /// <summary>Before, a list of One and Two inside main, After.</summary>
+    private static VBufferDocument ContainersDoc(bool textAfter = true)
+    {
+        var root = new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(Text(2, "Before"));
+        var main = new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [3], ControlType = "Group", AriaRole = "main" };
+        main.AddChild(new Vox.Core.Tests.Buffer.MockElement { RuntimeId = [4], ControlType = "List" }
+            .AddChild(Item(5, Text(6, "One")))
+            .AddChild(Item(7, Text(8, "Two"))));
+        main.AddChild(Text(9, "Inside main"));
+        root.AddChild(main);
+        if (textAfter)
+            root.AddChild(Text(10, "After"));
+        return new VBufferBuilder().Build(root);
+    }
+
+    [Fact]
+    public void EndOfContainer_GoesToTheLineAfterTheInnermostContainer()
+    {
+        var doc = ContainersDoc();
+        var (handler, _) = MakeHandler(doc);
+
+        var edge = handler.FindContainerEdge(end: true, Offset(doc, "Two"));
+
+        Assert.Equal([4], edge!.Value.Container.UIARuntimeId);
+        Assert.Equal(Offset(doc, "Inside main"), edge.Value.Offset);
+        Assert.Equal(Offset(doc, "After"), handler.FindContainerEdge(end: true, edge.Value.Offset)!.Value.Offset);
+    }
+
+    [Fact]
+    public void EndOfContainer_AtTheEndOfTheDocument_PlaysTheBoundary()
+    {
+        var doc = ContainersDoc(textAfter: false);
+        var (handler, audio) = MakeHandler(doc);
+
+        Assert.Null(handler.FindContainerEdge(end: true, Offset(doc, "Inside main")));
+        Assert.Null(handler.FindContainerEdge(end: true, Offset(doc, "Before")));
+        audio.Verify(a => a.Play("boundary"), Times.Exactly(2));
+    }
+
+    [Fact]
+    public void StartOfContainer_GoesToItsStartThenToTheStartOfTheOneAroundIt()
+    {
+        var doc = ContainersDoc();
+        var (handler, audio) = MakeHandler(doc);
+
+        var edge = handler.FindContainerEdge(end: false, Offset(doc, "Two"));
+        Assert.Equal([4], edge!.Value.Container.UIARuntimeId);
+        Assert.Equal(Offset(doc, "One"), edge.Value.Offset);
+        Assert.Same(edge.Value.Container, handler.CurrentNode);
+
+        // At the list's start, which is also main's start: nothing further out
+        Assert.Null(handler.FindContainerEdge(end: false, edge.Value.Offset));
+        audio.Verify(a => a.Play("boundary"), Times.Once);
+
+        Assert.Equal([3], handler.FindContainerEdge(end: false, Offset(doc, "Inside main"))!.Value.Container.UIARuntimeId);
+    }
 }

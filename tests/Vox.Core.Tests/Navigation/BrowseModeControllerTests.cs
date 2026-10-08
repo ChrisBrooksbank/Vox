@@ -1327,6 +1327,57 @@ public class BrowseModeControllerTests : IDisposable
         await WaitForSpeech(u => u.Text == "separator");
     }
 
+    [Fact]
+    public async Task NextNonLinkText_ReadsTheTextAfterTheLinks()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Home", ControlType = "Hyperlink" });
+        root.AddChild(new MockElement { RuntimeId = [3], ControlType = "Group" }
+            .AddChild(new MockElement { RuntimeId = [4], Name = "Welcome back" }));
+        var doc = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+
+        _controller.HandleCommand(NavigationCommand.NextNonLinkText);
+
+        await WaitForSpeech(u => u.Text == "Welcome back");
+        Assert.Same(doc.FindByRuntimeId([4]), _quickNav.CurrentNode);
+    }
+
+    [Fact]
+    public async Task ContainerCommands_SayTheListAtItsStartAndReadOnAfterItsEnd()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var list = new MockElement { RuntimeId = [2], ControlType = "List" };
+        list.AddChild(new MockElement { RuntimeId = [3], ControlType = "ListItem" }.AddChild(new MockElement { RuntimeId = [4], Name = "One" }));
+        list.AddChild(new MockElement { RuntimeId = [5], ControlType = "ListItem" }.AddChild(new MockElement { RuntimeId = [6], Name = "Two" }));
+        root.AddChild(list);
+        root.AddChild(new MockElement { RuntimeId = [7], ControlType = "Group" }.AddChild(new MockElement { RuntimeId = [8], Name = "After" }));
+        var doc = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+        _controller.HandleCommand(NavigationCommand.NextLine); // on Two
+
+        _controller.HandleCommand(NavigationCommand.StartOfContainer);
+        await WaitForSpeech(u => u.Text == "list, One");
+
+        _controller.HandleCommand(NavigationCommand.EndOfContainer);
+        await WaitForSpeech(u => u.Text == "After");
+        Assert.Same(doc.FindByRuntimeId([8]), _quickNav.CurrentNode);
+    }
+
+    [Fact]
+    public async Task NextUnvisitedLink_SaysTheLink()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Old", ControlType = "Hyperlink", AriaProperties = "visited=true" });
+        root.AddChild(new MockElement { RuntimeId = [3], ControlType = "Group" }
+            .AddChild(new MockElement { RuntimeId = [4], Name = "New", ControlType = "Hyperlink" }));
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleCommand(NavigationCommand.NextUnvisitedLink);
+
+        await WaitForSpeech(u => u.Text.StartsWith("New", StringComparison.Ordinal) && u.Text.Contains("link"));
+    }
+
     // -------------------------------------------------------------------------
     // Round 6 fixes
     // -------------------------------------------------------------------------

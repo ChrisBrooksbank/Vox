@@ -334,7 +334,54 @@ public sealed class BrowseModeController
                 else
                     Announce(node);
             }
+            return;
         }
+
+        if (QuickNavHandler.IsTextLineCommand(command))
+        {
+            if (_cursor is not null && _quickNavHandler.FindTextLine(command, _cursor.TextOffset) is { } start)
+            {
+                _cursor.MoveTo(start);
+                _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+                SpeakContent(LineText(ParagraphAt(_cursor.Document.FlatText, start)));
+            }
+            return;
+        }
+
+        if ((command is NavigationCommand.EndOfContainer or NavigationCommand.StartOfContainer) && _cursor is not null)
+            MoveToContainerEdge(end: command == NavigationCommand.EndOfContainer);
+    }
+
+    /// <summary>
+    /// , moves past the end of the list, table, landmark, block quote or frame the cursor is in
+    /// and reads on from there; Shift+, goes back to its start and says what it is.
+    /// </summary>
+    private void MoveToContainerEdge(bool end)
+    {
+        if (_quickNavHandler.FindContainerEdge(end, _cursor!.TextOffset) is not { } edge)
+            return;
+        var (container, offset) = edge;
+
+        _cursor.MoveTo(offset);
+        if (end)
+        {
+            _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+            SpeakContent(LineText(ParagraphAt(_cursor.Document.FlatText, offset)));
+        }
+        else if (VBufferDocument.IsTable(container))
+            AnnounceTable(container);
+        else if (container.IsLandmark)
+            Announce(container);
+        else
+            AnnounceElement(container, PageElements.IsList(container) ? "list"
+                : PageElements.IsBlockQuote(container) ? "block quote" : "frame");
+    }
+
+    /// <summary>The buffer line ('\n'-separated) starting at <paramref name="start"/>.</summary>
+    private static string ParagraphAt(string text, int start)
+    {
+        int end = text.IndexOf('\n', start);
+        return text.Substring(start, (end < 0 ? text.Length : end) - start);
     }
 
     // -------------------------------------------------------------------------

@@ -117,5 +117,17 @@ public enum NavigationCommand
     NextSeparator,
     PrevSeparator,
     NextEmbeddedObject,
-    PrevEmbeddedObject
+    PrevEmbeddedObject,
+    NextVisitedLink,
+    PrevVisitedLink,
+    NextUnvisitedLink,
+    PrevUnvisitedLink,
+    NextNonLinkText,
+    PrevNonLinkText,
+    NextTextParagraph,
+    PrevTextParagraph,
+    NextUnvisitedHeading,
+    PrevUnvisitedHeading,
+    EndOfContainer,
+    StartOfContainer
 }
