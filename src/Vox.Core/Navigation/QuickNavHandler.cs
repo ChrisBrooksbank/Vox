@@ -16,6 +16,7 @@ namespace Vox.Core.Navigation;
 ///   NextFormField / PrevFormField — F / Shift+F: next/prev form field
 ///   NextTable / PrevTable      — T / Shift+T: next/prev table (not yet indexed; plays boundary)
 ///   NextFocusable / PrevFocusable — Tab / Shift+Tab: next/prev focusable element
+///   Next/Prev Button, Edit, ComboBox, CheckBox, RadioButton — B, E, C, X, R (Shift: previous)
 ///
 /// Plays boundary.wav when no element is found and wrapping is disabled.
 /// Plays wrap.wav when wrapping to the other end of the collection.
@@ -66,7 +67,12 @@ public sealed class QuickNavHandler
         NavigationCommand.NextLandmark or NavigationCommand.PrevLandmark or
         NavigationCommand.NextFormField or NavigationCommand.PrevFormField or
         NavigationCommand.NextTable or NavigationCommand.PrevTable or
-        NavigationCommand.NextFocusable or NavigationCommand.PrevFocusable;
+        NavigationCommand.NextFocusable or NavigationCommand.PrevFocusable or
+        NavigationCommand.NextButton or NavigationCommand.PrevButton or
+        NavigationCommand.NextEdit or NavigationCommand.PrevEdit or
+        NavigationCommand.NextComboBox or NavigationCommand.PrevComboBox or
+        NavigationCommand.NextCheckBox or NavigationCommand.PrevCheckBox or
+        NavigationCommand.NextRadioButton or NavigationCommand.PrevRadioButton;
 
     /// <summary>
     /// Handles a quick-navigation command in Browse mode.
@@ -109,6 +115,17 @@ public sealed class QuickNavHandler
 
             NavigationCommand.NextFocusable   => FindNext(_document.FocusableElements, _ => true),
             NavigationCommand.PrevFocusable   => FindPrev(_document.FocusableElements, _ => true),
+
+            NavigationCommand.NextButton      => FindNext(_document.Buttons, _ => true),
+            NavigationCommand.PrevButton      => FindPrev(_document.Buttons, _ => true),
+            NavigationCommand.NextEdit        => FindNext(_document.Edits, _ => true),
+            NavigationCommand.PrevEdit        => FindPrev(_document.Edits, _ => true),
+            NavigationCommand.NextComboBox    => FindNext(_document.ComboBoxes, _ => true),
+            NavigationCommand.PrevComboBox    => FindPrev(_document.ComboBoxes, _ => true),
+            NavigationCommand.NextCheckBox    => FindNext(_document.CheckBoxes, _ => true),
+            NavigationCommand.PrevCheckBox    => FindPrev(_document.CheckBoxes, _ => true),
+            NavigationCommand.NextRadioButton => FindNext(_document.RadioButtons, _ => true),
+            NavigationCommand.PrevRadioButton => FindPrev(_document.RadioButtons, _ => true),
 
             _ => null,
         };

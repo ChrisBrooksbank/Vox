@@ -93,5 +93,15 @@ public enum NavigationCommand
     SettingsRingDecrease,
     SpeechHistoryPrevious,
     SpeechHistoryNext,
-    ToggleSleepMode
+    ToggleSleepMode,
+    NextButton,
+    PrevButton,
+    NextEdit,
+    PrevEdit,
+    NextComboBox,
+    PrevComboBox,
+    NextCheckBox,
+    PrevCheckBox,
+    NextRadioButton,
+    PrevRadioButton
 }

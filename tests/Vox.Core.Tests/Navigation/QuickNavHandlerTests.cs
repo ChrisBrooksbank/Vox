@@ -452,4 +452,64 @@ public class QuickNavHandlerTests
 
         Assert.Equal([2], result!.UIARuntimeId);
     }
+
+    // -------------------------------------------------------------------------
+    // Form controls by kind (B, E, C, X, R)
+    // -------------------------------------------------------------------------
+
+    private static VBufferDocument FormDoc() => BuildDoc(
+    [
+        new() { UIARuntimeId = [1], Name = "Name", ControlType = "Edit" },
+        new() { UIARuntimeId = [2], Name = "Country", ControlType = "ComboBox" },
+        new() { UIARuntimeId = [3], Name = "Subscribe", ControlType = "CheckBox" },
+        new() { UIARuntimeId = [4], Name = "Dark mode", ControlType = "Button", AriaRole = "switch" },
+        new() { UIARuntimeId = [5], Name = "Small", ControlType = "RadioButton" },
+        new() { UIARuntimeId = [6], Name = "Large", ControlType = "Custom", AriaRole = "radio" },
+        new() { UIARuntimeId = [7], Name = "Search", ControlType = "Edit", AriaRole = "searchbox" },
+        new() { UIARuntimeId = [8], Name = "Send", ControlType = "Button" },
+        new() { UIARuntimeId = [9], Name = "Help", ControlType = "Custom", AriaRole = "button" },
+    ]);
+
+    [Theory]
+    [InlineData(NavigationCommand.NextEdit, "Name", "Search")]
+    [InlineData(NavigationCommand.NextComboBox, "Country", "Country")]
+    [InlineData(NavigationCommand.NextCheckBox, "Subscribe", "Dark mode")]
+    [InlineData(NavigationCommand.NextRadioButton, "Small", "Large")]
+    [InlineData(NavigationCommand.NextButton, "Dark mode", "Send")]
+    public void NextOfAKind_FindsEachInTurn(NavigationCommand command, string first, string second)
+    {
+        var (handler, _) = MakeHandler(FormDoc());
+
+        Assert.Equal(first, handler.Handle(command)?.Name);
+        Assert.Equal(second, handler.Handle(command)?.Name);
+    }
+
+    [Theory]
+    [InlineData(NavigationCommand.PrevButton, "Help")]
+    [InlineData(NavigationCommand.PrevEdit, "Search")]
+    [InlineData(NavigationCommand.PrevRadioButton, "Large")]
+    public void PrevOfAKind_FromTheStart_WrapsToTheLast(NavigationCommand command, string expected)
+    {
+        var (handler, audio) = MakeHandler(FormDoc());
+
+        Assert.Equal(expected, handler.Handle(command)?.Name);
+    }
+
+    [Fact]
+    public void NoneOfAKind_PlaysTheBoundary()
+    {
+        var (handler, audio) = MakeHandler(BuildDoc([new() { UIARuntimeId = [1], Name = "Just text" }]));
+
+        Assert.Null(handler.Handle(NavigationCommand.NextComboBox));
+        audio.Verify(a => a.Play("boundary"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(NavigationCommand.NextButton)]
+    [InlineData(NavigationCommand.PrevCheckBox)]
+    [InlineData(NavigationCommand.NextRadioButton)]
+    public void FormKindCommands_AreQuickNavCommands(NavigationCommand command)
+    {
+        Assert.True(QuickNavHandler.IsQuickNavCommand(command));
+    }
 }

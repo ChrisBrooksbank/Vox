@@ -37,6 +37,21 @@ public sealed class VBufferDocument
     /// <summary>Tables and grids, in document order.</summary>
     public IReadOnlyList<VBufferNode> Tables { get; }
 
+    /// <summary>Buttons, in document order.</summary>
+    public IReadOnlyList<VBufferNode> Buttons { get; }
+
+    /// <summary>Text fields, in document order.</summary>
+    public IReadOnlyList<VBufferNode> Edits { get; }
+
+    /// <summary>Combo boxes, in document order.</summary>
+    public IReadOnlyList<VBufferNode> ComboBoxes { get; }
+
+    /// <summary>Check boxes and switches, in document order.</summary>
+    public IReadOnlyList<VBufferNode> CheckBoxes { get; }
+
+    /// <summary>Radio buttons, in document order.</summary>
+    public IReadOnlyList<VBufferNode> RadioButtons { get; }
+
     // Fast lookup tables
     private readonly Dictionary<string, VBufferNode> _byRuntimeId;
     private readonly VBufferNode[] _allNodesArray;
@@ -58,6 +73,11 @@ public sealed class VBufferDocument
         var landmarks = new List<VBufferNode>();
         var focusable = new List<VBufferNode>();
         var tables = new List<VBufferNode>();
+        var buttons = new List<VBufferNode>();
+        var edits = new List<VBufferNode>();
+        var comboBoxes = new List<VBufferNode>();
+        var checkBoxes = new List<VBufferNode>();
+        var radioButtons = new List<VBufferNode>();
         _byRuntimeId = new Dictionary<string, VBufferNode>(allNodes.Count);
 
         foreach (var node in allNodes)
@@ -68,6 +88,11 @@ public sealed class VBufferDocument
             if (node.IsLandmark) landmarks.Add(node);
             if (node.IsFocusable) focusable.Add(node);
             if (IsTable(node)) tables.Add(node);
+            if (FormControls.IsButton(node)) buttons.Add(node);
+            if (FormControls.IsEdit(node)) edits.Add(node);
+            if (FormControls.IsComboBox(node)) comboBoxes.Add(node);
+            if (FormControls.IsCheckBox(node)) checkBoxes.Add(node);
+            if (FormControls.IsRadioButton(node)) radioButtons.Add(node);
 
             var key = RuntimeIdKey(node.UIARuntimeId);
             _byRuntimeId[key] = node;
@@ -79,6 +104,11 @@ public sealed class VBufferDocument
         Landmarks = landmarks;
         FocusableElements = focusable;
         Tables = tables;
+        Buttons = buttons;
+        Edits = edits;
+        ComboBoxes = comboBoxes;
+        CheckBoxes = checkBoxes;
+        RadioButtons = radioButtons;
     }
 
     /// <summary>
