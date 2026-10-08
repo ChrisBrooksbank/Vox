@@ -215,6 +215,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.MenuEventProcessed += OnMenuEventProcessed;
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
         _eventPipeline.FocusContextProvider = FocusContext;
+        _eventPipeline.ErrorMessageProvider = _browseModeController.ErrorMessageFor;
         // In browse mode the review cursor reviews the virtual buffer
         _review.BrowseTether = _browseModeController.ReviewTether;
 

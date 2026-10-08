@@ -29,7 +29,14 @@ public record FocusChangedEvent(
     int Level = 0,
     string? AcceleratorKey = null,
     string? AccessKey = null,
-    string? Description = null
+    string? Description = null,
+    string? Invalid = null,
+    IReadOnlyList<int[]>? ErrorMessageIds = null,
+    string? ErrorMessage = null,
+    string? Current = null,
+    string? Sort = null,
+    string? RoleDescription = null,
+    bool HasDetails = false
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(

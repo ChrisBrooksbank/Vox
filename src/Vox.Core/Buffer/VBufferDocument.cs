@@ -137,6 +137,13 @@ public sealed class VBufferDocument
             _byRuntimeId[key] = node;
         }
 
+        // An invalid entry's error message (aria-errormessage) is the text of other elements
+        foreach (var node in allNodes)
+        {
+            if (node.ErrorMessageIds.Count > 0)
+                node.ErrorMessage = ErrorMessageOf(node.ErrorMessageIds);
+        }
+
         Headings = headings;
         Links = links;
         FormFields = formFields;
@@ -195,6 +202,48 @@ public sealed class VBufferDocument
     {
         var key = RuntimeIdKey(runtimeId);
         return _byRuntimeId.TryGetValue(key, out var node) ? node : null;
+    }
+
+    /// <summary>
+    /// The error message of an invalid entry: the text of the elements with these runtime IDs
+    /// (UIA ControllerFor: aria-errormessage), each with its descendants, on one line. IDs not in
+    /// the document are skipped, as are popups the field controls (aria-controls on a combo box:
+    /// a list, menu, tree or grid). Empty when none has text.
+    /// </summary>
+    public string ErrorMessageOf(IEnumerable<int[]> runtimeIds)
+    {
+        var parts = new List<string>();
+        foreach (var id in runtimeIds)
+        {
+            if (FindByRuntimeId(id) is not { } node || IsControlledPopup(node))
+                continue;
+            int start = node.TextRange.Start, end = SubtreeTextEnd(node);
+            if (end <= start || end > FlatText.Length)
+                continue;
+            var text = string.Join(' ', FlatText[start..end].Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            if (text.Length > 0)
+                parts.Add(text);
+        }
+        return string.Join(' ', parts);
+    }
+
+    private static bool IsControlledPopup(VBufferNode node) =>
+        node.ControlType is "List" or "Menu" or "MenuBar" or "Tree" or "DataGrid" or "Table" or "Window"
+        || node.AriaRole?.Trim().ToLowerInvariant() is "listbox" or "menu" or "tree" or "grid" or "treegrid" or "dialog" or "tabpanel";
+
+    /// <summary>The exclusive end of the text of a node and all its descendants.</summary>
+    private static int SubtreeTextEnd(VBufferNode node)
+    {
+        int end = node.TextRange.End;
+        var stack = new Stack<VBufferNode>(node.Children);
+        while (stack.Count > 0)
+        {
+            var n = stack.Pop();
+            end = Math.Max(end, n.TextRange.End);
+            foreach (var child in n.Children)
+                stack.Push(child);
+        }
+        return end;
     }
 
     /// <summary>

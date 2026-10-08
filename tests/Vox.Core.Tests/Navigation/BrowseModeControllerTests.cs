@@ -889,6 +889,16 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task ToggleStateChange_OnFocusedToggleButton_SaysPressed()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Bold", "Button", RuntimeId: [7], ToggleState: 0));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30086, 1));
+
+        await WaitForSpeech(u => u.Text == "pressed");
+    }
+
+    [Fact]
     public async Task LineMoveOntoLink_SaysItIsALink()
     {
         var root = new MockElement { RuntimeId = [1], ControlType = "Document" };

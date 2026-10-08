@@ -75,6 +75,32 @@ public sealed class VBufferNode
     /// <summary>Description (aria-description / aria-describedby), or empty.</summary>
     public string Description { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Invalid entry (aria-invalid): "spelling", "grammar", "true" for any other, or empty when valid.
+    /// </summary>
+    public string Invalid { get; init; } = string.Empty;
+
+    /// <summary>Runtime IDs of the elements holding an invalid entry's error message (aria-errormessage).</summary>
+    public IReadOnlyList<int[]> ErrorMessageIds { get; init; } = [];
+
+    /// <summary>
+    /// The text of the error message elements, resolved from <see cref="ErrorMessageIds"/> by
+    /// <see cref="VBufferDocument"/> when it is built; empty when there is none.
+    /// </summary>
+    public string ErrorMessage { get; set; } = string.Empty;
+
+    /// <summary>aria-current: "page", "step", "location", "date", "time", "true", or empty.</summary>
+    public string Current { get; init; } = string.Empty;
+
+    /// <summary>aria-sort: "ascending", "descending", "other", or empty.</summary>
+    public string Sort { get; init; } = string.Empty;
+
+    /// <summary>The author's name for the role (aria-roledescription), spoken instead of the role; or empty.</summary>
+    public string RoleDescription { get; init; } = string.Empty;
+
+    /// <summary>True when it has extended details elsewhere on the page (aria-details).</summary>
+    public bool HasDetails { get; init; }
+
     /// <summary>The text's language (BCP 47), its own or inherited from its ancestors; empty when unknown.</summary>
     public string Language { get; init; } = string.Empty;
 
@@ -139,7 +165,14 @@ public sealed class VBufferNode
         Value = Value,
         IsPassword = IsPassword,
         IsFocusable = IsFocusable,
+        AcceleratorKey = AcceleratorKey,
         Description = Description,
+        Invalid = Invalid,
+        ErrorMessageIds = ErrorMessageIds,
+        Current = Current,
+        Sort = Sort,
+        RoleDescription = RoleDescription,
+        HasDetails = HasDetails,
         Language = Language,
         RowSpan = RowSpan,
         ColumnSpan = ColumnSpan,

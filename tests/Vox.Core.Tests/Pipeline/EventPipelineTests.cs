@@ -252,6 +252,20 @@ public class EventPipelineTests : IDisposable
     }
 
     [Fact]
+    public async Task FocusOnInvalidField_SaysTheErrorMessageFromTheProvider()
+    {
+        IReadOnlyList<int[]>? asked = null;
+        _pipeline.ErrorMessageProvider = ids => { asked = ids; return "Enter a valid email address"; };
+
+        _pipeline.Post(new FocusChangedEvent(DateTimeOffset.UtcNow, "Email", "Edit", Invalid: "true", ErrorMessageIds: [[3]]));
+
+        await Task.Delay(300);
+        lock (_spokenUtterances)
+            Assert.Contains(_spokenUtterances, u => u.Text == "Email, edit, invalid entry, Enter a valid email address");
+        Assert.Equal([3], asked![0]);
+    }
+
+    [Fact]
     public async Task FocusOnEditField_AnnouncementIsNotCutOffByAutomaticModeSwitch()
     {
         // What the controller does inside FocusChangedProcessed: switch mode automatically

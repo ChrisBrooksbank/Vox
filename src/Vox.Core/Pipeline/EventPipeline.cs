@@ -88,6 +88,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// </summary>
     public Func<FocusChangedEvent, string?>? FocusContextProvider { get; set; }
 
+    /// <summary>
+    /// Looks up the text of an invalid field's error message elements (aria-errormessage) by
+    /// their runtime IDs, in the page's buffer. Called on the pipeline thread; null finds nothing.
+    /// </summary>
+    public Func<IReadOnlyList<int[]>, string?>? ErrorMessageProvider { get; set; }
+
     /// <summary>Raised on the pipeline thread for menu events.</summary>
     public event EventHandler<MenuEvent>? MenuEventProcessed;
 
@@ -334,6 +340,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
         // Nothing to say (e.g. an unnamed group): don't send an empty Interrupt that would
         // silently cut off whatever is being spoken
+        if (focus.ErrorMessageIds is { Count: > 0 } errorIds && string.IsNullOrEmpty(focus.ErrorMessage)
+            && ErrorMessageProvider?.Invoke(errorIds) is { Length: > 0 } errorMessage)
+            focus = focus with { ErrorMessage = errorMessage };
         var text = BuildFocusAnnouncement(focus);
         var context = FocusContextProvider?.Invoke(focus);
         if (!string.IsNullOrWhiteSpace(context))

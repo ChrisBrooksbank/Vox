@@ -722,7 +722,9 @@ public sealed class BrowseModeController
 
             case UIA_ToggleToggleStatePropertyId:
                 var toggle = ToInt(evt.NewValue);
-                var toggleText = AnnouncementBuilder.ToggleStateText(toggle);
+                var toggleText = AriaStates.IsToggleButton(focus.ControlType, focus.AriaRole, toggle)
+                    ? AriaStates.PressedText(toggle)
+                    : AnnouncementBuilder.ToggleStateText(toggle);
                 bool toggleSaid = focus.ToggleState == toggle;
                 _lastFocus = focus with { ToggleState = toggle };
                 if (toggleText is not null && !toggleSaid)
@@ -1363,6 +1365,13 @@ public sealed class BrowseModeController
     }
 
     /// <summary>
+    /// The error message (aria-errormessage) text of the elements with these runtime IDs in the
+    /// current page, or null when there is no page. Pipeline thread.
+    /// </summary>
+    public string? ErrorMessageFor(IReadOnlyList<int[]> runtimeIds) =>
+        _quickNavHandler.CurrentDocument?.ErrorMessageOf(runtimeIds);
+
+    /// <summary>
     /// The role of the link, button or heading whose text starts exactly at the cursor, if any
     /// (so it is spoken when the cursor enters it, not on every move inside it).
     /// </summary>
@@ -1380,9 +1389,7 @@ public sealed class BrowseModeController
 
             if (n.IsHeading)
                 return profile.AnnounceHeadingLevel ? $"heading level {n.HeadingLevel}" : null;
-            return profile.SpeaksRoleOf(n.ControlType, n.AriaRole, n.IsLink)
-                ? ControlTypeNames.ToSpoken(n.IsLink ? "Hyperlink" : n.ControlType)
-                : null;
+            return AnnouncementBuilder.SpokenRole(n, profile);
         }
         return null;
     }

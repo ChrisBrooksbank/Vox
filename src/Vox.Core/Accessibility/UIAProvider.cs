@@ -43,6 +43,10 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_GridItemColumnSpanPropertyId = 30067;
     internal const int UIA_HelpTextPropertyId = 30013;
     internal const int UIA_FullDescriptionPropertyId = 30159;
+    internal const int UIA_LocalizedControlTypePropertyId = 30004;
+    internal const int UIA_IsDataValidForFormPropertyId = 30103;
+    internal const int UIA_ControllerForPropertyId = 30104;
+    internal const int UIA_DescribedByPropertyId = 30105;
 
     internal const uint ConnectionTimeoutMs = 2000;
     internal const uint TransactionTimeoutMs = 4000;
@@ -168,6 +172,8 @@ public sealed class UIAProvider : IDisposable
         // Table cell spans, for the table model
         request.AddProperty(UIA_GridItemRowSpanPropertyId);
         request.AddProperty(UIA_GridItemColumnSpanPropertyId);
+        // Shortcut keys (aria-keyshortcuts)
+        request.AddProperty(UIA_AcceleratorKeyPropertyId);
         AddStateProperties(request);
         request.TreeScope = TreeScope.TreeScope_Subtree;
         request.TreeFilter = automation.ControlViewCondition;
@@ -176,7 +182,8 @@ public sealed class UIAProvider : IDisposable
 
     /// <summary>
     /// Expand/collapse, toggle (checked) and selection state, the value (and whether it is
-    /// editable), required, the legacy state bits (visited links) and the description.
+    /// editable), required, the legacy state bits (visited links), the description, and the ARIA
+    /// states Core-AAM maps to UIA properties: invalid and its error message, details, role description.
     /// </summary>
     private static void AddStateProperties(IUIAutomationCacheRequest request)
     {
@@ -190,6 +197,12 @@ public sealed class UIAProvider : IDisposable
         // The description (aria-description / aria-describedby; a desktop control's help text)
         request.AddProperty(UIA_FullDescriptionPropertyId);
         request.AddProperty(UIA_HelpTextPropertyId);
+        // aria-invalid, aria-errormessage (ControllerFor), aria-details (DescribedBy),
+        // aria-roledescription (LocalizedControlType)
+        request.AddProperty(UIA_IsDataValidForFormPropertyId);
+        request.AddProperty(UIA_ControllerForPropertyId);
+        request.AddProperty(UIA_DescribedByPropertyId);
+        request.AddProperty(UIA_LocalizedControlTypePropertyId);
     }
 
     /// <summary>

@@ -40,7 +40,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 ### ARIA and HTML
 
 - [x] Description (`aria-describedby`, `aria-description`) announced per verbosity
-- [ ] `aria-invalid` + `aria-errormessage` ("invalid entry", error text), `aria-current`, `aria-pressed`, `aria-sort`, `aria-roledescription`, `aria-keyshortcuts`, `aria-details`
+- [x] `aria-invalid` + `aria-errormessage` ("invalid entry", error text), `aria-current`, `aria-pressed`, `aria-sort`, `aria-roledescription`, `aria-keyshortcuts`, `aria-details` (read as Core-AAM maps them to UIA; a role description is told apart from the browser's own LocalizedControlType by a list of English default names, so it is only said with an English user interface; `aria-details` is said as "has details", with no command yet to read them)
 - [ ] Annotations: comments, insertions, deletions, marks/highlights announced on entry/exit
 - [ ] `<dialog>` / `aria-modal`: restrict the buffer to the modal while it is open
 - [ ] Clickable elements without a link/button role announced as "clickable"

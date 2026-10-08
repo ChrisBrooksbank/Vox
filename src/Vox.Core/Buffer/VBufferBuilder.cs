@@ -60,6 +60,26 @@ public interface IVBufferElement
     /// </summary>
     string Description => string.Empty;
 
+    /// <summary>
+    /// UIA IsDataValidForForm: false for an invalid entry (aria-invalid), null when not reported.
+    /// </summary>
+    bool? IsDataValidForForm => null;
+
+    /// <summary>
+    /// Runtime IDs of the elements holding an invalid entry's error message (aria-errormessage;
+    /// UIA ControllerFor of an invalid element), empty when none.
+    /// </summary>
+    IReadOnlyList<int[]> ErrorMessageIds => [];
+
+    /// <summary>The author's name for the role (aria-roledescription, "slide"), or empty.</summary>
+    string RoleDescription => string.Empty;
+
+    /// <summary>Keyboard shortcut that runs it (aria-keyshortcuts; UIA AcceleratorKey), or empty.</summary>
+    string AcceleratorKey => string.Empty;
+
+    /// <summary>True when it has extended details elsewhere on the page (aria-details; UIA DescribedBy).</summary>
+    bool HasDetails => false;
+
     /// <summary>The element's own language (BCP 47, from the lang attribute), or empty when not set.</summary>
     string Language => string.Empty;
 
@@ -274,6 +294,10 @@ public sealed class VBufferBuilder
         var isVisited  = element.IsVisited || ParseAriaPropertyBool(ariaProps, "visited");
         var isRequired = element.IsRequired || ParseAriaPropertyBool(ariaProps, "required");
         var (isExpandable, isExpanded) = ControlState.Expansion(element.ExpandCollapseState, ariaProps, element.ControlType);
+        // A toggle button's aria-pressed, when it isn't exposed through the Toggle pattern
+        var toggleState = element.ToggleState
+            ?? (AriaStates.IsButton(element.ControlType, ariaRole) ? AriaStates.Pressed(ariaProps) : null);
+        var invalid = AriaStates.Invalid(element.IsDataValidForForm, ariaProps);
 
         // Determine focusability
         var isFocusable = element.IsFocusable ||
@@ -294,12 +318,19 @@ public sealed class VBufferBuilder
             IsRequired = isRequired,
             IsExpandable = isExpandable,
             IsExpanded = isExpanded,
-            ToggleState = element.ToggleState,
+            ToggleState = toggleState,
             IsSelected = element.IsSelected,
             Value = element.Value ?? string.Empty,
             IsPassword = element.IsPassword,
             IsFocusable = isFocusable,
             Description = element.Description?.Trim() ?? string.Empty,
+            Invalid = invalid,
+            ErrorMessageIds = invalid.Length > 0 ? element.ErrorMessageIds ?? [] : [],
+            Current = AriaStates.Current(ariaProps),
+            Sort = AriaStates.Sort(ariaProps),
+            RoleDescription = element.RoleDescription?.Trim() ?? string.Empty,
+            AcceleratorKey = element.AcceleratorKey?.Trim() ?? string.Empty,
+            HasDetails = element.HasDetails,
             // Inherited, as lang is in HTML
             Language = !string.IsNullOrEmpty(element.Language) ? element.Language : parent?.Language ?? inheritedLanguage,
             RowSpan = Math.Max(1, element.RowSpan),

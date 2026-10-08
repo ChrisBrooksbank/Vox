@@ -9,8 +9,9 @@ namespace Vox.Core.Navigation;
 /// a natural-language spoken announcement string.
 ///
 /// Announcement order:
-///   [heading level] [landmark type] [name] [control type] [value] [visited] [required]
-///   [expanded/collapsed] [checked/selected] [shortcut keys] [position] [description]
+///   [heading level] [landmark type] [name] [control type or role description] [value] [visited]
+///   [required] [invalid entry] [current] [expanded/collapsed] [checked/pressed/selected] [sorted]
+///   [shortcut keys] [position] [has details] [error message] [description]
 ///
 /// Each field is gated by the corresponding flag on <see cref="VerbosityProfile"/>.
 /// </summary>
@@ -55,14 +56,11 @@ public sealed class AnnouncementBuilder
             Append(sb, node.Name);
         }
 
-        // Control type — "link", "button", "edit" (structural types such as Text are not spoken)
-        if (profile.SpeaksRoleOf(node.ControlType, node.AriaRole, node.IsLink))
+        // Control type — "link", "button", "edit" (structural types such as Text are not spoken),
+        // or the author's role description ("slide")
+        if (SpokenRole(node, profile) is { } role)
         {
-            // A link is spoken as a link whatever control type exposes it (e.g. role=link on a
-            // generic element), as the cursor's role announcement does
-            var controlType = ControlTypeNames.ToSpoken(node.IsLink ? "Hyperlink" : node.ControlType);
-            if (controlType is not null)
-                Append(sb, controlType);
+            Append(sb, role);
         }
 
         // Value — the text in a text box, a combo box's selection ("Country, combo box, France")
@@ -84,6 +82,18 @@ public sealed class AnnouncementBuilder
             Append(sb, "required");
         }
 
+        // Invalid entry — "invalid entry", "spelling error" (aria-invalid); essential at every verbosity
+        if (AriaStates.InvalidText(node.Invalid) is { } invalid)
+        {
+            Append(sb, invalid);
+        }
+
+        // Current item — "current page" (aria-current)
+        if (AriaStates.CurrentText(node.Current) is { } current)
+        {
+            Append(sb, current);
+        }
+
         // Expanded/collapsed state — "expanded" or "collapsed"
         if (profile.AnnounceExpandedState && node.IsExpandable)
         {
@@ -96,7 +106,10 @@ public sealed class AnnouncementBuilder
         // AnnounceExpandedState (which only governs the unrelated expanded/collapsed field above;
         // a profile that turns that off must not also silence whether a checkbox is checked)
         {
-            var toggle = ToggleStateText(node.ToggleState);
+            // A toggle button (aria-pressed) is pressed or not pressed rather than checked
+            var toggle = AriaStates.IsToggleButton(node.ControlType, node.AriaRole, node.ToggleState)
+                ? AriaStates.PressedText(node.ToggleState)
+                : ToggleStateText(node.ToggleState);
             if (toggle is not null)
                 Append(sb, State(node.ToggleState switch
                 {
@@ -111,6 +124,12 @@ public sealed class AnnouncementBuilder
                 else if (selected)
                     Append(sb, State(Speech.StateSounds.Selected, "selected"));
             }
+        }
+
+        // Sort order of a column header — "sorted ascending" (aria-sort)
+        if (AriaStates.SortText(node.Sort) is { } sort)
+        {
+            Append(sb, sort);
         }
 
         // Shortcut keys — "Open, menu item, Ctrl+O"; the access key at the most verbose level
@@ -128,14 +147,28 @@ public sealed class AnnouncementBuilder
                 Append(sb, $"level {node.Level}");
         }
 
+        // Details elsewhere on the page — "has details" (aria-details)
+        if (profile.AnnounceElementDescription && node.HasDetails)
+        {
+            Append(sb, "has details");
+        }
+
+        // Error message of an invalid entry — "Enter a valid email" (aria-errormessage)
+        var errorMessage = node.Invalid.Length > 0 ? node.ErrorMessage.Trim() : string.Empty;
+        if (errorMessage.Length > 0)
+        {
+            Append(sb, errorMessage);
+        }
+
         // Description — "Email, edit, We never share your address" (aria-description /
-        // aria-describedby), unless it only repeats the name or value
+        // aria-describedby), unless it only repeats the name, value or error message
         if (profile.AnnounceElementDescription)
         {
             var description = node.Description.Trim();
             if (description.Length > 0
                 && !string.Equals(description, node.Name.Trim(), StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(description, value?.Trim(), StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(description, value?.Trim(), StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(description, errorMessage, StringComparison.OrdinalIgnoreCase))
                 Append(sb, description);
         }
 
@@ -169,7 +202,29 @@ public sealed class AnnouncementBuilder
             AcceleratorKey = focus.AcceleratorKey ?? string.Empty,
             AccessKey = focus.AccessKey ?? string.Empty,
             Description = focus.Description ?? string.Empty,
+            Invalid = focus.Invalid ?? string.Empty,
+            ErrorMessage = focus.ErrorMessage ?? string.Empty,
+            Current = focus.Current ?? string.Empty,
+            Sort = focus.Sort ?? string.Empty,
+            RoleDescription = focus.RoleDescription ?? string.Empty,
+            HasDetails = focus.HasDetails,
         }, profile, announceVisitedLinks);
+
+    /// <summary>
+    /// The spoken role of a node when the profile speaks it: the author's role description
+    /// (aria-roledescription) if any, else the control type's name ("link" for any link); null
+    /// when nothing is spoken.
+    /// </summary>
+    public static string? SpokenRole(VBufferNode node, VerbosityProfile profile)
+    {
+        if (!profile.SpeaksRoleOf(node.ControlType, node.AriaRole, node.IsLink))
+            return null;
+        if (!string.IsNullOrWhiteSpace(node.RoleDescription))
+            return node.RoleDescription.Trim();
+        // A link is spoken as a link whatever control type exposes it (e.g. role=link on a
+        // generic element), as the cursor's role announcement does
+        return ControlTypeNames.ToSpoken(node.IsLink ? "Hyperlink" : node.ControlType);
+    }
 
     /// <summary>Spoken text for a UIA ToggleState, or null when not a toggle.</summary>
     public static string? ToggleStateText(int? toggleState) => toggleState switch

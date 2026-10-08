@@ -413,3 +413,120 @@ public class ValueAnnouncementTests
             new AnnouncementBuilder().Build(focus, VerbosityProfile.Intermediate, true));
     }
 }
+
+public class AriaStateAnnouncementTests
+{
+    private static string Say(VBufferNode node, VerbosityLevel level = VerbosityLevel.Beginner) =>
+        new AnnouncementBuilder().Build(node, VerbosityProfile.For(level), true);
+
+    [Theory]
+    [InlineData(VerbosityLevel.Beginner)]
+    [InlineData(VerbosityLevel.Advanced)]
+    public void InvalidEntry_SaidWithItsErrorMessage(VerbosityLevel level)
+    {
+        var node = new VBufferNode { Name = "Email", ControlType = "Edit", Invalid = "true", ErrorMessage = "Enter a valid email address" };
+
+        Assert.Equal("Email, edit, invalid entry, Enter a valid email address", Say(node, level));
+    }
+
+    [Fact]
+    public void SpellingError_Said()
+    {
+        var node = new VBufferNode { Name = "Notes", ControlType = "Edit", Invalid = "spelling" };
+
+        Assert.Equal("Notes, edit, spelling error", Say(node));
+    }
+
+    [Fact]
+    public void ErrorMessage_NotSaidOnceTheEntryIsValid()
+    {
+        var node = new VBufferNode { Name = "Email", ControlType = "Edit", ErrorMessage = "Enter a valid email address" };
+
+        Assert.Equal("Email, edit", Say(node));
+    }
+
+    [Fact]
+    public void Description_SameAsErrorMessage_NotRepeated()
+    {
+        var node = new VBufferNode
+        {
+            Name = "Email", ControlType = "Edit", IsRequired = true, Invalid = "true",
+            ErrorMessage = "Enter a valid email address", Description = "Enter a valid email address",
+        };
+
+        Assert.Equal("Email, edit, required, invalid entry, Enter a valid email address", Say(node));
+    }
+
+    [Fact]
+    public void Current_Said()
+    {
+        var node = new VBufferNode { Name = "Home", ControlType = "Hyperlink", IsLink = true, Current = "page" };
+
+        Assert.Equal("Home, link, current page", Say(node));
+    }
+
+    [Theory]
+    [InlineData(ControlState.ToggleOn, "Bold, button, pressed")]
+    [InlineData(ControlState.ToggleOff, "Bold, button, not pressed")]
+    [InlineData(ControlState.ToggleIndeterminate, "Bold, button, half pressed")]
+    public void ToggleButton_SaysPressed(int toggleState, string expected)
+    {
+        var node = new VBufferNode { Name = "Bold", ControlType = "Button", ToggleState = toggleState };
+
+        Assert.Equal(expected, Say(node));
+    }
+
+    [Fact]
+    public void SortedColumnHeader_Said()
+    {
+        var node = new VBufferNode { Name = "Name", ControlType = "HeaderItem", Sort = "ascending" };
+
+        Assert.Equal("Name, column header, sorted ascending", Say(node));
+    }
+
+    [Fact]
+    public void RoleDescription_SaidInsteadOfTheRole()
+    {
+        var node = new VBufferNode { Name = "Quarterly results", ControlType = "Button", RoleDescription = "slide" };
+
+        Assert.Equal("Quarterly results, slide", Say(node));
+    }
+
+    [Fact]
+    public void RoleDescription_SaidForAnUnspokenStructuralRole()
+    {
+        var node = new VBufferNode { Name = "Quarterly results", ControlType = "Group", AriaRole = "group", RoleDescription = "slide" };
+
+        Assert.Equal("Quarterly results, slide", Say(node));
+    }
+
+    [Fact]
+    public void KeyShortcuts_Said()
+    {
+        var node = new VBufferNode { Name = "Save", ControlType = "Button", AcceleratorKey = "Control+S" };
+
+        Assert.Equal("Save, button, Control+S", Say(node, VerbosityLevel.Advanced));
+    }
+
+    [Theory]
+    [InlineData(VerbosityLevel.Beginner, "Chart, image, has details")]
+    [InlineData(VerbosityLevel.Intermediate, "Chart, image, has details")]
+    [InlineData(VerbosityLevel.Advanced, "Chart")]
+    public void HasDetails_SaidPerVerbosity(VerbosityLevel level, string expected)
+    {
+        var node = new VBufferNode { Name = "Chart", ControlType = "Image", HasDetails = true };
+
+        Assert.Equal(expected, Say(node, level));
+    }
+
+    [Fact]
+    public void FocusEvent_CarriesTheAriaStates()
+    {
+        var focus = new Vox.Core.Pipeline.FocusChangedEvent(DateTimeOffset.UtcNow, "Step 2", "Hyperlink",
+            IsLink: true, Invalid: "true", ErrorMessage: "Fix this", Current: "step", Sort: "other",
+            RoleDescription: "wizard step", HasDetails: true);
+
+        Assert.Equal("Step 2, wizard step, invalid entry, current step, sorted, has details, Fix this",
+            new AnnouncementBuilder().Build(focus, VerbosityProfile.Beginner, true));
+    }
+}
