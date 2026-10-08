@@ -302,6 +302,24 @@ public class DefaultKeyMapReadingKeysTests
     }
 
     [Theory]
+    [InlineData(KeyModifiers.Shift, 39, NavigationCommand.SelectNextChar)]
+    [InlineData(KeyModifiers.Shift, 37, NavigationCommand.SelectPrevChar)]
+    [InlineData(KeyModifiers.Ctrl | KeyModifiers.Shift, 39, NavigationCommand.SelectNextWord)]
+    [InlineData(KeyModifiers.Ctrl | KeyModifiers.Shift, 37, NavigationCommand.SelectPrevWord)]
+    [InlineData(KeyModifiers.Shift, 40, NavigationCommand.SelectNextLine)]
+    [InlineData(KeyModifiers.Shift, 38, NavigationCommand.SelectPrevLine)]
+    [InlineData(KeyModifiers.Shift, 36, NavigationCommand.SelectToStartOfLine)]
+    [InlineData(KeyModifiers.Shift, 35, NavigationCommand.SelectToEndOfLine)]
+    [InlineData(KeyModifiers.Ctrl, 67, NavigationCommand.CopySelection)]
+    public void BrowseModeSelectionKeys_FollowNvda(KeyModifiers modifiers, int vk, NavigationCommand expected)
+    {
+        Assert.True(Map.TryResolve(modifiers, vk, InteractionMode.Browse, out var command));
+        Assert.Equal(expected, command);
+        // In Focus mode the keys select and copy in the control itself
+        Assert.False(Map.TryResolve(modifiers, vk, InteractionMode.Focus, out _));
+    }
+
+    [Theory]
     [InlineData(KeyModifiers.None, 36)]
     [InlineData(KeyModifiers.Ctrl, 39)]
     public void ReadingKeys_ReachTheControlInFocusMode(KeyModifiers modifiers, int vk) =>

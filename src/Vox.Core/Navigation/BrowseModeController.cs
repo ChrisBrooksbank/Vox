@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Buffer;
 using Vox.Core.Configuration;
@@ -38,6 +39,8 @@ public sealed class BrowseModeController
     private readonly TableNavigator _tableNavigator;
     private readonly IFindPrompt? _findPrompt;
     private readonly FindInBuffer _find = new();
+    private readonly BrowseSelection _selection = new();
+    private readonly IClipboard? _clipboard;
 
     private VBufferCursor? _cursor;
     private VBufferCursor? _sayAllCursor;
@@ -98,8 +101,10 @@ public sealed class BrowseModeController
         ILogger<BrowseModeController> logger,
         IFocusedTextReader? focusedTextReader = null,
         TableHeaderStore? tableHeaders = null,
-        IFindPrompt? findPrompt = null)
+        IFindPrompt? findPrompt = null,
+        IClipboard? clipboard = null)
     {
+        _clipboard = clipboard;
         _findPrompt = findPrompt;
         _focusedTextReader = focusedTextReader;
         _tableNavigator = new TableNavigator(tableHeaders);
@@ -181,6 +186,10 @@ public sealed class BrowseModeController
     {
         // Every command stops Say All (Insert+Down restarts it below)
         StopSayAll();
+
+        // Anything but selecting, copying or reading ends the browse-mode selection
+        if (!KeepsSelection(command))
+            _selection.Clear();
 
         switch (command)
         {
@@ -310,7 +319,12 @@ public sealed class BrowseModeController
                 return;
 
             case NavigationCommand.ReadSelection:
-                Speak("No selection"); // browse mode has no selection
+                var selected = _selection.TextFor(_cursor!);
+                if (selected.Length == 0)
+                    Speak("No selection");
+                else
+                    Speak(_readSpell == SpellMode.None ? SelectionText(selected)
+                        : Spelling.Say(selected, TextUnit.Line, _readSpell));
                 return;
 
             case NavigationCommand.ReadFormatting:
@@ -341,6 +355,18 @@ public sealed class BrowseModeController
         if (IsCaretCommand(command))
         {
             MoveCaret(command);
+            return;
+        }
+
+        if (BrowseSelection.IsSelectionCommand(command))
+        {
+            ExtendSelection(command);
+            return;
+        }
+
+        if (command == NavigationCommand.CopySelection)
+        {
+            CopySelection();
             return;
         }
 
@@ -436,6 +462,68 @@ public sealed class BrowseModeController
             MoveTo(cell.Node);
         Speak(result.Text!);
     }
+
+    /// <summary>
+    /// Shift/Ctrl+Shift+arrows, Shift+Home/End, Ctrl+Shift+Home/End, Ctrl+A: moves the selection's
+    /// active end and says "selected" or "unselected" with the text that changed.
+    /// </summary>
+    private void ExtendSelection(NavigationCommand command)
+    {
+        if (_cursor is null)
+            return;
+        ApplyCursorSettings(_cursor);
+        if (_selection.Extend(_cursor, command) is not { } change)
+        {
+            _audioCuePlayer.Play("boundary");
+            return;
+        }
+        _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+        // The cursor has moved on: Say All's last position no longer applies
+        _sayAllCursor = null;
+
+        if (command == NavigationCommand.SelectAll)
+            Speak("selected all");
+        else
+            Speak($"{(change.Selected ? "selected" : "unselected")} {SelectionText(change.Text)}");
+    }
+
+    /// <summary>Ctrl+C: copies the selected text to the clipboard as plain text.</summary>
+    private void CopySelection()
+    {
+        var text = _cursor is null ? string.Empty : _selection.TextFor(_cursor);
+        if (text.Length == 0)
+        {
+            Speak("No selection");
+            return;
+        }
+        if (_clipboard?.SetText(text.Replace("\n", Environment.NewLine)) != true)
+        {
+            _audioCuePlayer.Play("error");
+            Speak("Could not copy");
+            return;
+        }
+        Speak("Copied to clipboard");
+    }
+
+    // Longer than this, a selection is said by its length rather than read out
+    private const int MaxSpokenSelection = 2000;
+
+    /// <summary>How selected text is said: a character by name, blank text as "blank".</summary>
+    private static string SelectionText(string text)
+    {
+        if (text.Length == 1)
+            return CharText(text[0])!;
+        if (string.IsNullOrWhiteSpace(text))
+            return "blank";
+        return text.Length > MaxSpokenSelection ? $"{text.Length} characters" : text;
+    }
+
+    private static bool KeepsSelection(NavigationCommand command) =>
+        BrowseSelection.IsSelectionCommand(command) || command is
+        NavigationCommand.CopySelection or NavigationCommand.ReadSelection or
+        NavigationCommand.ReadCurrentLine or NavigationCommand.ReadCurrentWord or
+        NavigationCommand.ReadCurrentChar or NavigationCommand.ReadFormatting or
+        NavigationCommand.StopSpeech;
 
     /// <summary>The buffer line ('\n'-separated) starting at <paramref name="start"/>.</summary>
     private static string ParagraphAt(string text, int start)
@@ -798,6 +886,7 @@ public sealed class BrowseModeController
         var oldNode = _quickNavHandler.CurrentNode;
         int oldOffset = _cursor.TextOffset;
         var node = oldNode is not null ? updated.FindByRuntimeId(oldNode.UIARuntimeId) : null;
+        bool selecting = _selection.IsValidFor(_cursor);
 
         int newOffset;
         if (node is not null && oldNode is not null)
@@ -821,6 +910,10 @@ public sealed class BrowseModeController
 
         _quickNavHandler.SetDocument(updated);
         _cursor.SetDocument(updated, newOffset);
+        if (selecting)
+            _selection.Rebase(updated, result.OldTextStart, result.OldTextEnd, result.TextDelta, _cursor.TextOffset);
+        else
+            _selection.Clear();
         if (oldNode is not null)
             _quickNavHandler.CurrentNode = node ?? _cursor.CurrentNode;
     }

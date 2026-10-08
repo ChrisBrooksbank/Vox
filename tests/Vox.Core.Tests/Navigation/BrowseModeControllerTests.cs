@@ -33,6 +33,7 @@ public class BrowseModeControllerTests : IDisposable
     private readonly Mock<IBrowseDocumentActions> _actions = new();
     private readonly Mock<IElementsListPresenter> _presenter = new();
     private readonly Mock<IFindPrompt> _findPrompt = new();
+    private readonly Mock<Vox.Core.Accessibility.IClipboard> _clipboard = new();
     private VoxSettings _settings = new();
     private readonly BrowseModeController _controller;
 
@@ -63,7 +64,8 @@ public class BrowseModeControllerTests : IDisposable
             _actions.Object,
             _presenter.Object,
             NullLogger<BrowseModeController>.Instance,
-            findPrompt: _findPrompt.Object);
+            findPrompt: _findPrompt.Object,
+            clipboard: _clipboard.Object);
     }
 
     public void Dispose() => _speechQueue.Dispose();
@@ -1837,5 +1839,88 @@ public class BrowseModeControllerTests : IDisposable
         _controller.HandleCommand(NavigationCommand.Find);
 
         _findPrompt.Verify(p => p.ShowAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    // -------------------------------------------------------------------------
+    // Selection and copy
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task SelectingByWord_SaysSelected_AndCtrlC_CopiesThePlainText()
+    {
+        _clipboard.Setup(c => c.SetText(It.IsAny<string>())).Returns(true);
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+
+        _controller.HandleCommand(NavigationCommand.SelectToEndOfLine);
+        await WaitForSpeech(u => u.Text == "selected Welcome");
+        _controller.HandleCommand(NavigationCommand.SelectNextChar);
+        _controller.HandleCommand(NavigationCommand.SelectNextWord);
+        await WaitForSpeech(u => u.Text == "selected Intro ");
+
+        _controller.HandleCommand(NavigationCommand.CopySelection);
+
+        _clipboard.Verify(c => c.SetText("Welcome" + Environment.NewLine + "Intro "), Times.Once);
+        await WaitForSpeech(u => u.Text == "Copied to clipboard");
+    }
+
+    [Fact]
+    public async Task ShrinkingTheSelection_SaysUnselected_AndReadSelection_ReadsIt()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        _controller.HandleCommand(NavigationCommand.SelectNextChar);
+        _controller.HandleCommand(NavigationCommand.SelectNextChar);
+        await WaitForSpeech(u => u.Text == "selected e");
+
+        _controller.HandleCommand(NavigationCommand.SelectPrevChar);
+        await WaitForSpeech(u => u.Text == "unselected e");
+
+        _controller.HandleCommand(NavigationCommand.ReadSelection);
+        await WaitForSpeech(u => u.Text == "W");
+    }
+
+    [Fact]
+    public async Task MovingTheCursor_EndsTheSelection()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        _controller.HandleCommand(NavigationCommand.SelectNextWord);
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        _controller.HandleCommand(NavigationCommand.CopySelection);
+
+        _clipboard.Verify(c => c.SetText(It.IsAny<string>()), Times.Never);
+        await WaitForSpeech(u => u.Text == "No selection");
+    }
+
+    [Fact]
+    public async Task SelectingAtTheStart_PlaysTheBoundaryCue_AndAFailedCopySaysSo()
+    {
+        _clipboard.Setup(c => c.SetText(It.IsAny<string>())).Returns(false);
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+
+        _controller.HandleCommand(NavigationCommand.SelectPrevChar);
+        _audio.Verify(a => a.Play("boundary"), Times.Once);
+
+        _controller.HandleCommand(NavigationCommand.SelectAll);
+        await WaitForSpeech(u => u.Text == "selected all");
+        _controller.HandleCommand(NavigationCommand.CopySelection);
+        await WaitForSpeech(u => u.Text == "Could not copy");
+    }
+
+    [Fact]
+    public void SelectionCommands_DoNothingInFocusMode()
+    {
+        LoadDocument();
+        _navigationManager.SwitchTo(InteractionMode.Focus, "test");
+        int offset = _controller.Cursor!.TextOffset;
+
+        _controller.HandleCommand(NavigationCommand.SelectNextWord);
+        _controller.HandleCommand(NavigationCommand.CopySelection);
+
+        Assert.Equal(offset, _controller.Cursor.TextOffset);
+        _clipboard.Verify(c => c.SetText(It.IsAny<string>()), Times.Never);
     }
 }

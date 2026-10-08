@@ -142,5 +142,17 @@ public enum NavigationCommand
     SetRowHeaders,
     Find,
     FindNext,
-    FindPrevious
+    FindPrevious,
+    SelectNextChar,
+    SelectPrevChar,
+    SelectNextWord,
+    SelectPrevWord,
+    SelectNextLine,
+    SelectPrevLine,
+    SelectToStartOfLine,
+    SelectToEndOfLine,
+    SelectToTop,
+    SelectToBottom,
+    SelectAll,
+    CopySelection
 }
