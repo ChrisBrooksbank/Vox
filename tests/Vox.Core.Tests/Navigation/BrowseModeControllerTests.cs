@@ -32,6 +32,7 @@ public class BrowseModeControllerTests : IDisposable
     private readonly QuickNavHandler _quickNav;
     private readonly Mock<IBrowseDocumentActions> _actions = new();
     private readonly Mock<IElementsListPresenter> _presenter = new();
+    private readonly Mock<IFindPrompt> _findPrompt = new();
     private VoxSettings _settings = new();
     private readonly BrowseModeController _controller;
 
@@ -61,7 +62,8 @@ public class BrowseModeControllerTests : IDisposable
             _sink,
             _actions.Object,
             _presenter.Object,
-            NullLogger<BrowseModeController>.Instance);
+            NullLogger<BrowseModeController>.Instance,
+            findPrompt: _findPrompt.Object);
     }
 
     public void Dispose() => _speechQueue.Dispose();
@@ -1696,5 +1698,144 @@ public class BrowseModeControllerTests : IDisposable
 
         Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
         Assert.Equal(offset, _controller.Cursor!.TextOffset);
+    }
+
+    // -------------------------------------------------------------------------
+    // Find
+    // -------------------------------------------------------------------------
+
+    /// <summary>Runs the find prompt answering <paramref name="request"/> and handles it closing.</summary>
+    private async Task FindWithPrompt(FindRequest? request, NavigationCommand command = NavigationCommand.Find)
+    {
+        _findPrompt.Setup(p => p.ShowAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>())).ReturnsAsync(request);
+        int before = _sink.OfType<FindPromptClosedEvent>().Count;
+        _controller.HandleCommand(command);
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (_sink.OfType<FindPromptClosedEvent>().Count == before && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+        _controller.HandleFindPromptClosed(_sink.OfType<FindPromptClosedEvent>().Last());
+    }
+
+    [Fact]
+    public async Task Find_DeactivatesBrowseKeysWhileOpen_AndMovesToTheMatch()
+    {
+        var doc = LoadDocument();
+        var answer = new TaskCompletionSource<FindRequest?>();
+        _findPrompt.Setup(p => p.ShowAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>())).Returns(answer.Task);
+
+        _controller.HandleCommand(NavigationCommand.Find);
+        Assert.False(_controller.IsDocumentActive);
+
+        answer.SetResult(new FindRequest("MORE"));
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (_sink.OfType<FindPromptClosedEvent>().Count == 0 && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+        _controller.HandleFindPromptClosed(Assert.Single(_sink.OfType<FindPromptClosedEvent>()));
+
+        Assert.True(_controller.IsDocumentActive);
+        Assert.Equal(doc.FlatText.IndexOf("more", StringComparison.Ordinal), _controller.Cursor!.TextOffset);
+        Assert.Same(doc.FindByRuntimeId([4]), _quickNav.CurrentNode);
+        await WaitForSpeech(u => u.Text.Contains("Read more"));
+    }
+
+    [Fact]
+    public async Task Find_Cancelled_LeavesTheCursorAndReactivates()
+    {
+        LoadDocument();
+
+        await FindWithPrompt(null);
+
+        Assert.True(_controller.IsDocumentActive);
+        Assert.Equal(0, _controller.Cursor!.TextOffset);
+        Assert.Null(Record.Exception(() => _controller.HandleCommand(NavigationCommand.ReadCurrentLine)));
+    }
+
+    [Fact]
+    public async Task FindNext_FindsTheFollowingMatch_AndWrapsWithTheCue()
+    {
+        var doc = LoadDocument();
+        await FindWithPrompt(new FindRequest("e"));
+        Assert.Equal(1, _controller.Cursor!.TextOffset); // "Welcome": the search starts at the cursor
+        _audio.Invocations.Clear();
+
+        _controller.HandleCommand(NavigationCommand.FindNext);
+        Assert.Equal(6, _controller.Cursor!.TextOffset);
+        _audio.Verify(a => a.Play("wrap"), Times.Never);
+
+        int last = doc.FlatText.LastIndexOf('e');
+        while (_controller.Cursor!.TextOffset != last)
+            _controller.HandleCommand(NavigationCommand.FindNext);
+        _controller.HandleCommand(NavigationCommand.FindNext);
+
+        Assert.Equal(1, _controller.Cursor!.TextOffset);
+        _audio.Verify(a => a.Play("wrap"), Times.Once);
+    }
+
+    [Fact]
+    public async Task FindPrevious_GoesBack_AndWrapsToTheBottom()
+    {
+        var doc = LoadDocument();
+        await FindWithPrompt(new FindRequest("read"));
+        int read = doc.FlatText.IndexOf("Read", StringComparison.Ordinal);
+        Assert.Equal(read, _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.FindPrevious);
+
+        // The only match: going back past the top wraps round to it
+        Assert.Equal(read, _controller.Cursor!.TextOffset);
+        _audio.Verify(a => a.Play("wrap"), Times.Once);
+        await WaitForSpeech(u => u.Text.Contains("Read more"));
+    }
+
+    [Fact]
+    public async Task Find_MatchCase_SkipsOtherCases()
+    {
+        var doc = LoadDocument();
+
+        await FindWithPrompt(new FindRequest("Search", MatchCase: true));
+        Assert.Equal(doc.FlatText.IndexOf("Search", StringComparison.Ordinal), _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        await FindWithPrompt(new FindRequest("welcome", MatchCase: true));
+        _audio.Verify(a => a.Play("error"), Times.Once);
+        await WaitForSpeech(u => u.Text == "welcome not found");
+    }
+
+    [Fact]
+    public async Task Find_NotFound_PlaysTheErrorCue_AndKeepsTheCursor()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        int offset = _controller.Cursor!.TextOffset;
+
+        await FindWithPrompt(new FindRequest("zebra"));
+
+        Assert.Equal(offset, _controller.Cursor!.TextOffset);
+        _audio.Verify(a => a.Play("error"), Times.Once);
+        await WaitForSpeech(u => u.Text == "zebra not found");
+    }
+
+    [Fact]
+    public async Task FindNext_BeforeAnySearch_OpensThePrompt_WhichOffersTheHistory()
+    {
+        LoadDocument();
+
+        await FindWithPrompt(new FindRequest("Intro"), NavigationCommand.FindNext);
+        _findPrompt.Verify(p => p.ShowAsync(It.Is<IReadOnlyList<string>>(h => h.Count == 0), false), Times.Once);
+
+        await FindWithPrompt(new FindRequest("more"));
+        _findPrompt.Verify(p => p.ShowAsync(It.Is<IReadOnlyList<string>>(h => h.SequenceEqual(new[] { "Intro" })), false), Times.Once);
+
+        // Next and previous repeat the latest search without asking
+        _controller.HandleCommand(NavigationCommand.FindNext);
+        _findPrompt.Verify(p => p.ShowAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public void Find_OutsideADocument_SaysSo()
+    {
+        _controller.HandleCommand(NavigationCommand.Find);
+
+        _findPrompt.Verify(p => p.ShowAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>()), Times.Never);
     }
 }

@@ -1,5 +1,6 @@
 using Vox.Core.Buffer;
 using Vox.Core.Input;
+using Vox.Core.Navigation;
 
 namespace Vox.Core.Pipeline;
 
@@ -165,6 +166,14 @@ public record SubtreeChangedEvent(
 public record ElementsListClosedEvent(
     DateTimeOffset Timestamp,
     VBufferNode? SelectedNode
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// The find prompt closed; <paramref name="Request"/> is null if it was cancelled.
+/// </summary>
+public record FindPromptClosedEvent(
+    DateTimeOffset Timestamp,
+    FindRequest? Request
 ) : ScreenReaderEvent(Timestamp);
 
 /// <summary>

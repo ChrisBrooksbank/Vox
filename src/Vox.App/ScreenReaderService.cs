@@ -205,6 +205,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.SubtreeChangedProcessed += OnSubtreeChangedProcessed;
         _eventPipeline.FocusInDocumentProcessed += OnFocusInDocumentProcessed;
         _eventPipeline.ElementsListClosedProcessed += OnElementsListClosedProcessed;
+        _eventPipeline.FindPromptClosedProcessed += OnFindPromptClosedProcessed;
         _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
         _eventPipeline.CaretMovedProcessed += OnCaretMovedProcessed;
@@ -266,6 +267,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.SubtreeChangedProcessed -= OnSubtreeChangedProcessed;
         _eventPipeline.FocusInDocumentProcessed -= OnFocusInDocumentProcessed;
         _eventPipeline.ElementsListClosedProcessed -= OnElementsListClosedProcessed;
+        _eventPipeline.FindPromptClosedProcessed -= OnFindPromptClosedProcessed;
         _eventPipeline.PropertyChangedProcessed -= OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed -= OnElementSelectedProcessed;
         _eventPipeline.CaretMovedProcessed -= OnCaretMovedProcessed;
@@ -497,6 +499,9 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnElementsListClosedProcessed(object? sender, ElementsListClosedEvent e) =>
         _browseModeController.HandleElementsListClosed(e);
+
+    private void OnFindPromptClosedProcessed(object? sender, FindPromptClosedEvent e) =>
+        _browseModeController.HandleFindPromptClosed(e);
 
     private void OnPropertyChangedProcessed(object? sender, PropertyChangedEvent e)
     {

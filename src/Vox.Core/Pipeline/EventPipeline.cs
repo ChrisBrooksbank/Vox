@@ -124,6 +124,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// <summary>Raised when an ElementsListClosedEvent is processed.</summary>
     public event EventHandler<ElementsListClosedEvent>? ElementsListClosedProcessed;
 
+    /// <summary>Raised when a FindPromptClosedEvent is processed.</summary>
+    public event EventHandler<FindPromptClosedEvent>? FindPromptClosedProcessed;
+
     public void Post(ScreenReaderEvent evt)
     {
         _channel.Writer.TryWrite(evt);
@@ -298,6 +301,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
                 case ElementsListClosedEvent elementsListClosed:
                     ElementsListClosedProcessed?.Invoke(this, elementsListClosed);
+                    break;
+
+                case FindPromptClosedEvent findPromptClosed:
+                    FindPromptClosedProcessed?.Invoke(this, findPromptClosed);
                     break;
 
                 default:

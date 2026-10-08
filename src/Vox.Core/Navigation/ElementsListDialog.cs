@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Vox.Core.Buffer;
 
@@ -12,7 +11,7 @@ namespace Vox.Core.Navigation;
 /// Type to filter the list. Press Enter to jump to the selected element.
 /// Data comes from pre-built VBufferDocument indices (instant on large pages).
 /// </summary>
-public sealed class ElementsListDialog : Form
+public sealed class ElementsListDialog : VoxDialog
 {
     // -------------------------------------------------------------------------
     // Public result
@@ -207,106 +206,8 @@ public sealed class ElementsListDialog : Form
     {
         Application.EnableVisualStyles();
         using var dlg = new ElementsListDialog(document, currentNode);
-        // Opened from a background thread in response to a global hotkey: make sure it
-        // comes to the front and takes keyboard focus.
-        dlg.StartPosition = FormStartPosition.CenterScreen;
-        dlg.TopMost = true;
-        dlg.Shown += (_, _) => dlg.BringToForeground();
-        var result = dlg.ShowDialog();
+        var result = dlg.ShowInForeground();
         return result == DialogResult.OK ? dlg.SelectedNode : null;
-    }
-
-    // -------------------------------------------------------------------------
-    // Foreground handling
-    // -------------------------------------------------------------------------
-
-    [DllImport("user32.dll")]
-    private static extern nint GetForegroundWindow();
-
-    [DllImport("user32.dll")]
-    private static extern uint GetWindowThreadProcessId(nint hWnd, nint lpdwProcessId);
-
-    [DllImport("kernel32.dll")]
-    private static extern uint GetCurrentThreadId();
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetForegroundWindow(nint hWnd);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool BringWindowToTop(nint hWnd);
-
-    private const int ActivationTimeoutMs = 2000;
-    private bool _activated;
-
-    /// <summary>
-    /// Takes the foreground. Vox isn't the foreground process when the hotkey fires (the browser
-    /// is), so plain Activate() is blocked by the foreground lock and only flashes the taskbar.
-    /// Briefly attaching to the foreground thread's input state lifts that restriction.
-    /// If activation still hasn't happened after a moment, the dialog closes as cancelled so
-    /// browse-mode keys (disabled while it is open) come back.
-    /// </summary>
-    private void BringToForeground()
-    {
-        try
-        {
-            var foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), nint.Zero);
-            var thisThread = GetCurrentThreadId();
-            bool attached = foregroundThread != 0 && foregroundThread != thisThread
-                            && AttachThreadInput(thisThread, foregroundThread, true);
-            try
-            {
-                BringWindowToTop(Handle);
-                SetForegroundWindow(Handle);
-                Activate();
-            }
-            finally
-            {
-                if (attached)
-                    AttachThreadInput(thisThread, foregroundThread, false);
-            }
-        }
-        catch (Exception)
-        {
-            Activate();
-        }
-
-        var timer = new System.Windows.Forms.Timer { Interval = ActivationTimeoutMs };
-        timer.Tick += (_, _) =>
-        {
-            timer.Dispose();
-            if (!_activated && Visible)
-            {
-                DialogResult = DialogResult.Cancel;
-                Close();
-            }
-        };
-        timer.Start();
-    }
-
-    protected override void OnActivated(EventArgs e)
-    {
-        _activated = true;
-        base.OnActivated(e);
-    }
-
-    /// <summary>
-    /// Focus leaving the dialog (Alt+Tab, a click elsewhere) cancels it, so it can never sit
-    /// unfocused in the background with browse-mode keys disabled.
-    /// </summary>
-    protected override void OnDeactivate(EventArgs e)
-    {
-        base.OnDeactivate(e);
-        if (Visible && DialogResult == DialogResult.None)
-        {
-            DialogResult = DialogResult.Cancel;
-            Close();
-        }
     }
 
     // -------------------------------------------------------------------------

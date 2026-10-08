@@ -36,6 +36,8 @@ public sealed class BrowseModeController
     private readonly ILogger<BrowseModeController> _logger;
     private readonly IncrementalUpdater _incrementalUpdater = new();
     private readonly TableNavigator _tableNavigator;
+    private readonly IFindPrompt? _findPrompt;
+    private readonly FindInBuffer _find = new();
 
     private VBufferCursor? _cursor;
     private VBufferCursor? _sayAllCursor;
@@ -95,8 +97,10 @@ public sealed class BrowseModeController
         IElementsListPresenter elementsListPresenter,
         ILogger<BrowseModeController> logger,
         IFocusedTextReader? focusedTextReader = null,
-        TableHeaderStore? tableHeaders = null)
+        TableHeaderStore? tableHeaders = null,
+        IFindPrompt? findPrompt = null)
     {
+        _findPrompt = findPrompt;
         _focusedTextReader = focusedTextReader;
         _tableNavigator = new TableNavigator(tableHeaders);
         _speechQueue = speechQueue;
@@ -247,6 +251,9 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ElementsList:
             case NavigationCommand.ToggleMode:
+            case NavigationCommand.Find:
+            case NavigationCommand.FindNext:
+            case NavigationCommand.FindPrevious:
                 // These only apply to web documents; say so rather than silently eating the key
                 if (_quickNavHandler.CurrentDocument is null || _cursor is null)
                 {
@@ -264,6 +271,19 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ElementsList:
                 OpenElementsList();
+                return;
+
+            case NavigationCommand.Find:
+                OpenFindPrompt();
+                return;
+
+            case NavigationCommand.FindNext:
+            case NavigationCommand.FindPrevious:
+                // Nothing searched for yet: ask what to find
+                if (_find.Last is not { } last)
+                    OpenFindPrompt();
+                else
+                    FindAndMove(last, forward: command == NavigationCommand.FindNext, fromCursor: false);
                 return;
 
             case NavigationCommand.ReadCurrentLine:
@@ -847,6 +867,19 @@ public sealed class BrowseModeController
         Announce(node);
     }
 
+    public void HandleFindPromptClosed(FindPromptClosedEvent evt)
+    {
+        _modalOpen = false;
+        UpdateDocumentActive();
+
+        if (evt.Request is not { Text.Length: > 0 } request)
+            return;
+        _find.Remember(request);
+        if (_quickNavHandler.CurrentDocument is null || _cursor is null)
+            return;
+        FindAndMove(request, forward: true, fromCursor: true);
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -1069,6 +1102,57 @@ public sealed class BrowseModeController
             _logger.LogError(ex, "Elements List failed");
         }
         _pipeline.Post(new ElementsListClosedEvent(DateTimeOffset.UtcNow, selected));
+    }
+
+    private void OpenFindPrompt()
+    {
+        if (_findPrompt is null || _modalOpen)
+            return;
+
+        _modalOpen = true;
+        _ignoreFocusReturnTo = _lastFocusedRuntimeId;
+        UpdateDocumentActive();
+        _ = ShowFindPromptAsync(_findPrompt, _find.History.ToList(), _find.Last?.MatchCase ?? false);
+    }
+
+    private async Task ShowFindPromptAsync(IFindPrompt prompt, IReadOnlyList<string> history, bool matchCase)
+    {
+        FindRequest? request = null;
+        try
+        {
+            request = await prompt.ShowAsync(history, matchCase).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Find prompt failed");
+        }
+        _pipeline.Post(new FindPromptClosedEvent(DateTimeOffset.UtcNow, request));
+    }
+
+    /// <summary>
+    /// Moves the cursor to the next (or previous) match and reads its line; the wrap cue when the
+    /// search went past the end of the page. A new search starts at the cursor; next and previous
+    /// start just past it, so they don't find the match the cursor is on.
+    /// </summary>
+    private void FindAndMove(FindRequest request, bool forward, bool fromCursor)
+    {
+        var cursor = _cursor!;
+        int start = forward && !fromCursor ? cursor.TextOffset + 1 : cursor.TextOffset;
+        if (FindInBuffer.Find(cursor.Document.FlatText, request.Text, start, forward, request.MatchCase) is not { } match)
+        {
+            _audioCuePlayer.Play("error");
+            Speak($"{request.Text} not found");
+            return;
+        }
+
+        if (match.Wrapped)
+            _audioCuePlayer.Play("wrap");
+        cursor.MoveTo(match.Offset);
+        _quickNavHandler.CurrentNode = cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+        // The cursor has moved on: Say All's last position no longer applies
+        _sayAllCursor = null;
+        ApplyCursorSettings(cursor);
+        SpeakContent(LineText(cursor.ReadCurrentLine()));
     }
 
     private void ActivateCurrentNode()

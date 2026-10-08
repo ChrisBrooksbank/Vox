@@ -245,6 +245,7 @@ public static class ServiceRegistration
         });
         services.AddSingleton<SayAllController>();
         services.AddSingleton<IElementsListPresenter, ElementsListPresenter>();
+        services.AddSingleton<IFindPrompt, FindPromptPresenter>();
         // Header rows/columns set by hand; secure screens keep them for the session only
         services.AddSingleton<TableHeaderStore>(sp => new TableHeaderStore(
             (sp.GetService<RunPolicy>() ?? RunPolicy.Normal).AllowSettingsWrites ? TableHeaderStore.DefaultPath : null,

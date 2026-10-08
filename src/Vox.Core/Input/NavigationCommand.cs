@@ -139,5 +139,8 @@ public enum NavigationCommand
     ReadTableRow,
     ReadTableColumn,
     SetColumnHeaders,
-    SetRowHeaders
+    SetRowHeaders,
+    Find,
+    FindNext,
+    FindPrevious
 }
