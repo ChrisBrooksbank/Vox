@@ -32,6 +32,8 @@ public sealed class UIAElementSnapshot : IVBufferElement
     public bool IsVisited { get; init; }
     public bool IsRequired { get; init; }
     public string Language { get; init; } = string.Empty;
+    public int RowSpan { get; init; } = 1;
+    public int ColumnSpan { get; init; } = 1;
 
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;
 
@@ -82,6 +84,8 @@ public sealed class UIAElementSnapshot : IVBufferElement
         IsVisited = ReadIsVisited(element),
         IsRequired = ReadCachedBool(element, UIAProvider.UIA_IsRequiredForFormPropertyId) == true,
         Language = LanguageName(ReadCachedInt(element, UIAProvider.UIA_CulturePropertyId)),
+        RowSpan = ReadCachedInt(element, UIAProvider.UIA_GridItemRowSpanPropertyId) ?? 1,
+        ColumnSpan = ReadCachedInt(element, UIAProvider.UIA_GridItemColumnSpanPropertyId) ?? 1,
     };
 
     /// <summary>The BCP 47 name of a UIA Culture (an LCID), or empty when none or unknown.</summary>

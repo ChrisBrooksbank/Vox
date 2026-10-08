@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 115
+- Build iterations: 116
 - Last updated: 2026-10-08
 
 ## Tasks
@@ -183,7 +183,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add quick-nav for lists (L), list items (I), graphics (G), block quotes (Q), frames (M), separators (S), embedded objects (O); unit tests (spec: web-parity.md)
 - [x] Add quick-nav for visited (V) / unvisited (U) links, skip past links (N), paragraph (P), unvisited heading on this page (J), container start/end (,); unit tests (spec: web-parity.md)
 - [x] Add Buttons, form-field-kind and Tables tabs to the Elements List (spec: web-parity.md)
-- [ ] Add `TableModel` (cells, spans, header cells, dimensions, layout-table heuristic) built by `VBufferBuilder`; unit tests (spec: web-parity.md)
+- [x] Add `TableModel` (cells, spans, header cells, dimensions, layout-table heuristic) built by `VBufferBuilder`; unit tests (spec: web-parity.md)
 - [ ] Add `TableNavigator`: Ctrl+Alt+arrows/Home/End, row/column and changed-header announcements, boundary cue, dimensions on entry; unit tests (spec: web-parity.md)
 - [ ] Add read current row / column commands and manual header row/column set, persisted per URL and table index (spec: web-parity.md)
 - [ ] Add list entry ("list with N items"), nesting level and "out of list" announcements while reading; unit tests (spec: web-parity.md)

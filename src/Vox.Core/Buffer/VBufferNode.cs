@@ -75,6 +75,12 @@ public sealed class VBufferNode
     /// <summary>The text's language (BCP 47), its own or inherited from its ancestors; empty when unknown.</summary>
     public string Language { get; init; } = string.Empty;
 
+    /// <summary>Rows a table cell spans (1 for an ordinary cell).</summary>
+    public int RowSpan { get; init; } = 1;
+
+    /// <summary>Columns a table cell spans (1 for an ordinary cell).</summary>
+    public int ColumnSpan { get; init; } = 1;
+
     /// <summary>
     /// Text content contributed by this node to the flat document text.
     /// Represents the character range (start, end) in VBufferDocument.FlatText.
@@ -131,6 +137,8 @@ public sealed class VBufferNode
         IsPassword = IsPassword,
         IsFocusable = IsFocusable,
         Language = Language,
+        RowSpan = RowSpan,
+        ColumnSpan = ColumnSpan,
         TextRange = textRange,
     };
 

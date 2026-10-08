@@ -39,6 +39,8 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_SizeOfSetPropertyId = 30153;
     internal const int UIA_LevelPropertyId = 30154;
     internal const int UIA_CulturePropertyId = 30015;
+    internal const int UIA_GridItemRowSpanPropertyId = 30066;
+    internal const int UIA_GridItemColumnSpanPropertyId = 30067;
 
     internal const uint ConnectionTimeoutMs = 2000;
     internal const uint TransactionTimeoutMs = 4000;
@@ -161,6 +163,9 @@ public sealed class UIAProvider : IDisposable
         request.AddProperty(UIA_IsPasswordPropertyId);
         // The element's language (an HTML lang attribute), as an LCID
         request.AddProperty(UIA_CulturePropertyId);
+        // Table cell spans, for the table model
+        request.AddProperty(UIA_GridItemRowSpanPropertyId);
+        request.AddProperty(UIA_GridItemColumnSpanPropertyId);
         AddStateProperties(request);
         request.TreeScope = TreeScope.TreeScope_Subtree;
         request.TreeFilter = automation.ControlViewCondition;
