@@ -7,7 +7,8 @@ namespace Vox.Core.Navigation;
 /// <summary>
 /// Accessible WinForms dialog opened by Insert+F7.
 ///
-/// Shows switchable tabs for Headings, Links, Landmarks, and FormFields.
+/// Shows switchable tabs for Headings, Links, Landmarks, Form Fields (with a field kind
+/// choice: all, edits, combo boxes, check boxes or radio buttons), Buttons and Tables.
 /// Type to filter the list. Press Enter to jump to the selected element.
 /// Data comes from pre-built VBufferDocument indices (instant on large pages).
 /// </summary>
@@ -28,6 +29,8 @@ public sealed class ElementsListDialog : Form
     // -------------------------------------------------------------------------
 
     private readonly TabControl _tabControl;
+    private readonly Panel _kindPanel;
+    private readonly ComboBox _kindBox;
     private readonly TextBox _filterBox;
     private readonly ListBox _listBox;
     private readonly Button _jumpButton;
@@ -65,10 +68,11 @@ public sealed class ElementsListDialog : Form
         var mainPanel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            RowCount = 3,
+            RowCount = 4,
             ColumnCount = 1,
             Padding = new Padding(8),
         };
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
         mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -80,15 +84,38 @@ public sealed class ElementsListDialog : Form
             AccessibleName = "Element type tabs",
             AccessibleRole = AccessibleRole.PageTabList,
         };
-        _tabControl.TabPages.AddRange(new[]
-        {
-            new TabPage("Headings")    { AccessibleName = "Headings tab" },
-            new TabPage("Links")       { AccessibleName = "Links tab" },
-            new TabPage("Landmarks")   { AccessibleName = "Landmarks tab" },
-            new TabPage("Form Fields") { AccessibleName = "Form Fields tab" },
-        });
+        foreach (var name in ElementsListViewModel.TabNames)
+            _tabControl.TabPages.Add(new TabPage(name) { AccessibleName = $"{name} tab" });
         _tabControl.SelectedIndexChanged += OnTabChanged;
         mainPanel.Controls.Add(_tabControl, 0, 0);
+
+        // ---- Form field kind (Form Fields tab only) --------------------------
+        _kindPanel = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            Dock = DockStyle.Fill,
+            WrapContents = false,
+            Visible = false,
+        };
+        _kindPanel.Controls.Add(new Label
+        {
+            Text = "Field &kind:",
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 6, 4, 0),
+        });
+        _kindBox = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            AccessibleName = "Field kind",
+            Width = 160,
+        };
+        foreach (var name in ElementsListViewModel.FormFieldKindNames)
+            _kindBox.Items.Add(name);
+        _kindBox.SelectedIndex = 0;
+        _kindBox.SelectedIndexChanged += OnKindChanged;
+        _kindPanel.Controls.Add(_kindBox);
+        mainPanel.Controls.Add(_kindPanel, 0, 1);
 
         // ---- List box -------------------------------------------------------
         _listBox = new ListBox
@@ -101,7 +128,7 @@ public sealed class ElementsListDialog : Form
         _listBox.KeyDown += OnListKeyDown;
         _listBox.KeyPress += OnListKeyPress;
         _listBox.DoubleClick += OnJump;
-        mainPanel.Controls.Add(_listBox, 0, 1);
+        mainPanel.Controls.Add(_listBox, 0, 2);
 
         // ---- Filter + buttons row -------------------------------------------
         var bottomPanel = new TableLayoutPanel
@@ -154,7 +181,7 @@ public sealed class ElementsListDialog : Form
             Anchor = AnchorStyles.Right | AnchorStyles.Bottom,
         };
         bottomPanel.Controls.Add(_cancelButton, 2, 0);
-        mainPanel.Controls.Add(bottomPanel, 0, 2);
+        mainPanel.Controls.Add(bottomPanel, 0, 3);
         Controls.Add(mainPanel);
 
         AcceptButton = _jumpButton;
@@ -293,6 +320,13 @@ public sealed class ElementsListDialog : Form
         _filterBox.TextChanged -= OnFilterChanged;
         _filterBox.Text = string.Empty;
         _filterBox.TextChanged += OnFilterChanged;
+        _kindPanel.Visible = _tabControl.SelectedIndex == ElementsListViewModel.FormFieldsTab;
+        RefreshList();
+    }
+
+    private void OnKindChanged(object? sender, EventArgs e)
+    {
+        _viewModel.FormFieldKind = (ElementsFormFieldKind)Math.Max(0, _kindBox.SelectedIndex);
         RefreshList();
     }
 
