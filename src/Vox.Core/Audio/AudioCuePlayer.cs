@@ -7,9 +7,10 @@ namespace Vox.Core.Audio;
 /// <summary>
 /// NAudio-based audio cue player with pre-loaded CachedSound objects.
 /// Fire-and-forget playback that does not block speech.
-/// Phase 1 sounds: browse_mode, focus_mode, boundary, wrap, error.
+/// Sounds come from an earcon scheme: a folder under assets/sounds with a manifest.json naming
+/// each cue's file (<see cref="Scheme"/>); cues a scheme leaves out play the default scheme's.
 /// </summary>
-public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
+public sealed class AudioCuePlayer : IAudioCuePlayer, IAudioStreamPlayer, IDisposable
 {
     private readonly ILogger<AudioCuePlayer> _logger;
     private readonly Dictionary<string, CachedSound?> _sounds = new();
@@ -37,14 +38,50 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
     private readonly Func<ISampleProvider, IDisposable> _outputFactory;
     private readonly System.Threading.Timer _idleTimer;
 
-    public static readonly IReadOnlyList<string> Phase1Sounds = new[]
+    /// <summary>Every cue Vox plays; the default scheme has a sound for each.</summary>
+    public static readonly IReadOnlyList<string> Cues = new[]
     {
         "browse_mode",
         "focus_mode",
         "boundary",
         "wrap",
-        "error"
+        "error",
+        "list_entry",
+        "list_exit",
+        "table_entry",
+        "table_exit",
+        "landmark",
+        "clickable",
+        "progress",
+        Speech.StateSounds.Checked,
+        Speech.StateSounds.NotChecked,
+        Speech.StateSounds.HalfChecked,
+        Speech.StateSounds.Expanded,
+        Speech.StateSounds.Collapsed,
+        Speech.StateSounds.Selected,
     };
+
+    /// <summary>The scheme every other scheme falls back to.</summary>
+    public const string DefaultScheme = "default";
+
+    private string _scheme = DefaultScheme;
+
+    /// <summary>
+    /// The earcon scheme (a folder under the sounds directory). Changing it loads its sounds; an
+    /// unknown scheme plays the default one.
+    /// </summary>
+    public string Scheme
+    {
+        get => _scheme;
+        set
+        {
+            var scheme = string.IsNullOrWhiteSpace(value) ? DefaultScheme : value;
+            if (scheme == _scheme)
+                return;
+            _scheme = scheme;
+            PreloadSounds();
+        }
+    }
 
     public AudioCuePlayer(ILogger<AudioCuePlayer> logger, string? soundsDirectory = null)
         : this(logger, soundsDirectory, outputFactory: null)
@@ -149,6 +186,9 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
         }
     }
 
+    // How often the idle timer looks again while a stream is still playing
+    private const long StreamCheckIntervalMs = 1000;
+
     // When the last cue was added (guarded by _outputLock)
     private long _lastCueTick;
 
@@ -164,6 +204,9 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
             if (_keepAwake)
                 return;
             long remaining = (long)IdleClose.TotalMilliseconds - (Environment.TickCount64 - _lastCueTick);
+            // A stream (a long utterance) still playing: look again later
+            if (_mixer is not null && remaining <= 0 && _mixer.MixerInputs.Any(i => i is StreamInput))
+                remaining = Math.Max((long)IdleClose.TotalMilliseconds, StreamCheckIntervalMs);
             if (_mixer is not null && remaining > 0)
             {
                 // A cue was added since: wait out its idle time (the timer's clock and the tick
@@ -180,7 +223,10 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
         if (!IsEnabled)
             return;
 
-        if (!_sounds.TryGetValue(cueName, out var sound) || sound == null)
+        CachedSound? sound;
+        lock (_sounds)
+            _sounds.TryGetValue(cueName, out sound);
+        if (sound is null)
         {
             _logger.LogDebug("Audio cue not found or not loaded: {CueName}", cueName);
             return;
@@ -196,6 +242,22 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
         {
             _logger.LogDebug(ex, "Error playing audio cue: {CueName}", cueName);
             ResetOutput(); // try a fresh device next time (e.g. the audio device changed)
+        }
+    }
+
+    /// <summary>
+    /// Plays a stream (speech) on the same output as the cues, whether or not cues are enabled.
+    /// </summary>
+    public void PlayStream(ISampleProvider source)
+    {
+        try
+        {
+            AddToMixer(new StreamInput(ToMixFormat(source)));
+        }
+        catch
+        {
+            ResetOutput(); // try a fresh device next time
+            throw;
         }
     }
 
@@ -218,6 +280,13 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
             _logger.LogDebug(ex, "Error playing a tone");
             ResetOutput();
         }
+    }
+
+    /// <summary>A stream in the mixer, which keeps the output open until it ends.</summary>
+    private sealed class StreamInput(ISampleProvider source) : ISampleProvider
+    {
+        public WaveFormat WaveFormat => source.WaveFormat;
+        public int Read(float[] buffer, int offset, int count) => source.Read(buffer, offset, count);
     }
 
     /// <summary>The mixer's format: every cue is converted to it.</summary>
@@ -275,28 +344,86 @@ public sealed class AudioCuePlayer : IAudioCuePlayer, IDisposable
 
     private void PreloadSounds()
     {
-        foreach (var name in Phase1Sounds)
+        var files = SchemeFiles(_soundsDirectory, _scheme, _logger);
+        var sounds = new Dictionary<string, CachedSound?>();
+        foreach (var name in Cues)
         {
-            var path = Path.Combine(_soundsDirectory, $"{name}.wav");
-            if (File.Exists(path))
+            if (!files.TryGetValue(name, out var path) || !File.Exists(path))
             {
-                try
-                {
-                    _sounds[name] = new CachedSound(path);
-                    _logger.LogDebug("Loaded audio cue: {CueName}", name);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to load audio cue: {CueName} from {Path}", name, path);
-                    _sounds[name] = null;
-                }
+                _logger.LogDebug("No sound for audio cue {CueName}", name);
+                sounds[name] = null;
+                continue;
             }
-            else
+            try
             {
-                _logger.LogDebug("Audio cue file not found: {Path}", path);
-                _sounds[name] = null;
+                sounds[name] = new CachedSound(path);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load audio cue: {CueName} from {Path}", name, path);
+                sounds[name] = null;
             }
         }
+        lock (_sounds)
+        {
+            _sounds.Clear();
+            foreach (var (name, sound) in sounds)
+                _sounds[name] = sound;
+        }
+    }
+
+    /// <summary>
+    /// Each cue's sound file in <paramref name="scheme"/>: the files its manifest names, with the
+    /// default scheme's for the cues it leaves out (or all of them when it has no manifest).
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> SchemeFiles(string soundsDirectory, string scheme, ILogger? logger = null)
+    {
+        var files = ReadManifest(soundsDirectory, DefaultScheme, logger);
+        if (!string.Equals(scheme, DefaultScheme, StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var (cue, path) in ReadManifest(soundsDirectory, scheme, logger))
+                files[cue] = path;
+        }
+        return files;
+    }
+
+    private sealed class Manifest
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("cues")]
+        public Dictionary<string, string> Cues { get; set; } = new();
+    }
+
+    private static Dictionary<string, string> ReadManifest(string soundsDirectory, string scheme, ILogger? logger)
+    {
+        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // A scheme is a folder name, never a path
+        if (scheme.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || scheme is "." or "..")
+            return files;
+        var folder = Path.Combine(soundsDirectory, scheme);
+        var path = Path.Combine(folder, "manifest.json");
+        try
+        {
+            if (!File.Exists(path))
+                return files;
+            var manifest = System.Text.Json.JsonSerializer.Deserialize<Manifest>(File.ReadAllText(path),
+                new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
+                    AllowTrailingCommas = true,
+                });
+            foreach (var (cue, file) in manifest?.Cues ?? [])
+            {
+                // Files stay inside the scheme's folder
+                if (!string.IsNullOrWhiteSpace(file) && file.IndexOfAny(['/', '\\']) < 0 && !file.Contains("..", StringComparison.Ordinal))
+                    files[cue] = Path.Combine(folder, file);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            logger?.LogWarning(ex, "Could not read the earcon scheme {Scheme}", scheme);
+        }
+        return files;
     }
 
     private static string GetDefaultSoundsDirectory()

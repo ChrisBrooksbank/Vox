@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
   <PropertyGroup>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OutputType>Exe</OutputType>
@@ -20,7 +20,7 @@
     <ProjectReference Include="..\..\src\Vox.Core\Vox.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <SoundAssets Include="$(MSBuildProjectDirectory)\..\..\assets\sounds\*.wav" />
+    <SoundAssets Include="$(MSBuildProjectDirectory)\..\..\assets\sounds\**\*.wav;$(MSBuildProjectDirectory)\..\..\assets\sounds\**\manifest.json" />
   </ItemGroup>
   <!--
     Authenticode-signs Vox.App.exe when a certificate is configured, e.g.
@@ -40,7 +40,8 @@
     <MakeDir Directories="$(OutputPath)assets\config" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-settings.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\laptop-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
     <MakeDir Directories="$(OutputPath)assets\sounds" />
-    <Copy SourceFiles="@(SoundAssets)" DestinationFolder="$(OutputPath)assets\sounds" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(SoundAssets)" DestinationFolder="$(OutputPath)assets\sounds\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
 </Project>

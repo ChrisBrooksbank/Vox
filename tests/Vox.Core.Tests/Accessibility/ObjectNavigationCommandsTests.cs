@@ -94,6 +94,68 @@ public class ObjectNavigationCommandsTests : IDisposable
 
         _audio.Verify(a => a.Play("boundary"), Times.Once);
     }
+
+    private sealed class Clipboard(bool works = true) : IClipboard
+    {
+        public string? Text { get; private set; }
+        public bool SetText(string text)
+        {
+            if (works)
+                Text = text;
+            return works;
+        }
+    }
+
+    private ObjectNavigationCommands WithClipboard(IClipboard clipboard) =>
+        new(_uiaThread, _source, _queue, new AnnouncementBuilder(), _audio.Object,
+            Mock.Of<IOptionsMonitor<VoxSettings>>(m => m.CurrentValue == new VoxSettings()),
+            NullLogger<ObjectNavigationCommands>.Instance, clipboard);
+
+    [Fact]
+    public async Task CopyText_CopiesTheNavigatorObjectsText_AndSaysIt()
+    {
+        var clipboard = new Clipboard();
+        var commands = WithClipboard(clipboard);
+        await commands.MoveAsync(NavigatorMove.Next);
+        _engine.Clear();
+
+        Assert.True(commands.TryHandle(NavigationCommand.CopyNavigatorText));
+
+        await _engine.WaitForTextAsync("Status bar, copied to clipboard");
+        Assert.Equal("Status bar", clipboard.Text);
+    }
+
+    [Fact]
+    public async Task CopyText_LongText_IsNotRead()
+    {
+        var clipboard = new Clipboard();
+        _source.Focused = new MockNavigatorObject("Editor", "Edit") { Text = "line one\nline two" };
+
+        await WithClipboard(clipboard).CopyTextAsync();
+
+        await _engine.WaitForTextAsync("Copied to clipboard");
+        Assert.Equal("line one\nline two", clipboard.Text);
+    }
+
+    [Fact]
+    public async Task CopyText_NoText_SaysSo()
+    {
+        var clipboard = new Clipboard();
+        _source.Focused = new MockNavigatorObject("", "Pane");
+
+        await WithClipboard(clipboard).CopyTextAsync();
+
+        await _engine.WaitForTextAsync("No text");
+        Assert.Null(clipboard.Text);
+    }
+
+    [Fact]
+    public async Task CopyText_ClipboardFails_SaysSo()
+    {
+        await WithClipboard(new Clipboard(works: false)).CopyTextAsync();
+
+        await _engine.WaitForTextAsync("Could not copy");
+    }
 }
 
 public class ObjectNavigationCommandHandlingTests : IDisposable

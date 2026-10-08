@@ -66,6 +66,29 @@ public class BrowseModeControllerTests : IDisposable
 
     public void Dispose() => _speechQueue.Dispose();
 
+    [Fact]
+    public async Task ReadingPageText_TagsItWithThePagesLanguage()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document", Language = "en-GB" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Hello" });
+        var french = new MockElement { RuntimeId = [3], ControlType = "Group", Language = "fr-FR" };
+        french.AddChild(new MockElement { RuntimeId = [4], Name = "Bonjour tout le monde" });
+        root.AddChild(french);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null));
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        Utterance? line = null;
+        while (line is null && DateTime.UtcNow < deadline)
+        {
+            lock (_spoken) line = _spoken.LastOrDefault(u => u.Text.Contains("Bonjour"));
+            await Task.Delay(10);
+        }
+        Assert.NotNull(line);
+        Assert.Equal("fr-FR", line!.Language);
+    }
+
     // Document: H1 "Welcome" / text "Intro text" / link "Read more" / edit "Search"
     private static VBufferDocument BuildDocument()
     {
@@ -1254,6 +1277,54 @@ public class BrowseModeControllerTests : IDisposable
 
         await WaitForSpeech(u => u.Text == "Prices, table, Apples");
         Assert.Same(doc.FindByRuntimeId([3]), _quickNav.CurrentNode);
+    }
+
+    [Fact]
+    public async Task NextList_SaysTheListAndItsFirstLine()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        var list = new MockElement { RuntimeId = [3], ControlType = "List" };
+        var item = new MockElement { RuntimeId = [4], ControlType = "ListItem" };
+        item.AddChild(new MockElement { RuntimeId = [5], Name = "Apples" });
+        list.AddChild(item);
+        root.AddChild(list);
+        var doc = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, doc));
+
+        _controller.HandleCommand(NavigationCommand.NextList);
+        await WaitForSpeech(u => u.Text == "list, Apples");
+
+        _controller.HandleCommand(NavigationCommand.NextListItem);
+        await WaitForSpeech(u => u.Text == "list item, Apples");
+        Assert.Same(doc.FindByRuntimeId([4]), _quickNav.CurrentNode);
+    }
+
+    [Fact]
+    public async Task NextGraphic_SaysItsAltTextOnce()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        root.AddChild(new MockElement { RuntimeId = [3], Name = "Logo", ControlType = "Image" });
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleCommand(NavigationCommand.NextGraphic);
+
+        await WaitForSpeech(u => u.Text == "Logo, graphic");
+    }
+
+    [Fact]
+    public async Task NextSeparator_SaysSeparator()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        root.AddChild(new MockElement { RuntimeId = [3], ControlType = "Separator" });
+        root.AddChild(new MockElement { RuntimeId = [4], Name = "Outro" });
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleCommand(NavigationCommand.NextSeparator);
+
+        await WaitForSpeech(u => u.Text == "separator");
     }
 
     // -------------------------------------------------------------------------

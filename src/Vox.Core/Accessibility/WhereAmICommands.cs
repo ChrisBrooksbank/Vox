@@ -21,14 +21,16 @@ public sealed class WhereAmICommands
     private readonly SpeechQueue _speechQueue;
     private readonly AnnouncementBuilder _announcementBuilder;
     private readonly IOptionsMonitor<VoxSettings> _settings;
+    private readonly IClipboard _clipboard;
     private readonly ILogger<WhereAmICommands> _logger;
     private readonly RepeatPressConfirmation _timePressedTwice = new(TimeSpan.FromMilliseconds(500));
     private FocusChangedEvent? _lastFocus;
 
     public WhereAmICommands(UIAThread uiaThread, UIAProvider uiaProvider, IForegroundWindow foregroundWindow,
         SpeechQueue speechQueue, AnnouncementBuilder announcementBuilder, IOptionsMonitor<VoxSettings> settings,
-        ILogger<WhereAmICommands> logger)
+        IClipboard clipboard, ILogger<WhereAmICommands> logger)
     {
+        _clipboard = clipboard;
         _uiaThread = uiaThread;
         _uiaProvider = uiaProvider;
         _foregroundWindow = foregroundWindow;
@@ -170,22 +172,8 @@ public sealed class WhereAmICommands
             return;
         }
         var text = info.Format();
-        CopyToClipboard(text);
+        _clipboard.SetText(text);
         Speak(text.Replace(Environment.NewLine, ". ") + ". Copied to clipboard");
-    }
-
-    /// <summary>The clipboard needs an STA thread.</summary>
-    private void CopyToClipboard(string text)
-    {
-        var thread = new Thread(() =>
-        {
-            try { System.Windows.Forms.Clipboard.SetText(text); }
-            catch (Exception ex) { _logger.LogDebug(ex, "Could not copy to the clipboard"); }
-        });
-        if (OperatingSystem.IsWindows())
-            thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join(TimeSpan.FromSeconds(2));
     }
 
     private void Speak(string text) => _speechQueue.Enqueue(new Utterance(text, SpeechPriority.Interrupt));

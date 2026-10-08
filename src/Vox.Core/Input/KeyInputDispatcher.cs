@@ -19,7 +19,8 @@ namespace Vox.Core.Input;
 public sealed class KeyInputDispatcher
 {
     private readonly IKeyboardHook _hook;
-    private readonly KeyMap _keyMap;
+    // Replaced whole when the layout changes; read on the hook thread
+    private volatile KeyMap _keyMap;
     private readonly IEventSink _pipeline;
     private readonly ILogger<KeyInputDispatcher> _logger;
 
@@ -34,6 +35,8 @@ public sealed class KeyInputDispatcher
     private const int OutsideDocumentContext = 3;
     private const int ContextMask = 0x3;
     private const int EscapeToPageFlag = 0x4;
+    // The focused application was in sleep mode when the key was pressed
+    private const int SleepFlag = 0x8;
 
     // Keys whose key-down was dispatched as a command; their key-ups are dropped so a key that
     // changed the mode (e.g. Enter entering Focus mode) is not then echoed as typing.
@@ -53,6 +56,22 @@ public sealed class KeyInputDispatcher
         _pipeline = pipeline;
         _logger = logger;
     }
+
+    /// <summary>
+    /// Whether the focused application is in sleep mode: then keys reach it untouched and only
+    /// <see cref="NavigationCommand.ToggleSleepMode"/> is Vox's. Called on the hook thread, so it
+    /// must only read a cached value.
+    /// </summary>
+    public Func<bool>? IsAsleep { get; set; }
+
+    private bool AsleepNow()
+    {
+        try { return IsAsleep?.Invoke() == true; }
+        catch { return false; }
+    }
+
+    /// <summary>Switches to another keymap (another keyboard layout); takes effect with the next key.</summary>
+    public void SetKeyMap(KeyMap keyMap) => _keyMap = keyMap;
 
     /// <summary>
     /// Starts listening to keyboard events by subscribing to the hook.
@@ -129,7 +148,13 @@ public sealed class KeyInputDispatcher
 
         var context = CurrentContext;
         bool escapeToPage = _escapeGoesToPage;
-        bool found = TryResolve(evt, context, escapeToPage, out _, out var passThrough);
+        bool found = TryResolve(evt, context, escapeToPage, out var command, out var passThrough);
+        int flags = context | (escapeToPage ? EscapeToPageFlag : 0);
+
+        // Asleep: everything goes to the application except the key that wakes Vox
+        if (AsleepNow())
+            return new KeyDecision(found && command == NavigationCommand.ToggleSleepMode && !passThrough, flags | SleepFlag);
+
         bool suppress = found && !passThrough;
 
         if (!found)
@@ -144,7 +169,7 @@ public sealed class KeyInputDispatcher
                 suppress = true;
         }
 
-        return new KeyDecision(suppress, context | (escapeToPage ? EscapeToPageFlag : 0));
+        return new KeyDecision(suppress, flags);
     }
 
     /// <summary>True when <see cref="Decide"/> would swallow the key.</summary>
@@ -213,8 +238,10 @@ public sealed class KeyInputDispatcher
             bool decided = evt.Decision.Context > 0;
             var context = decided ? evt.Decision.Context & ContextMask : CurrentContext;
             bool escapeToPage = decided ? (evt.Decision.Context & EscapeToPageFlag) != 0 : _escapeGoesToPage;
+            bool asleep = decided ? (evt.Decision.Context & SleepFlag) != 0 : AsleepNow();
 
-            if (TryResolve(evt, context, escapeToPage, out var command, out _))
+            if (TryResolve(evt, context, escapeToPage, out var command, out _)
+                && (!asleep || command == NavigationCommand.ToggleSleepMode))
             {
                 _logger.LogDebug(
                     "Key {VkCode} with {Modifiers} in context {Context} -> {Command}",

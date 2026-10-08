@@ -23,6 +23,10 @@ public sealed class ObjectNavigationCommands
     private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly IOptionsMonitor<VoxSettings> _settings;
     private readonly ILogger<ObjectNavigationCommands> _logger;
+    private readonly IClipboard? _clipboard;
+    // More than enough for any control; a huge document is cut off rather than stalling the UIA thread
+    private const int MaxCopyLength = 1_000_000;
+    private const int MaxSpokenCopyLength = 100;
     private readonly ObjectNavigator _navigator = new();
     // UIA thread generation the navigator object belongs to; a replaced thread's objects are dropped
     private int _generation = -1;
@@ -31,8 +35,9 @@ public sealed class ObjectNavigationCommands
 
     public ObjectNavigationCommands(UIAThread uiaThread, INavigatorObjectSource source, SpeechQueue speechQueue,
         AnnouncementBuilder announcementBuilder, IAudioCuePlayer audioCuePlayer, IOptionsMonitor<VoxSettings> settings,
-        ILogger<ObjectNavigationCommands> logger)
+        ILogger<ObjectNavigationCommands> logger, IClipboard? clipboard = null)
     {
+        _clipboard = clipboard;
         _uiaThread = uiaThread;
         _source = source;
         _speechQueue = speechQueue;
@@ -62,6 +67,7 @@ public sealed class ObjectNavigationCommands
             case NavigationCommand.NavigatorToFocus: _ = NavigatorToFocusAsync(); return true;
             case NavigationCommand.FocusToNavigator: _ = FocusToNavigatorAsync(); return true;
             case NavigationCommand.ActivateNavigator: _ = ActivateAsync(); return true;
+            case NavigationCommand.CopyNavigatorText: _ = CopyTextAsync(); return true;
             default: return false;
         }
     }
@@ -111,6 +117,45 @@ public sealed class ObjectNavigationCommands
             return Outcome.Speak("No navigator object");
         return current.Activate() ? Outcome.Silent : Outcome.Speak("No action");
     }, "activate the navigator object");
+
+    /// <summary>Copies the navigator object's text to the clipboard.</summary>
+    public async Task CopyTextAsync()
+    {
+        string? text;
+        try
+        {
+            text = await _uiaThread.RunAsync(() =>
+            {
+                EnsureNavigator();
+                return _navigator.Current?.GetText().DocumentRange.GetText(MaxCopyLength);
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not read the navigator object's text");
+            Speak("Not available");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            Speak("No text");
+            return;
+        }
+        if (_clipboard?.SetText(text) != true)
+        {
+            Speak("Could not copy");
+            return;
+        }
+        // Short text is said, so it's clear what was copied
+        Speak(text.Length <= MaxSpokenCopyLength && !text.Contains('\n')
+            ? $"{text.Trim()}, copied to clipboard"
+            : "Copied to clipboard");
+    }
 
     /// <summary>What a command ends with, decided on the UIA thread and carried out off it.</summary>
     private readonly record struct Outcome(string? Text, bool IsBoundary)
@@ -179,10 +224,12 @@ public sealed class ObjectNavigationCommands
     }
 
     /// <summary>What to say for an object: the focus announcement, or at least its type.</summary>
-    private string Describe(FocusChangedEvent target)
+    private string Describe(FocusChangedEvent target) => Describe(_announcementBuilder, _settings.CurrentValue, target);
+
+    /// <summary>What to say for an object: the focus announcement, or at least its type.</summary>
+    internal static string Describe(AnnouncementBuilder announcementBuilder, VoxSettings settings, FocusChangedEvent target)
     {
-        var settings = _settings.CurrentValue;
-        var text = _announcementBuilder.Build(target, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
+        var text = announcementBuilder.Build(target, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
         if (!string.IsNullOrWhiteSpace(text))
             return text;
         return string.IsNullOrWhiteSpace(target.ControlType) || target.ControlType == "Unknown"

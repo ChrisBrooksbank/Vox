@@ -22,7 +22,7 @@ Read relevant existing code to understand patterns and conventions. Also read CL
 
 Write code to complete the task:
 - Follow existing code patterns and conventions from CLAUDE.md
-- Target framework is `net9.0-windows` for all projects
+- Target framework is `net9.0-windows10.0.19041.0` for all projects
 - Use `Microsoft.Extensions.Hosting` for DI
 - Use `System.Threading.Channels` for inter-component communication
 - Write tests for new functionality (xUnit in tests/Vox.Core.Tests/)
@@ -61,4 +61,4 @@ The loop will restart with fresh context for the next task.
 - **DO follow CLAUDE.md conventions** - especially UIA on STA thread, keyboard hook < 1ms, Channel-based pipeline
 - **DO write tests** for new functionality
 - **DO update IMPLEMENTATION_PLAN.md** before exiting
-- **DO use `net9.0-windows`** as the target framework for all projects
+- **DO use `net9.0-windows10.0.19041.0`** as the target framework for all projects

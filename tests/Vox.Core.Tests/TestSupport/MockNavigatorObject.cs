@@ -41,6 +41,11 @@ public sealed class MockNavigatorObject : INavigatorObject
 
     public ITextDocument GetText() => new StringTextDocument(Text ?? Name);
 
+    /// <summary>Where the object is on screen (null: no location).</summary>
+    public (int X, int Y)? ClickPoint { get; init; }
+
+    public (int X, int Y)? GetClickPoint() => ClickPoint;
+
     /// <summary>Finds a descendant (or this object) by name.</summary>
     public MockNavigatorObject Find(string name) =>
         Name == name ? this : _children.Select(c => c.FindOrNull(name)).FirstOrDefault(c => c is not null)

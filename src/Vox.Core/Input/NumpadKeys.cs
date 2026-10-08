@@ -58,6 +58,9 @@ public static class NumpadKeys
         return (vkCode, null);
     }
 
+    /// <summary>Whether a keymap code is a keypad key's own code (Numpad0–9, the operators, Numpad Enter).</summary>
+    public static bool IsKeypadBindingCode(int code) => code is >= Numpad0 and <= Divide or NumpadEnter;
+
     private static int? KeypadCode(int vkCode) => vkCode switch
     {
         0x2D => Numpad0, // Insert

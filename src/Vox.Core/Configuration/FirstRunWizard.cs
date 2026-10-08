@@ -5,7 +5,7 @@ using Vox.Core.Speech;
 namespace Vox.Core.Configuration;
 
 /// <summary>
-/// Speech-only first-run wizard. Guides a new user through 7 steps to configure Vox.
+/// Speech-only first-run wizard. Guides a new user through 8 steps to configure Vox.
 /// Triggered when VoxSettings.FirstRunCompleted == false.
 /// Re-runnable from settings.
 ///
@@ -14,15 +14,19 @@ namespace Vox.Core.Configuration;
 ///   2. Speech rate — Up/Down to adjust live, speaks test sentence
 ///   3. Voice selection — Up/Down to cycle voices
 ///   4. Verbosity — 1=Beginner, 2=Intermediate, 3=Advanced
-///   5. Modifier key — 1=Insert, 2=CapsLock
-///   6. Tutorial — practice H, K, Enter, Insert+Space
-///   7. Completion — "Press Insert+F1 for help anytime"
+///   5. Keyboard layout — 1=Desktop, 2=Laptop (which also makes CapsLock the modifier)
+///   6. Modifier key — 1=Insert, 2=CapsLock
+///   7. Tutorial — practice H, K, Enter, Insert+Space
+///   8. Completion — "Press Insert+F1 for help anytime"
 /// </summary>
 public sealed class FirstRunWizard
 {
+    // Finer steps at everyday rates, coarser ones up to the fastest
     private const int RateStep = 10;
-    private const int MinRateWpm = 150;
-    private const int MaxRateWpm = 450;
+    private const int FastRateStep = 25;
+    private const int FastRateFromWpm = 400;
+    private const int MinRateWpm = ISpeechEngine.MinSupportedWpm;
+    private const int DefaultMaxRateWpm = 450;
 
     private readonly ISpeechEngine _speechEngine;
     private readonly SettingsManager _settingsManager;
@@ -94,13 +98,16 @@ public sealed class FirstRunWizard
             // Step 4: Verbosity
             settings = await RunVerbosityStepAsync(settings, cancellationToken);
 
-            // Step 5: Modifier key
+            // Step 5: Keyboard layout
+            settings = await RunKeyboardLayoutStepAsync(settings, cancellationToken);
+
+            // Step 6: Modifier key
             settings = await RunModifierKeyStepAsync(settings, cancellationToken);
 
-            // Step 6: Tutorial
+            // Step 7: Tutorial
             await RunTutorialStepAsync(settings, cancellationToken);
 
-            // Step 7: Completion
+            // Step 8: Completion
             settings = settings with { FirstRunCompleted = true };
             _settingsMonitor.UpdateSettings(settings);
             await SpeakAsync(
@@ -166,7 +173,7 @@ public sealed class FirstRunWizard
         {
             var key = await PromptAsync(
                 "Welcome to Vox screen reader. " +
-                "This guided setup will help you configure speech rate, voice, verbosity, and modifier key. " +
+                "This guided setup will help you configure speech rate, voice, verbosity, keyboard layout and modifier key. " +
                 "Press Enter to begin, or Escape to skip setup.",
                 timeoutCts.Token);
 
@@ -186,13 +193,24 @@ public sealed class FirstRunWizard
         }
     }
 
+    /// <summary>The fastest rate the speech engine speaks (up to <see cref="ISpeechEngine.MaxSupportedWpm"/>).</summary>
+    private int MaxRateWpm
+    {
+        get
+        {
+            int max = _speechEngine.MaxRateWpm;
+            // 0: the engine doesn't say
+            return max <= 0 ? DefaultMaxRateWpm : Math.Clamp(max, MinRateWpm, ISpeechEngine.MaxSupportedWpm);
+        }
+    }
+
     private async Task<VoxSettings> RunSpeechRateStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
         int rate = settings.SpeechRateWpm;
         _speechEngine.SetRate(rate);
 
         var key = await PromptAsync(
-            $"Step 1 of 5: Speech rate. Current rate is {rate} words per minute. " +
+            $"Step 1 of 6: Speech rate. Current rate is {rate} words per minute. " +
             "Press Up to increase, Down to decrease, or Enter to accept.",
             cancellationToken);
 
@@ -201,8 +219,8 @@ public sealed class FirstRunWizard
             if (key.VkCode == VirtualKeys.Up || key.VkCode == VirtualKeys.Down)
             {
                 rate = key.VkCode == VirtualKeys.Up
-                    ? Math.Min(rate + RateStep, MaxRateWpm)
-                    : Math.Max(rate - RateStep, MinRateWpm);
+                    ? Math.Min(rate + (rate >= FastRateFromWpm ? FastRateStep : RateStep), MaxRateWpm)
+                    : Math.Max(rate - (rate > FastRateFromWpm ? FastRateStep : RateStep), MinRateWpm);
                 _speechEngine.SetRate(rate);
                 key = await PromptAsync($"{rate} words per minute. The quick brown fox jumps over the lazy dog.", cancellationToken);
                 continue;
@@ -221,7 +239,7 @@ public sealed class FirstRunWizard
         var voices = _speechEngine.GetAvailableVoices();
         if (voices.Count == 0)
         {
-            await SpeakAsync("Step 2 of 5: No additional voices found. Continuing with default voice.", cancellationToken);
+            await SpeakAsync("Step 2 of 6: No additional voices found. Continuing with default voice.", cancellationToken);
             return settings;
         }
 
@@ -235,7 +253,7 @@ public sealed class FirstRunWizard
         int initialIndex = currentIndex;
 
         var key = await PromptAsync(
-            $"Step 2 of 5: Voice selection. {voices.Count} voices available. " +
+            $"Step 2 of 6: Voice selection. {voices.Count} voices available. " +
             $"Current voice: {voices[currentIndex]}. " +
             "Press Up or Down to cycle voices, Enter to accept.",
             cancellationToken);
@@ -268,7 +286,7 @@ public sealed class FirstRunWizard
     private async Task<VoxSettings> RunVerbosityStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
         var key = await PromptAsync(
-            "Step 3 of 5: Verbosity level. " +
+            "Step 3 of 6: Verbosity level. " +
             "Press 1 for Beginner — all element details announced, recommended for new users. " +
             "Press 2 for Intermediate — control type and essential state. " +
             "Press 3 for Advanced — minimal announcements. " +
@@ -302,13 +320,46 @@ public sealed class FirstRunWizard
         return settings;
     }
 
+    private async Task<VoxSettings> RunKeyboardLayoutStepAsync(VoxSettings settings, CancellationToken cancellationToken)
+    {
+        var key = await PromptAsync(
+            "Step 4 of 6: Keyboard layout. " +
+            "Press 1 for Desktop, which uses the numeric keypad, for keyboards that have one. " +
+            "Press 2 for Laptop, for keyboards without a numeric keypad; it uses Caps Lock as the modifier key. " +
+            $"Press Enter to keep {settings.KeyboardLayout}.",
+            cancellationToken);
+
+        for (; ; key = await WaitForKeyDownAsync(cancellationToken))
+        {
+            if (key.VkCode == VirtualKeys.Return)
+                break; // Keep current layout
+
+            if (key.VkCode == VirtualKeys.D1 || key.VkCode == VirtualKeys.NumPad1)
+            {
+                settings = settings with { KeyboardLayout = KeyboardLayout.Desktop };
+                break;
+            }
+            if (key.VkCode == VirtualKeys.D2 || key.VkCode == VirtualKeys.NumPad2)
+            {
+                // The laptop layout is meant for Caps Lock; the next step can still change it
+                settings = settings with { KeyboardLayout = KeyboardLayout.Laptop, ModifierKey = ModifierKey.CapsLock };
+                break;
+            }
+        }
+
+        _settingsMonitor.UpdateSettings(settings);
+        await SpeakAsync($"Keyboard layout set to {settings.KeyboardLayout}.", cancellationToken);
+        return settings;
+    }
+
     private async Task<VoxSettings> RunModifierKeyStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
         var key = await PromptAsync(
-            "Step 4 of 5: Modifier key. " +
-            "Press 1 for Insert key, recommended. " +
-            "Press 2 for Caps Lock. " +
-            "Press Enter to keep the current setting.",
+            "Step 5 of 6: Modifier key. " +
+            $"It is now {(settings.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert")}. " +
+            "Press 1 for Insert key, recommended for the desktop layout. " +
+            "Press 2 for Caps Lock, recommended for the laptop layout. " +
+            "Press Enter to keep it.",
             cancellationToken);
 
         for (; ; key = await WaitForKeyDownAsync(cancellationToken))
@@ -336,13 +387,14 @@ public sealed class FirstRunWizard
     private async Task RunTutorialStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
         var modifier = settings.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+        var sayAllKey = settings.KeyboardLayout == KeyboardLayout.Laptop ? "A" : "Down Arrow";
         var key = await PromptAsync(
-            "Step 5 of 5: Quick tutorial. " +
+            "Step 6 of 6: Quick tutorial. " +
             "In browse mode, press H to jump to the next heading. " +
             "Press K to jump to the next link. " +
             "Press Enter to activate the current element. " +
             $"Press {modifier} Space to toggle between browse and focus modes. " +
-            $"Press {modifier} Down Arrow to read from the current position. " +
+            $"Press {modifier} {sayAllKey} to read from the current position. " +
             "Press Control to stop speech at any time. " +
             $"Press {modifier} Q twice to exit Vox, and {modifier} Control S to run this setup again. " +
             "Press Enter to continue.",

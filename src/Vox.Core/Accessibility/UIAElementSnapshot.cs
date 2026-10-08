@@ -31,6 +31,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
     public bool IsPassword { get; init; }
     public bool IsVisited { get; init; }
     public bool IsRequired { get; init; }
+    public string Language { get; init; } = string.Empty;
 
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;
 
@@ -80,7 +81,18 @@ public sealed class UIAElementSnapshot : IVBufferElement
         IsPassword = Try(() => element.CachedIsPassword != 0),
         IsVisited = ReadIsVisited(element),
         IsRequired = ReadCachedBool(element, UIAProvider.UIA_IsRequiredForFormPropertyId) == true,
+        Language = LanguageName(ReadCachedInt(element, UIAProvider.UIA_CulturePropertyId)),
     };
+
+    /// <summary>The BCP 47 name of a UIA Culture (an LCID), or empty when none or unknown.</summary>
+    public static string LanguageName(int? lcid)
+    {
+        // 0: not set; 127: invariant
+        if (lcid is not { } id || id == 0 || id == 127)
+            return string.Empty;
+        try { return System.Globalization.CultureInfo.GetCultureInfo(id).Name; }
+        catch (System.Globalization.CultureNotFoundException) { return string.Empty; }
+    }
 
     /// <summary>A cached string property, or null when not supported.</summary>
     internal static string? ReadCachedString(IUIAutomationElement element, int propertyId) =>

@@ -1,0 +1,8 @@
+{
+  "comment": "Vox's default pronunciation dictionary, applied after the user's (%APPDATA%/Vox/dictionaries/user.json) and the voice's (%APPDATA%/Vox/dictionaries/voices/<voice name>.json), which have the same format. type: Word (whole word, the default), Anywhere, or Regex (replacement may use $1). caseSensitive: false by default.",
+  "entries": [
+    { "pattern": "NVDA", "replacement": "N V D A", "type": "Word", "caseSensitive": true },
+    { "pattern": "JAWS", "replacement": "jaws", "type": "Word", "caseSensitive": true },
+    { "pattern": "UIA", "replacement": "U I A", "type": "Word", "caseSensitive": true }
+  ]
+}

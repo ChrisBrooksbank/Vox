@@ -26,6 +26,9 @@ public interface INavigatorObject
 
     /// <summary>The object's text for review: its own text (an edit's or document's), or its name and value.</summary>
     ITextDocument GetText() => new StringTextDocument(ObjectNavigator.TextOf(Describe()));
+
+    /// <summary>A screen point to click the object at (its clickable point or centre), or null when it has no location.</summary>
+    (int X, int Y)? GetClickPoint() => null;
 }
 
 /// <summary>A navigator movement.</summary>

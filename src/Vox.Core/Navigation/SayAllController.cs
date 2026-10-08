@@ -81,7 +81,7 @@ public sealed class SayAllController
             string? currentLine = await source.CurrentLineAsync(token).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(currentLine))
             {
-                await SpeakLineAsync(currentLine.TrimEnd('\r', '\n'), token).ConfigureAwait(false);
+                await SpeakLineAsync(currentLine.TrimEnd('\r', '\n'), source.CurrentLanguage, token).ConfigureAwait(false);
             }
 
             // Advance line by line until end of document or cancellation
@@ -97,7 +97,7 @@ public sealed class SayAllController
 
                 if (!string.IsNullOrWhiteSpace(line))
                 {
-                    await SpeakLineAsync(line.TrimEnd('\r', '\n'), token).ConfigureAwait(false);
+                    await SpeakLineAsync(line.TrimEnd('\r', '\n'), source.CurrentLanguage, token).ConfigureAwait(false);
                 }
             }
         }
@@ -111,13 +111,13 @@ public sealed class SayAllController
         }
     }
 
-    private async Task SpeakLineAsync(string line, CancellationToken token)
+    private async Task SpeakLineAsync(string line, string? language, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
         // Wait until the line has actually been spoken. If it is interrupted (user navigation,
         // StopSpeech) the task is cancelled and reading stops.
-        var utterance = new Utterance(line, SpeechPriority.Normal);
+        var utterance = new Utterance(line, SpeechPriority.Normal) { Language = language };
         await _speechQueue.EnqueueAndWaitAsync(utterance, token).ConfigureAwait(false);
     }
 }

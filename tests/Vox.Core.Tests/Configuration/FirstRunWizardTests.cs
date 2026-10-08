@@ -289,6 +289,29 @@ public class FirstRunWizardTests : IDisposable
             $"Rate should have increased above 200, was: capturedRate={capturedRate}, saved={monitor.CurrentValue.SpeechRateWpm}");
     }
 
+    [Theory]
+    [InlineData(900, 400, 3, 475)]  // above 400 the rate moves in steps of 25
+    [InlineData(900, 880, 3, 900)]  // up to the engine's fastest rate
+    [InlineData(540, 530, 3, 540)]  // SAPI stops at its own maximum
+    [InlineData(0, 440, 3, 450)]    // an engine that doesn't say: 450
+    public async Task RunAsync_RateStep_GoesUpToTheEnginesFastestRate(int engineMax, int start, int presses, int expected)
+    {
+        var (wizard, hook, engine, monitor, _) = CreateWizard(
+            new VoxSettings { FirstRunCompleted = false, SpeechRateWpm = start });
+        engine.Setup(e => e.MaxRateWpm).Returns(engineMax);
+
+        var wizardTask = wizard.RunAsync();
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Welcome
+        for (int i = 0; i < presses; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x26); // Up
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // accept the rate
+        await PressAsync(wizard, wizardTask, hook, 0x1B); // and stop there
+
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(expected, monitor.CurrentValue.SpeechRateWpm);
+    }
+
     // -------------------------------------------------------------------------
     // Verbosity selection
     // -------------------------------------------------------------------------
@@ -312,6 +335,9 @@ public class FirstRunWizardTests : IDisposable
 
         // Verbosity step → press 3 for Advanced
         await PressAsync(wizard, wizardTask, hook, 0x33); // '3'
+
+        // Layout step → 1 for Desktop
+        await PressAsync(wizard, wizardTask, hook, 0x31);
 
         // Modifier step → Enter (1 for Insert)
         await PressAsync(wizard, wizardTask, hook, 0x31); // '1'
@@ -344,6 +370,8 @@ public class FirstRunWizardTests : IDisposable
         await PressAsync(wizard, wizardTask, hook, 0x0D);
         // Verbosity → 1
         await PressAsync(wizard, wizardTask, hook, 0x31);
+        // Layout → 1 for Desktop
+        await PressAsync(wizard, wizardTask, hook, 0x31);
         // Modifier → 2 for CapsLock
         await PressAsync(wizard, wizardTask, hook, 0x32);
         // Tutorial → Enter
@@ -352,6 +380,34 @@ public class FirstRunWizardTests : IDisposable
         await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
 
         Assert.Equal(ModifierKey.CapsLock, monitor.CurrentValue.ModifierKey);
+    }
+
+    // -------------------------------------------------------------------------
+    // Keyboard layout selection
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(0x0D, ModifierKey.CapsLock)] // Enter keeps the Caps Lock the laptop layout chose
+    [InlineData(0x31, ModifierKey.Insert)]   // 1 picks Insert after all
+    public async Task RunAsync_SelectLaptopLayout_SavesLaptopWithCapsLockByDefault(int modifierStepKey, ModifierKey expected)
+    {
+        var (wizard, hook, _, monitor, _) = CreateWizard(
+            new VoxSettings { FirstRunCompleted = false });
+
+        var wizardTask = wizard.RunAsync();
+
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Welcome
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Rate
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Voice
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Verbosity
+        await PressAsync(wizard, wizardTask, hook, 0x32); // Layout → 2 for Laptop
+        await PressAsync(wizard, wizardTask, hook, modifierStepKey);
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Tutorial
+
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(KeyboardLayout.Laptop, monitor.CurrentValue.KeyboardLayout);
+        Assert.Equal(expected, monitor.CurrentValue.ModifierKey);
     }
 
     // -------------------------------------------------------------------------

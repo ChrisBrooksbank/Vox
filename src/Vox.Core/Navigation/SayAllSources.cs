@@ -11,6 +11,9 @@ public interface ISayAllSource
 
     /// <summary>Advances to the next line and returns it, or null at the end.</summary>
     Task<string?> NextLineAsync(CancellationToken cancellationToken);
+
+    /// <summary>The language of the line just returned, when known.</summary>
+    string? CurrentLanguage => null;
 }
 
 /// <summary>Say All over the browse-mode buffer: the cursor follows along.</summary>
@@ -21,6 +24,8 @@ public sealed class BufferSayAllSource(VBufferCursor cursor) : ISayAllSource
 
     public Task<string?> NextLineAsync(CancellationToken cancellationToken) =>
         Task.FromResult(cursor.NextLine());
+
+    public string? CurrentLanguage => cursor.CurrentNode?.Language is { Length: > 0 } language ? language : null;
 }
 
 /// <summary>

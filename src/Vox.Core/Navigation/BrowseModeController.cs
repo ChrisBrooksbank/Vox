@@ -265,13 +265,17 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ReadCurrentLine:
                 ApplyCursorSettings(_cursor!);
-                Speak(_readSpell == SpellMode.None ? LineText(_cursor!.ReadCurrentLine())
-                    : Spelling.Say(_cursor!.ReadCurrentLine(), TextUnit.Line, _readSpell));
+                if (_readSpell == SpellMode.None)
+                    SpeakContent(LineText(_cursor!.ReadCurrentLine()));
+                else
+                    Speak(Spelling.Say(_cursor!.ReadCurrentLine(), TextUnit.Line, _readSpell));
                 return;
 
             case NavigationCommand.ReadCurrentWord:
-                Speak(_readSpell == SpellMode.None ? LineText(_cursor!.ReadCurrentWord())
-                    : Spelling.Say(_cursor!.ReadCurrentWord(), TextUnit.Word, _readSpell));
+                if (_readSpell == SpellMode.None)
+                    SpeakContent(LineText(_cursor!.ReadCurrentWord()));
+                else
+                    Speak(Spelling.Say(_cursor!.ReadCurrentWord(), TextUnit.Word, _readSpell));
                 return;
 
             case NavigationCommand.ReadCurrentChar:
@@ -325,6 +329,8 @@ public sealed class BrowseModeController
                 _cursor?.MoveTo(node.TextRange.Start);
                 if (VBufferDocument.IsTable(node))
                     AnnounceTable(node);
+                else if (QuickNavHandler.ElementKindName(command) is { } kind)
+                    AnnounceElement(node, kind);
                 else
                     Announce(node);
             }
@@ -1039,7 +1045,11 @@ public sealed class BrowseModeController
 
         // Entering a link, button or heading: say what it is, not just its text
         var role = RoleEnteredAtCursor();
-        Speak(role is null ? text : $"{text}, {role}");
+        // Page text alone is said in its language; with a role (said in Vox's) it isn't
+        if (role is null && !IsCharacterCommand(command))
+            SpeakContent(text);
+        else
+            Speak(role is null ? text : $"{text}, {role}");
     }
 
     /// <summary>
@@ -1105,6 +1115,25 @@ public sealed class BrowseModeController
         Speak(text);
     }
 
+    /// <summary>
+    /// "Fruit, list" followed by the element's first line ("list item, Apples"), unless that line
+    /// is only its name (an image's alt text).
+    /// </summary>
+    private void AnnounceElement(VBufferNode node, string kind)
+    {
+        var name = node.Name.Trim();
+        var text = string.IsNullOrEmpty(name) ? kind : $"{name}, {kind}";
+        // Only an element with text of its own: an empty one's range sits at the following content
+        if (_cursor is not null && node.TextRange.Start < _cursor.Document.FlatText.Length && SubtreeHasText(node))
+        {
+            ApplyCursorSettings(_cursor);
+            var firstLine = _cursor.ReadCurrentLine().Trim();
+            if (!string.IsNullOrWhiteSpace(firstLine) && firstLine != name)
+                text = $"{text}, {firstLine}";
+        }
+        Speak(text);
+    }
+
     private static bool SubtreeHasText(VBufferNode node)
     {
         if (node.HasText)
@@ -1120,6 +1149,18 @@ public sealed class BrowseModeController
     // User navigation always interrupts whatever is being spoken
     private void Speak(string text) =>
         _speechQueue.Enqueue(new Utterance(text, SpeechPriority.Interrupt));
+
+    /// <summary>Speaks page text, tagged with the language at the cursor.</summary>
+    private void SpeakContent(string text) =>
+        _speechQueue.Enqueue(new Utterance(text, SpeechPriority.Interrupt)
+        {
+            Language = _cursor?.CurrentNode?.Language is { Length: > 0 } language ? language : null,
+        });
+
+    // Characters are said by name ("space", "dot"), in Vox's language
+    private static bool IsCharacterCommand(NavigationCommand command) => command is
+        NavigationCommand.NextChar or NavigationCommand.PrevChar or
+        NavigationCommand.StartOfLine or NavigationCommand.EndOfLine;
 
     // Follow-up information (state changes) waits for what is being said
     private void SpeakQueued(string text) =>

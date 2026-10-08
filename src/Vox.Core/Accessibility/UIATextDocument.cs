@@ -46,6 +46,21 @@ public sealed class UIATextDocument : ITextDocument
 
     public ITextRange DocumentRange => Wrap(_pattern.DocumentRange);
 
+    /// <summary>The <paramref name="unit"/> of text at a screen point, or null when there is none there.</summary>
+    public string? TextAt(tagPOINT point, TextUnit unit, int maxLength = 1000)
+    {
+        try
+        {
+            var range = Wrap(_pattern.RangeFromPoint(point)).ExpandToEnclosingUnit(unit);
+            return range.GetText(maxLength);
+        }
+        catch
+        {
+            // No text at that point, or the provider doesn't support it
+            return null;
+        }
+    }
+
     public ITextRange? GetCaret()
     {
         if (_pattern is IUIAutomationTextPattern2 pattern2)

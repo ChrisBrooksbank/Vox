@@ -16,6 +16,11 @@ namespace Vox.Core.Navigation;
 public sealed class AnnouncementBuilder
 {
     /// <summary>
+    /// When this returns true, checked, expanded and selected states are marked to be played as
+    /// sounds (<see cref="Speech.StateSounds"/>) instead of spoken. Set at startup.
+    /// </summary>
+    public Func<bool>? StatesAsSounds { get; set; }
+    /// <summary>
     /// Builds the spoken text for the given node at the given verbosity level.
     /// Returns an empty string if the node has no speakable content.
     /// </summary>
@@ -28,6 +33,8 @@ public sealed class AnnouncementBuilder
     public string Build(VBufferNode node, VerbosityProfile profile, bool announceVisitedLinks)
     {
         var sb = new StringBuilder();
+        bool sounds = StatesAsSounds?.Invoke() == true;
+        string State(string cue, string word) => sounds ? Speech.StateSounds.Mark(cue, word) : word;
 
         // Heading level — "heading level 2"
         if (profile.AnnounceHeadingLevel && node.IsHeading)
@@ -79,7 +86,9 @@ public sealed class AnnouncementBuilder
         // Expanded/collapsed state — "expanded" or "collapsed"
         if (profile.AnnounceExpandedState && node.IsExpandable)
         {
-            Append(sb, node.IsExpanded ? "expanded" : "collapsed");
+            Append(sb, node.IsExpanded
+                ? State(Speech.StateSounds.Expanded, "expanded")
+                : State(Speech.StateSounds.Collapsed, "collapsed"));
         }
 
         // Checked / selected state — essential, so announced at every verbosity regardless of
@@ -88,13 +97,18 @@ public sealed class AnnouncementBuilder
         {
             var toggle = ToggleStateText(node.ToggleState);
             if (toggle is not null)
-                Append(sb, toggle);
+                Append(sb, State(node.ToggleState switch
+                {
+                    ControlState.ToggleOn => Speech.StateSounds.Checked,
+                    ControlState.ToggleIndeterminate => Speech.StateSounds.HalfChecked,
+                    _ => Speech.StateSounds.NotChecked,
+                }, toggle));
             else if (node.IsSelected is { } selected)
             {
                 if (node.ControlType == "RadioButton")
-                    Append(sb, selected ? "checked" : "not checked");
+                    Append(sb, selected ? State(Speech.StateSounds.Checked, "checked") : State(Speech.StateSounds.NotChecked, "not checked"));
                 else if (selected)
-                    Append(sb, "selected");
+                    Append(sb, State(Speech.StateSounds.Selected, "selected"));
             }
         }
 

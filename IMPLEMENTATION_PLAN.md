@@ -3,8 +3,8 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 89
-- Last updated: 2026-10-07
+- Build iterations: 113
+- Last updated: 2026-10-08
 
 ## Tasks
 
@@ -151,36 +151,36 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add `ReviewCursor` over `ITextDocument` for the navigator object, focused document or window; Numpad 7/8/9, 4/5/6, 1/2/3; unit tests (spec: review-object-navigation.md)
 - [x] Add spell on double press and phonetic (NATO) spell on triple press for review char/word and read-current commands; unit tests (spec: review-object-navigation.md)
 - [x] Review follows focus/caret setting and tether to virtual buffer in browse mode (spec: review-object-navigation.md)
-- [ ] Add mouse tracking setting: speak element under pointer, throttled `ElementFromPoint` (100 ms), unit text setting (spec: review-object-navigation.md)
-- [ ] Add mouse commands: route mouse to navigator, left click, right click, lock left button; keymap bindings (spec: review-object-navigation.md)
-- [ ] Add copy navigator text to clipboard (Insert+Ctrl+C) (spec: review-object-navigation.md)
-- [ ] Add laptop keymap layout (CapsLock modifier, no numpad); `KeyMap` loads a named layout; test that it covers every desktop-layout command (spec: review-object-navigation.md)
-- [ ] Add Desktop/Laptop layout step to the first-run wizard (spec: review-object-navigation.md)
+- [x] Add mouse tracking setting: speak element under pointer, throttled `ElementFromPoint` (100 ms), unit text setting (spec: review-object-navigation.md)
+- [x] Add mouse commands: route mouse to navigator, left click, right click, lock left button; keymap bindings (spec: review-object-navigation.md)
+- [x] Add copy navigator text to clipboard (Insert+Ctrl+C) (spec: review-object-navigation.md)
+- [x] Add laptop keymap layout (CapsLock modifier, no numpad); `KeyMap` loads a named layout; test that it covers every desktop-layout command (spec: review-object-navigation.md)
+- [x] Add Desktop/Laptop layout step to the first-run wizard (spec: review-object-navigation.md)
 
 #### Speech and audio (spec: speech-and-audio.md)
 
-- [ ] Extend `ISpeechEngine` with pitch, volume and capability flags; implement in `SapiSpeechEngine` (spec: speech-and-audio.md)
-- [ ] Add `OneCoreSpeechEngine` over `Windows.Media.SpeechSynthesis` with voice listing, rate, pitch, volume, playing through NAudio WASAPI on the `AudioOutputDevice` (so speech follows the output device setting) (spec: speech-and-audio.md)
-- [ ] Add `SpeechEngineRegistry`: list engines, switch at runtime, fall back to SAPI if an engine fails; prefer OneCore by default; unit tests (spec: speech-and-audio.md)
-- [ ] Add rate boost up to 900 wpm (engine boost or time-stretch) with `SpeechRateWpm` range update and wizard support (spec: speech-and-audio.md)
-- [ ] Add settings ring (Insert+Ctrl+Left/Right choose, Up/Down change: voice, rate, pitch, volume, punctuation, engine); saved and spoken; unit tests (spec: speech-and-audio.md)
-- [ ] Add `TextProcessor` stage before `SpeechQueue` with a pluggable rule chain; no-op by default; unit tests (spec: speech-and-audio.md)
-- [ ] Add punctuation levels None/Some/Most/All and `assets/speech/symbols-en.json` seeded from CLDR; unit tests per level (spec: speech-and-audio.md)
-- [ ] Add CLDR emoji names to the symbol dictionary; unit tests (spec: speech-and-audio.md)
-- [ ] Add pronunciation dictionaries (default, per-voice, user; plain and regex; case options) loaded from `%APPDATA%/Vox/dictionaries/`; unit tests (spec: speech-and-audio.md)
-- [ ] Add capital indication settings (pitch / "cap" / beep, separately for char and word/line); unit tests (spec: speech-and-audio.md)
-- [ ] Add repeated-character collapsing ("4 dashes") and number-as-digits setting; unit tests (spec: speech-and-audio.md)
-- [ ] Add language tag to `Utterance`, carry `lang` from buffer nodes, and `LanguageSwitcher` voice selection with user mapping; unit tests (spec: speech-and-audio.md)
-- [ ] Add speech history (last 100; Insert+Shift+F11/F12 step back/forward, press twice to copy); unit tests (spec: speech-and-audio.md)
-- [ ] Add sleep mode per app (Insert+Shift+S): no speech and no key swallowing while that app has focus; persisted; unit tests (spec: speech-and-audio.md)
-- [ ] Add eSpeak NG engine as an optional separately-downloaded component loaded through the registry (spec: speech-and-audio.md)
-- [ ] Add earcon scheme folder with manifest and new cues (list, table, landmark, clickable, error, progress); `AudioCuePlayer` loads the selected scheme; asset tests (spec: speech-and-audio.md)
-- [ ] Add optional indentation tones and "states as sound only" setting (spec: speech-and-audio.md)
+- [x] Extend `ISpeechEngine` with pitch, volume and capability flags; implement in `SapiSpeechEngine` (spec: speech-and-audio.md)
+- [x] Add `OneCoreSpeechEngine` over `Windows.Media.SpeechSynthesis` with voice listing, rate, pitch, volume, playing through NAudio WASAPI on the `AudioOutputDevice` (so speech follows the output device setting) (spec: speech-and-audio.md)
+- [x] Add `SpeechEngineRegistry`: list engines, switch at runtime, fall back to SAPI if an engine fails; prefer OneCore by default; unit tests (spec: speech-and-audio.md)
+- [x] Add rate boost up to 900 wpm (engine boost or time-stretch) with `SpeechRateWpm` range update and wizard support (spec: speech-and-audio.md) — engine boost: OneCore speaks up to 900 wpm natively (speaking rate 5), SAPI up to its rate 10 (~540 wpm); engines report `MaxRateWpm` and the wizard follows it; no time-stretching
+- [x] Add settings ring (Insert+Ctrl+Left/Right choose, Up/Down change: voice, rate, pitch, volume, punctuation, engine); saved and spoken; unit tests (spec: speech-and-audio.md)
+- [x] Add `TextProcessor` stage before `SpeechQueue` with a pluggable rule chain; no-op by default; unit tests (spec: speech-and-audio.md)
+- [x] Add punctuation levels None/Some/Most/All and `assets/speech/symbols-en.json` seeded from CLDR; unit tests per level (spec: speech-and-audio.md)
+- [x] Add CLDR emoji names to the symbol dictionary; unit tests (spec: speech-and-audio.md)
+- [x] Add pronunciation dictionaries (default, per-voice, user; plain and regex; case options) loaded from `%APPDATA%/Vox/dictionaries/`; unit tests (spec: speech-and-audio.md)
+- [x] Add capital indication settings (pitch / "cap" / beep, separately for char and word/line); unit tests (spec: speech-and-audio.md)
+- [x] Add repeated-character collapsing ("4 dashes") and number-as-digits setting; unit tests (spec: speech-and-audio.md)
+- [x] Add language tag to `Utterance`, carry `lang` from buffer nodes, and `LanguageSwitcher` voice selection with user mapping; unit tests (spec: speech-and-audio.md)
+- [x] Add speech history (last 100; Insert+Shift+F11/F12 step back/forward, press twice to copy); unit tests (spec: speech-and-audio.md)
+- [x] Add sleep mode per app (Insert+Shift+S): no speech and no key swallowing while that app has focus; persisted; unit tests (spec: speech-and-audio.md)
+- [x] Add eSpeak NG engine as an optional separately-downloaded component loaded through the registry (spec: speech-and-audio.md)
+- [x] Add earcon scheme folder with manifest and new cues (list, table, landmark, clickable, error, progress); `AudioCuePlayer` loads the selected scheme; asset tests (spec: speech-and-audio.md)
+- [x] Add optional indentation tones and "states as sound only" setting (spec: speech-and-audio.md)
 
 #### Web parity (spec: web-parity.md)
 
-- [ ] Add quick-nav indices and commands for buttons (B), edits (E), combo boxes (C), check boxes (X), radio buttons (R); keymap bindings; unit tests (spec: web-parity.md)
-- [ ] Add quick-nav for lists (L), list items (I), graphics (G), block quotes (Q), frames (M), separators (S), embedded objects (O); unit tests (spec: web-parity.md)
+- [x] Add quick-nav indices and commands for buttons (B), edits (E), combo boxes (C), check boxes (X), radio buttons (R); keymap bindings; unit tests (spec: web-parity.md)
+- [x] Add quick-nav for lists (L), list items (I), graphics (G), block quotes (Q), frames (M), separators (S), embedded objects (O); unit tests (spec: web-parity.md)
 - [ ] Add quick-nav for visited (V) / unvisited (U) links, skip past links (N), paragraph (P), unvisited heading on this page (J), container start/end (,); unit tests (spec: web-parity.md)
 - [ ] Add Buttons, form-field-kind and Tables tabs to the Elements List (spec: web-parity.md)
 - [ ] Add `TableModel` (cells, spans, header cells, dimensions, layout-table heuristic) built by `VBufferBuilder`; unit tests (spec: web-parity.md)
@@ -314,7 +314,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 ## Notes
 
-- Target: net9.0-windows for all projects
+- Target: net9.0-windows10.0.19041.0 for all projects
 - UIA on dedicated STA thread; keyboard hook callback < 1ms
 - Priority speech queue: Interrupt > High > Normal > Low
 - EventPipeline and ScreenReaderEvent hierarchy already implemented — don't re-implement

@@ -46,6 +46,30 @@ public static class FormControls
         "textbox", "searchbox", "combobox", "spinbutton", "slider", "progressbar"
     };
 
+    /// <summary>A button (including toggle buttons), by control type or ARIA role.</summary>
+    public static bool IsButton(VBufferNode node) =>
+        Is(node, "Button", "button");
+
+    /// <summary>A text field (not a combo box's), by control type or ARIA role.</summary>
+    public static bool IsEdit(VBufferNode node) =>
+        Is(node, "Edit", "textbox") || string.Equals(node.AriaRole, "searchbox", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>A combo box (a drop-down list), by control type or ARIA role.</summary>
+    public static bool IsComboBox(VBufferNode node) =>
+        Is(node, "ComboBox", "combobox");
+
+    /// <summary>A check box or switch, by control type or ARIA role.</summary>
+    public static bool IsCheckBox(VBufferNode node) =>
+        Is(node, "CheckBox", "checkbox") || string.Equals(node.AriaRole, "switch", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>A radio button, by control type or ARIA role.</summary>
+    public static bool IsRadioButton(VBufferNode node) =>
+        Is(node, "RadioButton", "radio");
+
+    private static bool Is(VBufferNode node, string controlType, string ariaRole) =>
+        string.Equals(node.ControlType, controlType, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(node.AriaRole, ariaRole, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>True for controls whose value is spoken with them (text boxes, combo boxes, sliders).</summary>
     public static bool ShowsValue(string controlType, string? ariaRole) =>
         ValueControlTypes.Contains(controlType) || IsRole(ValueRoles, ariaRole);

@@ -41,6 +41,12 @@ public sealed class ScreenReaderService : IHostedService
     private readonly WhereAmICommands _whereAmI;
     private readonly ObjectNavigationCommands _objectNavigation;
     private readonly ReviewCommands _review;
+    private readonly MouseTracker _mouseTracker;
+    private readonly SpeechEngineRegistry _speechEngines;
+    private readonly SettingsRing _settingsRing;
+    private readonly SpeechHistoryCommands _speechHistoryCommands;
+    private readonly SleepMode _sleepMode;
+    private readonly MouseCommands _mouseCommands;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -109,9 +115,21 @@ public sealed class ScreenReaderService : IHostedService
         SpeechViewer speechViewer,
         ObjectNavigationCommands objectNavigation,
         ReviewCommands review,
+        MouseTracker mouseTracker,
+        SpeechEngineRegistry speechEngines,
+        SettingsRing settingsRing,
+        SpeechHistoryCommands speechHistoryCommands,
+        SleepMode sleepMode,
+        MouseCommands mouseCommands,
         RunPolicy? runPolicy = null)
     {
         _review = review;
+        _mouseTracker = mouseTracker;
+        _speechEngines = speechEngines;
+        _settingsRing = settingsRing;
+        _speechHistoryCommands = speechHistoryCommands;
+        _sleepMode = sleepMode;
+        _mouseCommands = mouseCommands;
         _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
         _duckingController = duckingController;
@@ -175,6 +193,9 @@ public sealed class ScreenReaderService : IHostedService
         // then re-creates the automation object, subscriptions and document on the new thread
         _uiaWatchdog.Start();
 
+        // Speak what is under the mouse pointer while mouse tracking is on
+        _mouseTracker.Start();
+
         // Wire pipeline events (all raised on the pipeline thread)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
         _eventPipeline.NavigationCommandReceived += OnNavigationCommandReceived;
@@ -204,6 +225,10 @@ public sealed class ScreenReaderService : IHostedService
         _browseModeController.SetupRequested += OnSetupRequested;
         _keyInputDispatcher.SetMode(_navigationManager.CurrentMode);
         _keyInputDispatcher.SetDocumentActive(_browseModeController.IsDocumentActive);
+
+        // Sleep mode: nothing is said, and keys go to the application, while it has focus
+        _speechQueue.IsMuted = _sleepMode.IsAsleepNow;
+        _keyInputDispatcher.IsAsleep = () => _sleepMode.IsAsleepCached;
 
         // Start key input dispatcher (subscribes to keyboard hook, installs key suppression)
         _keyInputDispatcher.Start();
@@ -256,6 +281,8 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusAnnouncementFilter = null;
         _eventPipeline.FocusContextProvider = null;
         _review.BrowseTether = null;
+        _speechQueue.IsMuted = null;
+        _keyInputDispatcher.IsAsleep = null;
         _settingsSubscription?.Dispose();
 
         // Stop Say All if running
@@ -271,6 +298,9 @@ public sealed class ScreenReaderService : IHostedService
             try { await Task.WhenAll(pending).WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false); }
             catch (Exception ex) { _logger.LogWarning(ex, "Timed out waiting for background UIA work to finish before shutdown"); }
         }
+
+        _mouseTracker.Dispose();
+        _mouseCommands.Dispose();
 
         // Stop pending buffer updates, then release UIA (both run on the STA thread in order)
         _documentTracker.Dispose();
@@ -308,8 +338,16 @@ public sealed class ScreenReaderService : IHostedService
             var previous = _appliedSettings;
             _appliedSettings = settings;
 
+            // First, so the settings below go to the engine that will speak (the registry also
+            // re-applies them to a new engine)
+            if (previous is null || previous.SpeechEngine != settings.SpeechEngine)
+                _speechEngines.Select(settings.SpeechEngine);
             if (previous is null || previous.SpeechRateWpm != settings.SpeechRateWpm)
                 _speechEngine.SetRate(settings.SpeechRateWpm);
+            if (previous is null || previous.SpeechPitch != settings.SpeechPitch)
+                _speechEngine.SetPitch(settings.SpeechPitch);
+            if (previous is null || previous.SpeechVolume != settings.SpeechVolume)
+                _speechEngine.SetVolume(settings.SpeechVolume);
             // A cleared voice goes back to the default one (at startup there is nothing to undo)
             if (previous is null ? !string.IsNullOrEmpty(settings.VoiceName) : previous.VoiceName != settings.VoiceName)
                 _speechEngine.SetVoice(settings.VoiceName ?? string.Empty);
@@ -317,12 +355,17 @@ public sealed class ScreenReaderService : IHostedService
                 _audioCuePlayer.IsEnabled = settings.AudioCuesEnabled;
             if (previous is null || previous.AudioOutputDevice != settings.AudioOutputDevice)
                 _audioCuePlayer.OutputDevice = settings.AudioOutputDevice;
+            if (previous is null || previous.EarconScheme != settings.EarconScheme)
+                _audioCuePlayer.Scheme = settings.EarconScheme;
             if (previous is null || previous.KeepAudioDeviceAwake != settings.KeepAudioDeviceAwake)
                 _audioCuePlayer.KeepAwake = settings.KeepAudioDeviceAwake;
             if (previous is null || previous.AudioDucking != settings.AudioDucking)
                 _duckingController.SetMode(settings.AudioDucking);
             if (previous is null || previous.ModifierKey != settings.ModifierKey)
                 _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
+            // At startup the keymap was loaded for the configured layout already
+            if (previous is not null && previous.KeyboardLayout != settings.KeyboardLayout)
+                _keyInputDispatcher.SetKeyMap(ServiceRegistration.LoadKeyMap(settings.KeyboardLayout, _logger));
             if (previous is null || previous.StartAtLogon != settings.StartAtLogon)
             {
                 try
@@ -358,7 +401,10 @@ public sealed class ScreenReaderService : IHostedService
             _speechQueue.Enqueue(new Utterance(message, SpeechPriority.Interrupt));
             return;
         }
-        if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command))
+        if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
+            && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command)
+            && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
+            && !_sleepMode.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -424,8 +470,12 @@ public sealed class ScreenReaderService : IHostedService
             _audioCuePlayer.PlayTone(hz, 40);
     }
 
-    private void OnForegroundWindowChangedProcessed(object? sender, ForegroundWindowChangedEvent e) =>
+    private void OnForegroundWindowChangedProcessed(object? sender, ForegroundWindowChangedEvent e)
+    {
+        // Keys typed into the new window are decided from the cached sleep state
+        _sleepMode.IsAsleepNow();
         TrackBackground(_dialogReader.HandleForegroundWindowChangedAsync(e));
+    }
 
     private void OnTextEditedProcessed(object? sender, TextEditedEvent e)
     {
