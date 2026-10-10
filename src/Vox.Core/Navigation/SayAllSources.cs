@@ -17,13 +17,23 @@ public interface ISayAllSource
 }
 
 /// <summary>Say All over the browse-mode buffer: the cursor follows along.</summary>
-public sealed class BufferSayAllSource(VBufferCursor cursor) : ISayAllSource
+public sealed class BufferSayAllSource(VBufferCursor cursor, int? endOffset = null) : ISayAllSource
 {
     public Task<string?> CurrentLineAsync(CancellationToken cancellationToken) =>
         Task.FromResult<string?>(cursor.ReadLineAt(cursor.TextOffset));
 
-    public Task<string?> NextLineAsync(CancellationToken cancellationToken) =>
-        Task.FromResult(cursor.NextLine());
+    /// <summary>The next line, or null at the end (of the document, or of <c>endOffset</c>: an open modal dialog).</summary>
+    public Task<string?> NextLineAsync(CancellationToken cancellationToken)
+    {
+        int before = cursor.TextOffset;
+        var line = cursor.NextLine();
+        if (line is not null && endOffset is { } end && cursor.TextOffset >= end)
+        {
+            cursor.MoveTo(before);
+            line = null;
+        }
+        return Task.FromResult(line);
+    }
 
     public string? CurrentLanguage => cursor.CurrentNode?.Language is { Length: > 0 } language ? language : null;
 }

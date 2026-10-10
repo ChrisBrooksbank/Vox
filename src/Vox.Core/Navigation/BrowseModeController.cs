@@ -855,6 +855,8 @@ public sealed class BrowseModeController
                 _cursorFollowedFocusTo = focused.UIARuntimeId;
             }
 
+            KeepInModalScope();
+
             // Coming back to a page with focus in an edit field (Alt+Tab, tab switch): resume
             // typing in Focus mode. Only a fresh load's autofocus stays in Browse mode.
             if (remembered is not null && focused is not null && !focusIsPage)
@@ -950,6 +952,7 @@ public sealed class BrowseModeController
 
         _quickNavHandler.SetDocument(updated);
         _cursor.SetDocument(updated, newOffset);
+        KeepInModalScope();
         if (selecting)
             _selection.Rebase(updated, result.OldTextStart, result.OldTextEnd, result.TextDelta, _cursor.TextOffset);
         else
@@ -1171,6 +1174,18 @@ public sealed class BrowseModeController
         _sayAllCursor = null;
     }
 
+    /// <summary>
+    /// A modal dialog is open but the cursor is outside it (it just opened, or the page loaded
+    /// with it open): move to its start, as the rest of the page is inert.
+    /// </summary>
+    private void KeepInModalScope()
+    {
+        if (_cursor is null || _cursor.Document.ModalScope is not { } scope || _cursor.Document.InScope(_cursor.TextOffset))
+            return;
+        _cursor.MoveTo(scope.Start);
+        _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+    }
+
     private void StartSayAll()
     {
         var document = _quickNavHandler.CurrentDocument;
@@ -1185,7 +1200,7 @@ public sealed class BrowseModeController
         _sayAllCursor = new VBufferCursor(document, _audioCuePlayer) { PlayCues = false };
         ApplyCursorSettings(_sayAllCursor);
         _sayAllCursor.MoveTo(_cursor.TextOffset);
-        _sayAllController.Start(_sayAllCursor);
+        _sayAllController.Start(new BufferSayAllSource(_sayAllCursor, document.ModalScope?.End));
     }
 
     private void StopSayAll()
@@ -1326,6 +1341,18 @@ public sealed class BrowseModeController
         if (_cursor is null) return;
         ApplyCursorSettings(_cursor);
         var from = _cursor.CurrentNode;
+        int fromOffset = _cursor.TextOffset;
+
+        // An open modal dialog is all there is to browse: top and bottom are its edges
+        var scope = _cursor.Document.ModalScope;
+        if (scope is { } modal && command is NavigationCommand.TopOfDocument or NavigationCommand.BottomOfDocument)
+        {
+            int target = command == NavigationCommand.TopOfDocument ? modal.Start : _cursor.LineStartAt(Math.Max(modal.Start, modal.End - 1));
+            _cursor.MoveTo(target);
+            _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+            Speak(LineText(_cursor.ReadCurrentLine()));
+            return;
+        }
 
         string? text = command switch
         {
@@ -1346,6 +1373,14 @@ public sealed class BrowseModeController
 
         // null means a boundary (the cursor already played the cue)
         if (text is null) return;
+
+        // Moving out of an open modal dialog is a boundary too
+        if (!_cursor.Document.InScope(_cursor.TextOffset))
+        {
+            _cursor.MoveTo(fromOffset);
+            _audioCuePlayer.Play("boundary");
+            return;
+        }
 
         _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
 

@@ -107,6 +107,9 @@ public sealed class VBufferNode
     /// </summary>
     public string Annotation { get; init; } = string.Empty;
 
+    /// <summary>A modal dialog (aria-modal, or a &lt;dialog&gt; opened with showModal()): while it is open, browsing stays inside it.</summary>
+    public bool IsModal { get; init; }
+
     /// <summary>The text's language (BCP 47), its own or inherited from its ancestors; empty when unknown.</summary>
     public string Language { get; init; } = string.Empty;
 
@@ -180,6 +183,7 @@ public sealed class VBufferNode
         RoleDescription = RoleDescription,
         HasDetails = HasDetails,
         Annotation = Annotation,
+        IsModal = IsModal,
         Language = Language,
         RowSpan = RowSpan,
         ColumnSpan = ColumnSpan,

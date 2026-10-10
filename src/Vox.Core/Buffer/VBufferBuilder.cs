@@ -337,6 +337,8 @@ public sealed class VBufferBuilder
             AcceleratorKey = element.AcceleratorKey?.Trim() ?? string.Empty,
             HasDetails = element.HasDetails,
             Annotation = Annotations.Kind(ariaRole, element.AnnotationTypes),
+            // aria-modal (Chromium also reports a <dialog> opened with showModal() this way)
+            IsModal = ariaRole is "dialog" or "alertdialog" && ParseAriaPropertyBool(ariaProps, "modal"),
             // Inherited, as lang is in HTML
             Language = !string.IsNullOrEmpty(element.Language) ? element.Language : parent?.Language ?? inheritedLanguage,
             RowSpan = Math.Max(1, element.RowSpan),

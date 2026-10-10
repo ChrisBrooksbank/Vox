@@ -342,6 +342,29 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task ModalDialog_CursorStartsInsideAndCannotLeave()
+    {
+        var dialog = new MockElement { RuntimeId = [82], ControlType = "Group", AriaRole = "dialog", AriaProperties = "modal=true" }
+            .AddChild(new MockElement { RuntimeId = [83], Name = "Cookies" })
+            .AddChild(new MockElement { RuntimeId = [84], Name = "Accept all" });
+        var root = new MockElement { RuntimeId = [80], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [81], Name = "Behind the dialog" })
+            .AddChild(dialog);
+        var document = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+
+        Assert.Equal(document.ModalScope!.Value.Start, _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.PrevLine);
+        _audio.Verify(a => a.Play("boundary"), Times.AtLeastOnce());
+        Assert.True(document.InScope(_controller.Cursor!.TextOffset));
+
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        await WaitForSpeech(u => u.Text.Contains("Cookies"));
+        Assert.Equal(document.ModalScope!.Value.Start, _controller.Cursor!.TextOffset);
+    }
+
+    [Fact]
     public void SubtreeChanged_KeepsCurrentElement()
     {
         LoadDocument(focusedId: [4]);
