@@ -17,7 +17,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 ### Browsers and apps
 
 - [ ] Firefox: Gecko document detection and an `IVBufferElement` provider (UIA where Gecko exposes enough; otherwise IAccessible2 through a native helper, see PLAN.md Phase 3)
-- [ ] Electron and WebView2 apps (Teams, Slack, VS Code, Discord, new Outlook): document detection works; `role="application"` and `aria-roledescription="editor"`-style apps default to Focus mode
+- [x] Electron and WebView2 apps (Teams, Slack, VS Code, Discord, new Outlook): document detection works; `role="application"` and `aria-roledescription="editor"`-style apps default to Focus mode
 
 ### Quick navigation
 

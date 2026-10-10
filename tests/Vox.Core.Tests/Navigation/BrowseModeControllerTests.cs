@@ -385,6 +385,18 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public void WebApplication_StartsInFocusMode()
+    {
+        var app = new MockElement { RuntimeId = [97], ControlType = "Group", AriaRole = "application" }
+            .AddChild(new MockElement { RuntimeId = [98], Name = "Editor" });
+        var root = new MockElement { RuntimeId = [96], ControlType = "Document" }.AddChild(app);
+
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null, "Code"));
+
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
     public void SubtreeChanged_KeepsCurrentElement()
     {
         LoadDocument(focusedId: [4]);

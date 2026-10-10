@@ -12,6 +12,7 @@
   "AutoLanguageSwitching": true,
   "LanguageVoices": {},
   "SleepApps": [],
+  "AppDefaultModes": {},
   "VoiceName": null,
   "SpeechEngine": null,
   "TypingEchoMode": "Both",

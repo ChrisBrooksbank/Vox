@@ -879,6 +879,11 @@ public sealed class BrowseModeController
             KeepInModalScope();
             AnnounceOverlay(document);
 
+            // A web application (an editor, VS Code, Teams) is used through its own keys
+            if (remembered is null
+                && DocumentModes.Initial(document, evt.ProcessName, _settings.CurrentValue.AppDefaultModes) == InteractionMode.Focus)
+                _navigationManager.SwitchTo(InteractionMode.Focus, "web application", announce: false);
+
             // Coming back to a page with focus in an edit field (Alt+Tab, tab switch): resume
             // typing in Focus mode. Only a fresh load's autofocus stays in Browse mode.
             if (remembered is not null && focused is not null && !focusIsPage)

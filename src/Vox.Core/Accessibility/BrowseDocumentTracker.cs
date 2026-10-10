@@ -227,7 +227,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         _fullRecaptureFailures = 0;
 
         _logger.LogInformation("Virtual buffer built: {Nodes} nodes in {Ms}ms", buffer.AllNodes.Count, sw.ElapsedMilliseconds);
-        _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, buffer, focusedId));
+        _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, buffer, focusedId, ProcessNameOf(document)));
     }
 
     // Document whose failed capture has already been retried (UIA thread only)
@@ -537,6 +537,19 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "UIA error while {What}", what);
+        }
+    }
+
+    private static string? ProcessNameOf(IUIAutomationElement element)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.GetProcessById(element.CachedProcessId);
+            return process.ProcessName;
+        }
+        catch
+        {
+            return null;
         }
     }
 

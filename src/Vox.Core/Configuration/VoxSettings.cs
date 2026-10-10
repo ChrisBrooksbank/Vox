@@ -1,3 +1,5 @@
+using Vox.Core.Pipeline;
+
 namespace Vox.Core.Configuration;
 
 public enum VerbosityLevel
@@ -136,6 +138,11 @@ public record VoxSettings
     public Dictionary<string, string> LanguageVoices { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Applications (process names) in sleep mode: Vox neither speaks nor takes keys while they have focus.</summary>
     public List<string> SleepApps { get; init; } = [];
+    /// <summary>
+    /// The mode web content in an application (process name, e.g. "Code", "ms-teams") starts in,
+    /// overriding the automatic choice (Focus mode for web applications, else Browse mode).
+    /// </summary>
+    public Dictionary<string, InteractionMode> AppDefaultModes { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "eSpeak" when installed, "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }

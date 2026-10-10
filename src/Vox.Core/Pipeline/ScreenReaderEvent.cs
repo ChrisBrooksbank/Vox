@@ -134,12 +134,14 @@ public record NotificationFlushEvent(
 
 /// <summary>
 /// A web document gained focus (<paramref name="Document"/> is its new virtual buffer)
-/// or focus left web content (<paramref name="Document"/> is null).
+/// or focus left web content (<paramref name="Document"/> is null). <paramref name="ProcessName"/>
+/// is the app showing it (for its default mode).
 /// </summary>
 public record DocumentChangedEvent(
     DateTimeOffset Timestamp,
     VBufferDocument? Document,
-    int[]? FocusedRuntimeId = null
+    int[]? FocusedRuntimeId = null,
+    string? ProcessName = null
 ) : ScreenReaderEvent(Timestamp);
 
 /// <summary>
