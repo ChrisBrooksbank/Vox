@@ -89,7 +89,8 @@ public sealed class UIAElementSnapshot : IVBufferElement
             AriaRole = ariaRole,
             AriaProperties = ariaProperties,
             IsFocusable = Try(() => element.CachedIsKeyboardFocusable != 0),
-            HeadingLevel = ReadHeadingLevel(element),
+            HeadingLevel = ReadHeadingLevel(element) is > 0 and var level ? level
+                : string.IsNullOrEmpty(ariaRole) ? WebContent.HeadingLevelFromLocalizedType(ReadCachedString(element, UIAProvider.UIA_LocalizedControlTypePropertyId)) : 0,
             ExpandCollapseState = ReadCachedInt(element, UIAProvider.UIA_ExpandCollapseStatePropertyId),
             ToggleState = ReadCachedInt(element, UIAProvider.UIA_ToggleStatePropertyId),
             IsSelected = ReadCachedBool(element, UIAProvider.UIA_SelectionItemIsSelectedPropertyId),

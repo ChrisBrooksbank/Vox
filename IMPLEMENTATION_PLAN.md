@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 131
+- Build iterations: 132
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -199,7 +199,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add activation fallback: simulate a click at the clickable point when no pattern applies (spec: web-parity.md)
 - [x] Add page summary command and say-link-URL command; unit tests (spec: web-parity.md)
 - [x] Add overlay/cookie-banner detection with Insert+Shift+D to activate Reject/Close; never auto-dismiss; unit tests (spec: web-parity.md)
-- [ ] Add Firefox document detection and Gecko `IVBufferElement` provider over UIA; document what's missing for an IA2 provider (spec: web-parity.md)
+- [x] Add Firefox document detection and Gecko `IVBufferElement` provider over UIA; document what's missing for an IA2 provider (spec: web-parity.md)
 - [ ] Verify Electron/WebView2 document detection; default `role="application"` documents to Focus mode; per-app default mode setting; unit tests (spec: web-parity.md)
 - [ ] PDF in Edge: read tagged PDF tree in browse mode; announce "untagged document" when it has no structure (spec: web-parity.md)
 - [ ] Use `TextCaretTracker` for `contenteditable` and rich editors (Google Docs) in Focus mode (spec: web-parity.md)

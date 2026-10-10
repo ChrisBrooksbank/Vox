@@ -28,12 +28,6 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     private const int StructureMaxWaitMs = 1000;
     private const int FullRecaptureThreshold = 20;
 
-    private static readonly HashSet<string> WebFrameworks = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Chrome", // Chrome and Edge
-        "Gecko",  // Firefox
-    };
-
     private readonly UIAThread _uiaThread;
     private readonly UIAProvider _uiaProvider;
     private readonly UIAEventSubscriber _eventSubscriber;
@@ -173,18 +167,22 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         IUIAutomation automation, IUIAutomationElement focused, IUIAutomationCacheRequest cacheRequest)
     {
         var walker = automation.ControlViewWalker;
-        IUIAutomationElement? found = null;
-        var element = focused;
 
-        for (int depth = 0; element is not null && depth < MaxAncestorDepth; depth++)
+        // The ancestor chain first: whether it is inside a Firefox window decides what is web content
+        var chain = new List<IUIAutomationElement>();
+        for (var element = focused; element is not null && chain.Count < MaxAncestorDepth;
+             element = TryGet(() => walker.GetParentElementBuildCache(element, cacheRequest)))
+            chain.Add(element);
+        bool inFirefox = chain.Any(e => WebContent.IsFirefoxWindowClass(TryGet(() => e.CachedClassName)));
+
+        IUIAutomationElement? found = null;
+        foreach (var element in chain)
         {
-            var isWeb = WebFrameworks.Contains(TryGet(() => element.CachedFrameworkId) ?? string.Empty);
+            var isWeb = WebContent.IsWebElement(TryGet(() => element.CachedFrameworkId), inFirefox);
             if (isWeb && TryGet(() => element.CachedControlType) == UIA_DocumentControlTypeId)
                 found = element;
             else if (found is not null && !isWeb)
                 break; // Left the browser's web content
-
-            element = TryGet(() => walker.GetParentElementBuildCache(element, cacheRequest));
         }
 
         return found;
