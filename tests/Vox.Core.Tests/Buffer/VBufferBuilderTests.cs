@@ -23,6 +23,7 @@ internal sealed class MockElement : IVBufferElement
     public int RowSpan { get; set; } = 1;
     public IReadOnlyList<int> AnnotationTypes { get; set; } = [];
     public bool IsInvokable { get; set; }
+    public bool? IsValueReadOnly { get; set; }
     public string Description { get; set; } = string.Empty;
     public int ColumnSpan { get; set; } = 1;
 

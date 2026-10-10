@@ -115,6 +115,9 @@ public sealed class VBufferNode
     /// </summary>
     public bool IsClickable { get; init; }
 
+    /// <summary>A rich text editor (contenteditable): edited in Focus mode like a text box.</summary>
+    public bool IsRichEditable { get; init; }
+
     /// <summary>The text's language (BCP 47), its own or inherited from its ancestors; empty when unknown.</summary>
     public string Language { get; init; } = string.Empty;
 
@@ -190,6 +193,7 @@ public sealed class VBufferNode
         Annotation = Annotation,
         IsModal = IsModal,
         IsClickable = IsClickable,
+        IsRichEditable = IsRichEditable,
         Language = Language,
         RowSpan = RowSpan,
         ColumnSpan = ColumnSpan,

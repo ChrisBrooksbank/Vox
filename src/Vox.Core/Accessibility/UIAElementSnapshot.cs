@@ -42,6 +42,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
     public int ColumnSpan { get; init; } = 1;
     public IReadOnlyList<int> AnnotationTypes { get; init; } = [];
     public bool IsInvokable { get; init; }
+    public bool? IsValueReadOnly { get; init; }
 
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;
 
@@ -110,6 +111,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
             ColumnSpan = ReadCachedInt(element, UIAProvider.UIA_GridItemColumnSpanPropertyId) ?? 1,
             AnnotationTypes = ReadCachedIntArray(element, UIAProvider.UIA_AnnotationTypesPropertyId),
             IsInvokable = ReadCachedBool(element, UIAProvider.UIA_IsInvokePatternAvailablePropertyId) == true,
+            IsValueReadOnly = ReadCachedBool(element, UIAProvider.UIA_ValueIsReadOnlyPropertyId),
         };
     }
 

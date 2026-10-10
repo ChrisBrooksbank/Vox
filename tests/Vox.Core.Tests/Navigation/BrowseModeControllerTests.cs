@@ -777,6 +777,25 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public void FocusMovingIntoARichTextEditor_EntersFocusMode_AndStaysThere()
+    {
+        var editor = new MockElement { RuntimeId = [61], ControlType = "Group", IsFocusable = true, IsValueReadOnly = false }
+            .AddChild(new MockElement { RuntimeId = [62], Name = "Dear Sam," });
+        var root = new MockElement { RuntimeId = [60], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [63], Name = "Compose" })
+            .AddChild(editor);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null));
+
+        var focus = new FocusChangedEvent(DateTimeOffset.UtcNow, "Message body", "Group", RuntimeId: [61], IsValueReadOnly: false);
+        _controller.HandleFocusChanged(focus);
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+
+        // Chromium repeats the focus event (window re-activated): still typing in the editor
+        _navigationManager.HandleFocusChanged(focus);
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
     public void LoadTimeFocusOnEditField_StaysInBrowseMode()
     {
         LoadDocument(focusedId: [5]);

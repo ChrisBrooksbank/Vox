@@ -92,4 +92,26 @@ public class FormControlsRound6Tests
         var lines = new VBufferNode { Name = "Notes", ControlType = "Edit", Value = "a\r\nb" };
         Assert.Equal("a\nb", FormControls.BufferValue(lines));
     }
+
+    [Theory]
+    [InlineData("Group", false, true)]     // contenteditable
+    [InlineData("Document", false, true)]  // design mode
+    [InlineData("Group", true, false)]
+    [InlineData("Group", null, false)]
+    [InlineData("Hyperlink", false, false)]
+    public void IsRichEditable(string controlType, bool? readOnly, bool expected) =>
+        Assert.Equal(expected, FormControls.IsRichEditable(controlType, readOnly));
+
+    [Fact]
+    public void Builder_MarksContentEditableButNotThePage()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document", IsValueReadOnly = false }
+            .AddChild(new MockElement { RuntimeId = [2], ControlType = "Group", IsValueReadOnly = false }
+                .AddChild(new MockElement { RuntimeId = [3], Name = "Draft" }));
+        var document = new VBufferBuilder().Build(root);
+
+        Assert.False(document.Root.IsRichEditable);
+        Assert.True(document.FindByRuntimeId([2])!.IsRichEditable);
+        Assert.True(Vox.Core.Navigation.NavigationManager.IsEditField(document.FindByRuntimeId([2])));
+    }
 }

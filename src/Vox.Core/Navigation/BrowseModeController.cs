@@ -675,8 +675,9 @@ public sealed class BrowseModeController
             // Tabbing or clicking into a text box, combo box or list box enters Focus mode, so typed
             // letters reach it instead of running quick-nav commands ("automatic focus mode").
             // Cue only: speaking the mode would cut off the field's own announcement.
-            if (FormControls.NeedsFocusMode(node.ControlType, node.AriaRole)
-                || FormControls.NeedsFocusMode(focus.ControlType, focus.AriaRole))
+            // (The page itself is never typed in, whatever its value pattern says)
+            bool isPage = ReferenceEquals(node, _quickNavHandler.CurrentDocument!.Root);
+            if (!isPage && (NavigationManager.IsEditField(node) || NavigationManager.NeedsFocusMode(focus)))
                 _navigationManager.SwitchTo(InteractionMode.Focus, "focus moved to edit field", announce: false);
             else
                 _navigationManager.HandleFocusChanged(focus);
@@ -894,7 +895,7 @@ public sealed class BrowseModeController
                 bool wasFocusedThere = remembered.Mode == InteractionMode.Focus
                     && remembered.FocusedRuntimeId is { } previous
                     && previous.AsSpan().SequenceEqual(focused.UIARuntimeId);
-                if (wasFocusedThere || FormControls.NeedsFocusMode(focused.ControlType, focused.AriaRole))
+                if (wasFocusedThere || NavigationManager.IsEditField(focused))
                     _navigationManager.SwitchTo(InteractionMode.Focus, "returned to edit field", announce: false);
             }
         }

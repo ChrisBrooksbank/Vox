@@ -80,7 +80,7 @@ public sealed class NavigationManager
     /// </summary>
     public void HandleFocusChanged(FocusChangedEvent evt)
     {
-        if (_currentMode == InteractionMode.Focus && !FormControls.NeedsFocusMode(evt.ControlType, evt.AriaRole))
+        if (_currentMode == InteractionMode.Focus && !NeedsFocusMode(evt))
         {
             SwitchTo(InteractionMode.Browse, "focus left edit field", announce: false);
         }
@@ -140,6 +140,11 @@ public sealed class NavigationManager
     public static bool IsEditField(VBufferNode? node)
     {
         if (node is null) return false;
-        return FormControls.NeedsFocusMode(node.ControlType, node.AriaRole);
+        return FormControls.NeedsFocusMode(node.ControlType, node.AriaRole) || node.IsRichEditable;
     }
+
+    /// <summary>True when the focused element is typed in or arrowed through (a text box, a rich text editor, a list box...).</summary>
+    public static bool NeedsFocusMode(FocusChangedEvent focus) =>
+        FormControls.NeedsFocusMode(focus.ControlType, focus.AriaRole)
+        || FormControls.IsRichEditable(focus.ControlType, focus.IsValueReadOnly);
 }

@@ -98,6 +98,9 @@ public interface IVBufferElement
     /// </summary>
     bool IsInvokable => false;
 
+    /// <summary>The UIA Value pattern's IsReadOnly (false for text fields and contenteditable), or null without one.</summary>
+    bool? IsValueReadOnly => null;
+
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
 }
@@ -353,6 +356,7 @@ public sealed class VBufferBuilder
             // aria-modal (Chromium also reports a <dialog> opened with showModal() this way)
             IsModal = ariaRole is "dialog" or "alertdialog" && ParseAriaPropertyBool(ariaProps, "modal"),
             IsClickable = element.IsInvokable && !isFocusable && !InClickable(parent),
+            IsRichEditable = parent is not null && FormControls.IsRichEditable(element.ControlType, element.IsValueReadOnly),
             // Inherited, as lang is in HTML
             Language = !string.IsNullOrEmpty(element.Language) ? element.Language : parent?.Language ?? inheritedLanguage,
             RowSpan = Math.Max(1, element.RowSpan),
