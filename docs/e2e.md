@@ -43,3 +43,7 @@ tools/approve-transcripts.ps1 headings-h # just one
 ```
 
 Then commit the approved file; `git diff` shows what changed.
+
+## Corpus scenarios
+
+`CorpusScenarios` lists a scenario for every corpus page: the keys pressed once its title has been said (written as `"H"`, `"Shift+H"`, `"Insert+Shift+D"`, `"Ctrl+Alt+Right"`). `CorpusTests` runs each in Edge and in Chrome (a browser that isn't installed is passed over; `VOX_E2E_CHROME` names Chrome's path), waits after each key until Vox has been quiet for 600 ms, and checks the transcript `<scenario>.<browser>`. A unit test makes sure every corpus page has a scenario. Firefox joins once Vox browses it fully (`docs/firefox.md`).

@@ -11,11 +11,18 @@ public sealed class E2EFactAttribute : FactAttribute
 {
     public const string EnableVariable = "VOX_E2E";
 
-    public E2EFactAttribute()
-    {
-        if (!OperatingSystem.IsWindows())
-            Skip = "End-to-end tests need Windows";
-        else if (Environment.GetEnvironmentVariable(EnableVariable) != "1")
-            Skip = $"End-to-end tests drive the desktop; set {EnableVariable}=1 to run them (docs/e2e.md)";
-    }
+    public E2EFactAttribute() => Skip = SkipReason();
+
+    /// <summary>Why end-to-end tests can't run here, or null when they can.</summary>
+    internal static string? SkipReason() =>
+        !OperatingSystem.IsWindows() ? "End-to-end tests need Windows"
+        : Environment.GetEnvironmentVariable(EnableVariable) != "1"
+            ? $"End-to-end tests drive the desktop; set {EnableVariable}=1 to run them (docs/e2e.md)"
+            : null;
+}
+
+/// <summary>An end-to-end theory (see <see cref="E2EFactAttribute"/>).</summary>
+public sealed class E2ETheoryAttribute : TheoryAttribute
+{
+    public E2ETheoryAttribute() => Skip = E2EFactAttribute.SkipReason();
 }
