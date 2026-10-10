@@ -269,6 +269,7 @@ public static class ServiceRegistration
         services.AddSingleton<ISettingsDialogPresenter, SettingsDialogPresenter>();
         services.AddSingleton<IInputGesturesPresenter, InputGesturesPresenter>();
         services.AddSingleton<ICommandSearchPresenter, CommandSearchPresenter>();
+        services.AddSingleton<IVoxMenuPresenter, VoxMenuPresenter>();
         services.AddSingleton<SettingsCommands>(sp =>
         {
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
@@ -292,7 +293,8 @@ public static class ServiceRegistration
                 sp.GetRequiredService<EventPipeline>(),
                 sp.GetRequiredService<ILogger<SettingsCommands>>(),
                 sp.GetRequiredService<SpeechQueue>(),
-                gestures);
+                gestures,
+                sp.GetRequiredService<IVoxMenuPresenter>());
         });
 
         // Hosted service

@@ -34,12 +34,17 @@ public sealed class SettingsCommands(
     IEventSink pipeline,
     ILogger<SettingsCommands> logger,
     SpeechQueue? speechQueue = null,
-    GestureSetup? gestures = null)
+    GestureSetup? gestures = null,
+    IVoxMenuPresenter? menu = null)
 {
     public bool TryHandle(NavigationCommand command)
     {
         switch (command)
         {
+            case NavigationCommand.OpenVoxMenu:
+                if (menu is not null && browse.BeginOwnDialog())
+                    _ = ShowMenuAsync(menu);
+                return true;
             case NavigationCommand.OpenSettings:
                 if (browse.BeginOwnDialog())
                     _ = ShowSettingsAsync();
@@ -59,6 +64,23 @@ public sealed class SettingsCommands(
             default:
                 return false;
         }
+    }
+
+    private async Task ShowMenuAsync(IVoxMenuPresenter presenter)
+    {
+        NavigationCommand? chosen = null;
+        try
+        {
+            chosen = await presenter.ShowAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Vox menu failed");
+        }
+        // The menu's dialog is closed first, so the next dialog can open
+        pipeline.Post(new VoxDialogClosedEvent(DateTimeOffset.UtcNow));
+        if (chosen is { } command)
+            pipeline.Post(new NavigationCommandEvent(DateTimeOffset.UtcNow, command));
     }
 
     private async Task ShowSettingsAsync()

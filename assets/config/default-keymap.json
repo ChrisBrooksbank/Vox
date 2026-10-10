@@ -122,6 +122,8 @@
     { "modifiers": "Insert",      "vkCode": 84,  "mode": "Any",    "command": "SayTitle" },
     { "modifiers": "Insert",      "vkCode": 49,  "mode": "Any",    "command": "ToggleInputHelp" },
     { "modifiers": "Insert|Ctrl", "vkCode": 71,  "mode": "Any",    "command": "OpenSettings" },
+    { "modifiers": "Insert",      "vkCode": 78,  "mode": "Any",    "command": "OpenVoxMenu" },
+    { "modifiers": "Insert",      "vkCode": 83,  "mode": "Any",    "command": "TogglePauseSpeech" },
     { "modifiers": "Insert",      "vkCode": 9,   "mode": "Any",    "command": "SayFocus" },
     { "modifiers": "Insert",      "vkCode": 35,  "mode": "Any",    "command": "SayStatusBar" },
     { "modifiers": "Insert",      "vkCode": 123, "mode": "Any",    "command": "SayTime" },

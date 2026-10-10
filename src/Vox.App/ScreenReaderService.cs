@@ -46,6 +46,9 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SettingsRing _settingsRing;
     private readonly SpeechHistoryCommands _speechHistoryCommands;
     private readonly SettingsCommands _settingsCommands;
+    private VoxTrayIcon? _trayIcon;
+    // Pause speech (Insert+S): nothing is said until it is pressed again
+    private volatile bool _speechPaused;
     private readonly SleepMode _sleepMode;
     private readonly MouseCommands _mouseCommands;
     private readonly RunPolicy _runPolicy;
@@ -232,12 +235,20 @@ public sealed class ScreenReaderService : IHostedService
         _keyInputDispatcher.SetMode(_navigationManager.CurrentMode);
         _keyInputDispatcher.SetDocumentActive(_browseModeController.IsDocumentActive);
 
-        // Sleep mode: nothing is said, and keys go to the application, while it has focus
-        _speechQueue.IsMuted = _sleepMode.IsAsleepNow;
+        // Sleep mode: nothing is said, and keys go to the application, while it has focus; and
+        // nothing at all while speech is paused
+        _speechQueue.IsMuted = () => _speechPaused || _sleepMode.IsAsleepNow();
         _keyInputDispatcher.IsAsleep = () => _sleepMode.IsAsleepCached;
 
         // Start key input dispatcher (subscribes to keyboard hook, installs key suppression)
         _keyInputDispatcher.Start();
+
+        // The notification-area icon and its menu (not on the secure screens' desktop)
+        if (!_runPolicy.IsSecure)
+        {
+            try { _trayIcon = new VoxTrayIcon(command => _eventPipeline.Post(new NavigationCommandEvent(DateTimeOffset.UtcNow, command))); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Could not show the notification-area icon"); }
+        }
 
         // Pick up a browser that already has focus
         TrackBackground(_documentTracker.OnFocusChangedAsync());
@@ -291,6 +302,8 @@ public sealed class ScreenReaderService : IHostedService
         _review.BrowseTether = null;
         _speechQueue.IsMuted = null;
         _keyInputDispatcher.IsAsleep = null;
+        _trayIcon?.Dispose();
+        _trayIcon = null;
         _settingsSubscription?.Dispose();
 
         // Stop Say All if running
@@ -406,6 +419,29 @@ public sealed class ScreenReaderService : IHostedService
             _speechViewer.Toggle();
             return;
         }
+        switch (e.Command)
+        {
+            case NavigationCommand.TogglePauseSpeech:
+                if (_speechPaused)
+                {
+                    _speechPaused = false;
+                    _speechQueue.Enqueue(new Utterance("Speech on", SpeechPriority.Interrupt));
+                }
+                else
+                {
+                    // Said before speech stops
+                    _speechQueue.Enqueue(new Utterance("Speech paused", SpeechPriority.Interrupt));
+                    _speechPaused = true;
+                }
+                return;
+            case NavigationCommand.ExitVox:
+                _logger.LogInformation("Exit chosen from the Vox menu");
+                _lifetime.StopApplication();
+                return;
+            case NavigationCommand.OpenUserGuide:
+                OpenUserGuide();
+                return;
+        }
         if (e.Command == NavigationCommand.ToggleInputHelp)
         {
             // The dispatcher has switched already, as the key was handled
@@ -515,6 +551,26 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnElementsListClosedProcessed(object? sender, ElementsListClosedEvent e) =>
         _browseModeController.HandleElementsListClosed(e);
+
+    /// <summary>Opens the user guide installed beside Vox in the default browser (not on secure screens).</summary>
+    private void OpenUserGuide()
+    {
+        var guide = Path.Combine(AppContext.BaseDirectory, "docs", "guide", "index.html");
+        if (_runPolicy.IsSecure || !File.Exists(guide))
+        {
+            _speechQueue.Enqueue(new Utterance(_runPolicy.IsSecure ? "The user guide isn't available here" : "The user guide isn't installed", SpeechPriority.Interrupt));
+            return;
+        }
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(guide) { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not open the user guide");
+            _speechQueue.Enqueue(new Utterance("Could not open the user guide", SpeechPriority.Interrupt));
+        }
+    }
 
     private void OnVoxDialogClosedProcessed(object? sender, VoxDialogClosedEvent e) =>
         _browseModeController.EndOwnDialog();

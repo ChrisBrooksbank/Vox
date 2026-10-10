@@ -172,5 +172,13 @@ public enum NavigationCommand
     /// <summary>Opens the input gestures dialog: the keys of every command, to add and remove.</summary>
     OpenInputGestures,
     /// <summary>Opens command search: type part of a command's name to hear its keys.</summary>
-    OpenCommandSearch
+    OpenCommandSearch,
+    /// <summary>Opens the Vox menu (settings, input gestures, speech viewer, help, exit).</summary>
+    OpenVoxMenu,
+    /// <summary>Stops all speech until pressed again.</summary>
+    TogglePauseSpeech,
+    /// <summary>Opens the user guide in the browser.</summary>
+    OpenUserGuide,
+    /// <summary>Exits Vox at once (from the Vox menu).</summary>
+    ExitVox
 }

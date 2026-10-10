@@ -21,7 +21,7 @@ Everything that turns Vox from a program into a product: an accessible settings 
 - [x] `VoxSettings` grows the fields other specs need; settings schema version and migration of older files
 - [x] Input gestures dialog: commands grouped by category, add/remove key bindings, conflict detection, writes a user keymap layered over the default keymap
 - [x] `KeyMap` loads user keymap overrides from `%APPDATA%/Vox/keymap.json`
-- [ ] Vox menu (Insert+N) and system tray icon: Settings, Input gestures, Speech viewer, Help, Pause speech, Exit
+- [x] Vox menu (Insert+N) and system tray icon: Settings, Input gestures, Speech viewer, Help, Pause speech, Exit
 - [x] Input help mode (Insert+1): keys speak their command name and description instead of running
 - [x] Command search: type part of a command name, hear its keys
 - [x] Command descriptions stored with the commands (used by help mode, gestures dialog and the guide)
