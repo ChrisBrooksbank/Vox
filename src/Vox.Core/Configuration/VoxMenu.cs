@@ -20,6 +20,7 @@ public static class VoxMenu
         new("User &guide", NavigationCommand.OpenUserGuide),
         new("Practice &lessons...", NavigationCommand.RunTutorial),
         new("Create p&ortable copy...", NavigationCommand.CreatePortableCopy),
+        new("Check for &updates...", NavigationCommand.CheckForUpdates),
         new("Run &welcome wizard...", NavigationCommand.RunSetup),
         new("E&xit Vox", NavigationCommand.ExitVox),
     ];

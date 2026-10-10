@@ -10,6 +10,7 @@ using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 using Vox.Core.Text;
+using Vox.Core.Updates;
 
 namespace Vox.App;
 
@@ -285,6 +286,35 @@ public static class ServiceRegistration
         services.AddSingleton<ICommandSearchPresenter, CommandSearchPresenter>();
         services.AddSingleton<IVoxMenuPresenter, VoxMenuPresenter>();
         services.AddSingleton<IPortableCopyPresenter, PortableCopyPresenter>();
+        services.AddSingleton<IConfirmPresenter, ConfirmPresenter>();
+        // Updates: only with the release key shipped beside Vox, and never on secure screens
+        services.AddSingleton<UpdateChecker>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var key = policy.AllowNetwork ? UpdateChecker.ReadPublicKey(Path.Combine(AppContext.BaseDirectory, "assets", "config")) : null;
+            return new UpdateChecker(
+                new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
+                () => settings.CurrentValue.UpdateChannel,
+                key,
+                UpdateChecker.DefaultFeedUrl,
+                typeof(ServiceRegistration).Assembly.GetName().Version ?? new Version(0, 1),
+                sp.GetRequiredService<ILogger<UpdateChecker>>());
+        });
+        services.AddSingleton<UpdateCommands>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var lifetime = sp.GetRequiredService<IHostApplicationLifetime>();
+            return new UpdateCommands(
+                sp.GetRequiredService<UpdateChecker>(),
+                sp.GetRequiredService<IConfirmPresenter>(),
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<EventPipeline>(),
+                sp.GetRequiredService<SpeechQueue>(),
+                lifetime.StopApplication,
+                policy.AllowSettingsWrites ? Path.Combine(VoxPaths.UserData, "update-check.txt") : null,
+                sp.GetRequiredService<ILogger<UpdateCommands>>());
+        });
         services.AddSingleton<SettingsCommands>(sp =>
         {
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;

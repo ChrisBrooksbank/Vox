@@ -65,6 +65,8 @@ public static class SettingsPages
     public static SettingsPage General() => new("General",
     [
         new ToggleField("Start Vox when I &sign in", s => s.StartAtLogon, (s, v) => s with { StartAtLogon = v }),
+        Choice("Check for &updates", s => s.UpdateChannel, (s, v) => s with { UpdateChannel = v },
+            new() { [Updates.UpdateChannel.Off] = "Never", [Updates.UpdateChannel.Stable] = "Releases", [Updates.UpdateChannel.Beta] = "Releases and betas" }),
     ]);
 
     public static SettingsPage Verbosity() => new("Verbosity",

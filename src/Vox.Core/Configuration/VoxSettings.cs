@@ -176,6 +176,8 @@ public record VoxSettings
     public bool ReportBackgroundProgress { get; init; } = false;
     /// <summary>Start Vox when the user signs in to Windows.</summary>
     public bool StartAtLogon { get; init; } = false;
+    /// <summary>Which updates to check for (once a day, at startup); Off never asks the network.</summary>
+    public Updates.UpdateChannel UpdateChannel { get; init; } = Updates.UpdateChannel.Stable;
     /// <summary>Output device for earcons and tones by name (null: the default device).</summary>
     public string? AudioOutputDevice { get; init; }
     /// <summary>Lower other applications' audio: off, while Vox speaks, or always (needs UI access).</summary>

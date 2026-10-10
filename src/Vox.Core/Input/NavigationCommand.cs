@@ -184,5 +184,7 @@ public enum NavigationCommand
     /// <summary>Runs the practice lessons (web pages, editing text, reviewing the screen).</summary>
     RunTutorial,
     /// <summary>Copies Vox, with the user's settings, to a folder (a USB stick) to run from there.</summary>
-    CreatePortableCopy
+    CreatePortableCopy,
+    /// <summary>Checks for a newer Vox now, and offers to install it.</summary>
+    CheckForUpdates
 }

@@ -46,6 +46,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SettingsRing _settingsRing;
     private readonly SpeechHistoryCommands _speechHistoryCommands;
     private readonly SettingsCommands _settingsCommands;
+    private readonly Vox.Core.Updates.UpdateCommands _updateCommands;
     private VoxTrayIcon? _trayIcon;
     // Pause speech (Insert+S): nothing is said until it is pressed again
     private volatile bool _speechPaused;
@@ -126,8 +127,10 @@ public sealed class ScreenReaderService : IHostedService
         SleepMode sleepMode,
         MouseCommands mouseCommands,
         SettingsCommands settingsCommands,
+        Vox.Core.Updates.UpdateCommands updateCommands,
         RunPolicy? runPolicy = null)
     {
+        _updateCommands = updateCommands;
         _settingsCommands = settingsCommands;
         _review = review;
         _mouseTracker = mouseTracker;
@@ -252,6 +255,9 @@ public sealed class ScreenReaderService : IHostedService
 
         // Pick up a browser that already has focus
         TrackBackground(_documentTracker.OnFocusChangedAsync());
+
+        // The daily update check, a while after startup so it never delays it
+        _ = CheckForUpdatesLaterAsync(_lifetime.ApplicationStopping);
 
         // Announce startup
         _speechQueue.Enqueue(new Utterance(
@@ -464,7 +470,8 @@ public sealed class ScreenReaderService : IHostedService
         if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
             && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
-            && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command))
+            && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
+            && !_updateCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -557,6 +564,22 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnElementsListClosedProcessed(object? sender, ElementsListClosedEvent e) =>
         _browseModeController.HandleElementsListClosed(e);
+
+    private async Task CheckForUpdatesLaterAsync(CancellationToken stopping)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromMinutes(1), stopping).ConfigureAwait(false);
+            await _updateCommands.CheckQuietlyAsync(stopping).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Update check failed");
+        }
+    }
 
     /// <summary>Opens the user guide installed beside Vox in the default browser (not on secure screens).</summary>
     private void OpenUserGuide()
