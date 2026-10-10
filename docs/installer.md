@@ -20,7 +20,7 @@ foreach ($p in 'src/Vox.App', 'src/Vox.Watchdog', 'src/Vox.Service') {
 dotnet build installer/Vox.Installer -c Release -p:PublishDir="$PWD\publish\Vox" -p:VoxVersion=1.0.0
 ```
 
-With the repository secrets `VOX_SIGNING_CERTIFICATE` (the .pfx, base64) and `VOX_SIGNING_PASSWORD`, the workflow signs Vox.App so it gets UI access. The MSI itself should be signed with the same certificate before release.
+With the repository secrets `VOX_SIGNING_CERTIFICATE` (the .pfx, base64) and `VOX_SIGNING_PASSWORD`, the workflow signs the three programs (so Vox gets UI access) and the MSI.
 
 The project has only been checked on paper so far. WiX doesn't run on Linux, where it was written, so the first Windows build of the Release workflow is its first real test.
 
