@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
+using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Speech;
 
@@ -224,6 +225,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
                 case ModeChangedEvent modeChanged:
                     await HandleModeChangedAsync(modeChanged, token).ConfigureAwait(false);
+                    break;
+
+                case InputHelpEvent inputHelp:
+                    await _speechQueue.EnqueueAsync(new Utterance(
+                        InputHelp.Describe(inputHelp.Command, inputHelp.Modifiers, inputHelp.VkCode, inputHelp.IsKeypad, ScreenReaderKeyName()),
+                        SpeechPriority.Interrupt), token).ConfigureAwait(false);
                     break;
 
                 case TypingEchoEvent typingEcho:
@@ -447,6 +454,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
     }
 
     private readonly Diagnostics.LatencyTracker? _latency;
+
+    /// <summary>The screen reader key as the user has it (for input help).</summary>
+    private string ScreenReaderKeyName() =>
+        _settings?.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
 
     private async Task HandleNavigationCommandAsync(NavigationCommandEvent evt, CancellationToken token)
     {

@@ -401,6 +401,13 @@ public sealed class ScreenReaderService : IHostedService
             _speechViewer.Toggle();
             return;
         }
+        if (e.Command == NavigationCommand.ToggleInputHelp)
+        {
+            // The dispatcher has switched already, as the key was handled
+            var state = _keyInputDispatcher.IsInputHelpOn ? "Input help on" : "Input help off";
+            _speechQueue.Enqueue(new Utterance(state, SpeechPriority.Interrupt));
+            return;
+        }
         if (e.Command == NavigationCommand.CopySettingsToSecureScreens)
         {
             var message = SecureScreenSettings.Copy(_settingsManager, _settings.CurrentValue, _runPolicy);

@@ -164,5 +164,7 @@ public enum NavigationCommand
     /// <summary>Presses the Reject/Close button of the page's cookie banner or modal dialog.</summary>
     DismissOverlay,
     /// <summary>Starts (or ends) exploring the expression at the browse cursor with the arrow keys.</summary>
-    InteractWithMath
+    InteractWithMath,
+    /// <summary>Turns input help on or off: keys say what they do instead of doing it.</summary>
+    ToggleInputHelp
 }

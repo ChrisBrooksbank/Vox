@@ -209,6 +209,7 @@ public static class CommandCatalog
         Add(NavigationCommand.SayBattery, "Say battery", "Says the battery level and whether it is charging.", CommandCategory.System);
         Add(NavigationCommand.DeveloperInfo, "Developer information", "Says the focused element's role, class, framework and process, and copies them to the clipboard.", CommandCategory.System);
         Add(NavigationCommand.CopySettingsToSecureScreens, "Use settings on sign-in screens", "Copies your settings to the sign-in, lock and UAC screens.", CommandCategory.System);
+        Add(NavigationCommand.ToggleInputHelp, "Input help", "Turns input help on or off: while it is on, keys say what they do instead of doing it.", CommandCategory.System);
         Add(NavigationCommand.RunSetup, "Run setup", "Runs the welcome and setup wizard again.", CommandCategory.System);
         Add(NavigationCommand.Quit, "Quit Vox", "Exits Vox (pressed twice to confirm).", CommandCategory.System);
 

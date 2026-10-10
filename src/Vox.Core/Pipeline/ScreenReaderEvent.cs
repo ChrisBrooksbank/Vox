@@ -89,6 +89,18 @@ public record NavigationCommandEvent(
     NavigationCommand Command
 ) : ScreenReaderEvent(Timestamp);
 
+/// <summary>
+/// A key pressed in input help: <paramref name="Command"/> is what it would have run (null when
+/// it does nothing), said instead of run.
+/// </summary>
+public record InputHelpEvent(
+    DateTimeOffset Timestamp,
+    NavigationCommand? Command,
+    KeyModifiers Modifiers,
+    int VkCode,
+    bool IsKeypad
+) : ScreenReaderEvent(Timestamp);
+
 public record RawKeyEvent(
     DateTimeOffset Timestamp,
     KeyEvent Key

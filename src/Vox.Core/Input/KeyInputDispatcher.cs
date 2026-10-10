@@ -18,6 +18,7 @@ namespace Vox.Core.Input;
 /// </summary>
 public sealed class KeyInputDispatcher
 {
+
     private readonly IKeyboardHook _hook;
     // Replaced whole when the layout changes; read on the hook thread
     private volatile KeyMap _keyMap;
@@ -37,6 +38,21 @@ public sealed class KeyInputDispatcher
     private const int EscapeToPageFlag = 0x4;
     // The focused application was in sleep mode when the key was pressed
     private const int SleepFlag = 0x8;
+    // Input help was on when the key was pressed
+    private const int HelpFlag = 0x10;
+
+    private volatile bool _inputHelp;
+
+    /// <summary>
+    /// Input help (Insert+1): keys are described instead of run, and none reaches the application
+    /// except modifiers alone. Turned on and off by <see cref="NavigationCommand.ToggleInputHelp"/>
+    /// itself, on the dispatcher thread, so the next key is already treated the new way.
+    /// </summary>
+    public bool IsInputHelpOn
+    {
+        get => _inputHelp;
+        set => _inputHelp = value;
+    }
 
     // Keys whose key-down was dispatched as a command; their key-ups are dropped so a key that
     // changed the mode (e.g. Enter entering Focus mode) is not then echoed as typing.
@@ -155,6 +171,10 @@ public sealed class KeyInputDispatcher
         if (AsleepNow())
             return new KeyDecision(found && command == NavigationCommand.ToggleSleepMode && !passThrough, flags | SleepFlag);
 
+        // Input help: keys are described, not run or typed (a modifier alone still goes through)
+        if (_inputHelp)
+            return new KeyDecision(!InputHelp.IsModifierKey(evt.VkCode), flags | HelpFlag);
+
         bool suppress = found && !passThrough;
 
         if (!found)
@@ -239,6 +259,24 @@ public sealed class KeyInputDispatcher
             var context = decided ? evt.Decision.Context & ContextMask : CurrentContext;
             bool escapeToPage = decided ? (evt.Decision.Context & EscapeToPageFlag) != 0 : _escapeGoesToPage;
             bool asleep = decided ? (evt.Decision.Context & SleepFlag) != 0 : AsleepNow();
+            bool help = decided ? (evt.Decision.Context & HelpFlag) != 0 : _inputHelp;
+
+            if (help)
+            {
+                bool bound = TryResolve(evt, context, escapeToPage, out var described, out _);
+                if (bound && described == NavigationCommand.ToggleInputHelp)
+                {
+                    _inputHelp = false;
+                    _commandKeysDown[slot] = true;
+                    _pipeline.Post(new NavigationCommandEvent(DateTimeOffset.UtcNow, described));
+                }
+                else if (!InputHelp.IsModifierKey(evt.VkCode))
+                {
+                    _commandKeysDown[slot] = true;
+                    _pipeline.Post(new InputHelpEvent(DateTimeOffset.UtcNow, bound ? described : null, evt.Modifiers, evt.VkCode, evt.IsKeypad));
+                }
+                return;
+            }
 
             if (TryResolve(evt, context, escapeToPage, out var command, out _)
                 && (!asleep || command == NavigationCommand.ToggleSleepMode))
@@ -247,6 +285,8 @@ public sealed class KeyInputDispatcher
                     "Key {VkCode} with {Modifiers} in context {Context} -> {Command}",
                     evt.VkCode, evt.Modifiers, context, command);
 
+                if (command == NavigationCommand.ToggleInputHelp)
+                    _inputHelp = true;
                 _commandKeysDown[slot] = true;
                 _pipeline.Post(new NavigationCommandEvent(DateTimeOffset.UtcNow, command));
                 return;
