@@ -135,13 +135,15 @@ public record NotificationFlushEvent(
 /// <summary>
 /// A web document gained focus (<paramref name="Document"/> is its new virtual buffer)
 /// or focus left web content (<paramref name="Document"/> is null). <paramref name="ProcessName"/>
-/// is the app showing it (for its default mode).
+/// is the app showing it (for its default mode). <paramref name="IsPartial"/>: only part of a large
+/// page (around the focus, or its top), captured first; the whole page follows in another event.
 /// </summary>
 public record DocumentChangedEvent(
     DateTimeOffset Timestamp,
     VBufferDocument? Document,
     int[]? FocusedRuntimeId = null,
-    string? ProcessName = null
+    string? ProcessName = null,
+    bool IsPartial = false
 ) : ScreenReaderEvent(Timestamp);
 
 /// <summary>

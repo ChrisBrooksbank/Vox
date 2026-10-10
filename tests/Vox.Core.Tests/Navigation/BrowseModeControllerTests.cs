@@ -396,6 +396,59 @@ public class BrowseModeControllerTests : IDisposable
         Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
     }
 
+    // A page whose second section is around the focus: the partial capture holds just that section
+    private static VBufferDocument StagedPage(bool partial)
+    {
+        MockElement Section(int id, string heading, string text) =>
+            new MockElement { RuntimeId = [id], ControlType = "Group" }
+                .AddChild(new MockElement { RuntimeId = [id + 1], Name = heading, AriaRole = "heading", HeadingLevel = 2 })
+                .AddChild(new MockElement { RuntimeId = [id + 2], Name = text });
+        var root = new MockElement { RuntimeId = [100], ControlType = "Document" };
+        if (!partial)
+            root.AddChild(Section(110, "Intro", "Welcome."));
+        root.AddChild(Section(120, "Results", "Three results."));
+        if (!partial)
+            root.AddChild(Section(130, "Footer", "We use cookies."))
+                .AddChild(new MockElement { RuntimeId = [140], ControlType = "Group" }
+                    .AddChild(new MockElement { RuntimeId = [141], Name = "We use cookies on this site." })
+                    .AddChild(new MockElement { RuntimeId = [142], Name = "Reject all", ControlType = "Button" }));
+        return new VBufferBuilder().Build(root);
+    }
+
+    [Fact]
+    public async Task PartialPage_IsBrowsable_AndTheWholePageKeepsTheCursor()
+    {
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, StagedPage(partial: true), [122], IsPartial: true));
+        Assert.Equal("Three results.", _quickNav.CurrentNode!.Name);
+
+        _controller.HandleCommand(NavigationCommand.PrevLine); // the user reads on in the first part
+        Assert.Equal("Results", _quickNav.CurrentNode!.Name);
+
+        var whole = StagedPage(partial: false);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, whole, [122]));
+
+        Assert.Same(whole, _quickNav.CurrentDocument);
+        Assert.Equal("Results", _quickNav.CurrentNode!.Name);
+        Assert.Equal(whole.FindByRuntimeId([121])!.TextRange.Start, _controller.Cursor!.TextOffset);
+        // What the page is gets said once it is all there
+        await WaitForSpeech(u => u.Text.StartsWith("Cookie banner"));
+    }
+
+    [Fact]
+    public void PartialPage_ReturningUserGoesBackToWhereTheyWere()
+    {
+        var whole = StagedPage(partial: false);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, whole, null));
+        _controller.HandleCommand(NavigationCommand.BottomOfDocument);
+        var lastNode = _quickNav.CurrentNode!.UIARuntimeId;
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, null));
+
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, StagedPage(partial: true), null, IsPartial: true));
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, StagedPage(partial: false), null));
+
+        Assert.Equal(lastNode, _quickNav.CurrentNode!.UIARuntimeId);
+    }
+
     [Fact]
     public void SubtreeChanged_KeepsCurrentElement()
     {

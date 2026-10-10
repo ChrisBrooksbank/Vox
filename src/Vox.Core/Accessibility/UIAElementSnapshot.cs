@@ -76,6 +76,34 @@ public sealed class UIAElementSnapshot : IVBufferElement
         return root;
     }
 
+    /// <summary>
+    /// A partial page: <paramref name="root"/> (a copy of the document element alone) holding just
+    /// <paramref name="parts"/>, the parts of the page captured first (see staged capture in
+    /// <see cref="BrowseDocumentTracker"/>).
+    /// </summary>
+    internal static UIAElementSnapshot WithParts(UIAElementSnapshot root, IEnumerable<UIAElementSnapshot> parts)
+    {
+        root._children.Clear();
+        root._children.AddRange(parts);
+        return root;
+    }
+
+    /// <summary>How many elements the snapshot holds, itself included.</summary>
+    internal int CountElements()
+    {
+        int count = 0;
+        var stack = new Stack<UIAElementSnapshot>();
+        stack.Push(this);
+        while (stack.Count > 0)
+        {
+            var snapshot = stack.Pop();
+            count++;
+            foreach (var child in snapshot._children)
+                stack.Push(child);
+        }
+        return count;
+    }
+
     private static UIAElementSnapshot CaptureOne(IUIAutomationElement element)
     {
         var ariaRole = Try(() => element.CachedAriaRole) ?? string.Empty;

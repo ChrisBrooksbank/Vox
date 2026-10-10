@@ -157,7 +157,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             return;
         }
 
-        LoadDocument(document, documentId, focusedId);
+        LoadDocument(document, documentId, focusedId, focused);
     }
 
     /// <summary>
@@ -188,7 +188,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         return found;
     }
 
-    private void LoadDocument(IUIAutomationElement document, int[] documentId, int[] focusedId)
+    private void LoadDocument(IUIAutomationElement document, int[] documentId, int[] focusedId, IUIAutomationElement? focused = null)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
@@ -197,6 +197,10 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         // arrive during the capture wait in the pending set until the document is recorded.
         ClearPendingChanges();
         _eventSubscriber.SetDocumentScope(document);
+
+        // A large page takes a while to capture: the part around the focus (or the top of the
+        // page) is captured and posted first, so browsing can start before the rest arrives
+        PostPartialDocument(document, documentId, focusedId, focused);
 
         VBufferDocument buffer;
         try
@@ -538,6 +542,86 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         {
             _logger.LogDebug(ex, "UIA error while {What}", what);
         }
+    }
+
+    /// <summary>How many elements the first, partial capture of a page aims for.</summary>
+    internal const int StagedElementTarget = 200;
+
+    /// <summary>How far above the focused element the partial capture starts.</summary>
+    private const int FocusRegionLevels = 3;
+
+    /// <summary>
+    /// Captures the part of the page around the focused element (a few levels above it), or else
+    /// the first top-level parts of the page up to about <see cref="StagedElementTarget"/> elements,
+    /// and posts it as a partial document (<see cref="DocumentChangedEvent.IsPartial"/>). The whole
+    /// page follows. Nothing is posted when that part is the whole page anyway, or on any failure.
+    /// </summary>
+    private void PostPartialDocument(IUIAutomationElement document, int[] documentId, int[] focusedId, IUIAutomationElement? focused)
+    {
+        try
+        {
+            var walker = _uiaProvider.Automation.ControlViewWalker;
+            var request = _uiaProvider.SubtreeCacheRequest;
+            var elementOnly = request.Clone();
+            elementOnly.TreeScope = TreeScope.TreeScope_Element;
+
+            var parts = new List<UIAElementSnapshot>();
+            if (focused is not null && FocusRegion(walker, focused, documentId) is { } region)
+            {
+                parts.Add(UIAElementSnapshot.Capture(region.BuildUpdatedCache(request)));
+            }
+            else
+            {
+                int total = 0;
+                var child = TryGet(() => walker.GetFirstChildElement(document));
+                while (child is not null && total < StagedElementTarget)
+                {
+                    var part = UIAElementSnapshot.Capture(child.BuildUpdatedCache(request));
+                    parts.Add(part);
+                    total += part.CountElements();
+                    var current = child;
+                    child = TryGet(() => walker.GetNextSiblingElement(current));
+                }
+                // The first parts were the whole page: the full capture adds nothing
+                if (child is null)
+                    return;
+            }
+            if (parts.Count == 0)
+                return;
+
+            var root = UIAElementSnapshot.Capture(document.BuildUpdatedCache(elementOnly));
+            var partial = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true }
+                .Build(UIAElementSnapshot.WithParts(root, parts));
+            _logger.LogDebug("Partial buffer posted: {Nodes} nodes", partial.AllNodes.Count);
+            _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, partial, focusedId, ProcessNameOf(document), IsPartial: true));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not capture the first part of the page");
+        }
+    }
+
+    /// <summary>
+    /// The ancestor <see cref="FocusRegionLevels"/> levels above the focused element, or the
+    /// highest one below the document; null when the focus is the document or right below it.
+    /// </summary>
+    private static IUIAutomationElement? FocusRegion(IUIAutomationTreeWalker walker, IUIAutomationElement focused, int[] documentId)
+    {
+        var chain = new List<IUIAutomationElement>();
+        var element = focused;
+        for (int i = 0; element is not null && i <= MaxAncestorDepth; i++)
+        {
+            if (UIAEventSubscriber.TryGetRuntimeId(element).AsSpan().SequenceEqual(documentId))
+                break;
+            chain.Add(element);
+            var current = element;
+            element = TryGet(() => walker.GetParentElement(current));
+        }
+        // Never reached the document: the focus isn't in it
+        if (element is null || chain.Count < 2)
+            return null;
+        // The region must leave out part of the page, so not the document's own child
+        return chain[Math.Min(FocusRegionLevels, chain.Count - 2)];
     }
 
     private static string? ProcessNameOf(IUIAutomationElement element)

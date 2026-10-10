@@ -62,8 +62,8 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 
 ### Performance
 
-- [ ] Staged build: the first ~200 nodes around the focus are captured and spoken first, the rest fills in on later passes
-- [ ] Budget: buffer ready ≤ 500 ms for a 10,000-node page; benchmark test with a synthetic snapshot tree
+- [x] Staged build: the first ~200 nodes around the focus are captured and spoken first, the rest fills in on later passes
+- [x] Budget: buffer ready ≤ 500 ms for a 10,000-node page; benchmark test with a synthetic snapshot tree
 
 ## Acceptance Criteria
 

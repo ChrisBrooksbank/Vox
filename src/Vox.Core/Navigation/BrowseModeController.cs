@@ -24,6 +24,13 @@ namespace Vox.Core.Navigation;
 public sealed class BrowseModeController
 {
     private readonly SpeechQueue _speechQueue;
+    // The first part of a large page now browsed, until the whole page arrives
+    private PartialLoad? _partial;
+
+    /// <param name="Key">The page (<see cref="DocumentKey"/>).</param>
+    /// <param name="Earlier">Where the user was on it on an earlier visit, if any.</param>
+    /// <param name="PlacedOffset">Where the cursor was put on the first part (to tell whether the user has moved).</param>
+    private sealed record PartialLoad(string Key, RememberedDocument? Earlier, int PlacedOffset);
     // The overlay (cookie banner, modal dialog) last announced, so it is announced once
     private int[]? _announcedOverlay;
     private readonly IAudioCuePlayer _audioCuePlayer;
@@ -837,6 +844,14 @@ public sealed class BrowseModeController
 
     public void HandleDocumentChanged(DocumentChangedEvent evt)
     {
+        // The whole page after its first part: carry on from where the user is in it
+        if (!evt.IsPartial && evt.Document is { } whole && _partial is { } partial && partial.Key == DocumentKey(whole))
+        {
+            CompletePartialDocument(whole, partial, evt.ProcessName);
+            return;
+        }
+        _partial = null;
+
         StopSayAll();
         RememberPosition();
 
@@ -878,15 +893,11 @@ public sealed class BrowseModeController
             }
 
             KeepInModalScope();
-            // A PDF says whether it can be browsed by structure (after what loading it says)
-            if (remembered is null && PdfDocuments.LoadAnnouncement(document) is { } pdf)
-                _speechQueue.Enqueue(new Utterance(pdf, SpeechPriority.Normal));
-            AnnounceOverlay(document);
-
-            // A web application (an editor, VS Code, Teams) is used through its own keys
-            if (remembered is null
-                && DocumentModes.Initial(document, evt.ProcessName, _settings.CurrentValue.AppDefaultModes) == InteractionMode.Focus)
-                _navigationManager.SwitchTo(InteractionMode.Focus, "web application", announce: false);
+            // The first part of a large page: what the page is gets judged once it is all there
+            if (evt.IsPartial)
+                _partial = new PartialLoad(DocumentKey(document), remembered, _cursor.TextOffset);
+            else
+                AnnounceLoaded(document, fresh: remembered is null, evt.ProcessName);
 
             // Coming back to a page with focus in an edit field (Alt+Tab, tab switch): resume
             // typing in Focus mode. Only a fresh load's autofocus stays in Browse mode.
@@ -900,6 +911,47 @@ public sealed class BrowseModeController
             }
         }
 
+        UpdateDocumentActive();
+    }
+
+    /// <summary>
+    /// What a page says when it has loaded (whether a PDF is tagged, a cookie banner), and the
+    /// mode a web application starts in. <paramref name="fresh"/>: loaded, not returned to.
+    /// </summary>
+    private void AnnounceLoaded(VBufferDocument document, bool fresh, string? processName)
+    {
+        // A PDF says whether it can be browsed by structure (after what loading it says)
+        if (fresh && PdfDocuments.LoadAnnouncement(document) is { } pdf)
+            _speechQueue.Enqueue(new Utterance(pdf, SpeechPriority.Normal));
+        AnnounceOverlay(document);
+
+        // A web application (an editor, VS Code, Teams) is used through its own keys
+        if (fresh && DocumentModes.Initial(document, processName, _settings.CurrentValue.AppDefaultModes) == InteractionMode.Focus)
+            _navigationManager.SwitchTo(InteractionMode.Focus, "web application", announce: false);
+    }
+
+    /// <summary>
+    /// The whole page has arrived after its first part (<see cref="DocumentChangedEvent.IsPartial"/>).
+    /// Like an update, it keeps the mode and the cursor where the user has got to; if they haven't
+    /// moved and had been on this page before, the cursor goes back to where they were then.
+    /// </summary>
+    private void CompletePartialDocument(VBufferDocument document, PartialLoad partial, string? processName)
+    {
+        _partial = null;
+        StopSayAll();
+        bool userMoved = _cursor is not null && _cursor.TextOffset != partial.PlacedOffset;
+        RememberPosition();
+        var here = FindRemembered(document);
+
+        _quickNavHandler.SetDocument(document);
+        _fullRecaptureRequestedAt = null;
+        _tableNavigator.Reset();
+        _cursor = new VBufferCursor(document, _audioCuePlayer);
+        var position = (userMoved ? null : partial.Earlier) ?? here;
+        if (position is not null)
+            RestorePosition(document, position);
+        KeepInModalScope();
+        AnnounceLoaded(document, fresh: partial.Earlier is null, processName);
         UpdateDocumentActive();
     }
 
