@@ -49,7 +49,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 
 ### Activation and summary
 
-- [ ] Activation fallback: if no Invoke/Toggle/SelectionItem/ExpandCollapse pattern applies, simulate a mouse click at the element's clickable point
+- [x] Activation fallback: if no Invoke/Toggle/SelectionItem/ExpandCollapse pattern applies, simulate a mouse click at the element's clickable point
 - [ ] Page summary command: title, language, counts of headings/links/landmarks/form fields/tables
 - [ ] Say the URL of the link under the cursor
 - [ ] Overlay and cookie-banner detection: announce a modal overlay; offer Insert+Shift+D to activate its Reject/Close button; never dismiss automatically

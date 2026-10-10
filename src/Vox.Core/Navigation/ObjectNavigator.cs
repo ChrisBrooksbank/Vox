@@ -29,6 +29,9 @@ public interface INavigatorObject
 
     /// <summary>A screen point to click the object at (its clickable point or centre), or null when it has no location.</summary>
     (int X, int Y)? GetClickPoint() => null;
+
+    /// <summary>Scrolls the object into view where it can be (before it is clicked).</summary>
+    void ScrollIntoView() { }
 }
 
 /// <summary>A navigator movement.</summary>

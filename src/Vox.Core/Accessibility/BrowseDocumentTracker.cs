@@ -23,8 +23,6 @@ namespace Vox.Core.Accessibility;
 public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
 {
     private const int UIA_DocumentControlTypeId = 50030;
-    private const int UIA_InvokePatternId = 10000;
-    private const int UIA_LegacyIAccessiblePatternId = 10018;
     private const int MaxAncestorDepth = 64;
     private const int StructureDebounceMs = 300;
     private const int StructureMaxWaitMs = 1000;
@@ -43,6 +41,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     private readonly ILogger<BrowseDocumentTracker> _logger;
     private readonly int _ownProcessId = Environment.ProcessId;
     private readonly IOptionsMonitor<VoxSettings>? _settings;
+    private readonly IMouseInput? _mouse;
 
     // STA-thread state
     private IUIAutomationElement? _documentRoot;
@@ -62,9 +61,11 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         UIAEventSubscriber eventSubscriber,
         IEventSink eventSink,
         ILogger<BrowseDocumentTracker> logger,
-        IOptionsMonitor<VoxSettings>? settings = null)
+        IOptionsMonitor<VoxSettings>? settings = null,
+        IMouseInput? mouse = null)
     {
         _settings = settings;
+        _mouse = mouse;
         _uiaThread = uiaThread;
         _uiaProvider = uiaProvider;
         _eventSubscriber = eventSubscriber;
@@ -512,19 +513,10 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
                 return true;
             }
 
-            if (TryGet(() => element.GetCurrentPattern(UIA_InvokePatternId)) is IUIAutomationInvokePattern invoke)
-            {
-                invoke.Invoke();
-                return true;
-            }
-
-            if (TryGet(() => element.GetCurrentPattern(UIA_LegacyIAccessiblePatternId)) is IUIAutomationLegacyIAccessiblePattern legacy)
-            {
-                legacy.DoDefaultAction();
-                return true;
-            }
-
-            element.SetFocus();
+            // Its pattern; else a click (a click handler with no accessible action); else focus
+            var outcome = ElementActivation.Activate(UIANavigatorObject.For(element, _uiaProvider), _mouse);
+            if (outcome == ActivationOutcome.None)
+                element.SetFocus();
             return true;
         }, UIAThread.DocumentTimeout); // may search the whole document
     }
