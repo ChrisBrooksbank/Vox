@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -76,11 +77,22 @@ public sealed class SettingsManager
                 return false;
 
             var json = File.ReadAllText(_userSettingsPath);
-            var loaded = JsonSerializer.Deserialize<VoxSettings>(json, JsonOptions);
+            if (JsonNode.Parse(json) is not JsonObject document)
+                return false;
+
+            // An older file is brought up to date (and saved so, keeping a copy of the old one);
+            // a newer one is read as far as this version understands it, and never overwritten
+            int version = SettingsMigrations.Migrate(document);
+            _fileIsNewer = version > VoxSettings.CurrentSchemaVersion;
+            var loaded = document.Deserialize<VoxSettings>(JsonOptions);
             if (loaded is null)
                 return false;
 
             _logger.LogInformation("Loaded settings from {Path}", _userSettingsPath);
+            if (_fileIsNewer)
+                _logger.LogWarning("Settings file is from a newer Vox (schema {Version}); it won't be overwritten", version);
+            else if (version < VoxSettings.CurrentSchemaVersion && !ReadOnly)
+                SaveMigrated(json, version, loaded);
             settings = loaded;
             return true;
         }
@@ -90,6 +102,9 @@ public sealed class SettingsManager
             return false;
         }
     }
+
+    // The settings file was written by a newer Vox: saving would lose what this one doesn't know
+    private bool _fileIsNewer;
 
     /// <summary>
     /// Saves settings to %APPDATA%/Vox/settings.json, creating the directory if needed.
@@ -101,7 +116,30 @@ public sealed class SettingsManager
             _logger.LogInformation("Settings are read-only here; not saved");
             return;
         }
-        SaveTo(_userSettingsPath, settings);
+        if (_fileIsNewer)
+        {
+            _logger.LogWarning("Settings file is from a newer Vox; not saved");
+            return;
+        }
+        SaveTo(_userSettingsPath, settings with { SchemaVersion = VoxSettings.CurrentSchemaVersion });
+    }
+
+    /// <summary>Keeps the old file as settings.v&lt;version&gt;.json and saves the migrated settings.</summary>
+    private void SaveMigrated(string oldJson, int oldVersion, VoxSettings migrated)
+    {
+        try
+        {
+            var backup = Path.Combine(Path.GetDirectoryName(_userSettingsPath)!,
+                $"{Path.GetFileNameWithoutExtension(_userSettingsPath)}.v{oldVersion}{Path.GetExtension(_userSettingsPath)}");
+            if (!File.Exists(backup))
+                File.WriteAllText(backup, oldJson);
+            if (SaveTo(_userSettingsPath, migrated with { SchemaVersion = VoxSettings.CurrentSchemaVersion }))
+                _logger.LogInformation("Settings migrated from schema {Old} to {New}", oldVersion, VoxSettings.CurrentSchemaVersion);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not save the migrated settings");
+        }
     }
 
     /// <summary>Writes settings to <paramref name="path"/> atomically. Returns whether it worked.</summary>

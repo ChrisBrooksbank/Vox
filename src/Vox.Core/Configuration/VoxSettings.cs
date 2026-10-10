@@ -149,6 +149,12 @@ public record VoxSettings
     public TypingEchoMode TypingEchoMode { get; init; } = TypingEchoMode.Both;
     public bool AudioCuesEnabled { get; init; } = true;
     public bool AnnounceVisitedLinks { get; init; } = true;
+
+    /// <summary>The settings file format this version of Vox writes (<see cref="SettingsMigrations"/>).</summary>
+    public const int CurrentSchemaVersion = 2;
+
+    /// <summary>The format of the file the settings came from; older files are migrated when read.</summary>
+    public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     /// <summary>Say an abbreviation's expansion (its title) before it when the browse cursor reaches it.</summary>
     public bool ExpandAbbreviations { get; init; }
     /// <summary>

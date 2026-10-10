@@ -1,4 +1,5 @@
 {
+  "SchemaVersion": 2,
   "VerbosityLevel": "Beginner",
   "SpeechRateWpm": 200,
   "SpeechPitch": 50,
