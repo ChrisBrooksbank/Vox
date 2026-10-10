@@ -212,6 +212,7 @@ public static class CommandCatalog
         Add(NavigationCommand.OpenVoxMenu, "Vox menu", "Opens the Vox menu: settings, input gestures, command search, speech viewer, user guide and exit.", CommandCategory.System);
         Add(NavigationCommand.TogglePauseSpeech, "Pause speech", "Stops Vox speaking until pressed again (sounds still play).", CommandCategory.Speech);
         Add(NavigationCommand.OpenUserGuide, "User guide", "Opens the Vox user guide, with every key, in the browser.", CommandCategory.System);
+        Add(NavigationCommand.RunTutorial, "Practice lessons", "Runs the practice lessons, where you press each key and hear what it does.", CommandCategory.System);
         Add(NavigationCommand.ExitVox, "Exit Vox", "Exits Vox at once.", CommandCategory.System);
         Add(NavigationCommand.OpenCommandSearch, "Command search", "Finds commands by part of their name and says their keys.", CommandCategory.System);
         Add(NavigationCommand.OpenInputGestures, "Input gestures", "Opens the list of commands and their keys, where keys can be added, removed and changed.", CommandCategory.System);

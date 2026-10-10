@@ -26,7 +26,7 @@ Everything that turns Vox from a program into a product: an accessible settings 
 - [x] Command search: type part of a command name, hear its keys
 - [x] Command descriptions stored with the commands (used by help mode, gestures dialog and the guide)
 - [x] User guide (HTML, with a keyboard reference generated from the keymap), opened from the Vox menu (Insert+F1 stays developer info, as in NVDA)
-- [ ] Interactive tutorial extends the first-run wizard: practice lessons per topic, rerunnable
+- [x] Interactive tutorial extends the first-run wizard: practice lessons per topic, rerunnable
 - [ ] Installer: signed MSI/MSIX installing to Program Files (needed for `uiAccess`), start menu and desktop shortcut with Ctrl+Alt+V, optional start at logon, installs `Vox.Service`
 - [ ] Portable copy: create one on a USB stick from the Vox menu; settings stored beside the exe
 - [ ] Update checker: checks a signed release feed (stable/beta), speaks "update available", downloads, verifies signature, installs on request

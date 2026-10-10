@@ -235,7 +235,21 @@ public static class ServiceRegistration
         });
 
         // First-run wizard
-        services.AddSingleton<FirstRunWizard>();
+        services.AddSingleton<FirstRunWizard>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<SettingsMonitor>();
+            return new FirstRunWizard(
+                sp.GetRequiredService<ISpeechEngine>(),
+                sp.GetRequiredService<SettingsManager>(),
+                settings,
+                sp.GetRequiredService<IKeyboardHook>(),
+                sp.GetRequiredService<ILogger<FirstRunWizard>>(),
+                // The practice lessons teach the keys in use: the layout's and the user's own
+                () => new GestureEditor(
+                    KeyMap.LayoutBindings(Path.Combine(AppContext.BaseDirectory, "assets", "config"), settings.CurrentValue.KeyboardLayout),
+                    KeyMap.ReadUserBindings(policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null)));
+        });
 
         // Navigation
         services.AddSingleton<NavigationManager>();

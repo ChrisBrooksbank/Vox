@@ -195,6 +195,15 @@ public sealed class KeyMap
         return ToBindings(entries);
     }
 
+    /// <summary>The user keymap's bindings, or none when it is missing or can't be read.</summary>
+    public static IReadOnlyList<KeyBinding> ReadUserBindings(string? path)
+    {
+        if (path is null || !File.Exists(path))
+            return [];
+        try { return ParseBindings(File.ReadAllText(path)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException) { return []; }
+    }
+
     /// <summary>The bindings in a keymap file's JSON (a user keymap's included); unknown modifiers are left out.</summary>
     public static IReadOnlyList<KeyBinding> ParseBindings(string json) => ToBindings(Parse(json).Bindings);
 

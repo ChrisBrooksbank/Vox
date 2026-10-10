@@ -180,5 +180,7 @@ public enum NavigationCommand
     /// <summary>Opens the user guide in the browser.</summary>
     OpenUserGuide,
     /// <summary>Exits Vox at once (from the Vox menu).</summary>
-    ExitVox
+    ExitVox,
+    /// <summary>Runs the practice lessons (web pages, editing text, reviewing the screen).</summary>
+    RunTutorial
 }

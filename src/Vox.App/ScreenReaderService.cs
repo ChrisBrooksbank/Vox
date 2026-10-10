@@ -441,6 +441,12 @@ public sealed class ScreenReaderService : IHostedService
             case NavigationCommand.OpenUserGuide:
                 OpenUserGuide();
                 return;
+            case NavigationCommand.RunTutorial:
+                if (_runPolicy.AllowSetupWizard)
+                    _ = RunWizardAsync(lessonsOnly: true);
+                else
+                    _speechQueue.Enqueue(new Utterance("Not available on this screen", SpeechPriority.Interrupt));
+                return;
         }
         if (e.Command == NavigationCommand.ToggleInputHelp)
         {
@@ -615,14 +621,14 @@ public sealed class ScreenReaderService : IHostedService
             _speechQueue.Enqueue(new Utterance("Not available on this screen", SpeechPriority.Interrupt));
             return;
         }
-        _ = RunSetupAgainAsync();
+        _ = RunWizardAsync(lessonsOnly: false);
     }
 
     /// <summary>
-    /// Runs the first-run wizard again. Browse-mode key handling is paused meanwhile, so the
-    /// wizard's keys (arrows, Enter, digits) aren't also taken as navigation commands.
+    /// Runs the first-run wizard again, or just its practice lessons. Vox's key handling is
+    /// paused meanwhile, so the wizard's keys aren't also taken as commands.
     /// </summary>
-    private async Task RunSetupAgainAsync()
+    private async Task RunWizardAsync(bool lessonsOnly)
     {
         if (Interlocked.Exchange(ref _setupRunning, 1) == 1)
             return;
@@ -632,7 +638,10 @@ public sealed class ScreenReaderService : IHostedService
             _keyInputDispatcher.Stop();
             // Page speech (focus, live regions, notifications) must not talk over the wizard
             _speechQueue.Suspend();
-            await _firstRunWizard.RunAsync(_lifetime.ApplicationStopping).ConfigureAwait(false);
+            if (lessonsOnly)
+                await _firstRunWizard.RunLessonsAsync(_lifetime.ApplicationStopping).ConfigureAwait(false);
+            else
+                await _firstRunWizard.RunAsync(_lifetime.ApplicationStopping).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

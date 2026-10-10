@@ -18,6 +18,7 @@ public static class VoxMenu
         new("Speech &viewer", NavigationCommand.ToggleSpeechViewer),
         new("&Pause speech", NavigationCommand.TogglePauseSpeech),
         new("User &guide", NavigationCommand.OpenUserGuide),
+        new("Practice &lessons...", NavigationCommand.RunTutorial),
         new("Run &welcome wizard...", NavigationCommand.RunSetup),
         new("E&xit Vox", NavigationCommand.ExitVox),
     ];
