@@ -5,6 +5,7 @@ using Vox.Core.Configuration;
 using Vox.Core.Diagnostics;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
+using Vox.Core.MathSpeech;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
@@ -250,6 +251,19 @@ public static class ServiceRegistration
         services.AddSingleton<TableHeaderStore>(sp => new TableHeaderStore(
             (sp.GetService<RunPolicy>() ?? RunPolicy.Normal).AllowSettingsWrites ? TableHeaderStore.DefaultPath : null,
             sp.GetRequiredService<ILogger<TableHeaderStore>>()));
+        // MathCAT, when installed as an optional component (never on secure screens)
+        services.AddSingleton<IMathSpeech>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var directory = MathCatComponent.DefaultDirectory;
+            if (policy.AllowAddOns && MathCatComponent.IsInstalled(directory))
+            {
+                var logger = sp.GetRequiredService<ILogger<MathCatSpeech>>();
+                try { return MathCatSpeech.Load(directory, logger); }
+                catch (Exception ex) { logger.LogWarning(ex, "Could not load MathCAT"); }
+            }
+            return new NoMathSpeech();
+        });
         services.AddSingleton<BrowseModeController>();
 
         // Hosted service

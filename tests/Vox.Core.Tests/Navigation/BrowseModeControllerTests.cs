@@ -8,6 +8,7 @@ using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Tests.TestSupport;
 using Vox.Core.Tests.Buffer;
 using Vox.Core.Text;
 using Xunit;
@@ -35,6 +36,7 @@ public class BrowseModeControllerTests : IDisposable
     private readonly Mock<IFindPrompt> _findPrompt = new();
     private readonly Mock<Vox.Core.Accessibility.IClipboard> _clipboard = new();
     private VoxSettings _settings = new();
+    private readonly FakeMathSpeech _math = new();
     private readonly BrowseModeController _controller;
 
     public BrowseModeControllerTests()
@@ -65,7 +67,8 @@ public class BrowseModeControllerTests : IDisposable
             _presenter.Object,
             NullLogger<BrowseModeController>.Instance,
             findPrompt: _findPrompt.Object,
-            clipboard: _clipboard.Object);
+            clipboard: _clipboard.Object,
+            mathSpeech: _math);
     }
 
     public void Dispose() => _speechQueue.Dispose();
@@ -447,6 +450,62 @@ public class BrowseModeControllerTests : IDisposable
         _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, StagedPage(partial: false), null));
 
         Assert.Equal(lastNode, _quickNav.CurrentNode!.UIARuntimeId);
+    }
+
+    private VBufferDocument LoadMathPage()
+    {
+        var math = new MockElement { RuntimeId = [151], ControlType = "Group", AriaRole = "math" }
+            .AddChild(new MockElement { RuntimeId = [152], ControlType = "Group", AriaRole = "msup" }
+                .AddChild(new MockElement { RuntimeId = [153], Name = "x", AriaRole = "mi" })
+                .AddChild(new MockElement { RuntimeId = [154], Name = "2", AriaRole = "mn" }));
+        var root = new MockElement { RuntimeId = [150], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [155], Name = "Area" })
+            .AddChild(math);
+        var document = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+        return document;
+    }
+
+    [Fact]
+    public async Task MovingOntoMath_SaysItThroughMathCat()
+    {
+        _math.IsAvailable = true;
+        LoadMathPage();
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        await WaitForSpeech(u => u.Text.Contains("x squared"));
+        Assert.Equal("<math><msup><mi>x</mi><mn>2</mn></msup></math>", Assert.Single(_math.Expressions));
+    }
+
+    [Fact]
+    public async Task InteractWithMath_ArrowsExploreUntilAnotherCommand()
+    {
+        _math.IsAvailable = true;
+        var document = LoadMathPage();
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        _controller.HandleCommand(NavigationCommand.InteractWithMath);
+        await WaitForSpeech(u => u.Text == "Math, x squared");
+        int offset = _controller.Cursor!.TextOffset;
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "x");
+        Assert.Equal(offset, _controller.Cursor!.TextOffset); // the page cursor didn't move
+
+        _controller.HandleCommand(NavigationCommand.InteractWithMath);
+        await WaitForSpeech(u => u.Text == "Leaving math");
+        Assert.Equal(["ZoomIn"], _math.Commands);
+    }
+
+    [Fact]
+    public async Task InteractWithMath_WithoutMathCat_SaysWhatIsNeeded()
+    {
+        LoadMathPage();
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        _controller.HandleCommand(NavigationCommand.InteractWithMath);
+
+        await WaitForSpeech(u => u.Text == "Exploring math needs the MathCAT component");
     }
 
     [Fact]

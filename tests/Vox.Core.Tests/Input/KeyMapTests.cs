@@ -325,6 +325,7 @@ public class DefaultKeyMapReadingKeysTests
     [InlineData(KeyModifiers.Insert | KeyModifiers.Shift, 73, NavigationCommand.PageSummary)]
     [InlineData(KeyModifiers.Insert, 75, NavigationCommand.SayLinkUrl)]
     [InlineData(KeyModifiers.Insert | KeyModifiers.Shift, 68, NavigationCommand.DismissOverlay)]
+    [InlineData(KeyModifiers.Insert | KeyModifiers.Alt, 77, NavigationCommand.InteractWithMath)]
     public void PageInformationKeys(KeyModifiers modifiers, int vk, NavigationCommand expected)
     {
         Assert.True(Map.TryResolve(modifiers, vk, InteractionMode.Browse, out var command));

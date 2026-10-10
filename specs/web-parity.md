@@ -58,7 +58,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 
 - [ ] PDF in Edge: tagged PDF tree reads in browse mode; warn "untagged document" when there is no structure and offer OCR (ocr-ai.md)
 - [x] Rich editors (Google Docs, `contenteditable`): caret tracking through desktop-text-and-controls.md
-- [ ] MathML: speech through MathCAT; interactive exploration with arrows inside an expression
+- [x] MathML: speech through MathCAT; interactive exploration with arrows inside an expression
 
 ### Performance
 

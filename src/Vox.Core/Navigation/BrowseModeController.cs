@@ -5,6 +5,7 @@ using Vox.Core.Audio;
 using Vox.Core.Buffer;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.MathSpeech;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -24,6 +25,8 @@ namespace Vox.Core.Navigation;
 public sealed class BrowseModeController
 {
     private readonly SpeechQueue _speechQueue;
+    private readonly IMathSpeech _mathSpeech;
+    private readonly MathExplorer _mathExplorer;
     // The first part of a large page now browsed, until the whole page arrives
     private PartialLoad? _partial;
 
@@ -112,8 +115,11 @@ public sealed class BrowseModeController
         IFocusedTextReader? focusedTextReader = null,
         TableHeaderStore? tableHeaders = null,
         IFindPrompt? findPrompt = null,
-        IClipboard? clipboard = null)
+        IClipboard? clipboard = null,
+        IMathSpeech? mathSpeech = null)
     {
+        _mathSpeech = mathSpeech ?? new NoMathSpeech();
+        _mathExplorer = new MathExplorer(_mathSpeech);
         _clipboard = clipboard;
         _findPrompt = findPrompt;
         _focusedTextReader = focusedTextReader;
@@ -200,6 +206,24 @@ public sealed class BrowseModeController
         // Anything but selecting, copying or reading ends the browse-mode selection
         if (!KeepsSelection(command))
             _selection.Clear();
+
+        // Exploring an expression: the arrows move through it; anything else ends exploring
+        if (_mathExplorer.IsActive && command != NavigationCommand.StopSpeech)
+        {
+            var (handled, speech) = _mathExplorer.Handle(command);
+            if (handled)
+            {
+                if (speech is not null)
+                    Speak(speech);
+                return;
+            }
+            _mathExplorer.Stop();
+            if (command == NavigationCommand.InteractWithMath)
+            {
+                Speak("Leaving math");
+                return;
+            }
+        }
 
         switch (command)
         {
@@ -396,6 +420,12 @@ public sealed class BrowseModeController
         if (command == NavigationCommand.PageSummary)
         {
             Speak(PageSummary.Describe(_quickNavHandler.CurrentDocument));
+            return;
+        }
+
+        if (command == NavigationCommand.InteractWithMath)
+        {
+            InteractWithMath();
             return;
         }
 
@@ -844,6 +874,7 @@ public sealed class BrowseModeController
 
     public void HandleDocumentChanged(DocumentChangedEvent evt)
     {
+        _mathExplorer.Stop();
         // The whole page after its first part: carry on from where the user is in it
         if (!evt.IsPartial && evt.Document is { } whole && _partial is { } partial && partial.Key == DocumentKey(whole))
         {
@@ -1290,6 +1321,48 @@ public sealed class BrowseModeController
     private string DismissOverlayKey =>
         $"{(_settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert")}+Shift+D";
 
+    /// <summary>Starts exploring the expression at the cursor (MathCAT).</summary>
+    private void InteractWithMath()
+    {
+        var math = MathMarkup.Enclosing(_cursor?.CurrentNode ?? _quickNavHandler.CurrentNode);
+        if (math is null)
+        {
+            Speak("Not in math");
+            return;
+        }
+        if (!_mathSpeech.IsAvailable)
+        {
+            Speak("Exploring math needs the MathCAT component");
+            return;
+        }
+        if (MathMarkup.ToMathMl(math) is not { } mathMl || _mathExplorer.Start(mathMl) is not { } text)
+        {
+            Speak("This math can't be explored");
+            return;
+        }
+        Speak($"Math, {text}");
+    }
+
+    /// <summary>
+    /// Moving onto an expression by line, paragraph or element (not by word or character): its
+    /// text in the line is replaced with how MathCAT says it, when MathCAT is installed.
+    /// </summary>
+    private string WithMathSpoken(string text, VBufferNode? from, NavigationCommand command)
+    {
+        if (!_mathSpeech.IsAvailable || IsCharacterCommand(command) || command is NavigationCommand.NextWord or NavigationCommand.PrevWord)
+            return text;
+        var math = MathMarkup.Enclosing(_cursor?.CurrentNode);
+        if (math is null || ReferenceEquals(math, MathMarkup.Enclosing(from)))
+            return text;
+        if (MathMarkup.ToMathMl(math) is not { } mathMl || _mathSpeech.SetExpression(mathMl) is not { } spoken)
+            return text;
+        var (start, end) = VBufferDocument.SubtreeSpan(math);
+        var flat = _cursor!.Document.FlatText;
+        var mathText = end > start && end <= flat.Length ? flat[start..end].Trim() : string.Empty;
+        int at = mathText.Length > 0 ? text.IndexOf(mathText, StringComparison.Ordinal) : -1;
+        return at < 0 ? spoken : string.Concat(text.AsSpan(0, at), spoken, text.AsSpan(at + mathText.Length));
+    }
+
     /// <summary>Presses the overlay's Reject/Close button, at the user's request only.</summary>
     private void DismissOverlay()
     {
@@ -1506,6 +1579,7 @@ public sealed class BrowseModeController
         }
 
         _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+        text = WithMathSpoken(text, from, command);
 
         // Entering a link, button or heading: say what it is, not just its text
         var role = RoleEnteredAtCursor();

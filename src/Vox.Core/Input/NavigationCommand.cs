@@ -162,5 +162,7 @@ public enum NavigationCommand
     /// <summary>Says the address of the link at the browse cursor.</summary>
     SayLinkUrl,
     /// <summary>Presses the Reject/Close button of the page's cookie banner or modal dialog.</summary>
-    DismissOverlay
+    DismissOverlay,
+    /// <summary>Starts (or ends) exploring the expression at the browse cursor with the arrow keys.</summary>
+    InteractWithMath
 }
