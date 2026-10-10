@@ -134,6 +134,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// <summary>Raised when a FindPromptClosedEvent is processed.</summary>
     public event EventHandler<FindPromptClosedEvent>? FindPromptClosedProcessed;
 
+    /// <summary>Raised when a VoxDialogClosedEvent is processed.</summary>
+    public event EventHandler<VoxDialogClosedEvent>? VoxDialogClosedProcessed;
+
     public void Post(ScreenReaderEvent evt)
     {
         _channel.Writer.TryWrite(evt);
@@ -318,6 +321,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
                 case FindPromptClosedEvent findPromptClosed:
                     FindPromptClosedProcessed?.Invoke(this, findPromptClosed);
+                    break;
+
+                case VoxDialogClosedEvent voxDialogClosed:
+                    VoxDialogClosedProcessed?.Invoke(this, voxDialogClosed);
                     break;
 
                 default:

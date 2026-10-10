@@ -1096,6 +1096,27 @@ public sealed class BrowseModeController
         }
     }
 
+    /// <summary>
+    /// Another of Vox's own dialogs (settings) is opening: browse keys are off while it is open, so
+    /// it can be typed in. False when a Vox dialog is open already. Pipeline thread.
+    /// </summary>
+    public bool BeginOwnDialog()
+    {
+        if (_modalOpen)
+            return false;
+        _modalOpen = true;
+        _ignoreFocusReturnTo = _lastFocusedRuntimeId;
+        UpdateDocumentActive();
+        return true;
+    }
+
+    /// <summary>The dialog opened with <see cref="BeginOwnDialog"/> has closed. Pipeline thread.</summary>
+    public void EndOwnDialog()
+    {
+        _modalOpen = false;
+        UpdateDocumentActive();
+    }
+
     public void HandleElementsListClosed(ElementsListClosedEvent evt)
     {
         _modalOpen = false;

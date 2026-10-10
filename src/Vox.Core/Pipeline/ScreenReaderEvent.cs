@@ -195,6 +195,9 @@ public record ElementsListClosedEvent(
 /// <summary>
 /// The find prompt closed; <paramref name="Request"/> is null if it was cancelled.
 /// </summary>
+/// <summary>A Vox dialog opened with <c>BrowseModeController.BeginOwnDialog</c> (settings) closed.</summary>
+public record VoxDialogClosedEvent(DateTimeOffset Timestamp) : ScreenReaderEvent(Timestamp);
+
 public record FindPromptClosedEvent(
     DateTimeOffset Timestamp,
     FindRequest? Request

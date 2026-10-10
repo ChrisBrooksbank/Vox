@@ -45,6 +45,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SpeechEngineRegistry _speechEngines;
     private readonly SettingsRing _settingsRing;
     private readonly SpeechHistoryCommands _speechHistoryCommands;
+    private readonly SettingsCommands _settingsCommands;
     private readonly SleepMode _sleepMode;
     private readonly MouseCommands _mouseCommands;
     private readonly RunPolicy _runPolicy;
@@ -121,8 +122,10 @@ public sealed class ScreenReaderService : IHostedService
         SpeechHistoryCommands speechHistoryCommands,
         SleepMode sleepMode,
         MouseCommands mouseCommands,
+        SettingsCommands settingsCommands,
         RunPolicy? runPolicy = null)
     {
+        _settingsCommands = settingsCommands;
         _review = review;
         _mouseTracker = mouseTracker;
         _speechEngines = speechEngines;
@@ -206,6 +209,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusInDocumentProcessed += OnFocusInDocumentProcessed;
         _eventPipeline.ElementsListClosedProcessed += OnElementsListClosedProcessed;
         _eventPipeline.FindPromptClosedProcessed += OnFindPromptClosedProcessed;
+        _eventPipeline.VoxDialogClosedProcessed += OnVoxDialogClosedProcessed;
         _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
         _eventPipeline.CaretMovedProcessed += OnCaretMovedProcessed;
@@ -269,6 +273,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusInDocumentProcessed -= OnFocusInDocumentProcessed;
         _eventPipeline.ElementsListClosedProcessed -= OnElementsListClosedProcessed;
         _eventPipeline.FindPromptClosedProcessed -= OnFindPromptClosedProcessed;
+        _eventPipeline.VoxDialogClosedProcessed -= OnVoxDialogClosedProcessed;
         _eventPipeline.PropertyChangedProcessed -= OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed -= OnElementSelectedProcessed;
         _eventPipeline.CaretMovedProcessed -= OnCaretMovedProcessed;
@@ -417,7 +422,7 @@ public sealed class ScreenReaderService : IHostedService
         if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
             && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
-            && !_sleepMode.TryHandle(e.Command))
+            && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -510,6 +515,9 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnElementsListClosedProcessed(object? sender, ElementsListClosedEvent e) =>
         _browseModeController.HandleElementsListClosed(e);
+
+    private void OnVoxDialogClosedProcessed(object? sender, VoxDialogClosedEvent e) =>
+        _browseModeController.EndOwnDialog();
 
     private void OnFindPromptClosedProcessed(object? sender, FindPromptClosedEvent e) =>
         _browseModeController.HandleFindPromptClosed(e);

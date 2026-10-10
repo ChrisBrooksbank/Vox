@@ -266,6 +266,15 @@ public static class ServiceRegistration
             return new NoMathSpeech();
         });
         services.AddSingleton<BrowseModeController>();
+        services.AddSingleton<ISettingsDialogPresenter, SettingsDialogPresenter>();
+        services.AddSingleton<SettingsCommands>(sp => new SettingsCommands(
+            sp.GetRequiredService<ISettingsDialogPresenter>(),
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+            sp.GetRequiredService<SpeechEngineRegistry>(),
+            sp.GetRequiredService<BrowseModeController>(),
+            sp.GetRequiredService<EventPipeline>(),
+            sp.GetRequiredService<ILogger<SettingsCommands>>()));
 
         // Hosted service
         services.AddHostedService<ScreenReaderService>();

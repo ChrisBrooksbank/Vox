@@ -166,5 +166,7 @@ public enum NavigationCommand
     /// <summary>Starts (or ends) exploring the expression at the browse cursor with the arrow keys.</summary>
     InteractWithMath,
     /// <summary>Turns input help on or off: keys say what they do instead of doing it.</summary>
-    ToggleInputHelp
+    ToggleInputHelp,
+    /// <summary>Opens the settings dialog.</summary>
+    OpenSettings
 }
