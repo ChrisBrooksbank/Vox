@@ -14,6 +14,7 @@ namespace Vox.Core.Configuration;
 /// <param name="ReloadKeyMap">Loads the keymap again after a save.</param>
 public sealed record GestureSetup(
     IInputGesturesPresenter Presenter,
+    ICommandSearchPresenter Search,
     string ConfigDirectory,
     string? UserKeyMapPath,
     KeyInputDispatcher Dispatcher,
@@ -42,6 +43,12 @@ public sealed class SettingsCommands(
             case NavigationCommand.OpenSettings:
                 if (browse.BeginOwnDialog())
                     _ = ShowSettingsAsync();
+                return true;
+            case NavigationCommand.OpenCommandSearch:
+                if (gestures is null)
+                    Say("Command search isn't available here");
+                else if (browse.BeginOwnDialog())
+                    _ = ShowCommandSearchAsync(gestures);
                 return true;
             case NavigationCommand.OpenInputGestures:
                 if (gestures?.UserKeyMapPath is null)
@@ -93,6 +100,22 @@ public sealed class SettingsCommands(
         {
             logger.LogError(ex, "Input gestures dialog failed");
             Say("Keys could not be saved");
+        }
+        pipeline.Post(new VoxDialogClosedEvent(DateTimeOffset.UtcNow));
+    }
+
+    private async Task ShowCommandSearchAsync(GestureSetup setup)
+    {
+        try
+        {
+            var layout = KeyMap.LayoutBindings(setup.ConfigDirectory, settings.CurrentValue.KeyboardLayout);
+            var keys = new GestureEditor(layout, setup.UserKeyMapPath is { } path ? ReadUserKeyMap(path) : []);
+            var screenReaderKey = settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+            await setup.Search.ShowAsync(query => CommandSearch.Find(query, keys, screenReaderKey)).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Command search failed");
         }
         pipeline.Post(new VoxDialogClosedEvent(DateTimeOffset.UtcNow));
     }

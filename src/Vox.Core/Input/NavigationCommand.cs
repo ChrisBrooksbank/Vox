@@ -170,5 +170,7 @@ public enum NavigationCommand
     /// <summary>Opens the settings dialog.</summary>
     OpenSettings,
     /// <summary>Opens the input gestures dialog: the keys of every command, to add and remove.</summary>
-    OpenInputGestures
+    OpenInputGestures,
+    /// <summary>Opens command search: type part of a command's name to hear its keys.</summary>
+    OpenCommandSearch
 }

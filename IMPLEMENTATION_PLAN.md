@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 149
+- Build iterations: 150
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -223,7 +223,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add accessible `SettingsDialog` shell with General and Speech tabs, applying changes live (spec: product-settings-help-install.md)
 - [x] Add Verbosity, Browse mode, Document formatting, Audio cues, Keyboard and Mouse tabs to `SettingsDialog` (spec: product-settings-help-install.md)
 - [x] Add input gestures dialog (categories, add/remove bindings, conflicts) writing the user keymap (spec: product-settings-help-install.md)
-- [ ] Add command search: type part of a command name, hear its keys (spec: product-settings-help-install.md)
+- [x] Add command search: type part of a command name, hear its keys (spec: product-settings-help-install.md)
 - [ ] Add Vox menu (Insert+N) and system tray icon: Settings, Input gestures, Speech viewer, Help, Pause speech, Exit (spec: product-settings-help-install.md)
 - [ ] Add user guide HTML in `docs/guide/` with a keyboard reference generated from the keymap at build time; open from the Vox menu (spec: product-settings-help-install.md)
 - [ ] Extend the first-run wizard with rerunnable tutorial lessons per topic (web, desktop editing, review) (spec: product-settings-help-install.md)

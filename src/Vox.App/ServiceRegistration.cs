@@ -268,6 +268,7 @@ public static class ServiceRegistration
         services.AddSingleton<BrowseModeController>();
         services.AddSingleton<ISettingsDialogPresenter, SettingsDialogPresenter>();
         services.AddSingleton<IInputGesturesPresenter, InputGesturesPresenter>();
+        services.AddSingleton<ICommandSearchPresenter, CommandSearchPresenter>();
         services.AddSingleton<SettingsCommands>(sp =>
         {
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
@@ -276,6 +277,7 @@ public static class ServiceRegistration
             var keyMapLogger = sp.GetRequiredService<ILogger<KeyMap>>();
             var gestures = new GestureSetup(
                 sp.GetRequiredService<IInputGesturesPresenter>(),
+                sp.GetRequiredService<ICommandSearchPresenter>(),
                 Path.Combine(AppContext.BaseDirectory, "assets", "config"),
                 // Secure screens never change the user's keys
                 policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null,

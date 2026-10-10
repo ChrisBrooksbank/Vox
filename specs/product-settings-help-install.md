@@ -23,7 +23,7 @@ Everything that turns Vox from a program into a product: an accessible settings 
 - [x] `KeyMap` loads user keymap overrides from `%APPDATA%/Vox/keymap.json`
 - [ ] Vox menu (Insert+N) and system tray icon: Settings, Input gestures, Speech viewer, Help, Pause speech, Exit
 - [x] Input help mode (Insert+1): keys speak their command name and description instead of running
-- [ ] Command search: type part of a command name, hear its keys
+- [x] Command search: type part of a command name, hear its keys
 - [x] Command descriptions stored with the commands (used by help mode, gestures dialog and the guide)
 - [ ] User guide (HTML, with a keyboard reference generated from the keymap), opened from the Vox menu (Insert+F1 stays developer info, as in NVDA)
 - [ ] Interactive tutorial extends the first-run wizard: practice lessons per topic, rerunnable
