@@ -32,3 +32,14 @@ public async Task Something()
     await vox.Speech.WaitForAsync(s => s.Text.Contains("Train times"), TimeSpan.FromSeconds(5));
 }
 ```
+
+## Approved transcripts
+
+A scenario can end with `Transcript.Verify(vox.Speech, "<name>")`: everything Vox said (one utterance per line, with its priority) must match `tests/Vox.E2E.Tests/Transcripts/<name>.approved.txt` exactly. Any difference fails the test and writes `<name>.received.txt` next to it (git ignores those). A new scenario fails on its first run for the same reason. Read the received file, and if the speech is right, approve it:
+
+```powershell
+tools/approve-transcripts.ps1            # every received transcript
+tools/approve-transcripts.ps1 headings-h # just one
+```
+
+Then commit the approved file; `git diff` shows what changed.

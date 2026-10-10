@@ -16,7 +16,7 @@ Keep Vox trustworthy as it grows: CI on Windows, end-to-end spoken-output tests,
 - [ ] `RecordingSpeechEngine` (`ISpeechEngine`) that records utterances with priority and timing for tests
 - [ ] `Vox.E2E.Tests` project: starts Vox's core services in-process with the recording engine and a synthetic key injector (`SendInput`), drives Edge/Chrome/Firefox through Playwright against a local test-page corpus
 - [x] Test-page corpus in `tests/pages/`: ARIA APG patterns, tables, forms with errors, live regions, dialogs, long pages
-- [ ] Approved-transcript snapshots: test fails on any spoken-output difference; tool to approve new transcripts
+- [x] Approved-transcript snapshots: test fails on any spoken-output difference; tool to approve new transcripts
 - [ ] Desktop E2E: Notepad, Explorer, Settings scenarios through UIA (runs on a self-hosted or interactive runner; skipped on headless CI)
 - [ ] Benchmarks (BenchmarkDotNet): buffer build per node count (1k/10k/50k synthetic snapshots), cursor movement, `TextProcessor` throughput; tracked per commit
 - [ ] Latency test: injected key → first `SpeakAsync` call p95 reported

@@ -1,0 +1,1 @@
+Approved transcripts (`<scenario>.approved.txt`) for the end-to-end tests: what Vox said, one utterance per line with its priority. A run that says something else writes `<scenario>.received.txt` here and fails; if the new speech is right, run `tools/approve-transcripts.ps1` to approve it. Received files are not committed.

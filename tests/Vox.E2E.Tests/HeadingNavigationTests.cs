@@ -29,5 +29,8 @@ public class HeadingNavigationTests
 
         Press('H', Shift);
         await vox.Speech.WaitForAsync(s => s.Text.Contains("Headings and landmarks") && s.Text.Contains("heading level 1"), KeyResponse);
+
+        // Exactly what was said, as approved
+        Transcript.Verify(vox.Speech, "headings-h");
     }
 }
