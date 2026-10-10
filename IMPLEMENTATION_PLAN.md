@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 153
+- Build iterations: 154
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -227,7 +227,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add Vox menu (Insert+N) and system tray icon: Settings, Input gestures, Speech viewer, Help, Pause speech, Exit (spec: product-settings-help-install.md)
 - [x] Add user guide HTML in `docs/guide/` with a keyboard reference generated from the keymap at build time; open from the Vox menu (spec: product-settings-help-install.md)
 - [x] Extend the first-run wizard with rerunnable tutorial lessons per topic (web, desktop editing, review) (spec: product-settings-help-install.md)
-- [ ] Add installer project (signed MSI/MSIX to Program Files, shortcut with Ctrl+Alt+V, optional start at logon, installs `Vox.Service` and `Vox.Watchdog`) (spec: product-settings-help-install.md)
+- [x] Add installer project (signed MSI/MSIX to Program Files, shortcut with Ctrl+Alt+V, optional start at logon, installs `Vox.Service` and `Vox.Watchdog`) (spec: product-settings-help-install.md)
 - [ ] Add portable copy creation from the Vox menu with settings stored beside the exe (spec: product-settings-help-install.md)
 - [ ] Add update checker: signed release feed (stable/beta), spoken "update available", download, signature check, install on request; unit tests for feed parsing and signature rejection (spec: product-settings-help-install.md)
 

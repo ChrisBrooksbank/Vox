@@ -1,0 +1,59 @@
+name: Release
+
+# Builds the Vox installer (Vox.msi) on demand: publishes Vox.App, Vox.Watchdog and Vox.Service
+# self-contained into one folder, signs them when a certificate is configured (UI access needs a
+# signed Vox in Program Files; docs/signing.md), and builds the MSI from it (docs/installer.md).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version (major.minor.patch)
+        required: true
+        default: 0.1.0
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      PUBLISH_DIR: ${{ github.workspace }}\publish\Vox
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Write the signing certificate
+        if: ${{ env.SIGNING_CERTIFICATE != '' }}
+        env:
+          SIGNING_CERTIFICATE: ${{ secrets.VOX_SIGNING_CERTIFICATE }}
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\vox.pfx", [Convert]::FromBase64String($env:SIGNING_CERTIFICATE))
+          "VOX_SIGNING_ARGS=-p:VoxSigningCertificate=$env:RUNNER_TEMP\vox.pfx" >> $env:GITHUB_ENV
+
+      - name: Publish Vox
+        shell: pwsh
+        env:
+          VoxSigningPassword: ${{ secrets.VOX_SIGNING_PASSWORD }}
+        run: |
+          foreach ($project in 'src/Vox.App', 'src/Vox.Watchdog', 'src/Vox.Service') {
+            dotnet publish $project -c Release -r win-x64 --self-contained true -o $env:PUBLISH_DIR `
+              -p:Version=${{ inputs.version }} $env:VOX_SIGNING_ARGS
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Build the installer
+        run: dotnet build installer/Vox.Installer -c Release -p:PublishDir="${{ env.PUBLISH_DIR }}" -p:VoxVersion=${{ inputs.version }} -o installer-out
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vox-${{ inputs.version }}
+          path: installer-out/*.msi
