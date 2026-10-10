@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 144
+- Build iterations: 145
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -218,7 +218,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 - [x] Add settings schema version and migration of older settings files; unit tests (spec: product-settings-help-install.md)
 - [x] Add command descriptions and categories alongside `NavigationCommand` (one source used by help, gestures dialog and guide); unit test every command has one (spec: product-settings-help-install.md)
-- [ ] Add user keymap layering from `%APPDATA%/Vox/keymap.json` with conflict detection; unit tests (spec: product-settings-help-install.md)
+- [x] Add user keymap layering from `%APPDATA%/Vox/keymap.json` with conflict detection; unit tests (spec: product-settings-help-install.md)
 - [ ] Add input help mode (Insert+1): keys speak command name and description; unit tests (spec: product-settings-help-install.md)
 - [ ] Add accessible `SettingsDialog` shell with General and Speech tabs, applying changes live (spec: product-settings-help-install.md)
 - [ ] Add Verbosity, Browse mode, Document formatting, Audio cues, Keyboard and Mouse tabs to `SettingsDialog` (spec: product-settings-help-install.md)

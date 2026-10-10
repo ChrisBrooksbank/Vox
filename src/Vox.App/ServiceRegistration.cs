@@ -215,7 +215,8 @@ public static class ServiceRegistration
         services.AddSingleton<HookSafetyNet>();
         services.AddSingleton<KeyMap>(sp => LoadKeyMap(
             sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.KeyboardLayout,
-            sp.GetRequiredService<ILogger<KeyMap>>()));
+            sp.GetRequiredService<ILogger<KeyMap>>(),
+            sp.GetService<RunPolicy>() ?? RunPolicy.Normal));
         services.AddSingleton<KeyInputDispatcher>(sp =>
         {
             var hook = sp.GetRequiredService<IKeyboardHook>();
@@ -272,12 +273,15 @@ public static class ServiceRegistration
 
     /// <summary>
     /// Loads the keymap for <paramref name="layout"/> from assets/config, falling back to the
-    /// built-in one; problems are logged.
+    /// built-in one, with the user's keymap layered on top (not on secure screens); problems and
+    /// conflicts are logged.
     /// </summary>
-    public static KeyMap LoadKeyMap(KeyboardLayout layout, ILogger logger)
+    public static KeyMap LoadKeyMap(KeyboardLayout layout, ILogger logger, RunPolicy policy)
     {
         var configDirectory = Path.Combine(AppContext.BaseDirectory, "assets", "config");
-        var keyMap = KeyMap.LoadLayout(configDirectory, layout, out var error, out var warnings);
+        // The user's own bindings (%APPDATA%\Vox\keymap.json); never on secure screens
+        var userKeyMap = policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null;
+        var keyMap = KeyMap.LoadLayout(configDirectory, layout, userKeyMap, out var error, out var warnings);
         if (error is not null)
         {
             logger.LogError(error,
