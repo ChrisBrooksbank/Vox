@@ -384,6 +384,18 @@ public sealed class BrowseModeController
             return;
         }
 
+        if (command == NavigationCommand.PageSummary)
+        {
+            Speak(PageSummary.Describe(_quickNavHandler.CurrentDocument));
+            return;
+        }
+
+        if (command == NavigationCommand.SayLinkUrl)
+        {
+            Speak(PageSummary.LinkUrlText(_cursor?.CurrentNode ?? _quickNavHandler.CurrentNode));
+            return;
+        }
+
         if (TableNavigator.IsTableCommand(command))
         {
             MoveInTable(command);
@@ -558,6 +570,7 @@ public sealed class BrowseModeController
         BrowseSelection.IsSelectionCommand(command) || command is
         NavigationCommand.CopySelection or NavigationCommand.ReadSelection or
         NavigationCommand.MarkStart or NavigationCommand.SelectFromMark or
+        NavigationCommand.PageSummary or NavigationCommand.SayLinkUrl or
         NavigationCommand.ReadCurrentLine or NavigationCommand.ReadCurrentWord or
         NavigationCommand.ReadCurrentChar or NavigationCommand.ReadFormatting or
         NavigationCommand.StopSpeech;

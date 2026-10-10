@@ -156,5 +156,9 @@ public enum NavigationCommand
     SelectAll,
     CopySelection,
     MarkStart,
-    SelectFromMark
+    SelectFromMark,
+    /// <summary>Says the page's title, language and how many headings, links and so on it has.</summary>
+    PageSummary,
+    /// <summary>Says the address of the link at the browse cursor.</summary>
+    SayLinkUrl
 }

@@ -322,6 +322,15 @@ public class DefaultKeyMapReadingKeysTests
     }
 
     [Theory]
+    [InlineData(KeyModifiers.Insert | KeyModifiers.Shift, 73, NavigationCommand.PageSummary)]
+    [InlineData(KeyModifiers.Insert, 75, NavigationCommand.SayLinkUrl)]
+    public void PageInformationKeys(KeyModifiers modifiers, int vk, NavigationCommand expected)
+    {
+        Assert.True(Map.TryResolve(modifiers, vk, InteractionMode.Browse, out var command));
+        Assert.Equal(expected, command);
+    }
+
+    [Theory]
     [InlineData(KeyModifiers.None, 36)]
     [InlineData(KeyModifiers.Ctrl, 39)]
     public void ReadingKeys_ReachTheControlInFocusMode(KeyModifiers modifiers, int vk) =>

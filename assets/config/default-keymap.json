@@ -96,6 +96,8 @@
     { "modifiers": "Ctrl",        "vkCode": 67,  "mode": "Browse", "command": "CopySelection" },
     { "modifiers": "Insert",      "vkCode": 120, "mode": "Browse", "command": "MarkStart" },
     { "modifiers": "Insert",      "vkCode": 121, "mode": "Browse", "command": "SelectFromMark" },
+    { "modifiers": "Insert|Shift", "vkCode": 73, "mode": "Browse", "command": "PageSummary" },
+    { "modifiers": "Insert",      "vkCode": 75,  "mode": "Browse", "command": "SayLinkUrl" },
     { "modifiers": "None",        "vkCode": 39,  "mode": "Browse", "command": "NextChar" },
     { "modifiers": "None",        "vkCode": 37,  "mode": "Browse", "command": "PrevChar" },
     { "modifiers": "None",        "vkCode": 13,  "mode": "Browse", "command": "ActivateElement" },
