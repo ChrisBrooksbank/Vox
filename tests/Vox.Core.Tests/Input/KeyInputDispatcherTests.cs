@@ -519,4 +519,39 @@ public class KeyInputDispatcherTests
             InputHelp.Describe(NavigationCommand.NextHeading, KeyModifiers.None, 0x48, false));
         Assert.Equal("Caps Lock+J", InputHelp.Describe(null, KeyModifiers.Insert, 0x4A, false, "Caps Lock"));
     }
+
+    [Fact]
+    public void CaptureNextKey_GetsTheKeyInsteadOfItsCommand_Once()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildMap("Insert", 84, "Any", "SayTitle"));
+        var captured = new List<(KeyModifiers, int, bool)>();
+        dispatcher.CaptureNextKey((m, vk, keypad) => captured.Add((m, vk, keypad)));
+        var shift = new KeyEvent { VkCode = 0xA0, Modifiers = KeyModifiers.Shift, IsKeyDown = true };
+        var title = new KeyEvent { VkCode = 84, Modifiers = KeyModifiers.Insert, IsKeyDown = true };
+
+        // A modifier alone is not the key being waited for
+        Assert.False(dispatcher.Decide(shift).Suppress);
+        Press(dispatcher, fireKey, shift);
+        Assert.True(dispatcher.Decide(title).Suppress);
+        Press(dispatcher, fireKey, title);
+        Press(dispatcher, fireKey, title);
+
+        Assert.Equal([(KeyModifiers.Insert, 84, false)], captured);
+        // The second press ran the command as usual
+        Assert.Single(sink.Posted.OfType<NavigationCommandEvent>());
+    }
+
+    [Fact]
+    public void CancelCapture_StopsWaiting()
+    {
+        var (dispatcher, sink, fireKey) = Create(BuildMap("Insert", 84, "Any", "SayTitle"));
+        bool called = false;
+        dispatcher.CaptureNextKey((_, _, _) => called = true);
+
+        dispatcher.CancelCapture();
+        Press(dispatcher, fireKey, new KeyEvent { VkCode = 84, Modifiers = KeyModifiers.Insert, IsKeyDown = true });
+
+        Assert.False(called);
+        Assert.Single(sink.Posted.OfType<NavigationCommandEvent>());
+    }
 }

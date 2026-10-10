@@ -168,5 +168,7 @@ public enum NavigationCommand
     /// <summary>Turns input help on or off: keys say what they do instead of doing it.</summary>
     ToggleInputHelp,
     /// <summary>Opens the settings dialog.</summary>
-    OpenSettings
+    OpenSettings,
+    /// <summary>Opens the input gestures dialog: the keys of every command, to add and remove.</summary>
+    OpenInputGestures
 }

@@ -267,14 +267,31 @@ public static class ServiceRegistration
         });
         services.AddSingleton<BrowseModeController>();
         services.AddSingleton<ISettingsDialogPresenter, SettingsDialogPresenter>();
-        services.AddSingleton<SettingsCommands>(sp => new SettingsCommands(
-            sp.GetRequiredService<ISettingsDialogPresenter>(),
-            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
-            sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
-            sp.GetRequiredService<SpeechEngineRegistry>(),
-            sp.GetRequiredService<BrowseModeController>(),
-            sp.GetRequiredService<EventPipeline>(),
-            sp.GetRequiredService<ILogger<SettingsCommands>>()));
+        services.AddSingleton<IInputGesturesPresenter, InputGesturesPresenter>();
+        services.AddSingleton<SettingsCommands>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();
+            var keyMapLogger = sp.GetRequiredService<ILogger<KeyMap>>();
+            var gestures = new GestureSetup(
+                sp.GetRequiredService<IInputGesturesPresenter>(),
+                Path.Combine(AppContext.BaseDirectory, "assets", "config"),
+                // Secure screens never change the user's keys
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null,
+                dispatcher,
+                () => dispatcher.SetKeyMap(LoadKeyMap(settings.CurrentValue.KeyboardLayout, keyMapLogger, policy)));
+            return new SettingsCommands(
+                sp.GetRequiredService<ISettingsDialogPresenter>(),
+                settings,
+                sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+                sp.GetRequiredService<SpeechEngineRegistry>(),
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<EventPipeline>(),
+                sp.GetRequiredService<ILogger<SettingsCommands>>(),
+                sp.GetRequiredService<SpeechQueue>(),
+                gestures);
+        });
 
         // Hosted service
         services.AddHostedService<ScreenReaderService>();

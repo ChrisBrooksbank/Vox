@@ -34,6 +34,12 @@ internal sealed class KeyMapFile
 }
 
 /// <summary>
+/// A binding as written in a keymap file: <paramref name="Mode"/> is "Browse", "Focus" or "Any";
+/// <paramref name="Command"/> a <see cref="NavigationCommand"/> name, or "None" (unbinds, in a user keymap).
+/// </summary>
+public sealed record KeyBinding(KeyModifiers Modifiers, int VkCode, string Mode, string Command, bool PassThrough = false);
+
+/// <summary>
 /// Lookup key for a keymap entry: modifier combination, virtual key code, and interaction mode.
 /// </summary>
 public readonly record struct KeyMapKey(KeyModifiers Modifiers, int VkCode, InteractionMode Mode);
@@ -164,6 +170,65 @@ public sealed class KeyMap
 
     /// <summary>The command name that unbinds a key in the user keymap.</summary>
     public const string UnboundCommand = "None";
+
+    /// <summary>
+    /// The bindings of <paramref name="layout"/> as its files list them (the laptop layout: the
+    /// desktop's off the keypad, then the laptop's), from <paramref name="configDirectory"/> or
+    /// else the built-in ones. Entries with unknown modifiers are left out.
+    /// </summary>
+    public static IReadOnlyList<KeyBinding> LayoutBindings(string configDirectory, KeyboardLayout layout)
+    {
+        string desktop, laptop;
+        try
+        {
+            desktop = File.ReadAllText(Path.Combine(configDirectory, DesktopFileName));
+            laptop = File.ReadAllText(Path.Combine(configDirectory, LaptopFileName));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            desktop = ReadResource(DesktopFileName);
+            laptop = ReadResource(LaptopFileName);
+        }
+        var entries = Parse(desktop).Bindings.AsEnumerable();
+        if (layout == KeyboardLayout.Laptop)
+            entries = entries.Where(e => !NumpadKeys.IsKeypadBindingCode(e.VkCode)).Concat(Parse(laptop).Bindings);
+        return ToBindings(entries);
+    }
+
+    /// <summary>The bindings in a keymap file's JSON (a user keymap's included); unknown modifiers are left out.</summary>
+    public static IReadOnlyList<KeyBinding> ParseBindings(string json) => ToBindings(Parse(json).Bindings);
+
+    private static List<KeyBinding> ToBindings(IEnumerable<KeyBindingEntry> entries)
+    {
+        var bindings = new List<KeyBinding>();
+        foreach (var entry in entries)
+        {
+            if (TryParseModifiers(entry.Modifiers, out var modifiers))
+                bindings.Add(new KeyBinding(modifiers, entry.VkCode, entry.Mode, entry.Command, entry.PassThrough));
+        }
+        return bindings;
+    }
+
+    /// <summary>A keymap file holding <paramref name="bindings"/> (the format the loaders read).</summary>
+    public static string ToJson(IEnumerable<KeyBinding> bindings)
+    {
+        var file = new KeyMapFile
+        {
+            Bindings = bindings.Select(b => new KeyBindingEntry
+            {
+                Modifiers = b.Modifiers == KeyModifiers.None ? "None" : b.Modifiers.ToString().Replace(", ", "|"),
+                VkCode = b.VkCode,
+                Mode = b.Mode,
+                Command = b.Command,
+                PassThrough = b.PassThrough,
+            }).ToList(),
+        };
+        return JsonSerializer.Serialize(file, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+        });
+    }
 
     private static string ReadResource(string fileName)
     {
