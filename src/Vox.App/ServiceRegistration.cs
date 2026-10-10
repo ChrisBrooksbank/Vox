@@ -5,10 +5,12 @@ using Vox.Core.Configuration;
 using Vox.Core.Diagnostics;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
+using Vox.Core.MathSpeech;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 using Vox.Core.Text;
+using Vox.Core.Updates;
 
 namespace Vox.App;
 
@@ -79,7 +81,7 @@ public static class ServiceRegistration
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
             // Secure screens never read the user's profile
             var directory = policy.AllowUserProfileAccess
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Vox", "dictionaries")
+                ? Path.Combine(VoxPaths.UserData, "dictionaries")
                 : null;
             var engine = sp.GetRequiredService<ISpeechEngine>();
             var rule = new PronunciationRule(PronunciationRule.LoadBuiltInDefault(), directory, () => engine.CurrentVoice,
@@ -214,7 +216,8 @@ public static class ServiceRegistration
         services.AddSingleton<HookSafetyNet>();
         services.AddSingleton<KeyMap>(sp => LoadKeyMap(
             sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.KeyboardLayout,
-            sp.GetRequiredService<ILogger<KeyMap>>()));
+            sp.GetRequiredService<ILogger<KeyMap>>(),
+            sp.GetService<RunPolicy>() ?? RunPolicy.Normal));
         services.AddSingleton<KeyInputDispatcher>(sp =>
         {
             var hook = sp.GetRequiredService<IKeyboardHook>();
@@ -233,7 +236,21 @@ public static class ServiceRegistration
         });
 
         // First-run wizard
-        services.AddSingleton<FirstRunWizard>();
+        services.AddSingleton<FirstRunWizard>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<SettingsMonitor>();
+            return new FirstRunWizard(
+                sp.GetRequiredService<ISpeechEngine>(),
+                sp.GetRequiredService<SettingsManager>(),
+                settings,
+                sp.GetRequiredService<IKeyboardHook>(),
+                sp.GetRequiredService<ILogger<FirstRunWizard>>(),
+                // The practice lessons teach the keys in use: the layout's and the user's own
+                () => new GestureEditor(
+                    KeyMap.LayoutBindings(Path.Combine(AppContext.BaseDirectory, "assets", "config"), settings.CurrentValue.KeyboardLayout),
+                    KeyMap.ReadUserBindings(policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null)));
+        });
 
         // Navigation
         services.AddSingleton<NavigationManager>();
@@ -245,11 +262,86 @@ public static class ServiceRegistration
         });
         services.AddSingleton<SayAllController>();
         services.AddSingleton<IElementsListPresenter, ElementsListPresenter>();
+        services.AddSingleton<IFindPrompt, FindPromptPresenter>();
         // Header rows/columns set by hand; secure screens keep them for the session only
         services.AddSingleton<TableHeaderStore>(sp => new TableHeaderStore(
             (sp.GetService<RunPolicy>() ?? RunPolicy.Normal).AllowSettingsWrites ? TableHeaderStore.DefaultPath : null,
             sp.GetRequiredService<ILogger<TableHeaderStore>>()));
+        // MathCAT, when installed as an optional component (never on secure screens)
+        services.AddSingleton<IMathSpeech>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var directory = MathCatComponent.DefaultDirectory;
+            if (policy.AllowAddOns && MathCatComponent.IsInstalled(directory))
+            {
+                var logger = sp.GetRequiredService<ILogger<MathCatSpeech>>();
+                try { return MathCatSpeech.Load(directory, logger); }
+                catch (Exception ex) { logger.LogWarning(ex, "Could not load MathCAT"); }
+            }
+            return new NoMathSpeech();
+        });
         services.AddSingleton<BrowseModeController>();
+        services.AddSingleton<ISettingsDialogPresenter, SettingsDialogPresenter>();
+        services.AddSingleton<IInputGesturesPresenter, InputGesturesPresenter>();
+        services.AddSingleton<ICommandSearchPresenter, CommandSearchPresenter>();
+        services.AddSingleton<IVoxMenuPresenter, VoxMenuPresenter>();
+        services.AddSingleton<IPortableCopyPresenter, PortableCopyPresenter>();
+        services.AddSingleton<IConfirmPresenter, ConfirmPresenter>();
+        // Updates: only with the release key shipped beside Vox, and never on secure screens
+        services.AddSingleton<UpdateChecker>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var key = policy.AllowNetwork ? UpdateChecker.ReadPublicKey(Path.Combine(AppContext.BaseDirectory, "assets", "config")) : null;
+            return new UpdateChecker(
+                new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
+                () => settings.CurrentValue.UpdateChannel,
+                key,
+                UpdateChecker.DefaultFeedUrl,
+                typeof(ServiceRegistration).Assembly.GetName().Version ?? new Version(0, 1),
+                sp.GetRequiredService<ILogger<UpdateChecker>>());
+        });
+        services.AddSingleton<UpdateCommands>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var lifetime = sp.GetRequiredService<IHostApplicationLifetime>();
+            return new UpdateCommands(
+                sp.GetRequiredService<UpdateChecker>(),
+                sp.GetRequiredService<IConfirmPresenter>(),
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<EventPipeline>(),
+                sp.GetRequiredService<SpeechQueue>(),
+                lifetime.StopApplication,
+                policy.AllowSettingsWrites ? Path.Combine(VoxPaths.UserData, "update-check.txt") : null,
+                sp.GetRequiredService<ILogger<UpdateCommands>>());
+        });
+        services.AddSingleton<SettingsCommands>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();
+            var keyMapLogger = sp.GetRequiredService<ILogger<KeyMap>>();
+            var gestures = new GestureSetup(
+                sp.GetRequiredService<IInputGesturesPresenter>(),
+                sp.GetRequiredService<ICommandSearchPresenter>(),
+                Path.Combine(AppContext.BaseDirectory, "assets", "config"),
+                // Secure screens never change the user's keys
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null,
+                dispatcher,
+                () => dispatcher.SetKeyMap(LoadKeyMap(settings.CurrentValue.KeyboardLayout, keyMapLogger, policy)));
+            return new SettingsCommands(
+                sp.GetRequiredService<ISettingsDialogPresenter>(),
+                settings,
+                sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+                sp.GetRequiredService<SpeechEngineRegistry>(),
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<EventPipeline>(),
+                sp.GetRequiredService<ILogger<SettingsCommands>>(),
+                sp.GetRequiredService<SpeechQueue>(),
+                gestures,
+                sp.GetRequiredService<IVoxMenuPresenter>(),
+                sp.GetRequiredService<IPortableCopyPresenter>());
+        });
 
         // Hosted service
         services.AddHostedService<ScreenReaderService>();
@@ -257,12 +349,15 @@ public static class ServiceRegistration
 
     /// <summary>
     /// Loads the keymap for <paramref name="layout"/> from assets/config, falling back to the
-    /// built-in one; problems are logged.
+    /// built-in one, with the user's keymap layered on top (not on secure screens); problems and
+    /// conflicts are logged.
     /// </summary>
-    public static KeyMap LoadKeyMap(KeyboardLayout layout, ILogger logger)
+    public static KeyMap LoadKeyMap(KeyboardLayout layout, ILogger logger, RunPolicy policy)
     {
         var configDirectory = Path.Combine(AppContext.BaseDirectory, "assets", "config");
-        var keyMap = KeyMap.LoadLayout(configDirectory, layout, out var error, out var warnings);
+        // The user's own bindings (%APPDATA%\Vox\keymap.json); never on secure screens
+        var userKeyMap = policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null;
+        var keyMap = KeyMap.LoadLayout(configDirectory, layout, userKeyMap, out var error, out var warnings);
         if (error is not null)
         {
             logger.LogError(error,

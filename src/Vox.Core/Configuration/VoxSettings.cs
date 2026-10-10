@@ -1,3 +1,5 @@
+using Vox.Core.Pipeline;
+
 namespace Vox.Core.Configuration;
 
 public enum VerbosityLevel
@@ -136,12 +138,30 @@ public record VoxSettings
     public Dictionary<string, string> LanguageVoices { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Applications (process names) in sleep mode: Vox neither speaks nor takes keys while they have focus.</summary>
     public List<string> SleepApps { get; init; } = [];
+    /// <summary>
+    /// The mode web content in an application (process name, e.g. "Code", "ms-teams") starts in,
+    /// overriding the automatic choice (Focus mode for web applications, else Browse mode).
+    /// </summary>
+    public Dictionary<string, InteractionMode> AppDefaultModes { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "eSpeak" when installed, "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }
     public TypingEchoMode TypingEchoMode { get; init; } = TypingEchoMode.Both;
     public bool AudioCuesEnabled { get; init; } = true;
     public bool AnnounceVisitedLinks { get; init; } = true;
+
+    /// <summary>The settings file format this version of Vox writes (<see cref="SettingsMigrations"/>).</summary>
+    public const int CurrentSchemaVersion = 2;
+
+    /// <summary>The format of the file the settings came from; older files are migrated when read.</summary>
+    public int SchemaVersion { get; init; } = CurrentSchemaVersion;
+    /// <summary>Say an abbreviation's expansion (its title) before it when the browse cursor reaches it.</summary>
+    public bool ExpandAbbreviations { get; init; }
+    /// <summary>
+    /// Browse mode keeps links and other inline text on their paragraph's line, as on screen
+    /// (true), or puts every element on a line of its own (false).
+    /// </summary>
+    public bool ScreenLayout { get; init; } = true;
     public ModifierKey ModifierKey { get; init; } = ModifierKey.Insert;
     /// <summary>Desktop (numeric keypad) or laptop key bindings.</summary>
     public KeyboardLayout KeyboardLayout { get; init; } = KeyboardLayout.Desktop;
@@ -156,6 +176,8 @@ public record VoxSettings
     public bool ReportBackgroundProgress { get; init; } = false;
     /// <summary>Start Vox when the user signs in to Windows.</summary>
     public bool StartAtLogon { get; init; } = false;
+    /// <summary>Which updates to check for (once a day, at startup); Off never asks the network.</summary>
+    public Updates.UpdateChannel UpdateChannel { get; init; } = Updates.UpdateChannel.Stable;
     /// <summary>Output device for earcons and tones by name (null: the default device).</summary>
     public string? AudioOutputDevice { get; init; }
     /// <summary>Lower other applications' audio: off, while Vox speaks, or always (needs UI access).</summary>

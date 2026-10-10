@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vox user guide</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<main>
+<h1>Vox user guide</h1>
+<p>Vox is a screen reader for Windows 11. It reads what is on the screen aloud, and lets you browse web pages, documents and applications from the keyboard.</p>
+
+<nav aria-label="Contents">
+<h2>Contents</h2>
+<ul>
+  <li><a href="#start">Getting started</a></li>
+  <li><a href="#vox-key">The Vox key</a></li>
+  <li><a href="#help">Learning the keys</a></li>
+  <li><a href="#web">Reading web pages</a></li>
+  <li><a href="#quick">Moving by element</a></li>
+  <li><a href="#forms">Forms and focus mode</a></li>
+  <li><a href="#tables">Tables</a></li>
+  <li><a href="#find">Find, select and copy</a></li>
+  <li><a href="#desktop">Applications and documents</a></li>
+  <li><a href="#review">Reviewing the screen</a></li>
+  <li><a href="#speech">Speech</a></li>
+  <li><a href="#settings">Settings and your own keys</a></li>
+  <li><a href="#sleep">Sleep mode</a></li>
+  <li><a href="#trouble">When something goes wrong</a></li>
+  <li><a href="keyboard.html">Keyboard reference</a></li>
+</ul>
+</nav>
+
+<h2 id="start">Getting started</h2>
+<p>When Vox starts for the first time, a short welcome wizard asks how fast to speak, how much detail you want and which key to use as the Vox key. Run it again at any time from the Vox menu (<kbd>Insert+N</kbd>), or with <kbd>Insert+Ctrl+S</kbd>.</p>
+<p>To quit Vox, press <kbd>Insert+Q</kbd> twice, or choose Exit Vox in the Vox menu.</p>
+
+<h2 id="vox-key">The Vox key</h2>
+<p>Most Vox commands are pressed with the Vox key held down: <kbd>Insert</kbd>, or <kbd>Caps Lock</kbd> if you chose it. Keys pressed with the Vox key are always Vox's: they never reach the application. To use the Vox key's own function (turn Caps Lock on, for example), press it twice quickly.</p>
+<p>On a laptop without a numeric keypad, choose the laptop keyboard layout in Settings, Keyboard.</p>
+
+<h2 id="help">Learning the keys</h2>
+<ul>
+  <li><strong>Input help</strong>, <kbd>Insert+1</kbd>: while it is on, every key says what it does instead of doing it. Press <kbd>Insert+1</kbd> again to turn it off.</li>
+  <li><strong>Command search</strong>, in the Vox menu: type part of a command's name to hear its keys.</li>
+  <li>The <a href="keyboard.html">keyboard reference</a> lists every command with its keys.</li>
+</ul>
+
+<h2 id="web">Reading web pages</h2>
+<p>In Edge and Chrome (and Firefox, with some limits), Vox reads a page in <strong>browse mode</strong>: you move through it with the arrow keys as through a document, and single letters move by element. <kbd>Down Arrow</kbd> reads the next line, <kbd>Ctrl+Down Arrow</kbd> the next paragraph, <kbd>Ctrl+Home</kbd> goes to the top. <kbd>Insert+Down Arrow</kbd> reads from where you are to the end; any key stops it.</p>
+<p>Vox says when you enter or leave a list, a figure, a comment, an insertion or a deletion, and calls an element "clickable" when it reacts to a click without being a link or button. <kbd>Insert+Shift+I</kbd> summarises the page; <kbd>Insert+K</kbd> says where the link under the cursor goes.</p>
+<p>When a page opens with a cookie banner or a dialog over it, Vox says so; <kbd>Insert+Shift+D</kbd> presses its Reject or Close button. Vox never dismisses one by itself.</p>
+<p>A PDF opened in Edge is read the same way. Vox says when a PDF has no headings or structure (it is "untagged") or no text at all.</p>
+
+<h2 id="quick">Moving by element</h2>
+<p>In browse mode a letter moves to the next element of a kind, and with <kbd>Shift</kbd> to the previous one: <kbd>H</kbd> heading (<kbd>1</kbd> to <kbd>6</kbd> by level), <kbd>K</kbd> link, <kbd>D</kbd> landmark, <kbd>F</kbd> form field, <kbd>B</kbd> button, <kbd>E</kbd> edit field, <kbd>T</kbd> table, <kbd>L</kbd> list, <kbd>I</kbd> list item, <kbd>G</kbd> graphic, and more in the <a href="keyboard.html">keyboard reference</a>. <kbd>Insert+F7</kbd> lists the page's headings, links, landmarks, form fields, buttons and tables to pick from.</p>
+
+<h2 id="forms">Forms and focus mode</h2>
+<p>To type in a field, move to it and press <kbd>Enter</kbd>, or <kbd>Tab</kbd> to it: Vox switches to <strong>focus mode</strong>, where keys go to the page, and plays a sound. <kbd>Escape</kbd> goes back to browse mode; <kbd>Insert+Space</kbd> switches by hand. Vox says a field's label, whether it is required or invalid, and its error message. Web applications such as editors, chat and mail apps start in focus mode.</p>
+
+<h2 id="tables">Tables</h2>
+<p>In a table, <kbd>Ctrl+Alt+Arrow keys</kbd> move cell by cell, saying the row and column headers when they change. <kbd>Ctrl+Alt+Home</kbd> and <kbd>Ctrl+Alt+End</kbd> go to the first and last cell. For a table without headers, you can set the row or column that holds them.</p>
+
+<h2 id="find">Find, select and copy</h2>
+<p><kbd>Insert+Ctrl+F</kbd> finds text on the page; <kbd>Insert+F3</kbd> finds the next match. In browse mode, <kbd>Shift</kbd> with the arrow keys selects text and <kbd>Ctrl+C</kbd> copies it.</p>
+
+<h2 id="desktop">Applications and documents</h2>
+<p>In applications Vox says what has focus as you move with <kbd>Tab</kbd> and the arrow keys, reads text as you type and move the caret, and reports progress bars. <kbd>Insert+Tab</kbd> says what has focus, <kbd>Insert+T</kbd> the window title, <kbd>Insert+End</kbd> the status bar, <kbd>Insert+F12</kbd> the time.</p>
+
+<h2 id="review">Reviewing the screen</h2>
+<p>The review cursor reads text anywhere on the screen without moving the focus, and object navigation moves between the controls of a window. See the Object navigation and Review cursor sections of the <a href="keyboard.html">keyboard reference</a>.</p>
+
+<h2 id="speech">Speech</h2>
+<p><kbd>Ctrl</kbd> stops speech. <kbd>Insert+Ctrl+Left</kbd> and <kbd>Right</kbd> pick a voice setting (voice, rate, pitch, volume, punctuation, synthesizer), <kbd>Insert+Ctrl+Up</kbd> and <kbd>Down</kbd> change it. <kbd>Insert+S</kbd> pauses all speech until pressed again. <kbd>Insert+Shift+F11</kbd> says again what Vox said a moment ago.</p>
+<p>Math in web pages is spoken and can be explored with <kbd>Insert+Alt+M</kbd> when the optional MathCAT component is installed.</p>
+
+<h2 id="settings">Settings and your own keys</h2>
+<p><kbd>Insert+Ctrl+G</kbd> opens Settings. Every change applies at once; Cancel puts things back as they were. In Input gestures (Vox menu) you can add, change and remove the keys of any command; your keys are kept separately from the standard ones, so "Reset all to standard keys" always brings those back.</p>
+
+<h2 id="sleep">Sleep mode</h2>
+<p>Some applications speak for themselves. <kbd>Insert+Shift+S</kbd> puts Vox to sleep for the application in front: Vox says nothing and passes every key to it, until you press <kbd>Insert+Shift+S</kbd> there again.</p>
+
+<h2 id="trouble">When something goes wrong</h2>
+<ul>
+  <li>If an application stops responding, Vox says so and keeps working everywhere else.</li>
+  <li>If Vox itself stops, it restarts on its own.</li>
+  <li><kbd>Insert+F1</kbd> says details of the focused control (useful in bug reports); the speech viewer in the Vox menu shows everything Vox says.</li>
+  <li>Logs are in <code>%APPDATA%\Vox\logs</code>.</li>
+</ul>
+</main>
+</body>
+</html>

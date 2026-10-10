@@ -135,6 +135,14 @@ public static class FormControls
     public static bool NeedsFocusMode(string controlType, string? ariaRole) =>
         FocusModeControlTypes.Contains(controlType) || IsRole(FocusModeRoles, ariaRole);
 
+    /// <summary>
+    /// True for a rich text editor: a <c>contenteditable</c> element (or design-mode document),
+    /// which Chromium exposes as a group or document whose value is writable. It is typed in
+    /// like a text box, so it needs Focus mode too.
+    /// </summary>
+    public static bool IsRichEditable(string controlType, bool? isValueReadOnly) =>
+        isValueReadOnly == false && controlType is "Group" or "Document" or "Pane" or "Custom" or "Text";
+
     private static bool IsRole(HashSet<string> roles, string? ariaRole) =>
         !string.IsNullOrWhiteSpace(ariaRole) && roles.Contains(ariaRole.Trim());
 }

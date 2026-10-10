@@ -18,6 +18,9 @@ public interface IMouseInput
     void MoveTo(int x, int y);
     void Press(MouseButton button);
     void Release(MouseButton button);
+
+    /// <summary>Where the pointer is, or null when that can't be read.</summary>
+    (int X, int Y)? Position => null;
 }
 
 /// <summary><see cref="IMouseInput"/> through SetCursorPos and SendInput.</summary>
@@ -30,6 +33,8 @@ public sealed class Win32MouseInput : IMouseInput
     private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
 
     public void MoveTo(int x, int y) => SetCursorPos(x, y);
+
+    public (int X, int Y)? Position => GetCursorPos(out var point) ? (point.X, point.Y) : null;
 
     public void Press(MouseButton button) => Send(button == MouseButton.Left ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN);
 
@@ -63,6 +68,17 @@ public sealed class Win32MouseInput : IMouseInput
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetCursorPos(int x, int y);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Point
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out Point point);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint count, Input[] inputs, int size);

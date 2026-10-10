@@ -54,6 +54,32 @@ public interface IVBufferElement
     /// <summary>True for a required form field (UIA IsRequiredForForm).</summary>
     bool IsRequired => false;
 
+    /// <summary>
+    /// The element's description (aria-description, or the text of the aria-describedby
+    /// elements; UIA FullDescription, else HelpText), or empty.
+    /// </summary>
+    string Description => string.Empty;
+
+    /// <summary>
+    /// UIA IsDataValidForForm: false for an invalid entry (aria-invalid), null when not reported.
+    /// </summary>
+    bool? IsDataValidForForm => null;
+
+    /// <summary>
+    /// Runtime IDs of the elements holding an invalid entry's error message (aria-errormessage;
+    /// UIA ControllerFor of an invalid element), empty when none.
+    /// </summary>
+    IReadOnlyList<int[]> ErrorMessageIds => [];
+
+    /// <summary>The author's name for the role (aria-roledescription, "slide"), or empty.</summary>
+    string RoleDescription => string.Empty;
+
+    /// <summary>Keyboard shortcut that runs it (aria-keyshortcuts; UIA AcceleratorKey), or empty.</summary>
+    string AcceleratorKey => string.Empty;
+
+    /// <summary>True when it has extended details elsewhere on the page (aria-details; UIA DescribedBy).</summary>
+    bool HasDetails => false;
+
     /// <summary>The element's own language (BCP 47, from the lang attribute), or empty when not set.</summary>
     string Language => string.Empty;
 
@@ -62,6 +88,18 @@ public interface IVBufferElement
 
     /// <summary>Columns a table cell spans (UIA GridItem.ColumnSpan; colspan), 1 when not a spanning cell.</summary>
     int ColumnSpan => 1;
+
+    /// <summary>UIA AnnotationTypes identifiers (a comment, a tracked change), empty when none.</summary>
+    IReadOnlyList<int> AnnotationTypes => [];
+
+    /// <summary>
+    /// True when it can be invoked (UIA Invoke pattern): Chromium offers that on any element with
+    /// a click handler, so on a plain element it means "clickable".
+    /// </summary>
+    bool IsInvokable => false;
+
+    /// <summary>The UIA Value pattern's IsReadOnly (false for text fields and contenteditable), or null without one.</summary>
+    bool? IsValueReadOnly => null;
 
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
@@ -111,9 +149,15 @@ public sealed class VBufferBuilder
     /// <returns>A fully-populated <see cref="VBufferDocument"/>.</returns>
     public VBufferDocument Build(IVBufferElement root)
     {
-        var (allNodes, flatText) = BuildSubtree(root);
-        return new VBufferDocument(flatText, allNodes[0], allNodes);
+        var (allNodes, flatText) = BuildSubtree(root, screenLayout: ScreenLayout);
+        return new VBufferDocument(flatText, allNodes[0], allNodes) { ScreenLayout = ScreenLayout };
     }
+
+    /// <summary>
+    /// Screen layout (the default): links and other inline text stay on their paragraph's line,
+    /// as on screen. Off: every element is on a line of its own.
+    /// </summary>
+    public bool ScreenLayout { get; init; } = true;
 
     /// <summary>
     /// Builds the nodes for a subtree in pre-order, with Ids and text offsets starting at 0 and
@@ -121,7 +165,7 @@ public sealed class VBufferBuilder
     /// Shared with <see cref="IncrementalUpdater"/>.
     /// </summary>
     /// <param name="inheritedLanguage">The language the subtree's root inherits (its old parent's, when splicing).</param>
-    internal static (List<VBufferNode> Nodes, string FlatText) BuildSubtree(IVBufferElement root, string inheritedLanguage = "")
+    internal static (List<VBufferNode> Nodes, string FlatText) BuildSubtree(IVBufferElement root, string inheritedLanguage = "", bool screenLayout = true)
     {
         var allNodes = new List<VBufferNode>(64);
         var flatText = new StringBuilder(256);
@@ -187,7 +231,8 @@ public sealed class VBufferBuilder
             }
         }
 
-        JoinInlineRuns(allNodes, flatText);
+        if (screenLayout)
+            JoinInlineRuns(allNodes, flatText);
         return (allNodes, flatText.ToString());
     }
 
@@ -196,7 +241,7 @@ public sealed class VBufferBuilder
     /// "Read the docs first" instead of three lines. Each run member except the last has its
     /// trailing '\n' replaced by a space — the same length, so no text offsets change.
     ///
-    /// Inline means a leaf Text node or a link (UIA exposes no CSS display type, so this is a
+    /// Inline means a leaf Text node, a link, or a highlight, insertion or deletion of inline nodes (UIA exposes no CSS display type, so this is a
     /// heuristic: block elements such as paragraphs and headings have children or a heading level).
     /// </summary>
     internal static void JoinInlineRuns(IReadOnlyList<VBufferNode> nodes, StringBuilder flatText)
@@ -240,7 +285,9 @@ public sealed class VBufferBuilder
 
     private static bool IsInline(VBufferNode node) =>
         node.HeadingLevel == 0 && !node.IsLandmark &&
-        ((node.ControlType == "Text" && node.Children.Count == 0) || node.ControlType == "Hyperlink");
+        ((node.ControlType == "Text" && node.Children.Count == 0) || node.ControlType == "Hyperlink"
+         // <mark>, <ins>, <del> around inline text stay on its line
+         || (Annotations.IsInlineKind(node.Annotation) && node.Children.TrueForAll(IsInline)));
 
     private readonly record struct Frame(
         IVBufferElement Element,
@@ -268,6 +315,10 @@ public sealed class VBufferBuilder
         var isVisited  = element.IsVisited || ParseAriaPropertyBool(ariaProps, "visited");
         var isRequired = element.IsRequired || ParseAriaPropertyBool(ariaProps, "required");
         var (isExpandable, isExpanded) = ControlState.Expansion(element.ExpandCollapseState, ariaProps, element.ControlType);
+        // A toggle button's aria-pressed, when it isn't exposed through the Toggle pattern
+        var toggleState = element.ToggleState
+            ?? (AriaStates.IsButton(element.ControlType, ariaRole) ? AriaStates.Pressed(ariaProps) : null);
+        var invalid = AriaStates.Invalid(element.IsDataValidForForm, ariaProps);
 
         // Determine focusability
         var isFocusable = element.IsFocusable ||
@@ -288,11 +339,24 @@ public sealed class VBufferBuilder
             IsRequired = isRequired,
             IsExpandable = isExpandable,
             IsExpanded = isExpanded,
-            ToggleState = element.ToggleState,
+            ToggleState = toggleState,
             IsSelected = element.IsSelected,
             Value = element.Value ?? string.Empty,
             IsPassword = element.IsPassword,
             IsFocusable = isFocusable,
+            Description = element.Description?.Trim() ?? string.Empty,
+            Invalid = invalid,
+            ErrorMessageIds = invalid.Length > 0 ? element.ErrorMessageIds ?? [] : [],
+            Current = AriaStates.Current(ariaProps),
+            Sort = AriaStates.Sort(ariaProps),
+            RoleDescription = element.RoleDescription?.Trim() ?? string.Empty,
+            AcceleratorKey = element.AcceleratorKey?.Trim() ?? string.Empty,
+            HasDetails = element.HasDetails,
+            Annotation = Annotations.Kind(ariaRole, element.AnnotationTypes),
+            // aria-modal (Chromium also reports a <dialog> opened with showModal() this way)
+            IsModal = ariaRole is "dialog" or "alertdialog" && ParseAriaPropertyBool(ariaProps, "modal"),
+            IsClickable = element.IsInvokable && !isFocusable && !InClickable(parent),
+            IsRichEditable = parent is not null && FormControls.IsRichEditable(element.ControlType, element.IsValueReadOnly),
             // Inherited, as lang is in HTML
             Language = !string.IsNullOrEmpty(element.Language) ? element.Language : parent?.Language ?? inheritedLanguage,
             RowSpan = Math.Max(1, element.RowSpan),
@@ -315,6 +379,20 @@ public sealed class VBufferBuilder
     /// Nodes that contribute nothing get an empty range positioned where their content starts,
     /// so TextRange.Start stays non-decreasing in document order.
     /// </summary>
+    /// <summary>
+    /// Inside a link, a control or an element already said to be clickable: its click handler
+    /// is that one's (Chromium offers Invoke on the descendants too), so not said again.
+    /// </summary>
+    private static bool InClickable(VBufferNode? node)
+    {
+        for (; node is not null; node = node.Parent)
+        {
+            if (node.IsClickable || node.IsLink || FocusableControlTypes.Contains(node.ControlType))
+                return true;
+        }
+        return false;
+    }
+
     private static void FinishNode(IVBufferElement element, VBufferNode node, int textStart, StringBuilder flatText)
     {
         bool descendantsHaveText = flatText.Length > textStart;

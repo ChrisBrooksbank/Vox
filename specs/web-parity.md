@@ -17,7 +17,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 ### Browsers and apps
 
 - [ ] Firefox: Gecko document detection and an `IVBufferElement` provider (UIA where Gecko exposes enough; otherwise IAccessible2 through a native helper, see PLAN.md Phase 3)
-- [ ] Electron and WebView2 apps (Teams, Slack, VS Code, Discord, new Outlook): document detection works; `role="application"` and `aria-roledescription="editor"`-style apps default to Focus mode
+- [x] Electron and WebView2 apps (Teams, Slack, VS Code, Discord, new Outlook): document detection works; `role="application"` and `aria-roledescription="editor"`-style apps default to Focus mode
 
 ### Quick navigation
 
@@ -30,40 +30,40 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 - [x] `TableNavigator`: Ctrl+Alt+arrows cell to cell, Ctrl+Alt+Home/End first/last cell; announce row/column number and headers when they change; boundary cue at edges
 - [x] Read current row / column (Insert+Shift+Up / Insert+Shift+Num5 style bindings), report table dimensions on entry
 - [x] Manually set header row/column for tables without markup (persisted per URL + table index)
-- [ ] Lists: "list with N items" on entry, nesting level, "out of list" while reading
+- [x] Lists: "list with N items" on entry, nesting level, "out of list" while reading
 
 ### Find, select, copy
 
-- [ ] `FindInBuffer`: Insert+Ctrl+F opens a find prompt (accessible text box), Insert+F3 / Insert+Shift+F3 next/previous, case-insensitive by default, wraps with cue, keeps history
-- [ ] Browse-mode selection: Shift+arrows (char/line), Ctrl+Shift+arrows (word), Shift+Home/End; "selected" speech; Ctrl+C copies plain text; Insert+F9 sets mark, Insert+F10 selects from mark
+- [x] `FindInBuffer`: Insert+Ctrl+F opens a find prompt (accessible text box), Insert+F3 / Insert+Shift+F3 next/previous, case-insensitive by default, wraps with cue, keeps history
+- [x] Browse-mode selection: Shift+arrows (char/line), Ctrl+Shift+arrows (word), Shift+Home/End; "selected" speech; Ctrl+C copies plain text; Insert+F9 sets mark, Insert+F10 selects from mark
 
 ### ARIA and HTML
 
-- [ ] Description (`aria-describedby`, `aria-description`) announced per verbosity
-- [ ] `aria-invalid` + `aria-errormessage` ("invalid entry", error text), `aria-current`, `aria-pressed`, `aria-sort`, `aria-roledescription`, `aria-keyshortcuts`, `aria-details`
-- [ ] Annotations: comments, insertions, deletions, marks/highlights announced on entry/exit
-- [ ] `<dialog>` / `aria-modal`: restrict the buffer to the modal while it is open
-- [ ] Clickable elements without a link/button role announced as "clickable"
-- [ ] Figures with captions; `<abbr>` expansion setting
-- [ ] "Screen layout" setting: inline elements on one line vs one element per line
+- [x] Description (`aria-describedby`, `aria-description`) announced per verbosity
+- [x] `aria-invalid` + `aria-errormessage` ("invalid entry", error text), `aria-current`, `aria-pressed`, `aria-sort`, `aria-roledescription`, `aria-keyshortcuts`, `aria-details` (read as Core-AAM maps them to UIA; a role description is told apart from the browser's own LocalizedControlType by a list of English default names, so it is only said with an English user interface; `aria-details` is said as "has details", with no command yet to read them)
+- [x] Annotations: comments, insertions, deletions, marks/highlights announced on entry/exit
+- [x] `<dialog>` / `aria-modal`: restrict the buffer to the modal while it is open
+- [x] Clickable elements without a link/button role announced as "clickable"
+- [x] Figures with captions; `<abbr>` expansion setting
+- [x] "Screen layout" setting: inline elements on one line vs one element per line
 
 ### Activation and summary
 
-- [ ] Activation fallback: if no Invoke/Toggle/SelectionItem/ExpandCollapse pattern applies, simulate a mouse click at the element's clickable point
-- [ ] Page summary command: title, language, counts of headings/links/landmarks/form fields/tables
-- [ ] Say the URL of the link under the cursor
-- [ ] Overlay and cookie-banner detection: announce a modal overlay; offer Insert+Shift+D to activate its Reject/Close button; never dismiss automatically
+- [x] Activation fallback: if no Invoke/Toggle/SelectionItem/ExpandCollapse pattern applies, simulate a mouse click at the element's clickable point
+- [x] Page summary command: title, language, counts of headings/links/landmarks/form fields/tables
+- [x] Say the URL of the link under the cursor
+- [x] Overlay and cookie-banner detection: announce a modal overlay; offer Insert+Shift+D to activate its Reject/Close button; never dismiss automatically
 
 ### Documents
 
 - [ ] PDF in Edge: tagged PDF tree reads in browse mode; warn "untagged document" when there is no structure and offer OCR (ocr-ai.md)
-- [ ] Rich editors (Google Docs, `contenteditable`): caret tracking through desktop-text-and-controls.md
-- [ ] MathML: speech through MathCAT; interactive exploration with arrows inside an expression
+- [x] Rich editors (Google Docs, `contenteditable`): caret tracking through desktop-text-and-controls.md
+- [x] MathML: speech through MathCAT; interactive exploration with arrows inside an expression
 
 ### Performance
 
-- [ ] Staged build: the first ~200 nodes around the focus are captured and spoken first, the rest fills in on later passes
-- [ ] Budget: buffer ready ≤ 500 ms for a 10,000-node page; benchmark test with a synthetic snapshot tree
+- [x] Staged build: the first ~200 nodes around the focus are captured and spoken first, the rest fills in on later passes
+- [x] Budget: buffer ready ≤ 500 ms for a 10,000-node page; benchmark test with a synthetic snapshot tree
 
 ## Acceptance Criteria
 

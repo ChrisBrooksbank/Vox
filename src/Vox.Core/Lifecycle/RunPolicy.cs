@@ -29,9 +29,9 @@ public sealed record RunPolicy(bool IsSecure)
     public string SettingsPath => IsSecure ? SecureSettingsPath : Configuration.SettingsManager.DefaultUserSettingsPath;
 
     /// <summary>Where this instance writes its logs (secure mode doesn't use a user profile).</summary>
-    public string LogDirectory => Path.Combine(
-        Environment.GetFolderPath(IsSecure ? Environment.SpecialFolder.CommonApplicationData : Environment.SpecialFolder.ApplicationData),
-        "Vox", IsSecure ? "secure-logs" : "logs");
+    public string LogDirectory => IsSecure
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Vox", "secure-logs")
+        : Path.Combine(VoxPaths.UserData, "logs");
 
     /// <summary>The policy for these command-line arguments.</summary>
     public static RunPolicy FromArgs(IEnumerable<string> args) =>

@@ -1,0 +1,31 @@
+name: Benchmarks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmarks:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Run benchmarks
+        run: dotnet run -c Release --project benchmarks/Vox.Benchmarks -- --filter "*" --exporters json markdown
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks-${{ github.sha }}
+          path: BenchmarkDotNet.Artifacts/results/**

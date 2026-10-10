@@ -26,6 +26,7 @@ public sealed class UIANavigatorObject : INavigatorObject
     private const int UIA_ExpandCollapsePatternId = 10005;
     private const int UIA_SelectionItemPatternId = 10010;
     private const int UIA_TogglePatternId = 10015;
+    private const int UIA_ScrollItemPatternId = 10017;
     private const int UIA_LegacyIAccessiblePatternId = 10018;
     private const int UIA_IsKeyboardFocusablePropertyId = 30009;
 
@@ -44,6 +45,16 @@ public sealed class UIANavigatorObject : INavigatorObject
     public IUIAutomationElement Element => _element;
 
     /// <summary>The focused element as a navigator object. UIA thread only.</summary>
+    /// <summary>An element (found some other way) as a navigator object. UIA thread only.</summary>
+    public static UIANavigatorObject For(IUIAutomationElement element, UIAProvider provider) =>
+        new(element, provider.Automation.ControlViewWalker, provider.CacheRequest);
+
+    public void ScrollIntoView()
+    {
+        if (Pattern(UIA_ScrollItemPatternId) is IUIAutomationScrollItemPattern scrollItem)
+            scrollItem.ScrollIntoView();
+    }
+
     public static UIANavigatorObject? Focused(UIAProvider provider)
     {
         var automation = provider.Automation;

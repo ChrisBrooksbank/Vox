@@ -44,4 +44,18 @@
     <MakeDir Directories="$(OutputPath)assets\sounds" />
     <Copy SourceFiles="@(SoundAssets)" DestinationFolder="$(OutputPath)assets\sounds\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
+
+  <!--
+    The user guide (docs/guide) goes beside Vox, with its keyboard reference generated from the
+    keymaps just copied: Vox.App writes it with the keyboard-reference switch (Windows builds only).
+  -->
+  <ItemGroup>
+    <GuideFiles Include="$(MSBuildProjectDirectory)\..\..\docs\guide\*.html;$(MSBuildProjectDirectory)\..\..\docs\guide\*.css" />
+  </ItemGroup>
+  <Target Name="BuildUserGuide" AfterTargets="CopyConfigAssets">
+    <MakeDir Directories="$(TargetDir)docs\guide" />
+    <Copy SourceFiles="@(GuideFiles)" DestinationFolder="$(TargetDir)docs\guide" SkipUnchangedFiles="true" />
+    <Exec Condition="'$(OS)' == 'Windows_NT'" ContinueOnError="true"
+          Command="dotnet &quot;$(TargetPath)&quot; --keyboard-reference &quot;$(TargetDir)docs\guide\keyboard.html&quot;" />
+  </Target>
 </Project>

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
+using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Speech;
 
@@ -88,6 +89,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// </summary>
     public Func<FocusChangedEvent, string?>? FocusContextProvider { get; set; }
 
+    /// <summary>
+    /// Looks up the text of an invalid field's error message elements (aria-errormessage) by
+    /// their runtime IDs, in the page's buffer. Called on the pipeline thread; null finds nothing.
+    /// </summary>
+    public Func<IReadOnlyList<int[]>, string?>? ErrorMessageProvider { get; set; }
+
     /// <summary>Raised on the pipeline thread for menu events.</summary>
     public event EventHandler<MenuEvent>? MenuEventProcessed;
 
@@ -123,6 +130,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     /// <summary>Raised when an ElementsListClosedEvent is processed.</summary>
     public event EventHandler<ElementsListClosedEvent>? ElementsListClosedProcessed;
+
+    /// <summary>Raised when a FindPromptClosedEvent is processed.</summary>
+    public event EventHandler<FindPromptClosedEvent>? FindPromptClosedProcessed;
+
+    /// <summary>Raised when a VoxDialogClosedEvent is processed.</summary>
+    public event EventHandler<VoxDialogClosedEvent>? VoxDialogClosedProcessed;
 
     public void Post(ScreenReaderEvent evt)
     {
@@ -217,6 +230,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     await HandleModeChangedAsync(modeChanged, token).ConfigureAwait(false);
                     break;
 
+                case InputHelpEvent inputHelp:
+                    await _speechQueue.EnqueueAsync(new Utterance(
+                        InputHelp.Describe(inputHelp.Command, inputHelp.Modifiers, inputHelp.VkCode, inputHelp.IsKeypad, ScreenReaderKeyName()),
+                        SpeechPriority.Interrupt), token).ConfigureAwait(false);
+                    break;
+
                 case TypingEchoEvent typingEcho:
                     await HandleTypingEchoAsync(typingEcho, token).ConfigureAwait(false);
                     break;
@@ -300,6 +319,14 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     ElementsListClosedProcessed?.Invoke(this, elementsListClosed);
                     break;
 
+                case FindPromptClosedEvent findPromptClosed:
+                    FindPromptClosedProcessed?.Invoke(this, findPromptClosed);
+                    break;
+
+                case VoxDialogClosedEvent voxDialogClosed:
+                    VoxDialogClosedProcessed?.Invoke(this, voxDialogClosed);
+                    break;
+
                 default:
                     _logger.LogWarning("Unhandled event type: {EventType}", evt.GetType().Name);
                     break;
@@ -327,6 +354,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
         // Nothing to say (e.g. an unnamed group): don't send an empty Interrupt that would
         // silently cut off whatever is being spoken
+        if (focus.ErrorMessageIds is { Count: > 0 } errorIds && string.IsNullOrEmpty(focus.ErrorMessage)
+            && ErrorMessageProvider?.Invoke(errorIds) is { Length: > 0 } errorMessage)
+            focus = focus with { ErrorMessage = errorMessage };
         var text = BuildFocusAnnouncement(focus);
         var context = FocusContextProvider?.Invoke(focus);
         if (!string.IsNullOrWhiteSpace(context))
@@ -431,6 +461,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
     }
 
     private readonly Diagnostics.LatencyTracker? _latency;
+
+    /// <summary>The screen reader key as the user has it (for input help).</summary>
+    private string ScreenReaderKeyName() =>
+        _settings?.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
 
     private async Task HandleNavigationCommandAsync(NavigationCommandEvent evt, CancellationToken token)
     {

@@ -51,3 +51,5 @@ TestResults/
 
 ## User secrets
 secrets.json
+*.received.txt
+BenchmarkDotNet.Artifacts/

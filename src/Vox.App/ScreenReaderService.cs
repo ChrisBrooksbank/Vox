@@ -45,6 +45,11 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SpeechEngineRegistry _speechEngines;
     private readonly SettingsRing _settingsRing;
     private readonly SpeechHistoryCommands _speechHistoryCommands;
+    private readonly SettingsCommands _settingsCommands;
+    private readonly Vox.Core.Updates.UpdateCommands _updateCommands;
+    private VoxTrayIcon? _trayIcon;
+    // Pause speech (Insert+S): nothing is said until it is pressed again
+    private volatile bool _speechPaused;
     private readonly SleepMode _sleepMode;
     private readonly MouseCommands _mouseCommands;
     private readonly RunPolicy _runPolicy;
@@ -121,8 +126,12 @@ public sealed class ScreenReaderService : IHostedService
         SpeechHistoryCommands speechHistoryCommands,
         SleepMode sleepMode,
         MouseCommands mouseCommands,
+        SettingsCommands settingsCommands,
+        Vox.Core.Updates.UpdateCommands updateCommands,
         RunPolicy? runPolicy = null)
     {
+        _updateCommands = updateCommands;
+        _settingsCommands = settingsCommands;
         _review = review;
         _mouseTracker = mouseTracker;
         _speechEngines = speechEngines;
@@ -205,6 +214,8 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.SubtreeChangedProcessed += OnSubtreeChangedProcessed;
         _eventPipeline.FocusInDocumentProcessed += OnFocusInDocumentProcessed;
         _eventPipeline.ElementsListClosedProcessed += OnElementsListClosedProcessed;
+        _eventPipeline.FindPromptClosedProcessed += OnFindPromptClosedProcessed;
+        _eventPipeline.VoxDialogClosedProcessed += OnVoxDialogClosedProcessed;
         _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
         _eventPipeline.CaretMovedProcessed += OnCaretMovedProcessed;
@@ -214,6 +225,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.MenuEventProcessed += OnMenuEventProcessed;
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
         _eventPipeline.FocusContextProvider = FocusContext;
+        _eventPipeline.ErrorMessageProvider = _browseModeController.ErrorMessageFor;
         // In browse mode the review cursor reviews the virtual buffer
         _review.BrowseTether = _browseModeController.ReviewTether;
 
@@ -226,15 +238,26 @@ public sealed class ScreenReaderService : IHostedService
         _keyInputDispatcher.SetMode(_navigationManager.CurrentMode);
         _keyInputDispatcher.SetDocumentActive(_browseModeController.IsDocumentActive);
 
-        // Sleep mode: nothing is said, and keys go to the application, while it has focus
-        _speechQueue.IsMuted = _sleepMode.IsAsleepNow;
+        // Sleep mode: nothing is said, and keys go to the application, while it has focus; and
+        // nothing at all while speech is paused
+        _speechQueue.IsMuted = () => _speechPaused || _sleepMode.IsAsleepNow();
         _keyInputDispatcher.IsAsleep = () => _sleepMode.IsAsleepCached;
 
         // Start key input dispatcher (subscribes to keyboard hook, installs key suppression)
         _keyInputDispatcher.Start();
 
+        // The notification-area icon and its menu (not on the secure screens' desktop)
+        if (!_runPolicy.IsSecure)
+        {
+            try { _trayIcon = new VoxTrayIcon(command => _eventPipeline.Post(new NavigationCommandEvent(DateTimeOffset.UtcNow, command))); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Could not show the notification-area icon"); }
+        }
+
         // Pick up a browser that already has focus
         TrackBackground(_documentTracker.OnFocusChangedAsync());
+
+        // The daily update check, a while after startup so it never delays it
+        _ = CheckForUpdatesLaterAsync(_lifetime.ApplicationStopping);
 
         // Announce startup
         _speechQueue.Enqueue(new Utterance(
@@ -266,6 +289,8 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.SubtreeChangedProcessed -= OnSubtreeChangedProcessed;
         _eventPipeline.FocusInDocumentProcessed -= OnFocusInDocumentProcessed;
         _eventPipeline.ElementsListClosedProcessed -= OnElementsListClosedProcessed;
+        _eventPipeline.FindPromptClosedProcessed -= OnFindPromptClosedProcessed;
+        _eventPipeline.VoxDialogClosedProcessed -= OnVoxDialogClosedProcessed;
         _eventPipeline.PropertyChangedProcessed -= OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed -= OnElementSelectedProcessed;
         _eventPipeline.CaretMovedProcessed -= OnCaretMovedProcessed;
@@ -283,6 +308,8 @@ public sealed class ScreenReaderService : IHostedService
         _review.BrowseTether = null;
         _speechQueue.IsMuted = null;
         _keyInputDispatcher.IsAsleep = null;
+        _trayIcon?.Dispose();
+        _trayIcon = null;
         _settingsSubscription?.Dispose();
 
         // Stop Say All if running
@@ -365,7 +392,10 @@ public sealed class ScreenReaderService : IHostedService
                 _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
             // At startup the keymap was loaded for the configured layout already
             if (previous is not null && previous.KeyboardLayout != settings.KeyboardLayout)
-                _keyInputDispatcher.SetKeyMap(ServiceRegistration.LoadKeyMap(settings.KeyboardLayout, _logger));
+                _keyInputDispatcher.SetKeyMap(ServiceRegistration.LoadKeyMap(settings.KeyboardLayout, _logger, _runPolicy));
+            // The page is laid out again in the new way
+            if (previous is not null && previous.ScreenLayout != settings.ScreenLayout)
+                _documentTracker.RequestRecapture(null);
             if (previous is null || previous.StartAtLogon != settings.StartAtLogon)
             {
                 try
@@ -395,6 +425,42 @@ public sealed class ScreenReaderService : IHostedService
             _speechViewer.Toggle();
             return;
         }
+        switch (e.Command)
+        {
+            case NavigationCommand.TogglePauseSpeech:
+                if (_speechPaused)
+                {
+                    _speechPaused = false;
+                    _speechQueue.Enqueue(new Utterance("Speech on", SpeechPriority.Interrupt));
+                }
+                else
+                {
+                    // Said before speech stops
+                    _speechQueue.Enqueue(new Utterance("Speech paused", SpeechPriority.Interrupt));
+                    _speechPaused = true;
+                }
+                return;
+            case NavigationCommand.ExitVox:
+                _logger.LogInformation("Exit chosen from the Vox menu");
+                _lifetime.StopApplication();
+                return;
+            case NavigationCommand.OpenUserGuide:
+                OpenUserGuide();
+                return;
+            case NavigationCommand.RunTutorial:
+                if (_runPolicy.AllowSetupWizard)
+                    _ = RunWizardAsync(lessonsOnly: true);
+                else
+                    _speechQueue.Enqueue(new Utterance("Not available on this screen", SpeechPriority.Interrupt));
+                return;
+        }
+        if (e.Command == NavigationCommand.ToggleInputHelp)
+        {
+            // The dispatcher has switched already, as the key was handled
+            var state = _keyInputDispatcher.IsInputHelpOn ? "Input help on" : "Input help off";
+            _speechQueue.Enqueue(new Utterance(state, SpeechPriority.Interrupt));
+            return;
+        }
         if (e.Command == NavigationCommand.CopySettingsToSecureScreens)
         {
             var message = SecureScreenSettings.Copy(_settingsManager, _settings.CurrentValue, _runPolicy);
@@ -404,7 +470,8 @@ public sealed class ScreenReaderService : IHostedService
         if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
             && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
-            && !_sleepMode.TryHandle(e.Command))
+            && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
+            && !_updateCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -498,6 +565,48 @@ public sealed class ScreenReaderService : IHostedService
     private void OnElementsListClosedProcessed(object? sender, ElementsListClosedEvent e) =>
         _browseModeController.HandleElementsListClosed(e);
 
+    private async Task CheckForUpdatesLaterAsync(CancellationToken stopping)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromMinutes(1), stopping).ConfigureAwait(false);
+            await _updateCommands.CheckQuietlyAsync(stopping).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Update check failed");
+        }
+    }
+
+    /// <summary>Opens the user guide installed beside Vox in the default browser (not on secure screens).</summary>
+    private void OpenUserGuide()
+    {
+        var guide = Path.Combine(AppContext.BaseDirectory, "docs", "guide", "index.html");
+        if (_runPolicy.IsSecure || !File.Exists(guide))
+        {
+            _speechQueue.Enqueue(new Utterance(_runPolicy.IsSecure ? "The user guide isn't available here" : "The user guide isn't installed", SpeechPriority.Interrupt));
+            return;
+        }
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(guide) { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not open the user guide");
+            _speechQueue.Enqueue(new Utterance("Could not open the user guide", SpeechPriority.Interrupt));
+        }
+    }
+
+    private void OnVoxDialogClosedProcessed(object? sender, VoxDialogClosedEvent e) =>
+        _browseModeController.EndOwnDialog();
+
+    private void OnFindPromptClosedProcessed(object? sender, FindPromptClosedEvent e) =>
+        _browseModeController.HandleFindPromptClosed(e);
+
     private void OnPropertyChangedProcessed(object? sender, PropertyChangedEvent e)
     {
         _browseModeController.HandlePropertyChanged(e);
@@ -535,14 +644,14 @@ public sealed class ScreenReaderService : IHostedService
             _speechQueue.Enqueue(new Utterance("Not available on this screen", SpeechPriority.Interrupt));
             return;
         }
-        _ = RunSetupAgainAsync();
+        _ = RunWizardAsync(lessonsOnly: false);
     }
 
     /// <summary>
-    /// Runs the first-run wizard again. Browse-mode key handling is paused meanwhile, so the
-    /// wizard's keys (arrows, Enter, digits) aren't also taken as navigation commands.
+    /// Runs the first-run wizard again, or just its practice lessons. Vox's key handling is
+    /// paused meanwhile, so the wizard's keys aren't also taken as commands.
     /// </summary>
-    private async Task RunSetupAgainAsync()
+    private async Task RunWizardAsync(bool lessonsOnly)
     {
         if (Interlocked.Exchange(ref _setupRunning, 1) == 1)
             return;
@@ -552,7 +661,10 @@ public sealed class ScreenReaderService : IHostedService
             _keyInputDispatcher.Stop();
             // Page speech (focus, live regions, notifications) must not talk over the wizard
             _speechQueue.Suspend();
-            await _firstRunWizard.RunAsync(_lifetime.ApplicationStopping).ConfigureAwait(false);
+            if (lessonsOnly)
+                await _firstRunWizard.RunLessonsAsync(_lifetime.ApplicationStopping).ConfigureAwait(false);
+            else
+                await _firstRunWizard.RunAsync(_lifetime.ApplicationStopping).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

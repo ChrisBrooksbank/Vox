@@ -21,6 +21,10 @@ internal sealed class MockElement : IVBufferElement
     public bool? IsSelected { get; set; }
     public string Language { get; set; } = string.Empty;
     public int RowSpan { get; set; } = 1;
+    public IReadOnlyList<int> AnnotationTypes { get; set; } = [];
+    public bool IsInvokable { get; set; }
+    public bool? IsValueReadOnly { get; set; }
+    public string Description { get; set; } = string.Empty;
     public int ColumnSpan { get; set; } = 1;
 
     private readonly List<IVBufferElement> _children = new();
@@ -765,6 +769,23 @@ public class VBufferBuilderValueTests
         Assert.True(doc.FindByRuntimeId([3])!.IsRequired);
     }
 
+    [Fact]
+    public void Description_IsCapturedButNotInTheText()
+    {
+        var doc = Build(new ValueElement { RuntimeId = [2], Name = "Email", ControlType = "Edit", Description = "  We never share it " });
+
+        Assert.Equal("We never share it", doc.FindByRuntimeId([2])!.Description);
+        Assert.DoesNotContain("share", doc.FlatText);
+    }
+
+    [Fact]
+    public void Description_SurvivesCloneDetached()
+    {
+        var doc = Build(new ValueElement { RuntimeId = [2], Name = "Email", ControlType = "Edit", Description = "Work address" });
+
+        Assert.Equal("Work address", doc.FindByRuntimeId([2])!.CloneDetached(5, (0, 0)).Description);
+    }
+
     private sealed class ValueElement : IVBufferElement
     {
         public int[] RuntimeId { get; set; } = [];
@@ -777,6 +798,7 @@ public class VBufferBuilderValueTests
         public bool IsPassword { get; set; }
         public bool IsVisited { get; set; }
         public bool IsRequired { get; set; }
+        public string Description { get; set; } = string.Empty;
         public List<IVBufferElement> Children { get; } = new();
         public IReadOnlyList<IVBufferElement> GetChildren() => Children;
     }

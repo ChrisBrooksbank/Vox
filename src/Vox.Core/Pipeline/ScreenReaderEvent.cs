@@ -1,5 +1,6 @@
 using Vox.Core.Buffer;
 using Vox.Core.Input;
+using Vox.Core.Navigation;
 
 namespace Vox.Core.Pipeline;
 
@@ -27,7 +28,15 @@ public record FocusChangedEvent(
     int SizeOfSet = 0,
     int Level = 0,
     string? AcceleratorKey = null,
-    string? AccessKey = null
+    string? AccessKey = null,
+    string? Description = null,
+    string? Invalid = null,
+    IReadOnlyList<int[]>? ErrorMessageIds = null,
+    string? ErrorMessage = null,
+    string? Current = null,
+    string? Sort = null,
+    string? RoleDescription = null,
+    bool HasDetails = false
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(
@@ -80,6 +89,18 @@ public record NavigationCommandEvent(
     NavigationCommand Command
 ) : ScreenReaderEvent(Timestamp);
 
+/// <summary>
+/// A key pressed in input help: <paramref name="Command"/> is what it would have run (null when
+/// it does nothing), said instead of run.
+/// </summary>
+public record InputHelpEvent(
+    DateTimeOffset Timestamp,
+    NavigationCommand? Command,
+    KeyModifiers Modifiers,
+    int VkCode,
+    bool IsKeypad
+) : ScreenReaderEvent(Timestamp);
+
 public record RawKeyEvent(
     DateTimeOffset Timestamp,
     KeyEvent Key
@@ -125,12 +146,16 @@ public record NotificationFlushEvent(
 
 /// <summary>
 /// A web document gained focus (<paramref name="Document"/> is its new virtual buffer)
-/// or focus left web content (<paramref name="Document"/> is null).
+/// or focus left web content (<paramref name="Document"/> is null). <paramref name="ProcessName"/>
+/// is the app showing it (for its default mode). <paramref name="IsPartial"/>: only part of a large
+/// page (around the focus, or its top), captured first; the whole page follows in another event.
 /// </summary>
 public record DocumentChangedEvent(
     DateTimeOffset Timestamp,
     VBufferDocument? Document,
-    int[]? FocusedRuntimeId = null
+    int[]? FocusedRuntimeId = null,
+    string? ProcessName = null,
+    bool IsPartial = false
 ) : ScreenReaderEvent(Timestamp);
 
 /// <summary>
@@ -165,6 +190,17 @@ public record SubtreeChangedEvent(
 public record ElementsListClosedEvent(
     DateTimeOffset Timestamp,
     VBufferNode? SelectedNode
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// The find prompt closed; <paramref name="Request"/> is null if it was cancelled.
+/// </summary>
+/// <summary>A Vox dialog opened with <c>BrowseModeController.BeginOwnDialog</c> (settings) closed.</summary>
+public record VoxDialogClosedEvent(DateTimeOffset Timestamp) : ScreenReaderEvent(Timestamp);
+
+public record FindPromptClosedEvent(
+    DateTimeOffset Timestamp,
+    FindRequest? Request
 ) : ScreenReaderEvent(Timestamp);
 
 /// <summary>

@@ -3,6 +3,13 @@ using Vox.App;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
 
+// Build step: write the user guide's keyboard reference from the keymaps beside Vox, and exit
+if (args is ["--keyboard-reference", var referencePath])
+{
+    File.WriteAllText(referencePath, KeyboardReference.Html(Path.Combine(AppContext.BaseDirectory, "assets", "config")));
+    return VoxExitCodes.Normal;
+}
+
 // --secure: the instance Vox.Service starts on the sign-in, lock and UAC screens
 var policy = RunPolicy.FromArgs(args);
 

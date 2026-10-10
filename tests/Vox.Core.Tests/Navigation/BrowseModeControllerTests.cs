@@ -8,6 +8,7 @@ using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Tests.TestSupport;
 using Vox.Core.Tests.Buffer;
 using Vox.Core.Text;
 using Xunit;
@@ -32,7 +33,10 @@ public class BrowseModeControllerTests : IDisposable
     private readonly QuickNavHandler _quickNav;
     private readonly Mock<IBrowseDocumentActions> _actions = new();
     private readonly Mock<IElementsListPresenter> _presenter = new();
+    private readonly Mock<IFindPrompt> _findPrompt = new();
+    private readonly Mock<Vox.Core.Accessibility.IClipboard> _clipboard = new();
     private VoxSettings _settings = new();
+    private readonly FakeMathSpeech _math = new();
     private readonly BrowseModeController _controller;
 
     public BrowseModeControllerTests()
@@ -61,7 +65,10 @@ public class BrowseModeControllerTests : IDisposable
             _sink,
             _actions.Object,
             _presenter.Object,
-            NullLogger<BrowseModeController>.Instance);
+            NullLogger<BrowseModeController>.Instance,
+            findPrompt: _findPrompt.Object,
+            clipboard: _clipboard.Object,
+            mathSpeech: _math);
     }
 
     public void Dispose() => _speechQueue.Dispose();
@@ -320,6 +327,185 @@ public class BrowseModeControllerTests : IDisposable
         _controller.HandleRawKey(KeyUp(0x41));
 
         Assert.Single(_sink.OfType<TypingEchoEvent>());
+    }
+
+    [Fact]
+    public async Task MovingIntoADeletion_SaysDeletedBeforeTheText()
+    {
+        var paragraph = new MockElement { RuntimeId = [70], ControlType = "Group" }
+            .AddChild(new MockElement { RuntimeId = [71], Name = "Price " })
+            .AddChild(new MockElement { RuntimeId = [72], ControlType = "Group", AriaRole = "deletion" }
+                .AddChild(new MockElement { RuntimeId = [73], Name = "ten" }));
+        var root = new MockElement { RuntimeId = [69], ControlType = "Document" }.AddChild(paragraph);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null));
+
+        _controller.HandleCommand(NavigationCommand.NextWord);
+
+        await WaitForSpeech(u => u.Text == "deleted, ten");
+    }
+
+    [Fact]
+    public async Task ModalDialog_CursorStartsInsideAndCannotLeave()
+    {
+        var dialog = new MockElement { RuntimeId = [82], ControlType = "Group", AriaRole = "dialog", AriaProperties = "modal=true" }
+            .AddChild(new MockElement { RuntimeId = [83], Name = "Cookies" })
+            .AddChild(new MockElement { RuntimeId = [84], Name = "Accept all" });
+        var root = new MockElement { RuntimeId = [80], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [81], Name = "Behind the dialog" })
+            .AddChild(dialog);
+        var document = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+
+        Assert.Equal(document.ModalScope!.Value.Start, _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.PrevLine);
+        _audio.Verify(a => a.Play("boundary"), Times.AtLeastOnce());
+        Assert.True(document.InScope(_controller.Cursor!.TextOffset));
+
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        await WaitForSpeech(u => u.Text.Contains("Cookies"));
+        Assert.Equal(document.ModalScope!.Value.Start, _controller.Cursor!.TextOffset);
+    }
+
+    [Fact]
+    public async Task CookieBanner_IsAnnouncedAndOnlyDismissedOnRequest()
+    {
+        var banner = new MockElement { RuntimeId = [91], ControlType = "Group" }
+            .AddChild(new MockElement { RuntimeId = [92], Name = "We use cookies." })
+            .AddChild(new MockElement { RuntimeId = [93], Name = "Reject all", ControlType = "Button" });
+        var root = new MockElement { RuntimeId = [90], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [94], Name = "News" })
+            .AddChild(banner);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null));
+
+        await WaitForSpeech(u => u.Text == "Cookie banner. Insert+Shift+D presses Reject all");
+        _actions.Setup(a => a.ActivateAsync(It.IsAny<VBufferNode>())).ReturnsAsync(true);
+        _actions.Verify(a => a.ActivateAsync(It.IsAny<VBufferNode>()), Times.Never);
+
+        _controller.HandleCommand(NavigationCommand.DismissOverlay);
+
+        _actions.Verify(a => a.ActivateAsync(It.Is<VBufferNode>(n => n.Name == "Reject all")), Times.Once);
+    }
+
+    [Fact]
+    public void WebApplication_StartsInFocusMode()
+    {
+        var app = new MockElement { RuntimeId = [97], ControlType = "Group", AriaRole = "application" }
+            .AddChild(new MockElement { RuntimeId = [98], Name = "Editor" });
+        var root = new MockElement { RuntimeId = [96], ControlType = "Document" }.AddChild(app);
+
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null, "Code"));
+
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+    }
+
+    // A page whose second section is around the focus: the partial capture holds just that section
+    private static VBufferDocument StagedPage(bool partial)
+    {
+        MockElement Section(int id, string heading, string text) =>
+            new MockElement { RuntimeId = [id], ControlType = "Group" }
+                .AddChild(new MockElement { RuntimeId = [id + 1], Name = heading, AriaRole = "heading", HeadingLevel = 2 })
+                .AddChild(new MockElement { RuntimeId = [id + 2], Name = text });
+        var root = new MockElement { RuntimeId = [100], ControlType = "Document" };
+        if (!partial)
+            root.AddChild(Section(110, "Intro", "Welcome."));
+        root.AddChild(Section(120, "Results", "Three results."));
+        if (!partial)
+            root.AddChild(Section(130, "Footer", "We use cookies."))
+                .AddChild(new MockElement { RuntimeId = [140], ControlType = "Group" }
+                    .AddChild(new MockElement { RuntimeId = [141], Name = "We use cookies on this site." })
+                    .AddChild(new MockElement { RuntimeId = [142], Name = "Reject all", ControlType = "Button" }));
+        return new VBufferBuilder().Build(root);
+    }
+
+    [Fact]
+    public async Task PartialPage_IsBrowsable_AndTheWholePageKeepsTheCursor()
+    {
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, StagedPage(partial: true), [122], IsPartial: true));
+        Assert.Equal("Three results.", _quickNav.CurrentNode!.Name);
+
+        _controller.HandleCommand(NavigationCommand.PrevLine); // the user reads on in the first part
+        Assert.Equal("Results", _quickNav.CurrentNode!.Name);
+
+        var whole = StagedPage(partial: false);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, whole, [122]));
+
+        Assert.Same(whole, _quickNav.CurrentDocument);
+        Assert.Equal("Results", _quickNav.CurrentNode!.Name);
+        Assert.Equal(whole.FindByRuntimeId([121])!.TextRange.Start, _controller.Cursor!.TextOffset);
+        // What the page is gets said once it is all there
+        await WaitForSpeech(u => u.Text.StartsWith("Cookie banner"));
+    }
+
+    [Fact]
+    public void PartialPage_ReturningUserGoesBackToWhereTheyWere()
+    {
+        var whole = StagedPage(partial: false);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, whole, null));
+        _controller.HandleCommand(NavigationCommand.BottomOfDocument);
+        var lastNode = _quickNav.CurrentNode!.UIARuntimeId;
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, null));
+
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, StagedPage(partial: true), null, IsPartial: true));
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, StagedPage(partial: false), null));
+
+        Assert.Equal(lastNode, _quickNav.CurrentNode!.UIARuntimeId);
+    }
+
+    private VBufferDocument LoadMathPage()
+    {
+        var math = new MockElement { RuntimeId = [151], ControlType = "Group", AriaRole = "math" }
+            .AddChild(new MockElement { RuntimeId = [152], ControlType = "Group", AriaRole = "msup" }
+                .AddChild(new MockElement { RuntimeId = [153], Name = "x", AriaRole = "mi" })
+                .AddChild(new MockElement { RuntimeId = [154], Name = "2", AriaRole = "mn" }));
+        var root = new MockElement { RuntimeId = [150], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [155], Name = "Area" })
+            .AddChild(math);
+        var document = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+        return document;
+    }
+
+    [Fact]
+    public async Task MovingOntoMath_SaysItThroughMathCat()
+    {
+        _math.IsAvailable = true;
+        LoadMathPage();
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        await WaitForSpeech(u => u.Text.Contains("x squared"));
+        Assert.Equal("<math><msup><mi>x</mi><mn>2</mn></msup></math>", Assert.Single(_math.Expressions));
+    }
+
+    [Fact]
+    public async Task InteractWithMath_ArrowsExploreUntilAnotherCommand()
+    {
+        _math.IsAvailable = true;
+        var document = LoadMathPage();
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        _controller.HandleCommand(NavigationCommand.InteractWithMath);
+        await WaitForSpeech(u => u.Text == "Math, x squared");
+        int offset = _controller.Cursor!.TextOffset;
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "x");
+        Assert.Equal(offset, _controller.Cursor!.TextOffset); // the page cursor didn't move
+
+        _controller.HandleCommand(NavigationCommand.InteractWithMath);
+        await WaitForSpeech(u => u.Text == "Leaving math");
+        Assert.Equal(["ZoomIn"], _math.Commands);
+    }
+
+    [Fact]
+    public async Task InteractWithMath_WithoutMathCat_SaysWhatIsNeeded()
+    {
+        LoadMathPage();
+        _controller.HandleCommand(NavigationCommand.NextLine);
+
+        _controller.HandleCommand(NavigationCommand.InteractWithMath);
+
+        await WaitForSpeech(u => u.Text == "Exploring math needs the MathCAT component");
     }
 
     [Fact]
@@ -703,6 +889,25 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public void FocusMovingIntoARichTextEditor_EntersFocusMode_AndStaysThere()
+    {
+        var editor = new MockElement { RuntimeId = [61], ControlType = "Group", IsFocusable = true, IsValueReadOnly = false }
+            .AddChild(new MockElement { RuntimeId = [62], Name = "Dear Sam," });
+        var root = new MockElement { RuntimeId = [60], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [63], Name = "Compose" })
+            .AddChild(editor);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null));
+
+        var focus = new FocusChangedEvent(DateTimeOffset.UtcNow, "Message body", "Group", RuntimeId: [61], IsValueReadOnly: false);
+        _controller.HandleFocusChanged(focus);
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+
+        // Chromium repeats the focus event (window re-activated): still typing in the editor
+        _navigationManager.HandleFocusChanged(focus);
+        Assert.Equal(InteractionMode.Focus, _navigationManager.CurrentMode);
+    }
+
+    [Fact]
     public void LoadTimeFocusOnEditField_StaysInBrowseMode()
     {
         LoadDocument(focusedId: [5]);
@@ -882,6 +1087,16 @@ public class BrowseModeControllerTests : IDisposable
         _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30086, 1));
 
         await WaitForSpeech(u => u.Text == "checked");
+    }
+
+    [Fact]
+    public async Task ToggleStateChange_OnFocusedToggleButton_SaysPressed()
+    {
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Bold", "Button", RuntimeId: [7], ToggleState: 0));
+
+        _controller.HandlePropertyChanged(new PropertyChangedEvent(DateTimeOffset.UtcNow, [7], 30086, 1));
+
+        await WaitForSpeech(u => u.Text == "pressed");
     }
 
     [Fact]
@@ -1301,6 +1516,56 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task ReadingByLine_SaysListEntryNestingAndExit()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        var list = new MockElement { RuntimeId = [3], ControlType = "List" };
+        var apples = new MockElement { RuntimeId = [4], ControlType = "ListItem" };
+        apples.AddChild(new MockElement { RuntimeId = [5], Name = "Apples" });
+        var nested = new MockElement { RuntimeId = [6], ControlType = "List" };
+        var green = new MockElement { RuntimeId = [7], ControlType = "ListItem" };
+        green.AddChild(new MockElement { RuntimeId = [8], Name = "Green" });
+        nested.AddChild(green);
+        apples.AddChild(nested);
+        list.AddChild(apples);
+        var pears = new MockElement { RuntimeId = [9], ControlType = "ListItem" };
+        pears.AddChild(new MockElement { RuntimeId = [10], Name = "Pears" });
+        list.AddChild(pears);
+        root.AddChild(list);
+        root.AddChild(new MockElement { RuntimeId = [11], Name = "Outro" });
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "list with 2 items, Apples");
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "list with 1 item, nesting level 2, Green");
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "out of list, Pears");
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "out of list, Outro");
+        _controller.HandleCommand(NavigationCommand.PrevLine);
+        await WaitForSpeech(u => u.Text == "list with 2 items, Pears");
+    }
+
+    [Fact]
+    public async Task ReadingByLine_AtAdvancedVerbosity_DoesNotSayLists()
+    {
+        _settings = new VoxSettings { VerbosityLevel = VerbosityLevel.Advanced };
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        root.AddChild(new MockElement { RuntimeId = [2], Name = "Intro" });
+        var list = new MockElement { RuntimeId = [3], ControlType = "List" };
+        var item = new MockElement { RuntimeId = [4], ControlType = "ListItem" };
+        item.AddChild(new MockElement { RuntimeId = [5], Name = "Apples" });
+        list.AddChild(item);
+        root.AddChild(list);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root)));
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        await WaitForSpeech(u => u.Text == "Apples");
+    }
+
+    [Fact]
     public async Task NextGraphic_SaysItsAltTextOnce()
     {
         var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
@@ -1647,4 +1912,257 @@ public class BrowseModeControllerTests : IDisposable
         Assert.Equal(InteractionMode.Browse, _navigationManager.CurrentMode);
         Assert.Equal(offset, _controller.Cursor!.TextOffset);
     }
+
+    // -------------------------------------------------------------------------
+    // Find
+    // -------------------------------------------------------------------------
+
+    /// <summary>Runs the find prompt answering <paramref name="request"/> and handles it closing.</summary>
+    private async Task FindWithPrompt(FindRequest? request, NavigationCommand command = NavigationCommand.Find)
+    {
+        _findPrompt.Setup(p => p.ShowAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>())).ReturnsAsync(request);
+        int before = _sink.OfType<FindPromptClosedEvent>().Count;
+        _controller.HandleCommand(command);
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (_sink.OfType<FindPromptClosedEvent>().Count == before && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+        _controller.HandleFindPromptClosed(_sink.OfType<FindPromptClosedEvent>().Last());
+    }
+
+    [Fact]
+    public async Task Find_DeactivatesBrowseKeysWhileOpen_AndMovesToTheMatch()
+    {
+        var doc = LoadDocument();
+        var answer = new TaskCompletionSource<FindRequest?>();
+        _findPrompt.Setup(p => p.ShowAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>())).Returns(answer.Task);
+
+        _controller.HandleCommand(NavigationCommand.Find);
+        Assert.False(_controller.IsDocumentActive);
+
+        answer.SetResult(new FindRequest("MORE"));
+        var deadline = DateTime.UtcNow.AddSeconds(2);
+        while (_sink.OfType<FindPromptClosedEvent>().Count == 0 && DateTime.UtcNow < deadline)
+            await Task.Delay(10);
+        _controller.HandleFindPromptClosed(Assert.Single(_sink.OfType<FindPromptClosedEvent>()));
+
+        Assert.True(_controller.IsDocumentActive);
+        Assert.Equal(doc.FlatText.IndexOf("more", StringComparison.Ordinal), _controller.Cursor!.TextOffset);
+        Assert.Same(doc.FindByRuntimeId([4]), _quickNav.CurrentNode);
+        await WaitForSpeech(u => u.Text.Contains("Read more"));
+    }
+
+    [Fact]
+    public async Task Find_Cancelled_LeavesTheCursorAndReactivates()
+    {
+        LoadDocument();
+
+        await FindWithPrompt(null);
+
+        Assert.True(_controller.IsDocumentActive);
+        Assert.Equal(0, _controller.Cursor!.TextOffset);
+        Assert.Null(Record.Exception(() => _controller.HandleCommand(NavigationCommand.ReadCurrentLine)));
+    }
+
+    [Fact]
+    public async Task FindNext_FindsTheFollowingMatch_AndWrapsWithTheCue()
+    {
+        var doc = LoadDocument();
+        await FindWithPrompt(new FindRequest("e"));
+        Assert.Equal(1, _controller.Cursor!.TextOffset); // "Welcome": the search starts at the cursor
+        _audio.Invocations.Clear();
+
+        _controller.HandleCommand(NavigationCommand.FindNext);
+        Assert.Equal(6, _controller.Cursor!.TextOffset);
+        _audio.Verify(a => a.Play("wrap"), Times.Never);
+
+        int last = doc.FlatText.LastIndexOf('e');
+        while (_controller.Cursor!.TextOffset != last)
+            _controller.HandleCommand(NavigationCommand.FindNext);
+        _controller.HandleCommand(NavigationCommand.FindNext);
+
+        Assert.Equal(1, _controller.Cursor!.TextOffset);
+        _audio.Verify(a => a.Play("wrap"), Times.Once);
+    }
+
+    [Fact]
+    public async Task FindPrevious_GoesBack_AndWrapsToTheBottom()
+    {
+        var doc = LoadDocument();
+        await FindWithPrompt(new FindRequest("read"));
+        int read = doc.FlatText.IndexOf("Read", StringComparison.Ordinal);
+        Assert.Equal(read, _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.FindPrevious);
+
+        // The only match: going back past the top wraps round to it
+        Assert.Equal(read, _controller.Cursor!.TextOffset);
+        _audio.Verify(a => a.Play("wrap"), Times.Once);
+        await WaitForSpeech(u => u.Text.Contains("Read more"));
+    }
+
+    [Fact]
+    public async Task Find_MatchCase_SkipsOtherCases()
+    {
+        var doc = LoadDocument();
+
+        await FindWithPrompt(new FindRequest("Search", MatchCase: true));
+        Assert.Equal(doc.FlatText.IndexOf("Search", StringComparison.Ordinal), _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        await FindWithPrompt(new FindRequest("welcome", MatchCase: true));
+        _audio.Verify(a => a.Play("error"), Times.Once);
+        await WaitForSpeech(u => u.Text == "welcome not found");
+    }
+
+    [Fact]
+    public async Task Find_NotFound_PlaysTheErrorCue_AndKeepsTheCursor()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        int offset = _controller.Cursor!.TextOffset;
+
+        await FindWithPrompt(new FindRequest("zebra"));
+
+        Assert.Equal(offset, _controller.Cursor!.TextOffset);
+        _audio.Verify(a => a.Play("error"), Times.Once);
+        await WaitForSpeech(u => u.Text == "zebra not found");
+    }
+
+    [Fact]
+    public async Task FindNext_BeforeAnySearch_OpensThePrompt_WhichOffersTheHistory()
+    {
+        LoadDocument();
+
+        await FindWithPrompt(new FindRequest("Intro"), NavigationCommand.FindNext);
+        _findPrompt.Verify(p => p.ShowAsync(It.Is<IReadOnlyList<string>>(h => h.Count == 0), false), Times.Once);
+
+        await FindWithPrompt(new FindRequest("more"));
+        _findPrompt.Verify(p => p.ShowAsync(It.Is<IReadOnlyList<string>>(h => h.SequenceEqual(new[] { "Intro" })), false), Times.Once);
+
+        // Next and previous repeat the latest search without asking
+        _controller.HandleCommand(NavigationCommand.FindNext);
+        _findPrompt.Verify(p => p.ShowAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public void Find_OutsideADocument_SaysSo()
+    {
+        _controller.HandleCommand(NavigationCommand.Find);
+
+        _findPrompt.Verify(p => p.ShowAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    // -------------------------------------------------------------------------
+    // Selection and copy
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task SelectingByWord_SaysSelected_AndCtrlC_CopiesThePlainText()
+    {
+        _clipboard.Setup(c => c.SetText(It.IsAny<string>())).Returns(true);
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+
+        _controller.HandleCommand(NavigationCommand.SelectToEndOfLine);
+        await WaitForSpeech(u => u.Text == "selected Welcome");
+        _controller.HandleCommand(NavigationCommand.SelectNextChar);
+        _controller.HandleCommand(NavigationCommand.SelectNextWord);
+        await WaitForSpeech(u => u.Text == "selected Intro ");
+
+        _controller.HandleCommand(NavigationCommand.CopySelection);
+
+        _clipboard.Verify(c => c.SetText("Welcome" + Environment.NewLine + "Intro "), Times.Once);
+        await WaitForSpeech(u => u.Text == "Copied to clipboard");
+    }
+
+    [Fact]
+    public async Task ShrinkingTheSelection_SaysUnselected_AndReadSelection_ReadsIt()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        _controller.HandleCommand(NavigationCommand.SelectNextChar);
+        _controller.HandleCommand(NavigationCommand.SelectNextChar);
+        await WaitForSpeech(u => u.Text == "selected e");
+
+        _controller.HandleCommand(NavigationCommand.SelectPrevChar);
+        await WaitForSpeech(u => u.Text == "unselected e");
+
+        _controller.HandleCommand(NavigationCommand.ReadSelection);
+        await WaitForSpeech(u => u.Text == "W");
+    }
+
+    [Fact]
+    public async Task MovingTheCursor_EndsTheSelection()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        _controller.HandleCommand(NavigationCommand.SelectNextWord);
+
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        _controller.HandleCommand(NavigationCommand.CopySelection);
+
+        _clipboard.Verify(c => c.SetText(It.IsAny<string>()), Times.Never);
+        await WaitForSpeech(u => u.Text == "No selection");
+    }
+
+    [Fact]
+    public async Task SelectingAtTheStart_PlaysTheBoundaryCue_AndAFailedCopySaysSo()
+    {
+        _clipboard.Setup(c => c.SetText(It.IsAny<string>())).Returns(false);
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+
+        _controller.HandleCommand(NavigationCommand.SelectPrevChar);
+        _audio.Verify(a => a.Play("boundary"), Times.Once);
+
+        _controller.HandleCommand(NavigationCommand.SelectAll);
+        await WaitForSpeech(u => u.Text == "selected all");
+        _controller.HandleCommand(NavigationCommand.CopySelection);
+        await WaitForSpeech(u => u.Text == "Could not copy");
+    }
+
+    [Fact]
+    public void SelectionCommands_DoNothingInFocusMode()
+    {
+        LoadDocument();
+        _navigationManager.SwitchTo(InteractionMode.Focus, "test");
+        int offset = _controller.Cursor!.TextOffset;
+
+        _controller.HandleCommand(NavigationCommand.SelectNextWord);
+        _controller.HandleCommand(NavigationCommand.CopySelection);
+
+        Assert.Equal(offset, _controller.Cursor.TextOffset);
+        _clipboard.Verify(c => c.SetText(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task MarkThenSelectFromMark_SelectsAndSaysIt_AndPressedAgainCopies()
+    {
+        _clipboard.Setup(c => c.SetText(It.IsAny<string>())).Returns(true);
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+
+        _controller.HandleCommand(NavigationCommand.MarkStart);
+        await WaitForSpeech(u => u.Text == "Start marked");
+        _controller.HandleCommand(NavigationCommand.NextChar);
+        _controller.HandleCommand(NavigationCommand.NextChar);
+
+        _controller.HandleCommand(NavigationCommand.SelectFromMark);
+        await WaitForSpeech(u => u.Text == "selected Wel");
+        _controller.HandleCommand(NavigationCommand.SelectFromMark);
+
+        _clipboard.Verify(c => c.SetText("Wel"), Times.Once);
+        await WaitForSpeech(u => u.Text == "Copied to clipboard");
+    }
+
+    [Fact]
+    public async Task SelectFromMark_WithoutAMark_SaysSo()
+    {
+        LoadDocument();
+
+        _controller.HandleCommand(NavigationCommand.SelectFromMark);
+
+        await WaitForSpeech(u => u.Text == "No start marker set");
+    }
 }
+

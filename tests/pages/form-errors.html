@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Form with errors</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Book a flight</h1>
+<form novalidate id="form">
+  <p><label for="from">From</label> <input id="from" required aria-required="true" aria-describedby="from-hint">
+     <span id="from-hint">City or airport code</span></p>
+  <p><label for="date">Date</label> <input id="date" type="date" aria-invalid="true" aria-errormessage="date-error">
+     <span id="date-error" class="error">Enter a date in the future</span></p>
+  <p><label for="email">Email</label> <input id="email" type="email" aria-invalid="false"></p>
+  <p><label for="password">Password</label> <input id="password" type="password" value="secret"></p>
+  <p><label for="notes">Notes</label> <textarea id="notes">First line
+Second line</textarea></p>
+  <p><button type="submit">Search flights</button></p>
+  <div role="alert" id="summary"></div>
+</form>
+<script>
+document.getElementById('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const from = document.getElementById('from');
+  from.setAttribute('aria-invalid', from.value ? 'false' : 'true');
+  document.getElementById('summary').textContent = from.value ? '' : 'There is a problem: enter where you are flying from';
+});
+</script>
+</body>
+</html>

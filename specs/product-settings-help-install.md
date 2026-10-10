@@ -18,18 +18,18 @@ Everything that turns Vox from a program into a product: an accessible settings 
 ### W8a
 
 - [ ] `SettingsDialog`: tabs for General, Speech, Braille, Keyboard, Mouse, Document formatting, Verbosity, Audio cues, Browse mode; every `VoxSettings` field; changes apply live; tested with Vox reading it
-- [ ] `VoxSettings` grows the fields other specs need; settings schema version and migration of older files
-- [ ] Input gestures dialog: commands grouped by category, add/remove key bindings, conflict detection, writes a user keymap layered over the default keymap
-- [ ] `KeyMap` loads user keymap overrides from `%APPDATA%/Vox/keymap.json`
-- [ ] Vox menu (Insert+N) and system tray icon: Settings, Input gestures, Speech viewer, Help, Pause speech, Exit
-- [ ] Input help mode (Insert+1): keys speak their command name and description instead of running
-- [ ] Command search: type part of a command name, hear its keys
-- [ ] Command descriptions stored with the commands (used by help mode, gestures dialog and the guide)
-- [ ] User guide (HTML, with a keyboard reference generated from the keymap), opened from the Vox menu (Insert+F1 stays developer info, as in NVDA)
-- [ ] Interactive tutorial extends the first-run wizard: practice lessons per topic, rerunnable
+- [x] `VoxSettings` grows the fields other specs need; settings schema version and migration of older files
+- [x] Input gestures dialog: commands grouped by category, add/remove key bindings, conflict detection, writes a user keymap layered over the default keymap
+- [x] `KeyMap` loads user keymap overrides from `%APPDATA%/Vox/keymap.json`
+- [x] Vox menu (Insert+N) and system tray icon: Settings, Input gestures, Speech viewer, Help, Pause speech, Exit
+- [x] Input help mode (Insert+1): keys speak their command name and description instead of running
+- [x] Command search: type part of a command name, hear its keys
+- [x] Command descriptions stored with the commands (used by help mode, gestures dialog and the guide)
+- [x] User guide (HTML, with a keyboard reference generated from the keymap), opened from the Vox menu (Insert+F1 stays developer info, as in NVDA)
+- [x] Interactive tutorial extends the first-run wizard: practice lessons per topic, rerunnable
 - [ ] Installer: signed MSI/MSIX installing to Program Files (needed for `uiAccess`), start menu and desktop shortcut with Ctrl+Alt+V, optional start at logon, installs `Vox.Service`
-- [ ] Portable copy: create one on a USB stick from the Vox menu; settings stored beside the exe
-- [ ] Update checker: checks a signed release feed (stable/beta), speaks "update available", downloads, verifies signature, installs on request
+- [x] Portable copy: create one on a USB stick from the Vox menu; settings stored beside the exe
+- [x] Update checker: checks a signed release feed (stable/beta), speaks "update available", downloads, verifies signature, installs on request
 
 ### W8b
 

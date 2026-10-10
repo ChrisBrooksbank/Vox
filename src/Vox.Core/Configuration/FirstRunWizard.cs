@@ -35,6 +35,10 @@ public sealed class FirstRunWizard
     private readonly ILogger<FirstRunWizard> _logger;
 
     private TaskCompletionSource<KeyEvent>? _keyWaiter;
+    // The keys in use, for the practice lessons (none: no lessons offered)
+    private readonly Func<GestureEditor>? _lessonKeys;
+    // While a practice lesson waits for a key, every key is the lesson's
+    private volatile bool _swallowAllKeys;
 
     /// <summary>
     /// Whether the wizard is waiting for a key now. Keys pressed while it isn't are not its own
@@ -47,8 +51,10 @@ public sealed class FirstRunWizard
         SettingsManager settingsManager,
         SettingsMonitor settingsMonitor,
         IKeyboardHook keyboardHook,
-        ILogger<FirstRunWizard> logger)
+        ILogger<FirstRunWizard> logger,
+        Func<GestureEditor>? lessonKeys = null)
     {
+        _lessonKeys = lessonKeys;
         _speechEngine = speechEngine;
         _settingsManager = settingsManager;
         _settingsMonitor = settingsMonitor;
@@ -70,7 +76,7 @@ public sealed class FirstRunWizard
         // wizard is actually waiting for one, so keys pressed between prompts reach their app
         var previousFilter = _keyboardHook.SuppressionFilter;
         _keyboardHook.SuppressionFilter = e =>
-            IsWizardKey(e) && Volatile.Read(ref _keyWaiter) is not null ? KeyDecision.Swallow : KeyDecision.Pass;
+            (_swallowAllKeys || IsWizardKey(e)) && Volatile.Read(ref _keyWaiter) is not null ? KeyDecision.Swallow : KeyDecision.Pass;
 
         try
         {
@@ -402,6 +408,127 @@ public sealed class FirstRunWizard
 
         while (key.VkCode != VirtualKeys.Return)
             key = await WaitForKeyDownAsync(cancellationToken);
+
+        if (_lessonKeys is null)
+            return;
+        key = await PromptAsync("To practise the keys now, press 1. To finish setup, press Enter.", cancellationToken);
+        while (key.VkCode is not (VirtualKeys.Return or VirtualKeys.D1 or VirtualKeys.NumPad1))
+            key = await WaitForKeyDownAsync(cancellationToken);
+        if (key.VkCode != VirtualKeys.Return)
+            await RunLessonMenuAsync(settings, cancellationToken);
+    }
+
+    // -------------------------------------------------------------------------
+    // Practice lessons
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Runs the practice lessons on their own (the Vox menu's "Practice lessons"): the user picks
+    /// a topic and presses each command's key in turn. Escape leaves a lesson, and the menu.
+    /// The caller should have the keyboard hook installed and Vox's own key handling paused.
+    /// </summary>
+    public async Task RunLessonsAsync(CancellationToken cancellationToken = default)
+    {
+        _keyboardHook.KeyPressed += OnKeyPressed;
+        var previousFilter = _keyboardHook.SuppressionFilter;
+        _keyboardHook.SuppressionFilter = e =>
+            (_swallowAllKeys || IsWizardKey(e)) && Volatile.Read(ref _keyWaiter) is not null ? KeyDecision.Swallow : KeyDecision.Pass;
+        try
+        {
+            await RunLessonMenuAsync(_settingsMonitor.CurrentValue, cancellationToken);
+        }
+        catch (WizardExitException)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            Volatile.Write(ref _keyWaiter, null);
+            _keyboardHook.SuppressionFilter = previousFilter;
+            _keyboardHook.KeyPressed -= OnKeyPressed;
+        }
+    }
+
+    private async Task RunLessonMenuAsync(VoxSettings settings, CancellationToken cancellationToken)
+    {
+        if (_lessonKeys is null)
+            return;
+        var keys = _lessonKeys();
+        var modifierName = settings.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+        var choices = string.Join(", ", TutorialLessons.All.Select((l, i) => $"{i + 1} for {l.Topic}"));
+        // Escape leaves the lessons, not the whole setup
+        bool exitOnEscape = _exitOnEscape;
+        _exitOnEscape = false;
+        try
+        {
+            while (true)
+            {
+                var key = await PromptAsync($"Practice lessons. Press {choices}, or Escape to finish.", cancellationToken);
+                int lesson = key.VkCode switch
+                {
+                    >= VirtualKeys.D1 and <= VirtualKeys.D9 => key.VkCode - VirtualKeys.D1,
+                    >= VirtualKeys.NumPad1 and <= VirtualKeys.NumPad9 => key.VkCode - VirtualKeys.NumPad1,
+                    _ => -1,
+                };
+                if (key.VkCode == VirtualKeys.Escape)
+                    break;
+                if (lesson >= 0 && lesson < TutorialLessons.All.Count)
+                    await RunLessonAsync(TutorialLessons.All[lesson], keys, modifierName, cancellationToken);
+            }
+        }
+        finally
+        {
+            _exitOnEscape = exitOnEscape;
+        }
+        await SpeakAsync("Practice finished. The lessons are in the Vox menu whenever you want them.", cancellationToken);
+    }
+
+    /// <summary>The attempts at a step before the lesson says the key and moves on.</summary>
+    private const int Attempts = 3;
+
+    private async Task RunLessonAsync(Lesson lesson, GestureEditor keys, string modifierName, CancellationToken cancellationToken)
+    {
+        _swallowAllKeys = true;
+        try
+        {
+            await SpeakAsync($"Lesson: {lesson.Topic}. {lesson.Introduction} Escape ends the lesson.", cancellationToken);
+            foreach (var step in lesson.Steps)
+            {
+                if (TutorialLessons.KeyFor(step.Command, keys) is not { } gesture)
+                    continue;
+                var keyName = gesture.Describe(modifierName);
+                var key = await PromptAsync($"{step.Instruction}, press {keyName}.", cancellationToken);
+                for (int attempt = 1; ; attempt++)
+                {
+                    if (key.VkCode == VirtualKeys.Escape && key.Modifiers == KeyModifiers.None)
+                        return;
+                    if (TutorialLessons.Matches(key, gesture))
+                    {
+                        await SpeakAsync($"Right. {step.Done}", cancellationToken);
+                        break;
+                    }
+                    if (InputHelp.IsModifierKey(key.VkCode))
+                    {
+                        key = await WaitForKeyDownAsync(cancellationToken);
+                        continue;
+                    }
+                    if (attempt >= Attempts)
+                    {
+                        await SpeakAsync($"The key is {keyName}. Moving on.", cancellationToken);
+                        break;
+                    }
+                    var pressed = InputHelp.KeyName(key.Modifiers, key.VkCode, key.IsKeypad, modifierName);
+                    key = await PromptAsync($"That was {pressed}. {step.Instruction}, press {keyName}.", cancellationToken);
+                }
+            }
+            await SpeakAsync($"That's the {lesson.Topic} lesson done.", cancellationToken);
+        }
+        finally
+        {
+            _swallowAllKeys = false;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -497,7 +624,9 @@ internal static class VirtualKeys
     public const int D1 = 0x31;
     public const int D2 = 0x32;
     public const int D3 = 0x33;
+    public const int D9 = 0x39;
     public const int NumPad1 = 0x61;
     public const int NumPad2 = 0x62;
     public const int NumPad3 = 0x63;
+    public const int NumPad9 = 0x69;
 }

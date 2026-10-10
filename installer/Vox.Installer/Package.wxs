@@ -1,0 +1,64 @@
+<!--
+  Vox installer: per-machine, to Program Files\Vox (a secure location, needed for UI access).
+  - Every published file, the secure-screen service (VoxService, LocalSystem, automatic),
+  - Start menu and desktop shortcuts to Vox.Watchdog (which keeps Vox running); the Start menu
+    one has the Ctrl+Alt+V hotkey,
+  - STARTATLOGON=1: a shortcut in the all-users Startup folder, so Vox starts at sign-in.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Vox Screen Reader" Manufacturer="Vox" Version="$(var.VoxVersion)"
+           UpgradeCode="{3CB5D444-22D1-43A1-BF28-7035F8DE7DD4}" Scope="perMachine" Compressed="yes">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Vox is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="STARTATLOGON" Value="0" Secure="yes" />
+    <Property Id="ARPCOMMENTS" Value="A screen reader for Windows." />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Vox" />
+    </StandardDirectory>
+
+    <Feature Id="Vox" Title="Vox" Level="1">
+      <ComponentGroupRef Id="VoxFiles" />
+      <ComponentRef Id="VoxService" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="StartAtLogon" />
+    </Feature>
+
+    <ComponentGroup Id="VoxFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**">
+        <Exclude Files="$(var.PublishDir)\Vox.Service.exe" />
+      </Files>
+    </ComponentGroup>
+
+    <Component Id="VoxService" Directory="INSTALLFOLDER">
+      <File Id="VoxServiceExe" Source="$(var.PublishDir)\Vox.Service.exe" KeyPath="yes" />
+      <ServiceInstall Name="VoxService" DisplayName="Vox secure screens"
+                      Description="Reads the sign-in, lock and UAC screens with Vox."
+                      Type="ownProcess" Start="auto" ErrorControl="normal" Account="LocalSystem" />
+      <ServiceControl Id="VoxServiceControl" Name="VoxService" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+    </Component>
+
+    <!-- Hotkey: low byte the key (V, 0x56), high byte the modifiers (Ctrl 0x02 + Alt 0x04) -->
+    <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder">
+      <Shortcut Id="VoxStartMenu" Name="Vox" Description="Vox screen reader"
+                Target="[INSTALLFOLDER]Vox.Watchdog.exe" WorkingDirectory="INSTALLFOLDER" Hotkey="1622" />
+      <RegistryValue Root="HKLM" Key="Software\Vox" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder">
+      <Shortcut Id="VoxDesktop" Name="Vox" Description="Vox screen reader"
+                Target="[INSTALLFOLDER]Vox.Watchdog.exe" WorkingDirectory="INSTALLFOLDER" />
+      <RegistryValue Root="HKLM" Key="Software\Vox" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="StartAtLogon" Directory="StartupFolder" Condition="STARTATLOGON = 1">
+      <Shortcut Id="VoxStartup" Name="Vox" Description="Start Vox at sign-in"
+                Target="[INSTALLFOLDER]Vox.Watchdog.exe" WorkingDirectory="INSTALLFOLDER" />
+      <RegistryValue Root="HKLM" Key="Software\Vox" Name="StartAtLogon" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <ui:WixUI Id="WixUI_Minimal" />
+  </Package>
+</Wix>

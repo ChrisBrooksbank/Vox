@@ -16,6 +16,12 @@ public sealed class VerbosityProfile
     public bool AnnounceDescription { get; }
 
     /// <summary>
+    /// Speak an element's description (<c>aria-description</c>, <c>aria-describedby</c>; a
+    /// desktop control's help text) after its announcement.
+    /// </summary>
+    public bool AnnounceElementDescription { get; }
+
+    /// <summary>
     /// Speak the role of links and controls (edit, button, check box, ...) even when
     /// <see cref="AnnounceControlType"/> is off, so interactive elements never sound like text.
     /// </summary>
@@ -31,8 +37,10 @@ public sealed class VerbosityProfile
         bool announceExpandedState,
         bool announcePositionInfo,
         bool announceDescription,
+        bool announceElementDescription,
         bool announceInteractiveRoles = true)
     {
+        AnnounceElementDescription = announceElementDescription;
         AnnounceInteractiveRoles = announceInteractiveRoles;
         Level = level;
         AnnounceHeadingLevel = announceHeadingLevel;
@@ -58,7 +66,8 @@ public sealed class VerbosityProfile
         announceRequiredState: true,
         announceExpandedState: true,
         announcePositionInfo: true,
-        announceDescription: true);
+        announceDescription: true,
+        announceElementDescription: true);
 
     /// <summary>
     /// Intermediate: Control type + essential state.
@@ -73,7 +82,8 @@ public sealed class VerbosityProfile
         announceRequiredState: true,
         announceExpandedState: true,
         announcePositionInfo: false,
-        announceDescription: false);
+        announceDescription: false,
+        announceElementDescription: true);
 
     /// <summary>
     /// Advanced: Minimal — roles only for links and controls (which could otherwise pass for text).
@@ -88,7 +98,8 @@ public sealed class VerbosityProfile
         announceRequiredState: false,
         announceExpandedState: true,
         announcePositionInfo: false,
-        announceDescription: false);
+        announceDescription: false,
+        announceElementDescription: false);
 
     /// <summary>
     /// Whether the role of an element with this control type / ARIA role should be spoken.

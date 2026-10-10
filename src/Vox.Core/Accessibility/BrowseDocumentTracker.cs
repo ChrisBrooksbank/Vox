@@ -1,6 +1,8 @@
 using Interop.UIAutomationClient;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Vox.Core.Buffer;
+using Vox.Core.Configuration;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 
@@ -21,18 +23,10 @@ namespace Vox.Core.Accessibility;
 public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
 {
     private const int UIA_DocumentControlTypeId = 50030;
-    private const int UIA_InvokePatternId = 10000;
-    private const int UIA_LegacyIAccessiblePatternId = 10018;
     private const int MaxAncestorDepth = 64;
     private const int StructureDebounceMs = 300;
     private const int StructureMaxWaitMs = 1000;
     private const int FullRecaptureThreshold = 20;
-
-    private static readonly HashSet<string> WebFrameworks = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Chrome", // Chrome and Edge
-        "Gecko",  // Firefox
-    };
 
     private readonly UIAThread _uiaThread;
     private readonly UIAProvider _uiaProvider;
@@ -40,6 +34,8 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     private readonly IEventSink _eventSink;
     private readonly ILogger<BrowseDocumentTracker> _logger;
     private readonly int _ownProcessId = Environment.ProcessId;
+    private readonly IOptionsMonitor<VoxSettings>? _settings;
+    private readonly IMouseInput? _mouse;
 
     // STA-thread state
     private IUIAutomationElement? _documentRoot;
@@ -58,8 +54,12 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         UIAProvider uiaProvider,
         UIAEventSubscriber eventSubscriber,
         IEventSink eventSink,
-        ILogger<BrowseDocumentTracker> logger)
+        ILogger<BrowseDocumentTracker> logger,
+        IOptionsMonitor<VoxSettings>? settings = null,
+        IMouseInput? mouse = null)
     {
+        _settings = settings;
+        _mouse = mouse;
         _uiaThread = uiaThread;
         _uiaProvider = uiaProvider;
         _eventSubscriber = eventSubscriber;
@@ -157,7 +157,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
             return;
         }
 
-        LoadDocument(document, documentId, focusedId);
+        LoadDocument(document, documentId, focusedId, focused);
     }
 
     /// <summary>
@@ -167,24 +167,28 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         IUIAutomation automation, IUIAutomationElement focused, IUIAutomationCacheRequest cacheRequest)
     {
         var walker = automation.ControlViewWalker;
-        IUIAutomationElement? found = null;
-        var element = focused;
 
-        for (int depth = 0; element is not null && depth < MaxAncestorDepth; depth++)
+        // The ancestor chain first: whether it is inside a Firefox window decides what is web content
+        var chain = new List<IUIAutomationElement>();
+        for (var element = focused; element is not null && chain.Count < MaxAncestorDepth;
+             element = TryGet(() => walker.GetParentElementBuildCache(element, cacheRequest)))
+            chain.Add(element);
+        bool inFirefox = chain.Any(e => WebContent.IsFirefoxWindowClass(TryGet(() => e.CachedClassName)));
+
+        IUIAutomationElement? found = null;
+        foreach (var element in chain)
         {
-            var isWeb = WebFrameworks.Contains(TryGet(() => element.CachedFrameworkId) ?? string.Empty);
+            var isWeb = WebContent.IsWebElement(TryGet(() => element.CachedFrameworkId), inFirefox);
             if (isWeb && TryGet(() => element.CachedControlType) == UIA_DocumentControlTypeId)
                 found = element;
             else if (found is not null && !isWeb)
                 break; // Left the browser's web content
-
-            element = TryGet(() => walker.GetParentElementBuildCache(element, cacheRequest));
         }
 
         return found;
     }
 
-    private void LoadDocument(IUIAutomationElement document, int[] documentId, int[] focusedId)
+    private void LoadDocument(IUIAutomationElement document, int[] documentId, int[] focusedId, IUIAutomationElement? focused = null)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
@@ -194,12 +198,16 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         ClearPendingChanges();
         _eventSubscriber.SetDocumentScope(document);
 
+        // A large page takes a while to capture: the part around the focus (or the top of the
+        // page) is captured and posted first, so browsing can start before the rest arrives
+        PostPartialDocument(document, documentId, focusedId, focused);
+
         VBufferDocument buffer;
         try
         {
             var cached = _uiaProvider.WithDocumentCaptureTimeout(() => document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
             var snapshot = UIAElementSnapshot.Capture(cached);
-            buffer = new VBufferBuilder().Build(snapshot);
+            buffer = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true }.Build(snapshot);
             RememberWholeCapture(snapshot);
         }
         catch (Exception ex)
@@ -223,7 +231,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         _fullRecaptureFailures = 0;
 
         _logger.LogInformation("Virtual buffer built: {Nodes} nodes in {Ms}ms", buffer.AllNodes.Count, sw.ElapsedMilliseconds);
-        _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, buffer, focusedId));
+        _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, buffer, focusedId, ProcessNameOf(document)));
     }
 
     // Document whose failed capture has already been retried (UIA thread only)
@@ -507,19 +515,10 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
                 return true;
             }
 
-            if (TryGet(() => element.GetCurrentPattern(UIA_InvokePatternId)) is IUIAutomationInvokePattern invoke)
-            {
-                invoke.Invoke();
-                return true;
-            }
-
-            if (TryGet(() => element.GetCurrentPattern(UIA_LegacyIAccessiblePatternId)) is IUIAutomationLegacyIAccessiblePattern legacy)
-            {
-                legacy.DoDefaultAction();
-                return true;
-            }
-
-            element.SetFocus();
+            // Its pattern; else a click (a click handler with no accessible action); else focus
+            var outcome = ElementActivation.Activate(UIANavigatorObject.For(element, _uiaProvider), _mouse);
+            if (outcome == ActivationOutcome.None)
+                element.SetFocus();
             return true;
         }, UIAThread.DocumentTimeout); // may search the whole document
     }
@@ -542,6 +541,99 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "UIA error while {What}", what);
+        }
+    }
+
+    /// <summary>How many elements the first, partial capture of a page aims for.</summary>
+    internal const int StagedElementTarget = 200;
+
+    /// <summary>How far above the focused element the partial capture starts.</summary>
+    private const int FocusRegionLevels = 3;
+
+    /// <summary>
+    /// Captures the part of the page around the focused element (a few levels above it), or else
+    /// the first top-level parts of the page up to about <see cref="StagedElementTarget"/> elements,
+    /// and posts it as a partial document (<see cref="DocumentChangedEvent.IsPartial"/>). The whole
+    /// page follows. Nothing is posted when that part is the whole page anyway, or on any failure.
+    /// </summary>
+    private void PostPartialDocument(IUIAutomationElement document, int[] documentId, int[] focusedId, IUIAutomationElement? focused)
+    {
+        try
+        {
+            var walker = _uiaProvider.Automation.ControlViewWalker;
+            var request = _uiaProvider.SubtreeCacheRequest;
+            var elementOnly = request.Clone();
+            elementOnly.TreeScope = TreeScope.TreeScope_Element;
+
+            var parts = new List<UIAElementSnapshot>();
+            if (focused is not null && FocusRegion(walker, focused, documentId) is { } region)
+            {
+                parts.Add(UIAElementSnapshot.Capture(region.BuildUpdatedCache(request)));
+            }
+            else
+            {
+                int total = 0;
+                var child = TryGet(() => walker.GetFirstChildElement(document));
+                while (child is not null && total < StagedElementTarget)
+                {
+                    var part = UIAElementSnapshot.Capture(child.BuildUpdatedCache(request));
+                    parts.Add(part);
+                    total += part.CountElements();
+                    var current = child;
+                    child = TryGet(() => walker.GetNextSiblingElement(current));
+                }
+                // The first parts were the whole page: the full capture adds nothing
+                if (child is null)
+                    return;
+            }
+            if (parts.Count == 0)
+                return;
+
+            var root = UIAElementSnapshot.Capture(document.BuildUpdatedCache(elementOnly));
+            var partial = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true }
+                .Build(UIAElementSnapshot.WithParts(root, parts));
+            _logger.LogDebug("Partial buffer posted: {Nodes} nodes", partial.AllNodes.Count);
+            _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, partial, focusedId, ProcessNameOf(document), IsPartial: true));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not capture the first part of the page");
+        }
+    }
+
+    /// <summary>
+    /// The ancestor <see cref="FocusRegionLevels"/> levels above the focused element, or the
+    /// highest one below the document; null when the focus is the document or right below it.
+    /// </summary>
+    private static IUIAutomationElement? FocusRegion(IUIAutomationTreeWalker walker, IUIAutomationElement focused, int[] documentId)
+    {
+        var chain = new List<IUIAutomationElement>();
+        var element = focused;
+        for (int i = 0; element is not null && i <= MaxAncestorDepth; i++)
+        {
+            if (UIAEventSubscriber.TryGetRuntimeId(element).AsSpan().SequenceEqual(documentId))
+                break;
+            chain.Add(element);
+            var current = element;
+            element = TryGet(() => walker.GetParentElement(current));
+        }
+        // Never reached the document: the focus isn't in it
+        if (element is null || chain.Count < 2)
+            return null;
+        // The region must leave out part of the page, so not the document's own child
+        return chain[Math.Min(FocusRegionLevels, chain.Count - 2)];
+    }
+
+    private static string? ProcessNameOf(IUIAutomationElement element)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.GetProcessById(element.CachedProcessId);
+            return process.ProcessName;
+        }
+        catch
+        {
+            return null;
         }
     }
 

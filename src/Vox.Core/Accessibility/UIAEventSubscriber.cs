@@ -432,6 +432,10 @@ public sealed class UIAEventSubscriber :
         var (isExpandable, isExpanded) = Vox.Core.Buffer.ControlState.Expansion(
             UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_ExpandCollapseStatePropertyId),
             ariaProps, controlType);
+        var toggleState = UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_ToggleStatePropertyId)
+            ?? (Vox.Core.Buffer.AriaStates.IsButton(controlType, ariaRole) ? Vox.Core.Buffer.AriaStates.Pressed(ariaProps) : null);
+        var invalid = Vox.Core.Buffer.AriaStates.Invalid(
+            UIAElementSnapshot.ReadCachedBool(element, UIAProvider.UIA_IsDataValidForFormPropertyId), ariaProps);
 
         return new FocusChangedEvent(
             Timestamp: DateTimeOffset.UtcNow,
@@ -447,7 +451,7 @@ public sealed class UIAEventSubscriber :
             IsExpandable: isExpandable,
             RuntimeId: TryGetRuntimeId(element),
             IsPassword: TryGetValue(element, () => element.CachedIsPassword != 0),
-            ToggleState: UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_ToggleStatePropertyId),
+            ToggleState: toggleState,
             IsSelected: UIAElementSnapshot.ReadCachedBool(element, UIAProvider.UIA_SelectionItemIsSelectedPropertyId),
             Value: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_ValueValuePropertyId),
             IsValueReadOnly: UIAElementSnapshot.ReadCachedBool(element, UIAProvider.UIA_ValueIsReadOnlyPropertyId),
@@ -455,7 +459,15 @@ public sealed class UIAEventSubscriber :
             SizeOfSet: UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_SizeOfSetPropertyId) ?? 0,
             Level: UIAElementSnapshot.ReadCachedInt(element, UIAProvider.UIA_LevelPropertyId) ?? 0,
             AcceleratorKey: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_AcceleratorKeyPropertyId),
-            AccessKey: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_AccessKeyPropertyId)
+            AccessKey: UIAElementSnapshot.ReadCachedString(element, UIAProvider.UIA_AccessKeyPropertyId),
+            Description: UIAElementSnapshot.ReadDescription(element),
+            Invalid: invalid,
+            // The error text is read from the page's buffer on the pipeline thread
+            ErrorMessageIds: invalid.Length > 0 ? UIAElementSnapshot.ReadErrorMessageIds(element) : null,
+            Current: Vox.Core.Buffer.AriaStates.Current(ariaProps),
+            Sort: Vox.Core.Buffer.AriaStates.Sort(ariaProps),
+            RoleDescription: UIAElementSnapshot.ReadRoleDescription(element, controlType, ariaRole ?? string.Empty),
+            HasDetails: UIAElementSnapshot.ReadHasDetails(element)
         );
     }
 

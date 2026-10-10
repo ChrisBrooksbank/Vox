@@ -139,5 +139,52 @@ public enum NavigationCommand
     ReadTableRow,
     ReadTableColumn,
     SetColumnHeaders,
-    SetRowHeaders
+    SetRowHeaders,
+    Find,
+    FindNext,
+    FindPrevious,
+    SelectNextChar,
+    SelectPrevChar,
+    SelectNextWord,
+    SelectPrevWord,
+    SelectNextLine,
+    SelectPrevLine,
+    SelectToStartOfLine,
+    SelectToEndOfLine,
+    SelectToTop,
+    SelectToBottom,
+    SelectAll,
+    CopySelection,
+    MarkStart,
+    SelectFromMark,
+    /// <summary>Says the page's title, language and how many headings, links and so on it has.</summary>
+    PageSummary,
+    /// <summary>Says the address of the link at the browse cursor.</summary>
+    SayLinkUrl,
+    /// <summary>Presses the Reject/Close button of the page's cookie banner or modal dialog.</summary>
+    DismissOverlay,
+    /// <summary>Starts (or ends) exploring the expression at the browse cursor with the arrow keys.</summary>
+    InteractWithMath,
+    /// <summary>Turns input help on or off: keys say what they do instead of doing it.</summary>
+    ToggleInputHelp,
+    /// <summary>Opens the settings dialog.</summary>
+    OpenSettings,
+    /// <summary>Opens the input gestures dialog: the keys of every command, to add and remove.</summary>
+    OpenInputGestures,
+    /// <summary>Opens command search: type part of a command's name to hear its keys.</summary>
+    OpenCommandSearch,
+    /// <summary>Opens the Vox menu (settings, input gestures, speech viewer, help, exit).</summary>
+    OpenVoxMenu,
+    /// <summary>Stops all speech until pressed again.</summary>
+    TogglePauseSpeech,
+    /// <summary>Opens the user guide in the browser.</summary>
+    OpenUserGuide,
+    /// <summary>Exits Vox at once (from the Vox menu).</summary>
+    ExitVox,
+    /// <summary>Runs the practice lessons (web pages, editing text, reviewing the screen).</summary>
+    RunTutorial,
+    /// <summary>Copies Vox, with the user's settings, to a folder (a USB stick) to run from there.</summary>
+    CreatePortableCopy,
+    /// <summary>Checks for a newer Vox now, and offers to install it.</summary>
+    CheckForUpdates
 }

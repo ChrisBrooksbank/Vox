@@ -35,3 +35,57 @@ public class LegacyStateTests
     public void IsTraversed_ReadsVisitedBit(int state, bool expected) =>
         Assert.Equal(expected, UIAElementSnapshot.IsTraversed(state));
 }
+
+public class DescriptionTests
+{
+    [Theory]
+    [InlineData(" Opens in a new window ", "Tooltip", "Opens in a new window")]
+    [InlineData(null, " Tooltip ", "Tooltip")]
+    [InlineData("  ", "Tooltip", "Tooltip")]
+    [InlineData(null, null, "")]
+    [InlineData("", " ", "")]
+    public void DescriptionFrom_PrefersFullDescription(string? fullDescription, string? helpText, string expected) =>
+        Assert.Equal(expected, UIAElementSnapshot.DescriptionFrom(fullDescription, helpText));
+}
+
+public class RoleDescriptionTests
+{
+    [Theory]
+    [InlineData("slide", "Group", "group", "slide")]
+    [InlineData(" carousel ", "Custom", "region", "carousel")]
+    [InlineData("button", "Button", "button", "")]
+    [InlineData("check box", "CheckBox", "checkbox", "")]
+    [InlineData("navigation", "Group", "navigation", "")]
+    [InlineData("content information", "Group", "contentinfo", "")]
+    [InlineData("link", "Hyperlink", "link", "")]
+    [InlineData("toggle switch", "Button", "", "")] // a desktop control's own type
+    [InlineData(null, "Group", "group", "")]
+    public void RoleDescriptionFrom_OnlyAnAuthorsDescription(string? localizedType, string controlType, string ariaRole, string expected)
+    {
+        var previous = System.Globalization.CultureInfo.CurrentUICulture;
+        System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
+        try
+        {
+            Assert.Equal(expected, UIAElementSnapshot.RoleDescriptionFrom(localizedType, controlType, ariaRole));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
+    [Fact]
+    public void RoleDescriptionFrom_NotGuessedInAnotherLanguage()
+    {
+        var previous = System.Globalization.CultureInfo.CurrentUICulture;
+        System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("de-DE");
+        try
+        {
+            Assert.Equal("", UIAElementSnapshot.RoleDescriptionFrom("Schaltfläche", "Button", "button"));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = previous;
+        }
+    }
+}

@@ -1,0 +1,16 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <!--
+    Builds Vox.msi from a published Vox (Vox.App, Vox.Watchdog and Vox.Service in one folder):
+      dotnet build installer/Vox.Installer -c Release -p:PublishDir=<folder> -p:VoxVersion=1.2.3
+    Windows only, so it isn't in Vox.sln; the Release workflow runs it (docs/installer.md).
+  -->
+  <PropertyGroup>
+    <OutputName>Vox</OutputName>
+    <VoxVersion Condition="'$(VoxVersion)' == ''">0.1.0</VoxVersion>
+    <DefineConstants>PublishDir=$(PublishDir);VoxVersion=$(VoxVersion)</DefineConstants>
+    <SuppressValidation Condition="'$(OS)' != 'Windows_NT'">true</SuppressValidation>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

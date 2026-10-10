@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Dialogs</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Dialogs</h1>
+<p>Text behind the dialogs.</p>
+<button type="button" id="open-native">Open settings</button>
+<button type="button" id="open-aria">Delete file</button>
+<dialog id="settings" aria-labelledby="settings-title">
+  <h2 id="settings-title">Settings</h2>
+  <p><label><input type="checkbox"> Dark theme</label></p>
+  <button type="button" id="close-native">Close</button>
+</dialog>
+<div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text" id="confirm" hidden>
+  <h2 id="confirm-title">Delete file?</h2>
+  <p id="confirm-text">The file can't be recovered.</p>
+  <button type="button" id="cancel">Cancel</button>
+  <button type="button" id="delete">Delete</button>
+</div>
+<script>
+const settings = document.getElementById('settings');
+document.getElementById('open-native').addEventListener('click', () => settings.showModal());
+document.getElementById('close-native').addEventListener('click', () => settings.close());
+const confirmBox = document.getElementById('confirm');
+document.getElementById('open-aria').addEventListener('click', () => { confirmBox.hidden = false; document.getElementById('cancel').focus(); });
+['cancel', 'delete'].forEach(id => document.getElementById(id).addEventListener('click', () => {
+  confirmBox.hidden = true; document.getElementById('open-aria').focus();
+}));
+</script>
+</body>
+</html>

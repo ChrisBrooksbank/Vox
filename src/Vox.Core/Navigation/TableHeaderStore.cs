@@ -35,7 +35,7 @@ public sealed class TableHeaderStore
 
     /// <summary>The default file, in the user's Vox folder.</summary>
     public static string DefaultPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Vox", "table-headers.json");
+        Lifecycle.VoxPaths.UserData, "table-headers.json");
 
     /// <summary>The headers set for a table, or <see cref="Headers.None"/>.</summary>
     public Headers Get(string key)

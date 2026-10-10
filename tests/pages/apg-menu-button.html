@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Menu button</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Menu button</h1>
+<button type="button" id="menubutton" aria-haspopup="menu" aria-expanded="false" aria-controls="menu">Actions</button>
+<ul id="menu" role="menu" aria-labelledby="menubutton" hidden>
+  <li role="menuitem" tabindex="-1">Copy</li>
+  <li role="menuitem" tabindex="-1">Paste</li>
+  <li role="menuitem" tabindex="-1">Delete</li>
+</ul>
+<p id="result" aria-live="polite"></p>
+<script>
+const button = document.getElementById('menubutton');
+const menu = document.getElementById('menu');
+const items = [...menu.querySelectorAll('[role="menuitem"]')];
+function open() { menu.hidden = false; button.setAttribute('aria-expanded', 'true'); items[0].focus(); }
+function close() { menu.hidden = true; button.setAttribute('aria-expanded', 'false'); button.focus(); }
+button.addEventListener('click', () => menu.hidden ? open() : close());
+button.addEventListener('keydown', e => { if (e.key === 'ArrowDown') { e.preventDefault(); open(); } });
+items.forEach((item, i) => item.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') items[(i + 1) % items.length].focus();
+  if (e.key === 'ArrowUp') items[(i + items.length - 1) % items.length].focus();
+  if (e.key === 'Escape') close();
+  if (e.key === 'Enter') { document.getElementById('result').textContent = item.textContent + ' chosen'; close(); }
+}));
+</script>
+</body>
+</html>

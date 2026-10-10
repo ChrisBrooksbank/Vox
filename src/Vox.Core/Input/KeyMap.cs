@@ -34,6 +34,12 @@ internal sealed class KeyMapFile
 }
 
 /// <summary>
+/// A binding as written in a keymap file: <paramref name="Mode"/> is "Browse", "Focus" or "Any";
+/// <paramref name="Command"/> a <see cref="NavigationCommand"/> name, or "None" (unbinds, in a user keymap).
+/// </summary>
+public sealed record KeyBinding(KeyModifiers Modifiers, int VkCode, string Mode, string Command, bool PassThrough = false);
+
+/// <summary>
 /// Lookup key for a keymap entry: modifier combination, virtual key code, and interaction mode.
 /// </summary>
 public readonly record struct KeyMapKey(KeyModifiers Modifiers, int VkCode, InteractionMode Mode);
@@ -99,21 +105,138 @@ public sealed class KeyMap
     /// <see cref="LaptopFileName"/>, whose bindings replace any on the same key.
     /// </summary>
     public static KeyMap LoadLayout(string configDirectory, KeyboardLayout layout, out Exception? error,
-        out IReadOnlyList<string> warnings)
+        out IReadOnlyList<string> warnings) =>
+        LoadLayout(configDirectory, layout, userKeyMapPath: null, out error, out warnings);
+
+    /// <summary>
+    /// <see cref="LoadLayout(string, KeyboardLayout, out Exception?, out IReadOnlyList{string})"/>
+    /// with the user's own bindings (<paramref name="userKeyMapPath"/>, see <see cref="UserFileName"/>)
+    /// layered on top: each replaces the layout's binding on the same key and mode, and a binding to
+    /// the command "None" unbinds the key. Conflicts are reported through <paramref name="warnings"/>.
+    /// A missing user file is no error; an unreadable one is reported there and left out.
+    /// </summary>
+    public static KeyMap LoadLayout(string configDirectory, KeyboardLayout layout, string? userKeyMapPath,
+        out Exception? error, out IReadOnlyList<string> warnings)
     {
+        var userWarnings = new List<string>();
+        List<KeyBindingEntry>? user = null;
+        if (userKeyMapPath is not null && File.Exists(userKeyMapPath))
+        {
+            try
+            {
+                user = Parse(File.ReadAllText(userKeyMapPath)).Bindings;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
+            {
+                userWarnings.Add($"Your keymap {userKeyMapPath} could not be read ({ex.Message}); using the standard keys.");
+            }
+        }
+
+        string desktop;
+        string? laptop;
         try
         {
-            var desktop = File.ReadAllText(Path.Combine(configDirectory, DesktopFileName));
-            var laptop = layout == KeyboardLayout.Laptop ? File.ReadAllText(Path.Combine(configDirectory, LaptopFileName)) : null;
-            var map = Compose(desktop, laptop, out warnings);
+            desktop = File.ReadAllText(Path.Combine(configDirectory, DesktopFileName));
+            laptop = layout == KeyboardLayout.Laptop ? File.ReadAllText(Path.Combine(configDirectory, LaptopFileName)) : null;
             error = null;
-            return map;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             error = ex;
-            return LoadBuiltIn(layout, out warnings);
+            desktop = ReadResource(DesktopFileName);
+            laptop = layout == KeyboardLayout.Laptop ? ReadResource(LaptopFileName) : null;
         }
+
+        try
+        {
+            var map = Compose(desktop, laptop, user, out var composeWarnings);
+            warnings = [.. composeWarnings, .. userWarnings];
+            return map;
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            error = ex;
+            var map = LoadBuiltIn(layout, out var builtInWarnings);
+            warnings = [.. builtInWarnings, .. userWarnings];
+            return map;
+        }
+    }
+
+    /// <summary>The user's own key bindings, layered over the layout: %APPDATA%\Vox\keymap.json.</summary>
+    public const string UserFileName = "keymap.json";
+
+    public static string DefaultUserKeyMapPath => Path.Combine(
+        Lifecycle.VoxPaths.UserData, UserFileName);
+
+    /// <summary>The command name that unbinds a key in the user keymap.</summary>
+    public const string UnboundCommand = "None";
+
+    /// <summary>
+    /// The bindings of <paramref name="layout"/> as its files list them (the laptop layout: the
+    /// desktop's off the keypad, then the laptop's), from <paramref name="configDirectory"/> or
+    /// else the built-in ones. Entries with unknown modifiers are left out.
+    /// </summary>
+    public static IReadOnlyList<KeyBinding> LayoutBindings(string configDirectory, KeyboardLayout layout)
+    {
+        string desktop, laptop;
+        try
+        {
+            desktop = File.ReadAllText(Path.Combine(configDirectory, DesktopFileName));
+            laptop = File.ReadAllText(Path.Combine(configDirectory, LaptopFileName));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            desktop = ReadResource(DesktopFileName);
+            laptop = ReadResource(LaptopFileName);
+        }
+        var entries = Parse(desktop).Bindings.AsEnumerable();
+        if (layout == KeyboardLayout.Laptop)
+            entries = entries.Where(e => !NumpadKeys.IsKeypadBindingCode(e.VkCode)).Concat(Parse(laptop).Bindings);
+        return ToBindings(entries);
+    }
+
+    /// <summary>The user keymap's bindings, or none when it is missing or can't be read.</summary>
+    public static IReadOnlyList<KeyBinding> ReadUserBindings(string? path)
+    {
+        if (path is null || !File.Exists(path))
+            return [];
+        try { return ParseBindings(File.ReadAllText(path)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException) { return []; }
+    }
+
+    /// <summary>The bindings in a keymap file's JSON (a user keymap's included); unknown modifiers are left out.</summary>
+    public static IReadOnlyList<KeyBinding> ParseBindings(string json) => ToBindings(Parse(json).Bindings);
+
+    private static List<KeyBinding> ToBindings(IEnumerable<KeyBindingEntry> entries)
+    {
+        var bindings = new List<KeyBinding>();
+        foreach (var entry in entries)
+        {
+            if (TryParseModifiers(entry.Modifiers, out var modifiers))
+                bindings.Add(new KeyBinding(modifiers, entry.VkCode, entry.Mode, entry.Command, entry.PassThrough));
+        }
+        return bindings;
+    }
+
+    /// <summary>A keymap file holding <paramref name="bindings"/> (the format the loaders read).</summary>
+    public static string ToJson(IEnumerable<KeyBinding> bindings)
+    {
+        var file = new KeyMapFile
+        {
+            Bindings = bindings.Select(b => new KeyBindingEntry
+            {
+                Modifiers = b.Modifiers == KeyModifiers.None ? "None" : b.Modifiers.ToString().Replace(", ", "|"),
+                VkCode = b.VkCode,
+                Mode = b.Mode,
+                Command = b.Command,
+                PassThrough = b.PassThrough,
+            }).ToList(),
+        };
+        return JsonSerializer.Serialize(file, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+        });
     }
 
     private static string ReadResource(string fileName)
@@ -124,8 +247,14 @@ public sealed class KeyMap
         return reader.ReadToEnd();
     }
 
-    /// <summary>The desktop bindings, or for the laptop layout those off the keypad plus the laptop's own.</summary>
-    private static KeyMap Compose(string desktopJson, string? laptopJson, out IReadOnlyList<string> warnings)
+    /// <summary>
+    /// The desktop bindings, or for the laptop layout those off the keypad plus the laptop's own;
+    /// then the user's, which replace (or with "None" remove) any on the same key.
+    /// </summary>
+    private static KeyMap Compose(string desktopJson, string? laptopJson, out IReadOnlyList<string> warnings) =>
+        Compose(desktopJson, laptopJson, null, out warnings);
+
+    private static KeyMap Compose(string desktopJson, string? laptopJson, List<KeyBindingEntry>? user, out IReadOnlyList<string> warnings)
     {
         var entries = Parse(desktopJson).Bindings.AsEnumerable();
         if (laptopJson is not null)
@@ -133,8 +262,46 @@ public sealed class KeyMap
             entries = entries.Where(e => !NumpadKeys.IsKeypadBindingCode(e.VkCode))
                 .Concat(Parse(laptopJson).Bindings);
         }
-        return Build(entries, out warnings);
+        if (user is null)
+            return Build(entries, out warnings);
+
+        var layout = entries.ToList();
+        var layoutMap = Build(layout, out _);
+        var map = Build(layout.Concat(user), out var buildWarnings);
+        warnings = [.. buildWarnings, .. UserConflicts(layoutMap, user, map)];
+        return map;
     }
+
+    /// <summary>
+    /// What the user keymap gets wrong or takes away: two bindings of its own on one key (the last
+    /// wins), and commands of the layout left with no key at all because the user's bindings took
+    /// or removed theirs.
+    /// </summary>
+    private static List<string> UserConflicts(KeyMap layout, List<KeyBindingEntry> user, KeyMap map)
+    {
+        var conflicts = new List<string>();
+        var userKeys = new Dictionary<(KeyModifiers, int, string), string>();
+        foreach (var entry in user)
+        {
+            if (!TryParseModifiers(entry.Modifiers, out var modifiers))
+                continue;
+            var key = (modifiers, entry.VkCode, entry.Mode.Trim().ToLowerInvariant());
+            if (userKeys.TryGetValue(key, out var earlier) && !string.Equals(earlier, entry.Command, StringComparison.OrdinalIgnoreCase))
+                conflicts.Add($"Your keymap binds {DescribeKey(modifiers, entry.VkCode)} ({entry.Mode}) to both {earlier} and {entry.Command}; {entry.Command} is used.");
+            userKeys[key] = entry.Command;
+        }
+
+        var stillBound = map._bindings.Values.Select(b => b.Command).ToHashSet();
+        foreach (var command in layout._bindings.Values.Select(b => b.Command).Distinct())
+        {
+            if (!stillBound.Contains(command))
+                conflicts.Add($"Your keymap leaves {CommandCatalog.Describe(command).Name} ({command}) without a key.");
+        }
+        return conflicts;
+    }
+
+    private static string DescribeKey(KeyModifiers modifiers, int vkCode) =>
+        modifiers == KeyModifiers.None ? $"key {vkCode}" : $"{modifiers.ToString().Replace(", ", "+")}+key {vkCode}";
 
     /// <summary>
     /// Loads a KeyMap from <paramref name="filePath"/>, falling back to the built-in keymap (and
@@ -199,6 +366,19 @@ public sealed class KeyMap
             if (!TryParseModifiers(entry.Modifiers, out var modifiers))
             {
                 warningList.Add($"Binding for vkCode {entry.VkCode}: unrecognized modifiers '{entry.Modifiers}' — skipped.");
+                continue;
+            }
+
+            // A user keymap's "None" unbinds the key
+            if (string.Equals(entry.Command, UnboundCommand, StringComparison.OrdinalIgnoreCase))
+            {
+                bool any = string.Equals(entry.Mode, "Any", StringComparison.OrdinalIgnoreCase);
+                foreach (var unboundMode in new[] { InteractionMode.Browse, InteractionMode.Focus })
+                {
+                    if (any || string.Equals(entry.Mode, unboundMode.ToString(), StringComparison.OrdinalIgnoreCase))
+                        map._bindings.Remove(new KeyMapKey(modifiers, entry.VkCode, unboundMode));
+                }
+                map._anyBindings.Remove((modifiers, entry.VkCode));
                 continue;
             }
 

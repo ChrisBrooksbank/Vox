@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Cookie banner</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<main>
+  <h1>News</h1>
+  <p>Today's stories.</p>
+</main>
+<div class="banner" id="banner">
+  <p>We use cookies to improve your experience. You can accept them or reject the ones we don't need.</p>
+  <button type="button">Accept all</button>
+  <button type="button">Manage cookies</button>
+  <button type="button" id="reject">Reject all</button>
+</div>
+<script>
+document.querySelectorAll('#banner button').forEach(b => b.addEventListener('click', () => document.getElementById('banner').remove()));
+</script>
+</body>
+</html>

@@ -72,6 +72,52 @@ public sealed class VBufferNode
     /// <summary>Access key ("Alt+F", or the underlined letter of a menu item), or empty.</summary>
     public string AccessKey { get; init; } = string.Empty;
 
+    /// <summary>Description (aria-description / aria-describedby), or empty.</summary>
+    public string Description { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Invalid entry (aria-invalid): "spelling", "grammar", "true" for any other, or empty when valid.
+    /// </summary>
+    public string Invalid { get; init; } = string.Empty;
+
+    /// <summary>Runtime IDs of the elements holding an invalid entry's error message (aria-errormessage).</summary>
+    public IReadOnlyList<int[]> ErrorMessageIds { get; init; } = [];
+
+    /// <summary>
+    /// The text of the error message elements, resolved from <see cref="ErrorMessageIds"/> by
+    /// <see cref="VBufferDocument"/> when it is built; empty when there is none.
+    /// </summary>
+    public string ErrorMessage { get; set; } = string.Empty;
+
+    /// <summary>aria-current: "page", "step", "location", "date", "time", "true", or empty.</summary>
+    public string Current { get; init; } = string.Empty;
+
+    /// <summary>aria-sort: "ascending", "descending", "other", or empty.</summary>
+    public string Sort { get; init; } = string.Empty;
+
+    /// <summary>The author's name for the role (aria-roledescription), spoken instead of the role; or empty.</summary>
+    public string RoleDescription { get; init; } = string.Empty;
+
+    /// <summary>True when it has extended details elsewhere on the page (aria-details).</summary>
+    public bool HasDetails { get; init; }
+
+    /// <summary>
+    /// The kind of annotation it is ("comment", "insertion", "deletion", "highlight",
+    /// "suggestion"; see <see cref="Annotations"/>), or empty.
+    /// </summary>
+    public string Annotation { get; init; } = string.Empty;
+
+    /// <summary>A modal dialog (aria-modal, or a &lt;dialog&gt; opened with showModal()): while it is open, browsing stays inside it.</summary>
+    public bool IsModal { get; init; }
+
+    /// <summary>
+    /// A plain element (not a link or control) with a click handler, outermost only: said as "clickable".
+    /// </summary>
+    public bool IsClickable { get; init; }
+
+    /// <summary>A rich text editor (contenteditable): edited in Focus mode like a text box.</summary>
+    public bool IsRichEditable { get; init; }
+
     /// <summary>The text's language (BCP 47), its own or inherited from its ancestors; empty when unknown.</summary>
     public string Language { get; init; } = string.Empty;
 
@@ -136,6 +182,18 @@ public sealed class VBufferNode
         Value = Value,
         IsPassword = IsPassword,
         IsFocusable = IsFocusable,
+        AcceleratorKey = AcceleratorKey,
+        Description = Description,
+        Invalid = Invalid,
+        ErrorMessageIds = ErrorMessageIds,
+        Current = Current,
+        Sort = Sort,
+        RoleDescription = RoleDescription,
+        HasDetails = HasDetails,
+        Annotation = Annotation,
+        IsModal = IsModal,
+        IsClickable = IsClickable,
+        IsRichEditable = IsRichEditable,
         Language = Language,
         RowSpan = RowSpan,
         ColumnSpan = ColumnSpan,

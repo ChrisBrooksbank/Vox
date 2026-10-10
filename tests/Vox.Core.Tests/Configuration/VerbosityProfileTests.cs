@@ -19,6 +19,7 @@ public class VerbosityProfileTests
         Assert.True(profile.AnnounceExpandedState);
         Assert.True(profile.AnnouncePositionInfo);
         Assert.True(profile.AnnounceDescription);
+        Assert.True(profile.AnnounceElementDescription);
     }
 
     [Fact]
@@ -35,6 +36,7 @@ public class VerbosityProfileTests
         Assert.True(profile.AnnounceExpandedState);
         Assert.False(profile.AnnouncePositionInfo);
         Assert.False(profile.AnnounceDescription);
+        Assert.True(profile.AnnounceElementDescription);
     }
 
     [Fact]
@@ -51,6 +53,7 @@ public class VerbosityProfileTests
         Assert.True(profile.AnnounceExpandedState);
         Assert.False(profile.AnnouncePositionInfo);
         Assert.False(profile.AnnounceDescription);
+        Assert.False(profile.AnnounceElementDescription);
     }
 
     [Theory]

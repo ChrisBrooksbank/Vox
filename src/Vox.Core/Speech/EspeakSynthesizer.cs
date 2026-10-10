@@ -118,8 +118,7 @@ public static class EspeakComponent
     public const string DataFolderName = "espeak-ng-data";
 
     /// <summary>%LOCALAPPDATA%\Vox\components\espeak-ng: the library and its data folder.</summary>
-    public static string DefaultDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Vox", "components", "espeak-ng");
+    public static string DefaultDirectory => Path.Combine(Lifecycle.VoxPaths.Components, "espeak-ng");
 
     public static bool IsInstalled(string directory) =>
         File.Exists(Path.Combine(directory, LibraryFileName)) && Directory.Exists(Path.Combine(directory, DataFolderName));

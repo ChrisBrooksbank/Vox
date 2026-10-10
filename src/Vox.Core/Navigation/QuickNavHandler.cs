@@ -426,7 +426,7 @@ public sealed class QuickNavHandler
         // Search forward from startIndex to end
         for (int i = startIndex; i < collection.Count; i++)
         {
-            if (predicate(collection[i]))
+            if (predicate(collection[i]) && _document!.InScope(collection[i]))
             {
                 CurrentNode = collection[i];
                 return CurrentNode;
@@ -438,7 +438,7 @@ public sealed class QuickNavHandler
         {
             for (int i = 0; i < startIndex; i++)
             {
-                if (predicate(collection[i]))
+                if (predicate(collection[i]) && _document!.InScope(collection[i]))
                 {
                     _audioCuePlayer.Play("wrap");
                     CurrentNode = collection[i];
@@ -468,7 +468,7 @@ public sealed class QuickNavHandler
         // Search backward from endIndex to 0 (skipping the elements the cursor is inside)
         for (int i = endIndex; i >= 0; i--)
         {
-            if (predicate(collection[i]) && !IsAncestorOfCurrent(collection[i]))
+            if (predicate(collection[i]) && _document!.InScope(collection[i]) && !IsAncestorOfCurrent(collection[i]))
             {
                 CurrentNode = collection[i];
                 return CurrentNode;
@@ -480,7 +480,7 @@ public sealed class QuickNavHandler
         {
             for (int i = collection.Count - 1; i > endIndex; i--)
             {
-                if (predicate(collection[i]))
+                if (predicate(collection[i]) && _document!.InScope(collection[i]))
                 {
                     _audioCuePlayer.Play("wrap");
                     CurrentNode = collection[i];

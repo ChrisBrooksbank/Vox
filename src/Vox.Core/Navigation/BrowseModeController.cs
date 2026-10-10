@@ -1,9 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Buffer;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.MathSpeech;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -23,6 +25,17 @@ namespace Vox.Core.Navigation;
 public sealed class BrowseModeController
 {
     private readonly SpeechQueue _speechQueue;
+    private readonly IMathSpeech _mathSpeech;
+    private readonly MathExplorer _mathExplorer;
+    // The first part of a large page now browsed, until the whole page arrives
+    private PartialLoad? _partial;
+
+    /// <param name="Key">The page (<see cref="DocumentKey"/>).</param>
+    /// <param name="Earlier">Where the user was on it on an earlier visit, if any.</param>
+    /// <param name="PlacedOffset">Where the cursor was put on the first part (to tell whether the user has moved).</param>
+    private sealed record PartialLoad(string Key, RememberedDocument? Earlier, int PlacedOffset);
+    // The overlay (cookie banner, modal dialog) last announced, so it is announced once
+    private int[]? _announcedOverlay;
     private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly NavigationManager _navigationManager;
     private readonly QuickNavHandler _quickNavHandler;
@@ -36,6 +49,10 @@ public sealed class BrowseModeController
     private readonly ILogger<BrowseModeController> _logger;
     private readonly IncrementalUpdater _incrementalUpdater = new();
     private readonly TableNavigator _tableNavigator;
+    private readonly IFindPrompt? _findPrompt;
+    private readonly FindInBuffer _find = new();
+    private readonly BrowseSelection _selection = new();
+    private readonly IClipboard? _clipboard;
 
     private VBufferCursor? _cursor;
     private VBufferCursor? _sayAllCursor;
@@ -67,6 +84,7 @@ public sealed class BrowseModeController
 
     private readonly IFocusedTextReader? _focusedTextReader;
     private readonly RepeatPressCounter _readPresses = new();
+    private readonly RepeatPressCounter _selectFromMarkPresses = new();
     private SpellMode _readSpell;
 
     private const int UIA_NamePropertyId = 30005;
@@ -95,8 +113,15 @@ public sealed class BrowseModeController
         IElementsListPresenter elementsListPresenter,
         ILogger<BrowseModeController> logger,
         IFocusedTextReader? focusedTextReader = null,
-        TableHeaderStore? tableHeaders = null)
+        TableHeaderStore? tableHeaders = null,
+        IFindPrompt? findPrompt = null,
+        IClipboard? clipboard = null,
+        IMathSpeech? mathSpeech = null)
     {
+        _mathSpeech = mathSpeech ?? new NoMathSpeech();
+        _mathExplorer = new MathExplorer(_mathSpeech);
+        _clipboard = clipboard;
+        _findPrompt = findPrompt;
         _focusedTextReader = focusedTextReader;
         _tableNavigator = new TableNavigator(tableHeaders);
         _speechQueue = speechQueue;
@@ -178,6 +203,28 @@ public sealed class BrowseModeController
         // Every command stops Say All (Insert+Down restarts it below)
         StopSayAll();
 
+        // Anything but selecting, copying or reading ends the browse-mode selection
+        if (!KeepsSelection(command))
+            _selection.Clear();
+
+        // Exploring an expression: the arrows move through it; anything else ends exploring
+        if (_mathExplorer.IsActive && command != NavigationCommand.StopSpeech)
+        {
+            var (handled, speech) = _mathExplorer.Handle(command);
+            if (handled)
+            {
+                if (speech is not null)
+                    Speak(speech);
+                return;
+            }
+            _mathExplorer.Stop();
+            if (command == NavigationCommand.InteractWithMath)
+            {
+                Speak("Leaving math");
+                return;
+            }
+        }
+
         switch (command)
         {
             case NavigationCommand.StopSpeech:
@@ -247,6 +294,9 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ElementsList:
             case NavigationCommand.ToggleMode:
+            case NavigationCommand.Find:
+            case NavigationCommand.FindNext:
+            case NavigationCommand.FindPrevious:
                 // These only apply to web documents; say so rather than silently eating the key
                 if (_quickNavHandler.CurrentDocument is null || _cursor is null)
                 {
@@ -264,6 +314,19 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ElementsList:
                 OpenElementsList();
+                return;
+
+            case NavigationCommand.Find:
+                OpenFindPrompt();
+                return;
+
+            case NavigationCommand.FindNext:
+            case NavigationCommand.FindPrevious:
+                // Nothing searched for yet: ask what to find
+                if (_find.Last is not { } last)
+                    OpenFindPrompt();
+                else
+                    FindAndMove(last, forward: command == NavigationCommand.FindNext, fromCursor: false);
                 return;
 
             case NavigationCommand.ReadCurrentLine:
@@ -290,7 +353,12 @@ public sealed class BrowseModeController
                 return;
 
             case NavigationCommand.ReadSelection:
-                Speak("No selection"); // browse mode has no selection
+                var selected = _selection.TextFor(_cursor!);
+                if (selected.Length == 0)
+                    Speak("No selection");
+                else
+                    Speak(_readSpell == SpellMode.None ? SelectionText(selected)
+                        : Spelling.Say(selected, TextUnit.Line, _readSpell));
                 return;
 
             case NavigationCommand.ReadFormatting:
@@ -321,6 +389,55 @@ public sealed class BrowseModeController
         if (IsCaretCommand(command))
         {
             MoveCaret(command);
+            return;
+        }
+
+        if (BrowseSelection.IsSelectionCommand(command))
+        {
+            ExtendSelection(command);
+            return;
+        }
+
+        if (command == NavigationCommand.CopySelection)
+        {
+            CopySelection();
+            return;
+        }
+
+        if (command == NavigationCommand.MarkStart)
+        {
+            _selection.SetMark(_cursor!);
+            Speak("Start marked");
+            return;
+        }
+
+        if (command == NavigationCommand.SelectFromMark)
+        {
+            SelectFromMark();
+            return;
+        }
+
+        if (command == NavigationCommand.PageSummary)
+        {
+            Speak(PageSummary.Describe(_quickNavHandler.CurrentDocument));
+            return;
+        }
+
+        if (command == NavigationCommand.InteractWithMath)
+        {
+            InteractWithMath();
+            return;
+        }
+
+        if (command == NavigationCommand.DismissOverlay)
+        {
+            DismissOverlay();
+            return;
+        }
+
+        if (command == NavigationCommand.SayLinkUrl)
+        {
+            Speak(PageSummary.LinkUrlText(_cursor?.CurrentNode ?? _quickNavHandler.CurrentNode));
             return;
         }
 
@@ -417,6 +534,92 @@ public sealed class BrowseModeController
         Speak(result.Text!);
     }
 
+    /// <summary>
+    /// Shift/Ctrl+Shift+arrows, Shift+Home/End, Ctrl+Shift+Home/End, Ctrl+A: moves the selection's
+    /// active end and says "selected" or "unselected" with the text that changed.
+    /// </summary>
+    private void ExtendSelection(NavigationCommand command)
+    {
+        if (_cursor is null)
+            return;
+        ApplyCursorSettings(_cursor);
+        if (_selection.Extend(_cursor, command) is not { } change)
+        {
+            _audioCuePlayer.Play("boundary");
+            return;
+        }
+        _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+        // The cursor has moved on: Say All's last position no longer applies
+        _sayAllCursor = null;
+
+        if (command == NavigationCommand.SelectAll)
+            Speak("selected all");
+        else
+            Speak($"{(change.Selected ? "selected" : "unselected")} {SelectionText(change.Text)}");
+    }
+
+    /// <summary>Ctrl+C: copies the selected text to the clipboard as plain text.</summary>
+    private void CopySelection()
+    {
+        var text = _cursor is null ? string.Empty : _selection.TextFor(_cursor);
+        if (text.Length == 0)
+        {
+            Speak("No selection");
+            return;
+        }
+        if (_clipboard?.SetText(text.Replace("\n", Environment.NewLine)) != true)
+        {
+            _audioCuePlayer.Play("error");
+            Speak("Could not copy");
+            return;
+        }
+        Speak("Copied to clipboard");
+    }
+
+    /// <summary>
+    /// Insert+F10: selects from the mark (Insert+F9) to the cursor and says it; pressed again
+    /// quickly, copies it.
+    /// </summary>
+    private void SelectFromMark()
+    {
+        if (_cursor is null)
+            return;
+        bool again = _selectFromMarkPresses.Press(0) > 1;
+        if (again && _selection.IsValidFor(_cursor))
+        {
+            CopySelection();
+            return;
+        }
+        if (!_selection.SelectFromMark(_cursor))
+        {
+            Speak("No start marker set");
+            return;
+        }
+        Speak($"selected {SelectionText(_selection.TextFor(_cursor))}");
+    }
+
+    // Longer than this, a selection is said by its length rather than read out
+    private const int MaxSpokenSelection = 2000;
+
+    /// <summary>How selected text is said: a character by name, blank text as "blank".</summary>
+    private static string SelectionText(string text)
+    {
+        if (text.Length == 1)
+            return CharText(text[0])!;
+        if (string.IsNullOrWhiteSpace(text))
+            return "blank";
+        return text.Length > MaxSpokenSelection ? $"{text.Length} characters" : text;
+    }
+
+    private static bool KeepsSelection(NavigationCommand command) =>
+        BrowseSelection.IsSelectionCommand(command) || command is
+        NavigationCommand.CopySelection or NavigationCommand.ReadSelection or
+        NavigationCommand.MarkStart or NavigationCommand.SelectFromMark or
+        NavigationCommand.PageSummary or NavigationCommand.SayLinkUrl or
+        NavigationCommand.ReadCurrentLine or NavigationCommand.ReadCurrentWord or
+        NavigationCommand.ReadCurrentChar or NavigationCommand.ReadFormatting or
+        NavigationCommand.StopSpeech;
+
     /// <summary>The buffer line ('\n'-separated) starting at <paramref name="start"/>.</summary>
     private static string ParagraphAt(string text, int start)
     {
@@ -509,8 +712,9 @@ public sealed class BrowseModeController
             // Tabbing or clicking into a text box, combo box or list box enters Focus mode, so typed
             // letters reach it instead of running quick-nav commands ("automatic focus mode").
             // Cue only: speaking the mode would cut off the field's own announcement.
-            if (FormControls.NeedsFocusMode(node.ControlType, node.AriaRole)
-                || FormControls.NeedsFocusMode(focus.ControlType, focus.AriaRole))
+            // (The page itself is never typed in, whatever its value pattern says)
+            bool isPage = ReferenceEquals(node, _quickNavHandler.CurrentDocument!.Root);
+            if (!isPage && (NavigationManager.IsEditField(node) || NavigationManager.NeedsFocusMode(focus)))
                 _navigationManager.SwitchTo(InteractionMode.Focus, "focus moved to edit field", announce: false);
             else
                 _navigationManager.HandleFocusChanged(focus);
@@ -577,7 +781,9 @@ public sealed class BrowseModeController
 
             case UIA_ToggleToggleStatePropertyId:
                 var toggle = ToInt(evt.NewValue);
-                var toggleText = AnnouncementBuilder.ToggleStateText(toggle);
+                var toggleText = AriaStates.IsToggleButton(focus.ControlType, focus.AriaRole, toggle)
+                    ? AriaStates.PressedText(toggle)
+                    : AnnouncementBuilder.ToggleStateText(toggle);
                 bool toggleSaid = focus.ToggleState == toggle;
                 _lastFocus = focus with { ToggleState = toggle };
                 if (toggleText is not null && !toggleSaid)
@@ -668,6 +874,15 @@ public sealed class BrowseModeController
 
     public void HandleDocumentChanged(DocumentChangedEvent evt)
     {
+        _mathExplorer.Stop();
+        // The whole page after its first part: carry on from where the user is in it
+        if (!evt.IsPartial && evt.Document is { } whole && _partial is { } partial && partial.Key == DocumentKey(whole))
+        {
+            CompletePartialDocument(whole, partial, evt.ProcessName);
+            return;
+        }
+        _partial = null;
+
         StopSayAll();
         RememberPosition();
 
@@ -708,6 +923,13 @@ public sealed class BrowseModeController
                 _cursorFollowedFocusTo = focused.UIARuntimeId;
             }
 
+            KeepInModalScope();
+            // The first part of a large page: what the page is gets judged once it is all there
+            if (evt.IsPartial)
+                _partial = new PartialLoad(DocumentKey(document), remembered, _cursor.TextOffset);
+            else
+                AnnounceLoaded(document, fresh: remembered is null, evt.ProcessName);
+
             // Coming back to a page with focus in an edit field (Alt+Tab, tab switch): resume
             // typing in Focus mode. Only a fresh load's autofocus stays in Browse mode.
             if (remembered is not null && focused is not null && !focusIsPage)
@@ -715,11 +937,52 @@ public sealed class BrowseModeController
                 bool wasFocusedThere = remembered.Mode == InteractionMode.Focus
                     && remembered.FocusedRuntimeId is { } previous
                     && previous.AsSpan().SequenceEqual(focused.UIARuntimeId);
-                if (wasFocusedThere || FormControls.NeedsFocusMode(focused.ControlType, focused.AriaRole))
+                if (wasFocusedThere || NavigationManager.IsEditField(focused))
                     _navigationManager.SwitchTo(InteractionMode.Focus, "returned to edit field", announce: false);
             }
         }
 
+        UpdateDocumentActive();
+    }
+
+    /// <summary>
+    /// What a page says when it has loaded (whether a PDF is tagged, a cookie banner), and the
+    /// mode a web application starts in. <paramref name="fresh"/>: loaded, not returned to.
+    /// </summary>
+    private void AnnounceLoaded(VBufferDocument document, bool fresh, string? processName)
+    {
+        // A PDF says whether it can be browsed by structure (after what loading it says)
+        if (fresh && PdfDocuments.LoadAnnouncement(document) is { } pdf)
+            _speechQueue.Enqueue(new Utterance(pdf, SpeechPriority.Normal));
+        AnnounceOverlay(document);
+
+        // A web application (an editor, VS Code, Teams) is used through its own keys
+        if (fresh && DocumentModes.Initial(document, processName, _settings.CurrentValue.AppDefaultModes) == InteractionMode.Focus)
+            _navigationManager.SwitchTo(InteractionMode.Focus, "web application", announce: false);
+    }
+
+    /// <summary>
+    /// The whole page has arrived after its first part (<see cref="DocumentChangedEvent.IsPartial"/>).
+    /// Like an update, it keeps the mode and the cursor where the user has got to; if they haven't
+    /// moved and had been on this page before, the cursor goes back to where they were then.
+    /// </summary>
+    private void CompletePartialDocument(VBufferDocument document, PartialLoad partial, string? processName)
+    {
+        _partial = null;
+        StopSayAll();
+        bool userMoved = _cursor is not null && _cursor.TextOffset != partial.PlacedOffset;
+        RememberPosition();
+        var here = FindRemembered(document);
+
+        _quickNavHandler.SetDocument(document);
+        _fullRecaptureRequestedAt = null;
+        _tableNavigator.Reset();
+        _cursor = new VBufferCursor(document, _audioCuePlayer);
+        var position = (userMoved ? null : partial.Earlier) ?? here;
+        if (position is not null)
+            RestorePosition(document, position);
+        KeepInModalScope();
+        AnnounceLoaded(document, fresh: partial.Earlier is null, processName);
         UpdateDocumentActive();
     }
 
@@ -778,6 +1041,8 @@ public sealed class BrowseModeController
         var oldNode = _quickNavHandler.CurrentNode;
         int oldOffset = _cursor.TextOffset;
         var node = oldNode is not null ? updated.FindByRuntimeId(oldNode.UIARuntimeId) : null;
+        bool selecting = _selection.IsValidFor(_cursor);
+        _selection.RebaseMark(document, updated, result.OldTextStart, result.OldTextEnd, result.TextDelta);
 
         int newOffset;
         if (node is not null && oldNode is not null)
@@ -801,6 +1066,12 @@ public sealed class BrowseModeController
 
         _quickNavHandler.SetDocument(updated);
         _cursor.SetDocument(updated, newOffset);
+        KeepInModalScope();
+        AnnounceOverlay(updated);
+        if (selecting)
+            _selection.Rebase(updated, result.OldTextStart, result.OldTextEnd, result.TextDelta, _cursor.TextOffset);
+        else
+            _selection.Clear();
         if (oldNode is not null)
             _quickNavHandler.CurrentNode = node ?? _cursor.CurrentNode;
     }
@@ -825,6 +1096,27 @@ public sealed class BrowseModeController
         }
     }
 
+    /// <summary>
+    /// Another of Vox's own dialogs (settings) is opening: browse keys are off while it is open, so
+    /// it can be typed in. False when a Vox dialog is open already. Pipeline thread.
+    /// </summary>
+    public bool BeginOwnDialog()
+    {
+        if (_modalOpen)
+            return false;
+        _modalOpen = true;
+        _ignoreFocusReturnTo = _lastFocusedRuntimeId;
+        UpdateDocumentActive();
+        return true;
+    }
+
+    /// <summary>The dialog opened with <see cref="BeginOwnDialog"/> has closed. Pipeline thread.</summary>
+    public void EndOwnDialog()
+    {
+        _modalOpen = false;
+        UpdateDocumentActive();
+    }
+
     public void HandleElementsListClosed(ElementsListClosedEvent evt)
     {
         _modalOpen = false;
@@ -845,6 +1137,19 @@ public sealed class BrowseModeController
         }
         MoveTo(node);
         Announce(node);
+    }
+
+    public void HandleFindPromptClosed(FindPromptClosedEvent evt)
+    {
+        _modalOpen = false;
+        UpdateDocumentActive();
+
+        if (evt.Request is not { Text.Length: > 0 } request)
+            return;
+        _find.Remember(request);
+        if (_quickNavHandler.CurrentDocument is null || _cursor is null)
+            return;
+        FindAndMove(request, forward: true, fromCursor: true);
     }
 
     // -------------------------------------------------------------------------
@@ -1005,6 +1310,99 @@ public sealed class BrowseModeController
         _sayAllCursor = null;
     }
 
+    /// <summary>
+    /// A modal dialog is open but the cursor is outside it (it just opened, or the page loaded
+    /// with it open): move to its start, as the rest of the page is inert.
+    /// </summary>
+    private void KeepInModalScope()
+    {
+        if (_cursor is null || _cursor.Document.ModalScope is not { } scope || _cursor.Document.InScope(_cursor.TextOffset))
+            return;
+        _cursor.MoveTo(scope.Start);
+        _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+    }
+
+    /// <summary>
+    /// Says that a page has a cookie banner or modal dialog (and the key that dismisses it), once
+    /// per overlay. Queued after what is being said rather than interrupting it.
+    /// </summary>
+    private void AnnounceOverlay(VBufferDocument document)
+    {
+        var overlay = OverlayDetector.Find(document);
+        var id = overlay?.Container.UIARuntimeId;
+        if (id is null || (_announcedOverlay is not null && id.AsSpan().SequenceEqual(_announcedOverlay)))
+        {
+            _announcedOverlay = id;
+            return;
+        }
+        _announcedOverlay = id;
+        _speechQueue.Enqueue(new Utterance(OverlayDetector.Announcement(overlay!, DismissOverlayKey), SpeechPriority.Normal));
+    }
+
+    private string DismissOverlayKey =>
+        $"{(_settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert")}+Shift+D";
+
+    /// <summary>Starts exploring the expression at the cursor (MathCAT).</summary>
+    private void InteractWithMath()
+    {
+        var math = MathMarkup.Enclosing(_cursor?.CurrentNode ?? _quickNavHandler.CurrentNode);
+        if (math is null)
+        {
+            Speak("Not in math");
+            return;
+        }
+        if (!_mathSpeech.IsAvailable)
+        {
+            Speak("Exploring math needs the MathCAT component");
+            return;
+        }
+        if (MathMarkup.ToMathMl(math) is not { } mathMl || _mathExplorer.Start(mathMl) is not { } text)
+        {
+            Speak("This math can't be explored");
+            return;
+        }
+        Speak($"Math, {text}");
+    }
+
+    /// <summary>
+    /// Moving onto an expression by line, paragraph or element (not by word or character): its
+    /// text in the line is replaced with how MathCAT says it, when MathCAT is installed.
+    /// </summary>
+    private string WithMathSpoken(string text, VBufferNode? from, NavigationCommand command)
+    {
+        if (!_mathSpeech.IsAvailable || IsCharacterCommand(command) || command is NavigationCommand.NextWord or NavigationCommand.PrevWord)
+            return text;
+        var math = MathMarkup.Enclosing(_cursor?.CurrentNode);
+        if (math is null || ReferenceEquals(math, MathMarkup.Enclosing(from)))
+            return text;
+        if (MathMarkup.ToMathMl(math) is not { } mathMl || _mathSpeech.SetExpression(mathMl) is not { } spoken)
+            return text;
+        var (start, end) = VBufferDocument.SubtreeSpan(math);
+        var flat = _cursor!.Document.FlatText;
+        var mathText = end > start && end <= flat.Length ? flat[start..end].Trim() : string.Empty;
+        int at = mathText.Length > 0 ? text.IndexOf(mathText, StringComparison.Ordinal) : -1;
+        return at < 0 ? spoken : string.Concat(text.AsSpan(0, at), spoken, text.AsSpan(at + mathText.Length));
+    }
+
+    /// <summary>Presses the overlay's Reject/Close button, at the user's request only.</summary>
+    private void DismissOverlay()
+    {
+        var document = _quickNavHandler.CurrentDocument!;
+        var overlay = OverlayDetector.Find(document);
+        if (overlay is null)
+        {
+            Speak("No cookie banner or dialog found");
+            return;
+        }
+        if (overlay.DismissButton is not { } button)
+        {
+            Speak($"{overlay.Kind} has no reject or close button");
+            return;
+        }
+        Speak(button.Name.Trim());
+        _ = ActivateAsync(button);
+    }
+
     private void StartSayAll()
     {
         var document = _quickNavHandler.CurrentDocument;
@@ -1019,7 +1417,7 @@ public sealed class BrowseModeController
         _sayAllCursor = new VBufferCursor(document, _audioCuePlayer) { PlayCues = false };
         ApplyCursorSettings(_sayAllCursor);
         _sayAllCursor.MoveTo(_cursor.TextOffset);
-        _sayAllController.Start(_sayAllCursor);
+        _sayAllController.Start(new BufferSayAllSource(_sayAllCursor, document.ModalScope?.End));
     }
 
     private void StopSayAll()
@@ -1071,6 +1469,57 @@ public sealed class BrowseModeController
         _pipeline.Post(new ElementsListClosedEvent(DateTimeOffset.UtcNow, selected));
     }
 
+    private void OpenFindPrompt()
+    {
+        if (_findPrompt is null || _modalOpen)
+            return;
+
+        _modalOpen = true;
+        _ignoreFocusReturnTo = _lastFocusedRuntimeId;
+        UpdateDocumentActive();
+        _ = ShowFindPromptAsync(_findPrompt, _find.History.ToList(), _find.Last?.MatchCase ?? false);
+    }
+
+    private async Task ShowFindPromptAsync(IFindPrompt prompt, IReadOnlyList<string> history, bool matchCase)
+    {
+        FindRequest? request = null;
+        try
+        {
+            request = await prompt.ShowAsync(history, matchCase).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Find prompt failed");
+        }
+        _pipeline.Post(new FindPromptClosedEvent(DateTimeOffset.UtcNow, request));
+    }
+
+    /// <summary>
+    /// Moves the cursor to the next (or previous) match and reads its line; the wrap cue when the
+    /// search went past the end of the page. A new search starts at the cursor; next and previous
+    /// start just past it, so they don't find the match the cursor is on.
+    /// </summary>
+    private void FindAndMove(FindRequest request, bool forward, bool fromCursor)
+    {
+        var cursor = _cursor!;
+        int start = forward && !fromCursor ? cursor.TextOffset + 1 : cursor.TextOffset;
+        if (FindInBuffer.Find(cursor.Document.FlatText, request.Text, start, forward, request.MatchCase) is not { } match)
+        {
+            _audioCuePlayer.Play("error");
+            Speak($"{request.Text} not found");
+            return;
+        }
+
+        if (match.Wrapped)
+            _audioCuePlayer.Play("wrap");
+        cursor.MoveTo(match.Offset);
+        _quickNavHandler.CurrentNode = cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+        // The cursor has moved on: Say All's last position no longer applies
+        _sayAllCursor = null;
+        ApplyCursorSettings(cursor);
+        SpeakContent(LineText(cursor.ReadCurrentLine()));
+    }
+
     private void ActivateCurrentNode()
     {
         var node = ActivationTarget(_quickNavHandler.CurrentNode);
@@ -1108,6 +1557,19 @@ public sealed class BrowseModeController
     {
         if (_cursor is null) return;
         ApplyCursorSettings(_cursor);
+        var from = _cursor.CurrentNode;
+        int fromOffset = _cursor.TextOffset;
+
+        // An open modal dialog is all there is to browse: top and bottom are its edges
+        var scope = _cursor.Document.ModalScope;
+        if (scope is { } modal && command is NavigationCommand.TopOfDocument or NavigationCommand.BottomOfDocument)
+        {
+            int target = command == NavigationCommand.TopOfDocument ? modal.Start : _cursor.LineStartAt(Math.Max(modal.Start, modal.End - 1));
+            _cursor.MoveTo(target);
+            _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+            Speak(LineText(_cursor.ReadCurrentLine()));
+            return;
+        }
 
         string? text = command switch
         {
@@ -1129,16 +1591,43 @@ public sealed class BrowseModeController
         // null means a boundary (the cursor already played the cue)
         if (text is null) return;
 
+        // Moving out of an open modal dialog is a boundary too
+        if (!_cursor.Document.InScope(_cursor.TextOffset))
+        {
+            _cursor.MoveTo(fromOffset);
+            _audioCuePlayer.Play("boundary");
+            return;
+        }
+
         _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+        text = WithMathSpoken(text, from, command);
 
         // Entering a link, button or heading: say what it is, not just its text
         var role = RoleEnteredAtCursor();
-        // Page text alone is said in its language; with a role (said in Vox's) it isn't
-        if (role is null && !IsCharacterCommand(command))
+        // Entering or leaving a list: "out of list", "list with 3 items" before the text
+        var list = IsCharacterCommand(command) || !VerbosityProfile.For(_settings.CurrentValue.VerbosityLevel).AnnounceControlType
+            ? null
+            : ListAnnouncer.Transition(from, _cursor.CurrentNode);
+        if (list is not null)
+            text = $"{list}, {text}";
+        // Entering or leaving a comment, insertion, deletion or highlight changes what the text
+        // means: always said, even moving by character
+        var annotation = Annotations.Transition(from, _cursor.CurrentNode, _settings.CurrentValue.ExpandAbbreviations);
+        if (annotation is not null)
+            text = $"{annotation}, {text}";
+        // Page text alone is said in its language; with a role or list (said in Vox's) it isn't
+        if (role is null && list is null && annotation is null && !IsCharacterCommand(command))
             SpeakContent(text);
         else
             Speak(role is null ? text : $"{text}, {role}");
     }
+
+    /// <summary>
+    /// The error message (aria-errormessage) text of the elements with these runtime IDs in the
+    /// current page, or null when there is no page. Pipeline thread.
+    /// </summary>
+    public string? ErrorMessageFor(IReadOnlyList<int[]> runtimeIds) =>
+        _quickNavHandler.CurrentDocument?.ErrorMessageOf(runtimeIds);
 
     /// <summary>
     /// The role of the link, button or heading whose text starts exactly at the cursor, if any
@@ -1158,9 +1647,7 @@ public sealed class BrowseModeController
 
             if (n.IsHeading)
                 return profile.AnnounceHeadingLevel ? $"heading level {n.HeadingLevel}" : null;
-            return profile.SpeaksRoleOf(n.ControlType, n.AriaRole, n.IsLink)
-                ? ControlTypeNames.ToSpoken(n.IsLink ? "Hyperlink" : n.ControlType)
-                : null;
+            return AnnouncementBuilder.SpokenRole(n, profile);
         }
         return null;
     }
