@@ -62,10 +62,11 @@ public static class Annotations
     };
 
     /// <summary>
-    /// The annotations left and entered moving from <paramref name="from"/> to
-    /// <paramref name="to"/> ("end of deleted, inserted"), or null when the same ones surround both.
+    /// The annotations (and figures, clickable elements and, with <paramref name="expandAbbreviations"/>,
+    /// abbreviations) left and entered moving from <paramref name="from"/> to <paramref name="to"/>
+    /// ("end of deleted, inserted"), or null when the same ones surround both.
     /// </summary>
-    public static string? Transition(VBufferNode? from, VBufferNode? to)
+    public static string? Transition(VBufferNode? from, VBufferNode? to, bool expandAbbreviations = false)
     {
         if (from is null || to is null || ReferenceEquals(from, to))
             return null;
@@ -79,19 +80,49 @@ public static class Annotations
 
         var parts = new List<string>();
         for (int i = before.Count - 1; i >= common; i--)
-            parts.Add(ExitText(before[i].Annotation));
+            parts.AddRange(ExitTexts(before[i]));
         for (int i = common; i < after.Count; i++)
-            parts.Add(EnterText(after[i].Annotation));
-        return string.Join(", ", parts);
+            parts.AddRange(EnterTexts(after[i], expandAbbreviations));
+        return parts.Count == 0 ? null : string.Join(", ", parts);
     }
 
-    /// <summary>The annotations around <paramref name="node"/> (itself included), outermost first.</summary>
+    /// <summary>True for a figure (&lt;figure&gt;, role figure); its caption is read as its text.</summary>
+    public static bool IsFigure(VBufferNode node) => node.AriaRole.Trim().Equals("figure", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True for an abbreviation (&lt;abbr&gt;); its title (the expansion) is the description.</summary>
+    public static bool IsAbbreviation(VBufferNode node) => node.AriaRole.Trim().Equals("abbr", StringComparison.OrdinalIgnoreCase);
+
+    private static IEnumerable<string> EnterTexts(VBufferNode node, bool expandAbbreviations)
+    {
+        if (node.Annotation.Length > 0)
+            yield return EnterText(node.Annotation);
+        if (IsFigure(node))
+            yield return "figure";
+        if (node.IsClickable)
+            yield return "clickable";
+        // The expansion first, then the abbreviation as written
+        if (expandAbbreviations && IsAbbreviation(node) && node.Description.Length > 0)
+            yield return node.Description;
+    }
+
+    private static IEnumerable<string> ExitTexts(VBufferNode node)
+    {
+        if (IsFigure(node))
+            yield return "out of figure";
+        if (node.Annotation.Length > 0)
+            yield return ExitText(node.Annotation);
+    }
+
+    /// <summary>
+    /// The annotations, figures, clickable elements and abbreviations around <paramref name="node"/>
+    /// (itself included), outermost first.
+    /// </summary>
     public static IReadOnlyList<VBufferNode> Around(VBufferNode node)
     {
         var found = new List<VBufferNode>();
         for (var n = node; n is not null; n = n.Parent)
         {
-            if (n.Annotation.Length > 0)
+            if (n.Annotation.Length > 0 || n.IsClickable || IsFigure(n) || IsAbbreviation(n))
                 found.Add(n);
         }
         found.Reverse();

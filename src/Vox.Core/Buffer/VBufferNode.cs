@@ -110,6 +110,11 @@ public sealed class VBufferNode
     /// <summary>A modal dialog (aria-modal, or a &lt;dialog&gt; opened with showModal()): while it is open, browsing stays inside it.</summary>
     public bool IsModal { get; init; }
 
+    /// <summary>
+    /// A plain element (not a link or control) with a click handler, outermost only: said as "clickable".
+    /// </summary>
+    public bool IsClickable { get; init; }
+
     /// <summary>The text's language (BCP 47), its own or inherited from its ancestors; empty when unknown.</summary>
     public string Language { get; init; } = string.Empty;
 
@@ -184,6 +189,7 @@ public sealed class VBufferNode
         HasDetails = HasDetails,
         Annotation = Annotation,
         IsModal = IsModal,
+        IsClickable = IsClickable,
         Language = Language,
         RowSpan = RowSpan,
         ColumnSpan = ColumnSpan,

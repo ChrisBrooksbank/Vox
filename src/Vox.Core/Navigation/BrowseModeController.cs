@@ -1394,7 +1394,7 @@ public sealed class BrowseModeController
             text = $"{list}, {text}";
         // Entering or leaving a comment, insertion, deletion or highlight changes what the text
         // means: always said, even moving by character
-        var annotation = Annotations.Transition(from, _cursor.CurrentNode);
+        var annotation = Annotations.Transition(from, _cursor.CurrentNode, _settings.CurrentValue.ExpandAbbreviations);
         if (annotation is not null)
             text = $"{annotation}, {text}";
         // Page text alone is said in its language; with a role or list (said in Vox's) it isn't

@@ -94,4 +94,52 @@ public class AnnotationsTests
 
         Assert.Equal("deleted", Annotations.Transition(start, cursor.CurrentNode));
     }
+
+    [Fact]
+    public void ClickableElement_IsSaidOnEntry_ButNotItsDescendantsOrLinks()
+    {
+        var card = new MockElement { RuntimeId = [_id++], ControlType = "Group", IsInvokable = true }
+            .AddChild(new MockElement { RuntimeId = [_id++], Name = "Card title", IsInvokable = true });
+        var link = new MockElement { RuntimeId = [_id++], Name = "A link", ControlType = "Hyperlink", IsInvokable = true };
+        var root = new MockElement { RuntimeId = [_id++], ControlType = "Document" }
+            .AddChild(Text("before"))
+            .AddChild(card)
+            .AddChild(link);
+        var document = new VBufferBuilder().Build(root);
+        VBufferNode At(string text) => document.FindNodeAtOffset(document.FlatText.IndexOf(text))!;
+
+        Assert.True(At("Card title").Parent!.IsClickable);
+        Assert.False(At("Card title").IsClickable);
+        Assert.False(At("A link").IsClickable);
+        Assert.Equal("clickable", Annotations.Transition(At("before"), At("Card title")));
+        Assert.Null(Annotations.Transition(At("Card title"), At("A link")));
+    }
+
+    [Fact]
+    public void Figure_IsSaidOnEntryAndExit()
+    {
+        var root = new MockElement { RuntimeId = [_id++], ControlType = "Document" }
+            .AddChild(Text("before"))
+            .AddChild(Marked("figure", new MockElement { RuntimeId = [_id++], Name = "Chart", ControlType = "Image" }, Text("Sales by year")))
+            .AddChild(Text("after"));
+        var document = new VBufferBuilder().Build(root);
+        VBufferNode At(string text) => document.FindNodeAtOffset(document.FlatText.IndexOf(text))!;
+
+        Assert.Equal("figure", Annotations.Transition(At("before"), At("Chart")));
+        Assert.Null(Annotations.Transition(At("Chart"), At("Sales by year")));
+        Assert.Equal("out of figure", Annotations.Transition(At("Sales by year"), At("after")));
+    }
+
+    [Fact]
+    public void Abbreviation_ExpansionIsSaidOnlyWithTheSetting()
+    {
+        var root = new MockElement { RuntimeId = [_id++], ControlType = "Document" }
+            .AddChild(Text("before"))
+            .AddChild(new MockElement { RuntimeId = [_id++], Name = "WHO", AriaRole = "abbr", Description = "World Health Organization" });
+        var document = new VBufferBuilder().Build(root);
+        VBufferNode At(string text) => document.FindNodeAtOffset(document.FlatText.IndexOf(text))!;
+
+        Assert.Null(Annotations.Transition(At("before"), At("WHO")));
+        Assert.Equal("World Health Organization", Annotations.Transition(At("before"), At("WHO"), expandAbbreviations: true));
+    }
 }

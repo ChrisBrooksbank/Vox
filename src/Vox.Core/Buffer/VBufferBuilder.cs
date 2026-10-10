@@ -92,6 +92,12 @@ public interface IVBufferElement
     /// <summary>UIA AnnotationTypes identifiers (a comment, a tracked change), empty when none.</summary>
     IReadOnlyList<int> AnnotationTypes => [];
 
+    /// <summary>
+    /// True when it can be invoked (UIA Invoke pattern): Chromium offers that on any element with
+    /// a click handler, so on a plain element it means "clickable".
+    /// </summary>
+    bool IsInvokable => false;
+
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
 }
@@ -339,6 +345,7 @@ public sealed class VBufferBuilder
             Annotation = Annotations.Kind(ariaRole, element.AnnotationTypes),
             // aria-modal (Chromium also reports a <dialog> opened with showModal() this way)
             IsModal = ariaRole is "dialog" or "alertdialog" && ParseAriaPropertyBool(ariaProps, "modal"),
+            IsClickable = element.IsInvokable && !isFocusable && !InClickable(parent),
             // Inherited, as lang is in HTML
             Language = !string.IsNullOrEmpty(element.Language) ? element.Language : parent?.Language ?? inheritedLanguage,
             RowSpan = Math.Max(1, element.RowSpan),
@@ -361,6 +368,20 @@ public sealed class VBufferBuilder
     /// Nodes that contribute nothing get an empty range positioned where their content starts,
     /// so TextRange.Start stays non-decreasing in document order.
     /// </summary>
+    /// <summary>
+    /// Inside a link, a control or an element already said to be clickable: its click handler
+    /// is that one's (Chromium offers Invoke on the descendants too), so not said again.
+    /// </summary>
+    private static bool InClickable(VBufferNode? node)
+    {
+        for (; node is not null; node = node.Parent)
+        {
+            if (node.IsClickable || node.IsLink || FocusableControlTypes.Contains(node.ControlType))
+                return true;
+        }
+        return false;
+    }
+
     private static void FinishNode(IVBufferElement element, VBufferNode node, int textStart, StringBuilder flatText)
     {
         bool descendantsHaveText = flatText.Length > textStart;

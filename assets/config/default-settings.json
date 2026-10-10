@@ -17,6 +17,7 @@
   "TypingEchoMode": "Both",
   "AudioCuesEnabled": true,
   "AnnounceVisitedLinks": true,
+  "ExpandAbbreviations": false,
   "ModifierKey": "Insert",
   "KeyboardLayout": "Desktop",
   "MaxLineLength": 100,

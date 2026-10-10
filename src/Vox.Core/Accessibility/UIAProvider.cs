@@ -48,6 +48,7 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_ControllerForPropertyId = 30104;
     internal const int UIA_DescribedByPropertyId = 30105;
     internal const int UIA_AnnotationTypesPropertyId = 30155;
+    internal const int UIA_IsInvokePatternAvailablePropertyId = 30031;
 
     internal const uint ConnectionTimeoutMs = 2000;
     internal const uint TransactionTimeoutMs = 4000;
@@ -177,6 +178,8 @@ public sealed class UIAProvider : IDisposable
         request.AddProperty(UIA_AcceleratorKeyPropertyId);
         // Annotations (a comment through aria-details, tracked changes)
         request.AddProperty(UIA_AnnotationTypesPropertyId);
+        // Chromium offers Invoke on elements with a click handler (to say "clickable")
+        request.AddProperty(UIA_IsInvokePatternAvailablePropertyId);
         AddStateProperties(request);
         request.TreeScope = TreeScope.TreeScope_Subtree;
         request.TreeFilter = automation.ControlViewCondition;

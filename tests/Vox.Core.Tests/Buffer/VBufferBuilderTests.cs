@@ -22,6 +22,8 @@ internal sealed class MockElement : IVBufferElement
     public string Language { get; set; } = string.Empty;
     public int RowSpan { get; set; } = 1;
     public IReadOnlyList<int> AnnotationTypes { get; set; } = [];
+    public bool IsInvokable { get; set; }
+    public string Description { get; set; } = string.Empty;
     public int ColumnSpan { get; set; } = 1;
 
     private readonly List<IVBufferElement> _children = new();
