@@ -98,6 +98,7 @@
     { "modifiers": "Insert",      "vkCode": 121, "mode": "Browse", "command": "SelectFromMark" },
     { "modifiers": "Insert|Shift", "vkCode": 73, "mode": "Browse", "command": "PageSummary" },
     { "modifiers": "Insert",      "vkCode": 75,  "mode": "Browse", "command": "SayLinkUrl" },
+    { "modifiers": "Insert|Shift", "vkCode": 68, "mode": "Browse", "command": "DismissOverlay" },
     { "modifiers": "None",        "vkCode": 39,  "mode": "Browse", "command": "NextChar" },
     { "modifiers": "None",        "vkCode": 37,  "mode": "Browse", "command": "PrevChar" },
     { "modifiers": "None",        "vkCode": 13,  "mode": "Browse", "command": "ActivateElement" },

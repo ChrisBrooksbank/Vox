@@ -24,6 +24,8 @@ namespace Vox.Core.Navigation;
 public sealed class BrowseModeController
 {
     private readonly SpeechQueue _speechQueue;
+    // The overlay (cookie banner, modal dialog) last announced, so it is announced once
+    private int[]? _announcedOverlay;
     private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly NavigationManager _navigationManager;
     private readonly QuickNavHandler _quickNavHandler;
@@ -387,6 +389,12 @@ public sealed class BrowseModeController
         if (command == NavigationCommand.PageSummary)
         {
             Speak(PageSummary.Describe(_quickNavHandler.CurrentDocument));
+            return;
+        }
+
+        if (command == NavigationCommand.DismissOverlay)
+        {
+            DismissOverlay();
             return;
         }
 
@@ -869,6 +877,7 @@ public sealed class BrowseModeController
             }
 
             KeepInModalScope();
+            AnnounceOverlay(document);
 
             // Coming back to a page with focus in an edit field (Alt+Tab, tab switch): resume
             // typing in Focus mode. Only a fresh load's autofocus stays in Browse mode.
@@ -966,6 +975,7 @@ public sealed class BrowseModeController
         _quickNavHandler.SetDocument(updated);
         _cursor.SetDocument(updated, newOffset);
         KeepInModalScope();
+        AnnounceOverlay(updated);
         if (selecting)
             _selection.Rebase(updated, result.OldTextStart, result.OldTextEnd, result.TextDelta, _cursor.TextOffset);
         else
@@ -1197,6 +1207,45 @@ public sealed class BrowseModeController
             return;
         _cursor.MoveTo(scope.Start);
         _quickNavHandler.CurrentNode = _cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+    }
+
+    /// <summary>
+    /// Says that a page has a cookie banner or modal dialog (and the key that dismisses it), once
+    /// per overlay. Queued after what is being said rather than interrupting it.
+    /// </summary>
+    private void AnnounceOverlay(VBufferDocument document)
+    {
+        var overlay = OverlayDetector.Find(document);
+        var id = overlay?.Container.UIARuntimeId;
+        if (id is null || (_announcedOverlay is not null && id.AsSpan().SequenceEqual(_announcedOverlay)))
+        {
+            _announcedOverlay = id;
+            return;
+        }
+        _announcedOverlay = id;
+        _speechQueue.Enqueue(new Utterance(OverlayDetector.Announcement(overlay!, DismissOverlayKey), SpeechPriority.Normal));
+    }
+
+    private string DismissOverlayKey =>
+        $"{(_settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert")}+Shift+D";
+
+    /// <summary>Presses the overlay's Reject/Close button, at the user's request only.</summary>
+    private void DismissOverlay()
+    {
+        var document = _quickNavHandler.CurrentDocument!;
+        var overlay = OverlayDetector.Find(document);
+        if (overlay is null)
+        {
+            Speak("No cookie banner or dialog found");
+            return;
+        }
+        if (overlay.DismissButton is not { } button)
+        {
+            Speak($"{overlay.Kind} has no reject or close button");
+            return;
+        }
+        Speak(button.Name.Trim());
+        _ = ActivateAsync(button);
     }
 
     private void StartSayAll()

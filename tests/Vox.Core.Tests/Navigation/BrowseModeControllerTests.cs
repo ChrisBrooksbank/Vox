@@ -365,6 +365,26 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task CookieBanner_IsAnnouncedAndOnlyDismissedOnRequest()
+    {
+        var banner = new MockElement { RuntimeId = [91], ControlType = "Group" }
+            .AddChild(new MockElement { RuntimeId = [92], Name = "We use cookies." })
+            .AddChild(new MockElement { RuntimeId = [93], Name = "Reject all", ControlType = "Button" });
+        var root = new MockElement { RuntimeId = [90], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [94], Name = "News" })
+            .AddChild(banner);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null));
+
+        await WaitForSpeech(u => u.Text == "Cookie banner. Insert+Shift+D presses Reject all");
+        _actions.Setup(a => a.ActivateAsync(It.IsAny<VBufferNode>())).ReturnsAsync(true);
+        _actions.Verify(a => a.ActivateAsync(It.IsAny<VBufferNode>()), Times.Never);
+
+        _controller.HandleCommand(NavigationCommand.DismissOverlay);
+
+        _actions.Verify(a => a.ActivateAsync(It.Is<VBufferNode>(n => n.Name == "Reject all")), Times.Once);
+    }
+
+    [Fact]
     public void SubtreeChanged_KeepsCurrentElement()
     {
         LoadDocument(focusedId: [4]);

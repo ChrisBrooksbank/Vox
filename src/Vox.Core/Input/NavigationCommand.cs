@@ -160,5 +160,7 @@ public enum NavigationCommand
     /// <summary>Says the page's title, language and how many headings, links and so on it has.</summary>
     PageSummary,
     /// <summary>Says the address of the link at the browse cursor.</summary>
-    SayLinkUrl
+    SayLinkUrl,
+    /// <summary>Presses the Reject/Close button of the page's cookie banner or modal dialog.</summary>
+    DismissOverlay
 }
