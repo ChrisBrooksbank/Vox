@@ -327,6 +327,21 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task MovingIntoADeletion_SaysDeletedBeforeTheText()
+    {
+        var paragraph = new MockElement { RuntimeId = [70], ControlType = "Group" }
+            .AddChild(new MockElement { RuntimeId = [71], Name = "Price " })
+            .AddChild(new MockElement { RuntimeId = [72], ControlType = "Group", AriaRole = "deletion" }
+                .AddChild(new MockElement { RuntimeId = [73], Name = "ten" }));
+        var root = new MockElement { RuntimeId = [69], ControlType = "Document" }.AddChild(paragraph);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null));
+
+        _controller.HandleCommand(NavigationCommand.NextWord);
+
+        await WaitForSpeech(u => u.Text == "deleted, ten");
+    }
+
+    [Fact]
     public void SubtreeChanged_KeepsCurrentElement()
     {
         LoadDocument(focusedId: [4]);

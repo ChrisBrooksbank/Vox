@@ -40,6 +40,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
     public bool HasDetails { get; init; }
     public int RowSpan { get; init; } = 1;
     public int ColumnSpan { get; init; } = 1;
+    public IReadOnlyList<int> AnnotationTypes { get; init; } = [];
 
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;
 
@@ -105,6 +106,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
             Language = LanguageName(ReadCachedInt(element, UIAProvider.UIA_CulturePropertyId)),
             RowSpan = ReadCachedInt(element, UIAProvider.UIA_GridItemRowSpanPropertyId) ?? 1,
             ColumnSpan = ReadCachedInt(element, UIAProvider.UIA_GridItemColumnSpanPropertyId) ?? 1,
+            AnnotationTypes = ReadCachedIntArray(element, UIAProvider.UIA_AnnotationTypesPropertyId),
         };
     }
 
@@ -225,6 +227,10 @@ public sealed class UIAElementSnapshot : IVBufferElement
     /// </summary>
     internal static int? ReadCachedInt(IUIAutomationElement element, int propertyId) =>
         Try(() => element.GetCachedPropertyValue(propertyId)) is int value ? value : null;
+
+    /// <summary>A cached int array property (AnnotationTypes), or empty when not supported.</summary>
+    internal static int[] ReadCachedIntArray(IUIAutomationElement element, int propertyId) =>
+        Try(() => element.GetCachedPropertyValue(propertyId)) is int[] values ? values : [];
 
     /// <summary>A cached bool property, or null when not supported.</summary>
     internal static bool? ReadCachedBool(IUIAutomationElement element, int propertyId) =>

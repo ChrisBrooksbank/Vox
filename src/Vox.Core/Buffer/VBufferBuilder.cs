@@ -89,6 +89,9 @@ public interface IVBufferElement
     /// <summary>Columns a table cell spans (UIA GridItem.ColumnSpan; colspan), 1 when not a spanning cell.</summary>
     int ColumnSpan => 1;
 
+    /// <summary>UIA AnnotationTypes identifiers (a comment, a tracked change), empty when none.</summary>
+    IReadOnlyList<int> AnnotationTypes => [];
+
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
 }
@@ -222,7 +225,7 @@ public sealed class VBufferBuilder
     /// "Read the docs first" instead of three lines. Each run member except the last has its
     /// trailing '\n' replaced by a space — the same length, so no text offsets change.
     ///
-    /// Inline means a leaf Text node or a link (UIA exposes no CSS display type, so this is a
+    /// Inline means a leaf Text node, a link, or a highlight, insertion or deletion of inline nodes (UIA exposes no CSS display type, so this is a
     /// heuristic: block elements such as paragraphs and headings have children or a heading level).
     /// </summary>
     internal static void JoinInlineRuns(IReadOnlyList<VBufferNode> nodes, StringBuilder flatText)
@@ -266,7 +269,9 @@ public sealed class VBufferBuilder
 
     private static bool IsInline(VBufferNode node) =>
         node.HeadingLevel == 0 && !node.IsLandmark &&
-        ((node.ControlType == "Text" && node.Children.Count == 0) || node.ControlType == "Hyperlink");
+        ((node.ControlType == "Text" && node.Children.Count == 0) || node.ControlType == "Hyperlink"
+         // <mark>, <ins>, <del> around inline text stay on its line
+         || (Annotations.IsInlineKind(node.Annotation) && node.Children.TrueForAll(IsInline)));
 
     private readonly record struct Frame(
         IVBufferElement Element,
@@ -331,6 +336,7 @@ public sealed class VBufferBuilder
             RoleDescription = element.RoleDescription?.Trim() ?? string.Empty,
             AcceleratorKey = element.AcceleratorKey?.Trim() ?? string.Empty,
             HasDetails = element.HasDetails,
+            Annotation = Annotations.Kind(ariaRole, element.AnnotationTypes),
             // Inherited, as lang is in HTML
             Language = !string.IsNullOrEmpty(element.Language) ? element.Language : parent?.Language ?? inheritedLanguage,
             RowSpan = Math.Max(1, element.RowSpan),

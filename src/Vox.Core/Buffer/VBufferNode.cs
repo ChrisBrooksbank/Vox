@@ -101,6 +101,12 @@ public sealed class VBufferNode
     /// <summary>True when it has extended details elsewhere on the page (aria-details).</summary>
     public bool HasDetails { get; init; }
 
+    /// <summary>
+    /// The kind of annotation it is ("comment", "insertion", "deletion", "highlight",
+    /// "suggestion"; see <see cref="Annotations"/>), or empty.
+    /// </summary>
+    public string Annotation { get; init; } = string.Empty;
+
     /// <summary>The text's language (BCP 47), its own or inherited from its ancestors; empty when unknown.</summary>
     public string Language { get; init; } = string.Empty;
 
@@ -173,6 +179,7 @@ public sealed class VBufferNode
         Sort = Sort,
         RoleDescription = RoleDescription,
         HasDetails = HasDetails,
+        Annotation = Annotation,
         Language = Language,
         RowSpan = RowSpan,
         ColumnSpan = ColumnSpan,

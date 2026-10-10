@@ -47,6 +47,7 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_IsDataValidForFormPropertyId = 30103;
     internal const int UIA_ControllerForPropertyId = 30104;
     internal const int UIA_DescribedByPropertyId = 30105;
+    internal const int UIA_AnnotationTypesPropertyId = 30155;
 
     internal const uint ConnectionTimeoutMs = 2000;
     internal const uint TransactionTimeoutMs = 4000;
@@ -174,6 +175,8 @@ public sealed class UIAProvider : IDisposable
         request.AddProperty(UIA_GridItemColumnSpanPropertyId);
         // Shortcut keys (aria-keyshortcuts)
         request.AddProperty(UIA_AcceleratorKeyPropertyId);
+        // Annotations (a comment through aria-details, tracked changes)
+        request.AddProperty(UIA_AnnotationTypesPropertyId);
         AddStateProperties(request);
         request.TreeScope = TreeScope.TreeScope_Subtree;
         request.TreeFilter = automation.ControlViewCondition;
