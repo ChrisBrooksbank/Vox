@@ -1,6 +1,8 @@
 using Interop.UIAutomationClient;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Vox.Core.Buffer;
+using Vox.Core.Configuration;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 
@@ -40,6 +42,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     private readonly IEventSink _eventSink;
     private readonly ILogger<BrowseDocumentTracker> _logger;
     private readonly int _ownProcessId = Environment.ProcessId;
+    private readonly IOptionsMonitor<VoxSettings>? _settings;
 
     // STA-thread state
     private IUIAutomationElement? _documentRoot;
@@ -58,8 +61,10 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         UIAProvider uiaProvider,
         UIAEventSubscriber eventSubscriber,
         IEventSink eventSink,
-        ILogger<BrowseDocumentTracker> logger)
+        ILogger<BrowseDocumentTracker> logger,
+        IOptionsMonitor<VoxSettings>? settings = null)
     {
+        _settings = settings;
         _uiaThread = uiaThread;
         _uiaProvider = uiaProvider;
         _eventSubscriber = eventSubscriber;
@@ -199,7 +204,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         {
             var cached = _uiaProvider.WithDocumentCaptureTimeout(() => document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
             var snapshot = UIAElementSnapshot.Capture(cached);
-            buffer = new VBufferBuilder().Build(snapshot);
+            buffer = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true }.Build(snapshot);
             RememberWholeCapture(snapshot);
         }
         catch (Exception ex)

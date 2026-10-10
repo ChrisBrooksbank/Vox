@@ -146,9 +146,15 @@ public sealed class VBufferBuilder
     /// <returns>A fully-populated <see cref="VBufferDocument"/>.</returns>
     public VBufferDocument Build(IVBufferElement root)
     {
-        var (allNodes, flatText) = BuildSubtree(root);
-        return new VBufferDocument(flatText, allNodes[0], allNodes);
+        var (allNodes, flatText) = BuildSubtree(root, screenLayout: ScreenLayout);
+        return new VBufferDocument(flatText, allNodes[0], allNodes) { ScreenLayout = ScreenLayout };
     }
+
+    /// <summary>
+    /// Screen layout (the default): links and other inline text stay on their paragraph's line,
+    /// as on screen. Off: every element is on a line of its own.
+    /// </summary>
+    public bool ScreenLayout { get; init; } = true;
 
     /// <summary>
     /// Builds the nodes for a subtree in pre-order, with Ids and text offsets starting at 0 and
@@ -156,7 +162,7 @@ public sealed class VBufferBuilder
     /// Shared with <see cref="IncrementalUpdater"/>.
     /// </summary>
     /// <param name="inheritedLanguage">The language the subtree's root inherits (its old parent's, when splicing).</param>
-    internal static (List<VBufferNode> Nodes, string FlatText) BuildSubtree(IVBufferElement root, string inheritedLanguage = "")
+    internal static (List<VBufferNode> Nodes, string FlatText) BuildSubtree(IVBufferElement root, string inheritedLanguage = "", bool screenLayout = true)
     {
         var allNodes = new List<VBufferNode>(64);
         var flatText = new StringBuilder(256);
@@ -222,7 +228,8 @@ public sealed class VBufferBuilder
             }
         }
 
-        JoinInlineRuns(allNodes, flatText);
+        if (screenLayout)
+            JoinInlineRuns(allNodes, flatText);
         return (allNodes, flatText.ToString());
     }
 

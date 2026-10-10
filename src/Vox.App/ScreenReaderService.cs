@@ -369,6 +369,9 @@ public sealed class ScreenReaderService : IHostedService
             // At startup the keymap was loaded for the configured layout already
             if (previous is not null && previous.KeyboardLayout != settings.KeyboardLayout)
                 _keyInputDispatcher.SetKeyMap(ServiceRegistration.LoadKeyMap(settings.KeyboardLayout, _logger));
+            // The page is laid out again in the new way
+            if (previous is not null && previous.ScreenLayout != settings.ScreenLayout)
+                _documentTracker.RequestRecapture(null);
             if (previous is null || previous.StartAtLogon != settings.StartAtLogon)
             {
                 try

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 127
+- Build iterations: 128
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -195,7 +195,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Announce annotations (comments, insertions, deletions, highlights) on entry/exit; unit tests (spec: web-parity.md)
 - [x] Restrict the buffer to an open `<dialog>`/`aria-modal` element; unit tests (spec: web-parity.md)
 - [x] Announce "clickable" for click-handling elements without link/button roles; figures with captions; `<abbr>` expansion setting (spec: web-parity.md)
-- [ ] Add "screen layout" setting (inline elements on one line vs one per line) to `VBufferBuilder`; unit tests (spec: web-parity.md)
+- [x] Add "screen layout" setting (inline elements on one line vs one per line) to `VBufferBuilder`; unit tests (spec: web-parity.md)
 - [ ] Add activation fallback: simulate a click at the clickable point when no pattern applies (spec: web-parity.md)
 - [ ] Add page summary command and say-link-URL command; unit tests (spec: web-parity.md)
 - [ ] Add overlay/cookie-banner detection with Insert+Shift+D to activate Reject/Close; never auto-dismiss; unit tests (spec: web-parity.md)

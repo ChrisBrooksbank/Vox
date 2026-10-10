@@ -144,6 +144,11 @@ public record VoxSettings
     public bool AnnounceVisitedLinks { get; init; } = true;
     /// <summary>Say an abbreviation's expansion (its title) before it when the browse cursor reaches it.</summary>
     public bool ExpandAbbreviations { get; init; }
+    /// <summary>
+    /// Browse mode keeps links and other inline text on their paragraph's line, as on screen
+    /// (true), or puts every element on a line of its own (false).
+    /// </summary>
+    public bool ScreenLayout { get; init; } = true;
     public ModifierKey ModifierKey { get; init; } = ModifierKey.Insert;
     /// <summary>Desktop (numeric keypad) or laptop key bindings.</summary>
     public KeyboardLayout KeyboardLayout { get; init; } = KeyboardLayout.Desktop;

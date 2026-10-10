@@ -98,7 +98,7 @@ public sealed class IncrementalUpdater
 
         if (newSubtreeRoot is not null)
         {
-            (newSubtreeNodes, newSubtreeText) = VBufferBuilder.BuildSubtree(newSubtreeRoot, oldSubtreeRoot.Parent?.Language ?? string.Empty);
+            (newSubtreeNodes, newSubtreeText) = VBufferBuilder.BuildSubtree(newSubtreeRoot, oldSubtreeRoot.Parent?.Language ?? string.Empty, document.ScreenLayout);
         }
         else
         {
@@ -173,12 +173,15 @@ public sealed class IncrementalUpdater
         // The re-captured subtree ends its text in '\n' again; re-join inline runs so a changed
         // link doesn't split its paragraph into lines (same-length replacements, offsets unchanged)
         var joined = new System.Text.StringBuilder(newFlatText);
-        if (oldSubtreeRoot.Parent is not null && copies.TryGetValue(oldSubtreeRoot.Parent, out var spliceParent))
-            RestoreLineEnds(spliceParent, joined);
-        VBufferBuilder.JoinInlineRuns(allNewNodes, joined);
+        if (document.ScreenLayout)
+        {
+            if (oldSubtreeRoot.Parent is not null && copies.TryGetValue(oldSubtreeRoot.Parent, out var spliceParent))
+                RestoreLineEnds(spliceParent, joined);
+            VBufferBuilder.JoinInlineRuns(allNewNodes, joined);
+        }
 
         return new IncrementalUpdateResult(
-            new VBufferDocument(joined.ToString(), allNewNodes[0], allNewNodes),
+            new VBufferDocument(joined.ToString(), allNewNodes[0], allNewNodes) { ScreenLayout = document.ScreenLayout },
             recaptureRuntimeId, oldTextStart, oldTextEnd, textDelta);
     }
 

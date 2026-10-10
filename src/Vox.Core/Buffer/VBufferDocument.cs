@@ -81,6 +81,9 @@ public sealed class VBufferDocument
     private readonly Dictionary<string, VBufferNode> _byRuntimeId;
     private readonly VBufferNode[] _allNodesArray;
 
+    /// <summary>Whether it was built with screen layout (see <see cref="VBufferBuilder.ScreenLayout"/>); updates keep it.</summary>
+    public bool ScreenLayout { get; init; } = true;
+
     public VBufferDocument(
         string flatText,
         VBufferNode root,

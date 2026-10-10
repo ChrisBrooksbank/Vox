@@ -18,6 +18,7 @@
   "AudioCuesEnabled": true,
   "AnnounceVisitedLinks": true,
   "ExpandAbbreviations": false,
+  "ScreenLayout": true,
   "ModifierKey": "Insert",
   "KeyboardLayout": "Desktop",
   "MaxLineLength": 100,

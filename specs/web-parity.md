@@ -45,7 +45,7 @@ Close the remaining web gaps with JAWS and NVDA: Firefox and Electron/WebView2 a
 - [x] `<dialog>` / `aria-modal`: restrict the buffer to the modal while it is open
 - [x] Clickable elements without a link/button role announced as "clickable"
 - [x] Figures with captions; `<abbr>` expansion setting
-- [ ] "Screen layout" setting: inline elements on one line vs one element per line
+- [x] "Screen layout" setting: inline elements on one line vs one element per line
 
 ### Activation and summary
 
