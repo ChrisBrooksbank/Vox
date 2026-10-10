@@ -15,12 +15,15 @@ public class SettingsPagesTests
     private static T Field<T>(SettingsPage page, string label) where T : SettingField =>
         page.Fields.OfType<T>().Single(f => f.Label.Replace("&", "").StartsWith(label, StringComparison.Ordinal));
 
-    [Fact]
-    public void ThereAreGeneralAndSpeechPages_EachLabelUnique()
-    {
-        var pages = SettingsPages.All(Options());
+    private static readonly AudioOptions Audio = new(["Speakers", "Headphones"], ["default", "subtle"]);
 
-        Assert.Equal(["General", "Speech"], pages.Select(p => p.Title));
+    [Fact]
+    public void ThePagesAreTheSpecsTabs_EachLabelUnique()
+    {
+        var pages = SettingsPages.All(Options(), Audio);
+
+        Assert.Equal(["General", "Speech", "Verbosity", "Browse mode", "Document formatting", "Audio cues", "Keyboard", "Mouse", "Review"],
+            pages.Select(p => p.Title));
         foreach (var page in pages)
             Assert.Equal(page.Fields.Count, page.Fields.Select(f => f.Label).Distinct().Count());
     }
@@ -28,7 +31,7 @@ public class SettingsPagesTests
     [Fact]
     public void EnumChoices_AreReadable_AndChangeTheSetting()
     {
-        var verbosity = Field<ChoiceField>(SettingsPages.General(), "Verbosity");
+        var verbosity = Field<ChoiceField>(SettingsPages.Verbosity(), "Verbosity");
         var settings = new VoxSettings { VerbosityLevel = VerbosityLevel.Beginner };
 
         Assert.Equal(["Beginner", "Intermediate", "Advanced"], verbosity.Choices.Select(c => c.Text));
@@ -41,7 +44,7 @@ public class SettingsPagesTests
     [Fact]
     public void ScreenReaderKey_UsesFriendlyNames()
     {
-        var key = Field<ChoiceField>(SettingsPages.General(), "Screen reader key");
+        var key = Field<ChoiceField>(SettingsPages.Keyboard(), "Screen reader key");
 
         Assert.Equal(["Insert", "Caps Lock"], key.Choices.Select(c => c.Text));
     }
@@ -89,6 +92,43 @@ public class SettingsPagesTests
 
         Assert.True(start.Set(new VoxSettings(), true).StartAtLogon);
         Assert.False(start.Get(new VoxSettings()));
+    }
+
+    /// <summary>The properties a field changes: those that differ after setting it to another value.</summary>
+    private static IEnumerable<string> PropertiesChangedBy(SettingField field)
+    {
+        var settings = new VoxSettings();
+        var others = field switch
+        {
+            ToggleField toggle => [toggle.Set(settings, !toggle.Get(settings))],
+            NumberField number => [number.Set(settings, number.Get(settings) == number.Max ? number.Min : number.Max)],
+            ChoiceField choice => choice.Choices.Select(c => choice.Set(settings, c.Value)).ToList(),
+            _ => new List<VoxSettings>(),
+        };
+        foreach (var property in typeof(VoxSettings).GetProperties())
+        {
+            if (others.Any(o => !Equals(property.GetValue(o), property.GetValue(settings))))
+                yield return property.Name;
+        }
+    }
+
+    [Fact]
+    public void EverySettingIsOnAPage()
+    {
+        var shown = SettingsPages.All(Options(), Audio).SelectMany(p => p.Fields).SelectMany(PropertiesChangedBy).ToHashSet();
+        var settable = typeof(VoxSettings).GetProperties().Where(p => p.SetMethod is not null).Select(p => p.Name);
+
+        var missing = settable.Except(shown).Except(SettingsPages.NotOnAnyPage).ToList();
+        Assert.True(missing.Count == 0, "Not on any settings page: " + string.Join(", ", missing));
+    }
+
+    [Fact]
+    public void AudioChoices_ComeFromWhatIsInstalled()
+    {
+        var page = SettingsPages.AudioCues(Audio);
+
+        Assert.Equal(["Default", "Speakers", "Headphones"], Field<ChoiceField>(page, "Output device").Choices.Select(c => c.Text));
+        Assert.Equal("subtle", Field<ChoiceField>(page, "Sound scheme").Set(new VoxSettings(), "subtle").EarconScheme);
     }
 
     [Theory]

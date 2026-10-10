@@ -35,13 +35,37 @@ public sealed class SettingsCommands(
     {
         try
         {
-            var options = new SpeechOptions(speech.Engines, speech.GetAvailableVoices(), speech.MaxRateWpm, speech.Capabilities);
-            await presenter.ShowAsync(settings.CurrentValue, SettingsPages.All(options), updateSettings).ConfigureAwait(false);
+            var speechOptions = new SpeechOptions(speech.Engines, speech.GetAvailableVoices(), speech.MaxRateWpm, speech.Capabilities);
+            var audioOptions = new AudioOptions(OutputDevices(), EarconSchemes());
+            await presenter.ShowAsync(settings.CurrentValue, SettingsPages.All(speechOptions, audioOptions), updateSettings).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Settings dialog failed");
         }
         pipeline.Post(new VoxDialogClosedEvent(DateTimeOffset.UtcNow));
+    }
+
+    private IReadOnlyList<string> OutputDevices()
+    {
+        try { return Audio.AudioOutputDevices.List(); }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Could not list the audio output devices");
+            return [];
+        }
+    }
+
+    /// <summary>The earcon schemes installed: folders under assets/sounds with a manifest.</summary>
+    private static IReadOnlyList<string> EarconSchemes()
+    {
+        var sounds = Path.Combine(AppContext.BaseDirectory, "assets", "sounds");
+        if (!Directory.Exists(sounds))
+            return ["default"];
+        return Directory.GetDirectories(sounds)
+            .Where(d => File.Exists(Path.Combine(d, "manifest.json")))
+            .Select(d => Path.GetFileName(d)!)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }
