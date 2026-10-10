@@ -877,6 +877,9 @@ public sealed class BrowseModeController
             }
 
             KeepInModalScope();
+            // A PDF says whether it can be browsed by structure (after what loading it says)
+            if (remembered is null && PdfDocuments.LoadAnnouncement(document) is { } pdf)
+                _speechQueue.Enqueue(new Utterance(pdf, SpeechPriority.Normal));
             AnnounceOverlay(document);
 
             // A web application (an editor, VS Code, Teams) is used through its own keys
