@@ -166,7 +166,7 @@ public sealed class KeyMap
     public const string UserFileName = "keymap.json";
 
     public static string DefaultUserKeyMapPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Vox", UserFileName);
+        Lifecycle.VoxPaths.UserData, UserFileName);
 
     /// <summary>The command name that unbinds a key in the user keymap.</summary>
     public const string UnboundCommand = "None";

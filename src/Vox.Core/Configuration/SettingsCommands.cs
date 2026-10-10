@@ -35,12 +35,20 @@ public sealed class SettingsCommands(
     ILogger<SettingsCommands> logger,
     SpeechQueue? speechQueue = null,
     GestureSetup? gestures = null,
-    IVoxMenuPresenter? menu = null)
+    IVoxMenuPresenter? menu = null,
+    IPortableCopyPresenter? portable = null)
 {
     public bool TryHandle(NavigationCommand command)
     {
         switch (command)
         {
+            case NavigationCommand.CreatePortableCopy:
+                // Needs the user's own folder, which the secure screens never touch
+                if (portable is null || gestures?.UserKeyMapPath is null)
+                    Say("A portable copy can't be made here");
+                else if (browse.BeginOwnDialog())
+                    _ = CreatePortableCopyAsync(portable);
+                return true;
             case NavigationCommand.OpenVoxMenu:
                 if (menu is not null && browse.BeginOwnDialog())
                     _ = ShowMenuAsync(menu);
@@ -81,6 +89,38 @@ public sealed class SettingsCommands(
         pipeline.Post(new VoxDialogClosedEvent(DateTimeOffset.UtcNow));
         if (chosen is { } command)
             pipeline.Post(new NavigationCommandEvent(DateTimeOffset.UtcNow, command));
+    }
+
+    private async Task CreatePortableCopyAsync(IPortableCopyPresenter presenter)
+    {
+        PortableCopyRequest? request = null;
+        try
+        {
+            request = await presenter.ShowAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Portable copy dialog failed");
+        }
+        pipeline.Post(new VoxDialogClosedEvent(DateTimeOffset.UtcNow));
+        if (request is null)
+            return;
+
+        Say("Creating the portable copy");
+        try
+        {
+            int files = await Task.Run(() => Lifecycle.PortableCopy.Create(
+                AppContext.BaseDirectory, request.Folder,
+                request.CopySettings ? Lifecycle.VoxPaths.UserData : null,
+                request.CopyComponents ? Lifecycle.VoxPaths.Components : null)).ConfigureAwait(false);
+            Say($"Portable copy created in {request.Folder}");
+            logger.LogInformation("Portable copy of {Files} files created", files);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not create the portable copy");
+            Say($"The portable copy could not be created: {ex.Message}");
+        }
     }
 
     private async Task ShowSettingsAsync()

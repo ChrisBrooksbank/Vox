@@ -80,7 +80,7 @@ public static class ServiceRegistration
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
             // Secure screens never read the user's profile
             var directory = policy.AllowUserProfileAccess
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Vox", "dictionaries")
+                ? Path.Combine(VoxPaths.UserData, "dictionaries")
                 : null;
             var engine = sp.GetRequiredService<ISpeechEngine>();
             var rule = new PronunciationRule(PronunciationRule.LoadBuiltInDefault(), directory, () => engine.CurrentVoice,
@@ -284,6 +284,7 @@ public static class ServiceRegistration
         services.AddSingleton<IInputGesturesPresenter, InputGesturesPresenter>();
         services.AddSingleton<ICommandSearchPresenter, CommandSearchPresenter>();
         services.AddSingleton<IVoxMenuPresenter, VoxMenuPresenter>();
+        services.AddSingleton<IPortableCopyPresenter, PortableCopyPresenter>();
         services.AddSingleton<SettingsCommands>(sp =>
         {
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
@@ -308,7 +309,8 @@ public static class ServiceRegistration
                 sp.GetRequiredService<ILogger<SettingsCommands>>(),
                 sp.GetRequiredService<SpeechQueue>(),
                 gestures,
-                sp.GetRequiredService<IVoxMenuPresenter>());
+                sp.GetRequiredService<IVoxMenuPresenter>(),
+                sp.GetRequiredService<IPortableCopyPresenter>());
         });
 
         // Hosted service

@@ -136,8 +136,7 @@ public static class MathCatComponent
     public const string RulesFolderName = "Rules";
 
     /// <summary>%LOCALAPPDATA%\Vox\components\mathcat: the library and its Rules folder.</summary>
-    public static string DefaultDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Vox", "components", "mathcat");
+    public static string DefaultDirectory => Path.Combine(Lifecycle.VoxPaths.Components, "mathcat");
 
     public static bool IsInstalled(string directory) =>
         File.Exists(Path.Combine(directory, LibraryFileName)) && Directory.Exists(Path.Combine(directory, RulesFolderName));

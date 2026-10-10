@@ -182,5 +182,7 @@ public enum NavigationCommand
     /// <summary>Exits Vox at once (from the Vox menu).</summary>
     ExitVox,
     /// <summary>Runs the practice lessons (web pages, editing text, reviewing the screen).</summary>
-    RunTutorial
+    RunTutorial,
+    /// <summary>Copies Vox, with the user's settings, to a folder (a USB stick) to run from there.</summary>
+    CreatePortableCopy
 }

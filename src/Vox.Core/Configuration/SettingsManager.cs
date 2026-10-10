@@ -12,8 +12,7 @@ namespace Vox.Core.Configuration;
 public sealed class SettingsManager
 {
     public static readonly string DefaultUserSettingsPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "Vox", "settings.json");
+        Lifecycle.VoxPaths.UserData, "settings.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
