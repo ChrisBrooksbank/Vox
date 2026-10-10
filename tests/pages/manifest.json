@@ -1,0 +1,22 @@
+{
+  "comment": "The test-page corpus (spec: quality-engineering.md). Each page: its file, its title and what it exercises. E2E tests open them from a local file server; pages use no network.",
+  "pages": [
+    { "file": "headings-landmarks.html", "title": "Headings and landmarks", "covers": ["headings", "landmarks", "links", "lists", "block quotes", "separators"] },
+    { "file": "apg-accordion.html", "title": "Accordion", "covers": ["APG accordion", "expanded state", "regions"] },
+    { "file": "apg-tabs.html", "title": "Tabs", "covers": ["APG tabs", "selected state", "focus mode for tab lists"] },
+    { "file": "apg-disclosure.html", "title": "Disclosure", "covers": ["APG disclosure", "details and summary"] },
+    { "file": "apg-menu-button.html", "title": "Menu button", "covers": ["APG menu button", "menus", "Escape passed to popups", "polite live region"] },
+    { "file": "apg-combobox.html", "title": "Combo box", "covers": ["APG combobox with list autocomplete", "aria-activedescendant", "select element"] },
+    { "file": "apg-listbox.html", "title": "List box", "covers": ["APG listbox", "aria-activedescendant"] },
+    { "file": "apg-checkbox-radio.html", "title": "Check boxes and radio buttons", "covers": ["check boxes", "mixed state", "radio groups", "toggle buttons (aria-pressed)"] },
+    { "file": "apg-switch-slider.html", "title": "Switch and slider", "covers": ["APG switch", "range input", "APG slider with aria-valuetext"] },
+    { "file": "tables.html", "title": "Tables", "covers": ["data tables", "captions", "row and column headers", "row and column spans", "aria-sort", "layout tables"] },
+    { "file": "form-errors.html", "title": "Form with errors", "covers": ["labels", "required", "aria-describedby", "aria-invalid and aria-errormessage", "passwords", "multi-line fields", "alerts"] },
+    { "file": "live-regions.html", "title": "Live regions", "covers": ["polite and assertive live regions", "progress bars"] },
+    { "file": "dialogs.html", "title": "Dialogs", "covers": ["modal dialog element", "aria-modal alertdialog", "focus return"] },
+    { "file": "cookie-banner.html", "title": "Cookie banner", "covers": ["cookie banner detection", "Insert+Shift+D"] },
+    { "file": "annotations.html", "title": "Annotations, figures and abbreviations", "covers": ["insertions, deletions and highlights", "abbreviations", "figures", "clickable elements", "language switching"] },
+    { "file": "math.html", "title": "Math", "covers": ["inline and block MathML", "MathCAT"] },
+    { "file": "long-page.html", "title": "Long page", "covers": ["about 10,000 elements", "staged build", "performance"] }
+  ]
+}

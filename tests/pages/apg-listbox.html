@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>List box</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>List box</h1>
+<p id="label">Choose a colour</p>
+<ul role="listbox" aria-labelledby="label" tabindex="0" id="colours" aria-activedescendant="c1">
+  <li role="option" id="c1" aria-selected="true">Red</li>
+  <li role="option" id="c2" aria-selected="false">Green</li>
+  <li role="option" id="c3" aria-selected="false">Blue</li>
+</ul>
+<script>
+const box = document.getElementById('colours');
+const options = [...box.querySelectorAll('[role="option"]')];
+let index = 0;
+box.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') index = Math.min(options.length - 1, index + 1);
+  else if (e.key === 'ArrowUp') index = Math.max(0, index - 1);
+  else return;
+  e.preventDefault();
+  options.forEach((o, i) => o.setAttribute('aria-selected', String(i === index)));
+  box.setAttribute('aria-activedescendant', options[index].id);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Long page</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Long page</h1>
+<p>About 10,000 elements, built when the page loads (the same every time), for the staged build and the time it takes to browse a large page.</p>
+<main id="content"></main>
+<script>
+const content = document.getElementById('content');
+for (let s = 1; s <= 240; s++) {
+  const section = document.createElement('section');
+  section.innerHTML =
+    `<h2>Section ${s}</h2>` +
+    [0, 1, 2, 3].map(p => `<p>Paragraph ${p} of section ${s} says something, <a href="#s${s}p${p}">link ${s}.${p}</a>, and carries on.</p>`).join('') +
+    `<ul>${[1, 2, 3, 4, 5].map(i => `<li>Item ${i}</li>`).join('')}</ul>` +
+    `<table><tr><th>A</th><th>B</th></tr><tr><td>${s}</td><td>${s * 2}</td></tr></table>`;
+  content.appendChild(section);
+}
+</script>
+</body>
+</html>

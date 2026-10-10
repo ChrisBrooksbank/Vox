@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Check boxes and radio buttons</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Check boxes and radio buttons</h1>
+<fieldset>
+  <legend>Toppings</legend>
+  <label><input type="checkbox" checked> Cheese</label>
+  <label><input type="checkbox"> Olives</label>
+  <div role="checkbox" aria-checked="mixed" tabindex="0" id="all">All toppings</div>
+</fieldset>
+<fieldset>
+  <legend>Delivery</legend>
+  <label><input type="radio" name="delivery" checked> Standard</label>
+  <label><input type="radio" name="delivery"> Express</label>
+</fieldset>
+<button type="button" aria-pressed="false" id="bold">Bold</button>
+<script>
+document.getElementById('bold').addEventListener('click', e =>
+  e.target.setAttribute('aria-pressed', String(e.target.getAttribute('aria-pressed') !== 'true')));
+const all = document.getElementById('all');
+const toggleAll = () => all.setAttribute('aria-checked', all.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
+all.addEventListener('click', toggleAll);
+all.addEventListener('keydown', e => { if (e.key === ' ') { e.preventDefault(); toggleAll(); } });
+</script>
+</body>
+</html>

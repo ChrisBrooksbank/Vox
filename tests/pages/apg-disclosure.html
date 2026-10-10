@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Disclosure</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Disclosure</h1>
+<button type="button" aria-expanded="false" aria-controls="answer" id="toggle">What is a screen reader?</button>
+<p id="answer" hidden>Software that reads the screen aloud.</p>
+<details><summary>More details</summary><p>Inside the details element.</p></details>
+<script>
+const toggle = document.getElementById('toggle');
+toggle.addEventListener('click', () => {
+  const open = toggle.getAttribute('aria-expanded') === 'true';
+  toggle.setAttribute('aria-expanded', String(!open));
+  document.getElementById('answer').hidden = open;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Live regions</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Live regions</h1>
+<button type="button" id="polite">Add to basket</button>
+<button type="button" id="assertive">Lose connection</button>
+<button type="button" id="progress">Start upload</button>
+<p aria-live="polite" id="status"></p>
+<p role="alert" id="alert"></p>
+<div role="progressbar" aria-label="Upload" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="bar"></div>
+<script>
+let count = 0;
+document.getElementById('polite').addEventListener('click', () =>
+  document.getElementById('status').textContent = `${++count} item${count === 1 ? '' : 's'} in your basket`);
+document.getElementById('assertive').addEventListener('click', () =>
+  document.getElementById('alert').textContent = 'Connection lost');
+document.getElementById('progress').addEventListener('click', () => {
+  const bar = document.getElementById('bar');
+  let value = 0;
+  const timer = setInterval(() => {
+    value += 25;
+    bar.setAttribute('aria-valuenow', value);
+    if (value >= 100) clearInterval(timer);
+  }, 500);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Combo box</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Combo box</h1>
+<label for="city">City</label>
+<input id="city" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cities">
+<ul id="cities" role="listbox" aria-label="Cities" hidden></ul>
+<p><label>Size <select><option>Small</option><option selected>Medium</option><option>Large</option></select></label></p>
+<script>
+const names = ['Aberdeen', 'Bath', 'Belfast', 'Brighton', 'Bristol', 'Cardiff'];
+const input = document.getElementById('city');
+const list = document.getElementById('cities');
+let active = -1;
+function show(matches) {
+  list.innerHTML = '';
+  matches.forEach((name, i) => {
+    const li = document.createElement('li');
+    li.id = 'city-' + i; li.setAttribute('role', 'option'); li.textContent = name;
+    li.setAttribute('aria-selected', 'false');
+    li.addEventListener('click', () => { input.value = name; hide(); });
+    list.appendChild(li);
+  });
+  list.hidden = matches.length === 0;
+  input.setAttribute('aria-expanded', String(matches.length > 0));
+  active = -1; input.removeAttribute('aria-activedescendant');
+}
+function hide() { list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); }
+input.addEventListener('input', () => show(input.value ? names.filter(n => n.toLowerCase().startsWith(input.value.toLowerCase())) : []));
+input.addEventListener('keydown', e => {
+  const options = [...list.children];
+  if (e.key === 'ArrowDown' && options.length) {
+    e.preventDefault();
+    active = (active + 1) % options.length;
+    options.forEach((o, i) => o.setAttribute('aria-selected', String(i === active)));
+    input.setAttribute('aria-activedescendant', options[active].id);
+  }
+  if (e.key === 'Enter' && active >= 0) { input.value = options[active].textContent; hide(); }
+  if (e.key === 'Escape') hide();
+});
+</script>
+</body>
+</html>

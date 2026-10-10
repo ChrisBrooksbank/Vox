@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 137
+- Build iterations: 138
 - Last updated: 2026-10-07
 
 ## Tasks
@@ -208,7 +208,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Spoken-output testing (spec: quality-engineering.md)
 
-- [ ] Add `tests/pages/` corpus: ARIA APG patterns, tables, forms with errors, live regions, dialogs, a long page (spec: quality-engineering.md)
+- [x] Add `tests/pages/` corpus: ARIA APG patterns, tables, forms with errors, live regions, dialogs, a long page (spec: quality-engineering.md)
 - [ ] Add `Vox.E2E.Tests` project: core services in-process with `RecordingSpeechEngine`, `SendInput` key injector, Playwright driving Edge against the corpus; one heading-navigation scenario (spec: quality-engineering.md)
 - [ ] Add approved-transcript snapshot comparison and an approve tool for E2E tests (spec: quality-engineering.md)
 - [ ] Add E2E scenarios for every corpus page in Chrome and Edge; Firefox once supported (spec: quality-engineering.md)
