@@ -269,7 +269,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Profiles, languages, enterprise — W8b (spec: product-settings-help-install.md)
 
-- [ ] Add configuration profiles (named overrides, per-app activation, Say All trigger, manual switch, merge order default < app < trigger < manual); unit tests (spec: product-settings-help-install.md)
+- [x] Add configuration profiles (named overrides, per-app activation, Say All trigger, manual switch, merge order default < app < trigger < manual); unit tests (spec: product-settings-help-install.md)
 - [ ] Move all spoken and UI strings to `.resx` and use `IStringLocalizer` in `AnnouncementBuilder`, `ControlTypeNames`, wizard and dialogs; pseudo-locale test (spec: product-settings-help-install.md)
 - [ ] Add language setting and per-language symbol dictionaries, braille tables and key names (spec: product-settings-help-install.md)
 - [ ] Add RTL text order in the buffer and braille; unit tests (spec: product-settings-help-install.md)

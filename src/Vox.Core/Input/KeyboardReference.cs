@@ -15,6 +15,8 @@ public static class KeyboardReference
     {
         var desktopKeys = new GestureEditor(desktop);
         var laptopKeys = new GestureEditor(laptop);
+        // App modules' keys are the same in both layouts; modules can share a key, so one editor each
+        var appKeys = AppModules.AppModuleKeyMaps.ModuleIds().Select(id => new GestureEditor(AppModules.AppModuleKeyMaps.Load(id))).ToList();
         var html = new StringBuilder();
         html.Append("""
             <!doctype html>
@@ -29,7 +31,7 @@ public static class KeyboardReference
             <h1>Vox keyboard reference</h1>
             <p>Every Vox command and its keys. "Insert" is the Vox key: Caps Lock instead if you chose it.
             Keys marked "browse mode" or "focus mode" work only on web pages, in that mode.
-            The laptop layout has no numeric keypad keys. <a href="index.html">Back to the user guide</a>.</p>
+            The laptop layout has no numeric keypad keys. Application keys work only while that application is in front. <a href="index.html">Back to the user guide</a>.</p>
 
             """);
         foreach (var category in CommandCatalog.All.GroupBy(c => c.Category))
@@ -39,9 +41,11 @@ public static class KeyboardReference
                 .Append("<tr><th scope=\"col\">Command</th><th scope=\"col\">Desktop</th><th scope=\"col\">Laptop</th><th scope=\"col\">What it does</th></tr>\n");
             foreach (var info in category)
             {
+                var desktopCell = info.Category == CommandCategory.Applications ? Keys(appKeys, info.Command) : Keys([desktopKeys], info.Command);
+                var laptopCell = info.Category == CommandCategory.Applications ? desktopCell : Keys([laptopKeys], info.Command);
                 html.Append("<tr><th scope=\"row\">").Append(Encode(info.Name)).Append("</th>")
-                    .Append("<td>").Append(Keys(desktopKeys, info.Command)).Append("</td>")
-                    .Append("<td>").Append(Keys(laptopKeys, info.Command)).Append("</td>")
+                    .Append("<td>").Append(desktopCell).Append("</td>")
+                    .Append("<td>").Append(laptopCell).Append("</td>")
                     .Append("<td>").Append(Encode(info.Description)).Append("</td></tr>\n");
             }
             html.Append("</table>\n");
@@ -54,9 +58,9 @@ public static class KeyboardReference
     public static string Html(string configDirectory) =>
         Html(KeyMap.LayoutBindings(configDirectory, KeyboardLayout.Desktop), KeyMap.LayoutBindings(configDirectory, KeyboardLayout.Laptop));
 
-    private static string Keys(GestureEditor keys, NavigationCommand command)
+    private static string Keys(IReadOnlyList<GestureEditor> editors, NavigationCommand command)
     {
-        var gestures = keys.GesturesFor(command);
+        var gestures = editors.SelectMany(keys => keys.GesturesFor(command)).ToList();
         return gestures.Count == 0
             ? "(none; see the Vox menu)"
             : string.Join("<br>", gestures.Select(g => $"<kbd>{Encode(g.Describe())}</kbd>"));
