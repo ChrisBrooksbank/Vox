@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.AppModules;
+using Vox.Core.AppModules.Excel;
 using Vox.Core.AppModules.Office;
 using Vox.Core.Audio;
 using Vox.Core.Braille;
@@ -352,6 +353,11 @@ public static class ServiceRegistration
         // process. Office's object model is read on its own STA thread.
         services.AddSingleton<OfficeObjectModel>();
         services.AddSingleton<IOfficeObjectModel>(sp => sp.GetRequiredService<OfficeObjectModel>());
+        services.AddSingleton<ExcelTitleStore>(sp => new ExcelTitleStore(
+            (sp.GetService<RunPolicy>() ?? RunPolicy.Normal).AllowSettingsWrites ? ExcelTitleStore.DefaultPath : null,
+            sp.GetRequiredService<ILogger<TableHeaderStore>>()));
+        services.AddSingleton<IExcelSource, ExcelObjectModelSource>();
+        services.AddSingleton<IAppModule, ExcelModule>();
         services.AddSingleton<AppModuleManager>(sp =>
         {
             var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();

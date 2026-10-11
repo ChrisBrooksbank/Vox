@@ -220,6 +220,13 @@ public static class CommandCatalog
         Add(NavigationCommand.BraillePanLeft, "Braille back", "Shows the previous part of the braille line, or the end of the previous line.", CommandCategory.Braille);
         Add(NavigationCommand.BraillePanRight, "Braille forward", "Shows the next part of the braille line, or the next line.", CommandCategory.Braille);
         Add(NavigationCommand.CycleBrailleTether, "Braille tether", "Switches what the braille display follows: automatically, the focus, or the review cursor.", CommandCategory.Braille);
+
+        // Application modules: only while their application is in the foreground
+        Add(NavigationCommand.ExcelReadFormula, "Excel: read formula", "Says the formula of the active cell, or its value when it has none.", CommandCategory.Applications);
+        Add(NavigationCommand.ExcelReadComment, "Excel: read comment", "Says the comment and the note of the active cell.", CommandCategory.Applications);
+        Add(NavigationCommand.ExcelSetColumnTitles, "Excel: set column titles", "Makes the current row the sheet's column titles, said when moving to another column. Press again on that row to clear them.", CommandCategory.Applications);
+        Add(NavigationCommand.ExcelSetRowTitles, "Excel: set row titles", "Makes the current column the sheet's row titles, said when moving to another row. Press again on that column to clear them.", CommandCategory.Applications);
+        Add(NavigationCommand.ExcelChartSummary, "Excel: chart summary", "Says the title, type and series of the selected chart, or of the sheet's first chart.", CommandCategory.Applications);
         Add(NavigationCommand.CheckForUpdates, "Check for updates", "Checks for a newer Vox now, and offers to install it.", CommandCategory.System);
         Add(NavigationCommand.CreatePortableCopy, "Create portable copy", "Copies Vox and your settings to a folder, such as a USB stick, to run on other computers.", CommandCategory.System);
         Add(NavigationCommand.RunTutorial, "Practice lessons", "Runs the practice lessons, where you press each key and hear what it does.", CommandCategory.System);

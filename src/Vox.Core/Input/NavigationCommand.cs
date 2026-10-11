@@ -192,5 +192,17 @@ public enum NavigationCommand
     /// <summary>Shows the next part of the braille line (the next line at its end).</summary>
     BraillePanRight,
     /// <summary>Switches what braille follows: automatically, the focus, or the review cursor.</summary>
-    CycleBrailleTether
+    CycleBrailleTether,
+
+    // Excel module
+    /// <summary>Says the active cell's formula (Excel).</summary>
+    ExcelReadFormula,
+    /// <summary>Says the active cell's comment and note (Excel).</summary>
+    ExcelReadComment,
+    /// <summary>Makes the current row the sheet's column titles, or clears them (Excel).</summary>
+    ExcelSetColumnTitles,
+    /// <summary>Makes the current column the sheet's row titles, or clears them (Excel).</summary>
+    ExcelSetRowTitles,
+    /// <summary>Says the selected (or first) chart's title, type and series (Excel).</summary>
+    ExcelChartSummary
 }
