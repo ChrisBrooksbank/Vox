@@ -38,6 +38,12 @@ public sealed class FocusedTextMonitor : IFocusedTextReader
     public TimeSpan FallbackDelay { get; init; } = DefaultFallbackDelay;
 
     /// <summary>
+    /// Called on the UIA thread with the focused control's text each time it was read (caret
+    /// moves, edits, the first read after a focus change), so braille can show the caret's line.
+    /// </summary>
+    public Action<ITextDocument>? DocumentRead { get; set; }
+
+    /// <summary>
     /// A key reached the focused application (it wasn't a Vox command). Returns the delayed read
     /// for a control without caret events, or a completed task.
     /// </summary>
@@ -124,6 +130,11 @@ public sealed class FocusedTextMonitor : IFocusedTextReader
             {
                 var document = _source.GetFocusedDocument();
                 var speech = document is null ? null : evaluate(document);
+                if (document is not null && DocumentRead is { } observer)
+                {
+                    try { observer(document); }
+                    catch (Exception ex) { _logger.LogDebug(ex, "Error showing the caret line"); }
+                }
                 // Spoken on the UIA thread, so quick reads (a word, then spelled) are said in the
                 // order they ran; their continuations could reach the queue out of order
                 if (!string.IsNullOrEmpty(speech))

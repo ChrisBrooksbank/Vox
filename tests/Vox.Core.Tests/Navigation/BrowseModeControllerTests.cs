@@ -498,6 +498,66 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task InteractWithMath_EndsWhenFocusLeavesThePage()
+    {
+        _math.IsAvailable = true;
+        LoadMathPage();
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        _controller.HandleCommand(NavigationCommand.InteractWithMath);
+        await WaitForSpeech(u => u.Text == "Math, x squared");
+
+        // Alt+Tab to Notepad: Insert+Up (bound "Any") reads Notepad's line, not the expression
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Notepad", "Document", RuntimeId: [500]));
+        _controller.HandleCommand(NavigationCommand.ReadCurrentLine);
+
+        Assert.Empty(_math.Commands);
+    }
+
+    [Fact]
+    public async Task InteractWithMath_EndsWhenAVoxDialogOpens()
+    {
+        _math.IsAvailable = true;
+        LoadMathPage();
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        _controller.HandleCommand(NavigationCommand.InteractWithMath);
+        await WaitForSpeech(u => u.Text == "Math, x squared");
+
+        Assert.True(_controller.BeginOwnDialog());
+        _controller.HandleCommand(NavigationCommand.ReadCurrentLine);
+
+        Assert.Empty(_math.Commands);
+    }
+
+    [Fact]
+    public void OwnDialog_FocusReturningWhenItCloses_IsAnnounced()
+    {
+        LoadDocument(focusedId: [4]);
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
+
+        Assert.True(_controller.BeginOwnDialog()); // the settings dialog
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Vox settings", "Window", RuntimeId: [99, 2]));
+        _controller.EndOwnDialog();
+        var back = new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]);
+        _controller.HandleFocusChanged(back);
+
+        Assert.True(_controller.ShouldAnnounceFocus(back));
+    }
+
+    [Fact]
+    public void VoxMenu_ChosenCommand_FocusReturningIsNotAnnouncedOverIt()
+    {
+        LoadDocument(focusedId: [4]);
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
+
+        Assert.True(_controller.BeginOwnDialog());
+        _controller.EndOwnDialog(quietFocusReturn: true);
+        var back = new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]);
+        _controller.HandleFocusChanged(back);
+
+        Assert.False(_controller.ShouldAnnounceFocus(back));
+    }
+
+    [Fact]
     public async Task InteractWithMath_WithoutMathCat_SaysWhatIsNeeded()
     {
         LoadMathPage();

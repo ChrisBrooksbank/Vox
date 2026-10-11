@@ -134,6 +134,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// <summary>Raised when a FindPromptClosedEvent is processed.</summary>
     public event EventHandler<FindPromptClosedEvent>? FindPromptClosedProcessed;
 
+    /// <summary>Raised when a braille routing key over a page is processed.</summary>
+    public event EventHandler<BrailleRouteEvent>? BrailleRouteProcessed;
+
     /// <summary>Raised when a VoxDialogClosedEvent is processed.</summary>
     public event EventHandler<VoxDialogClosedEvent>? VoxDialogClosedProcessed;
 
@@ -325,6 +328,14 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
                 case VoxDialogClosedEvent voxDialogClosed:
                     VoxDialogClosedProcessed?.Invoke(this, voxDialogClosed);
+                    break;
+
+                case BrailleRouteEvent brailleRoute:
+                    BrailleRouteProcessed?.Invoke(this, brailleRoute);
+                    break;
+
+                case PipelineWorkEvent work:
+                    work.Work();
                     break;
 
                 default:

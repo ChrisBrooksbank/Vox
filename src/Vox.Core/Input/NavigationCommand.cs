@@ -186,5 +186,11 @@ public enum NavigationCommand
     /// <summary>Copies Vox, with the user's settings, to a folder (a USB stick) to run from there.</summary>
     CreatePortableCopy,
     /// <summary>Checks for a newer Vox now, and offers to install it.</summary>
-    CheckForUpdates
+    CheckForUpdates,
+    /// <summary>Shows the previous part of the braille line (the previous line at its start).</summary>
+    BraillePanLeft,
+    /// <summary>Shows the next part of the braille line (the next line at its end).</summary>
+    BraillePanRight,
+    /// <summary>Switches what braille follows: automatically, the focus, or the review cursor.</summary>
+    CycleBrailleTether
 }

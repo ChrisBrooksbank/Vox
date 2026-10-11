@@ -42,7 +42,8 @@ public static class UpdateFeed
         var releases = feed?.Releases ?? throw new FormatException("The update feed has no releases list.");
         foreach (var release in releases)
         {
-            if (!System.Version.TryParse(release.Version, out _) || string.IsNullOrWhiteSpace(release.Url)
+            if (!System.Version.TryParse(release.Version, out _) || string.IsNullOrWhiteSpace(release.Channel)
+                || string.IsNullOrWhiteSpace(release.Url)
                 || release.Sha256 is not { Length: 64 } || !Uri.TryCreate(release.Url, UriKind.Absolute, out var uri)
                 || uri.Scheme != Uri.UriSchemeHttps)
                 throw new FormatException($"Update feed entry {release.Version} is incomplete or not served over HTTPS.");

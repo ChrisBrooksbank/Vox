@@ -79,6 +79,12 @@ public interface ITextRange
 
     /// <summary>Formatting at the start of the range.</summary>
     TextAttributes GetAttributes();
+
+    /// <summary>
+    /// Makes this range the control's selection (a degenerate range puts the caret there). False
+    /// when the text can't be selected this way (a value-only edit, the virtual buffer).
+    /// </summary>
+    bool Select() => false;
 }
 
 /// <summary>

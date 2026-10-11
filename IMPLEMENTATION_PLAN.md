@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 157
+- Build iterations: 170
 - Last updated: 2026-10-11
 
 ## Tasks
@@ -234,19 +234,19 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 ### Milestone C — "Braille-ready"
 
 - [x] Add `IBrailleDisplay`, `IBrailleTranslator` and a fake display/translator for tests (spec: braille.md)
-- [ ] Add `LibLouisTranslator` (dynamic P/Invoke, forward with cursor mapping, back-translation); integration test skipped when the DLL is absent (spec: braille.md)
-- [ ] Add braille settings (table, cursor shape/blink, message timeout, focus context mode, tether, show selection) to `VoxSettings` (spec: braille.md)
-- [ ] Add `BraillePresenter` for focused objects with focus-context modes and abbreviated role/state labels; unit tests (spec: braille.md)
-- [ ] Present the caret line in native edits and the cursor line in browse mode, with cursor and selection dots 7–8; unit tests (spec: braille.md)
-- [ ] Add panning, word wrap and tether to focus/review; unit tests (spec: braille.md)
-- [ ] Add routing keys: move caret/virtual cursor, second press activates; unit tests (spec: braille.md)
-- [ ] Add flash messages (announcements shown for N seconds); unit tests (spec: braille.md)
-- [ ] Show the uncontracted word at the cursor in contracted braille (setting); unit tests (spec: braille.md)
-- [ ] Add `HidBrailleDisplay` driver for the Windows HID braille usage page (spec: braille.md)
-- [ ] Add `BrailleDisplayManager`: auto-detect, reconnect on plug/unplug, driver choice (spec: braille.md)
-- [ ] Add braille input: chord → character through back-translation, chord commands, per-display key maps in `assets/braille/keymaps/`; unit tests (spec: braille.md)
-- [ ] Add `BrlttyDisplay` (BrlAPI client) as an optional component (spec: braille.md)
-- [ ] Add Braille tab to `SettingsDialog` (spec: braille.md)
+- [x] Add `LibLouisTranslator` (dynamic P/Invoke, forward with cursor mapping, back-translation); integration test skipped when the DLL is absent (spec: braille.md)
+- [x] Add braille settings (table, cursor shape/blink, message timeout, focus context mode, tether, show selection) to `VoxSettings` (spec: braille.md)
+- [x] Add `BraillePresenter` for focused objects with focus-context modes and abbreviated role/state labels; unit tests (spec: braille.md)
+- [x] Present the caret line in native edits and the cursor line in browse mode, with cursor and selection dots 7–8; unit tests (spec: braille.md)
+- [x] Add panning, word wrap and tether to focus/review; unit tests (spec: braille.md)
+- [x] Add routing keys: move caret/virtual cursor, second press activates; unit tests (spec: braille.md)
+- [x] Add flash messages (announcements shown for N seconds); unit tests (spec: braille.md)
+- [x] Show the uncontracted word at the cursor in contracted braille (setting); unit tests (spec: braille.md)
+- [x] Add `HidBrailleDisplay` driver for the Windows HID braille usage page (spec: braille.md)
+- [x] Add `BrailleDisplayManager`: auto-detect, reconnect on plug/unplug, driver choice (spec: braille.md)
+- [x] Add braille input: chord → character through back-translation, chord commands, per-display key maps in `assets/braille/keymaps/`; unit tests (spec: braille.md)
+- [x] Add `BrlttyDisplay` (BrlAPI client) as an optional component (spec: braille.md)
+- [x] Add Braille tab to `SettingsDialog` (spec: braille.md)
 
 ### Milestone D — "Workplace-ready"
 

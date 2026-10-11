@@ -25,7 +25,7 @@ public sealed class UpdateChecker(
     string? publicKeyPem,
     Uri feedUrl,
     Version currentVersion,
-    ILogger<UpdateChecker> logger)
+    ILogger<UpdateChecker> logger) : IDisposable
 {
     /// <summary>The signed feed of every release (feed.json.sig beside it).</summary>
     public static readonly Uri DefaultFeedUrl = new("https://raw.githubusercontent.com/ChrisBrooksbank/Vox/master/updates/feed.json");
@@ -58,30 +58,57 @@ public sealed class UpdateChecker(
         }
     }
 
+    // The checked installer, held open (read sharing only) so it can't be replaced or deleted
+    // between the checksum and msiexec reading it. Released when Vox exits.
+    private FileStream? _heldInstaller;
+
+    /// <summary>Lets go of the installer held since <see cref="InstallAsync"/> started it.</summary>
+    public void Dispose() => Interlocked.Exchange(ref _heldInstaller, null)?.Dispose();
+
     /// <summary>
     /// Downloads <paramref name="release"/>'s installer, checks it, and starts it. Returns false
     /// (deleting the download) when its checksum isn't the signed feed's.
     /// </summary>
+    /// <remarks>
+    /// The download goes into a new randomly named folder (not a predictable name in %TEMP%), and
+    /// the file is checked through a handle that shares reading only, kept open while the installer
+    /// starts, so nothing can swap it between the check and the install.
+    /// </remarks>
     public async Task<bool> InstallAsync(UpdateRelease release, Action<string> startInstaller, CancellationToken cancellationToken = default)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"Vox-{release.Version}.msi");
-        using (var response = await http.GetAsync(release.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
+        var folder = Directory.CreateTempSubdirectory("Vox-update-");
+        var path = Path.Combine(folder.FullName, $"Vox-{release.Version}.msi");
+        FileStream? held = null;
+        try
         {
-            response.EnsureSuccessStatusCode();
-            await using var file = File.Create(path);
-            await response.Content.CopyToAsync(file, cancellationToken).ConfigureAwait(false);
+            using (var response = await http.GetAsync(release.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
+            {
+                response.EnsureSuccessStatusCode();
+                await using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                await response.Content.CopyToAsync(file, cancellationToken).ConfigureAwait(false);
+            }
+            // Reopened read-only (msiexec can then open it for reading too), denying writes and deletes
+            held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (!UpdateFeed.HasChecksum(held, release.Sha256))
+            {
+                logger.LogWarning("Downloaded installer for {Version} doesn't match the signed checksum; deleted", release.Version);
+                held.Dispose();
+                held = null;
+                folder.Delete(recursive: true);
+                return false;
+            }
+            startInstaller(path);
+            Interlocked.Exchange(ref _heldInstaller, held)?.Dispose();
+            held = null;
+            return true;
         }
-        bool valid;
-        await using (var file = File.OpenRead(path))
-            valid = UpdateFeed.HasChecksum(file, release.Sha256);
-        if (!valid)
+        catch
         {
-            logger.LogWarning("Downloaded installer for {Version} doesn't match the signed checksum; deleted", release.Version);
-            File.Delete(path);
-            return false;
+            held?.Dispose();
+            try { folder.Delete(recursive: true); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            throw;
         }
-        startInstaller(path);
-        return true;
     }
 
     /// <summary>Starts an MSI with its own progress window (Windows Installer asks for elevation).</summary>

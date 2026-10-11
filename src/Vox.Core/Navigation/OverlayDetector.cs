@@ -47,7 +47,8 @@ public static class OverlayDetector
         }
 
         // A consent banner (often not a dialog at all): the smallest container around one of its
-        // buttons whose text mentions cookies or consent
+        // buttons whose own text (not just a link's, like a footer's "Cookie policy") mentions
+        // cookies or consent, and which offers a way to answer it (accept, reject or close)
         foreach (var button in Candidates(document))
         {
             var container = button.Parent;
@@ -57,12 +58,18 @@ public static class OverlayDetector
                 var (start, end) = VBufferDocument.SubtreeSpan(container);
                 if (end - start > MaxBannerTextLength)
                     break;
-                if (MentionsConsent(document, container))
+                if (MentionsConsent(document, container, outsideLinks: true) && OffersAnAnswer(document, container))
                     return new Overlay(container, CookieBanner, DismissButton(document, container));
             }
         }
         return null;
     }
+
+    // An accept, reject or close button (or link): what a banner asks the user to choose from
+    private static bool OffersAnAnswer(VBufferDocument document, VBufferNode container) =>
+        Candidates(document).Any(n => IsInside(n, container)
+            && (AcceptWords.Concat(RejectWords).Concat(CloseWords).Any(word => ContainsWord(n.Name, word))
+                || CloseSymbols.Contains(n.Name.Trim(), StringComparer.OrdinalIgnoreCase)));
 
     /// <summary>What to say about an overlay, naming the key that presses its dismiss button.</summary>
     public static string Announcement(Overlay overlay, string key)
@@ -78,12 +85,26 @@ public static class OverlayDetector
     private static IEnumerable<VBufferNode> Candidates(VBufferDocument document) =>
         document.Buttons.Concat(document.Links).Where(n => n.Name.Length > 0);
 
-    private static bool MentionsConsent(VBufferDocument document, VBufferNode container)
+    private static bool MentionsConsent(VBufferDocument document, VBufferNode container, bool outsideLinks = false)
     {
         var (start, end) = VBufferDocument.SubtreeSpan(container);
         if (end <= start || end > document.FlatText.Length)
             return false;
-        var text = document.FlatText.AsSpan(start, end - start);
+        ReadOnlySpan<char> text = document.FlatText.AsSpan(start, end - start);
+        if (outsideLinks)
+        {
+            // Links' text blanked out: "Cookie policy" in a footer says nothing about a banner
+            var chars = text.ToArray();
+            foreach (var link in document.Links)
+            {
+                if (!IsInside(link, container))
+                    continue;
+                var (linkStart, linkEnd) = VBufferDocument.SubtreeSpan(link);
+                for (int i = Math.Max(linkStart, start); i < Math.Min(linkEnd, end); i++)
+                    chars[i - start] = ' ';
+            }
+            text = chars;
+        }
         foreach (var word in ConsentWords)
         {
             if (text.Contains(word, StringComparison.OrdinalIgnoreCase))

@@ -42,7 +42,8 @@ public sealed class RunKeyStartupRegistration : IStartupRegistration
 
 /// <summary>
 /// Applies the "start at logon" setting: registers Vox (through Vox.Watchdog when it is installed
-/// alongside, so a crash restarts it) or removes the registration. Not in secure mode.
+/// alongside, so a crash restarts it) or removes the registration. Not in secure mode, nor from a
+/// portable copy.
 /// </summary>
 public static class StartAtLogon
 {
@@ -56,9 +57,14 @@ public static class StartAtLogon
     }
 
     /// <summary>Makes the registration match <paramref name="enabled"/>. Returns whether anything changed.</summary>
-    public static bool Apply(bool enabled, IStartupRegistration registration, string command, RunPolicy policy)
+    /// <param name="isPortable">
+    /// This is a portable copy (<see cref="VoxPaths.IsPortable"/>): the registration is left alone.
+    /// The Run entry belongs to the installed Vox; a copy on a USB stick must neither remove it nor
+    /// point it at itself.
+    /// </param>
+    public static bool Apply(bool enabled, IStartupRegistration registration, string command, RunPolicy policy, bool isPortable = false)
     {
-        if (policy.IsSecure)
+        if (policy.IsSecure || isPortable)
             return false;
         var current = registration.Command;
         if (enabled && current != command)

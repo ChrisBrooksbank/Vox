@@ -31,8 +31,20 @@ public sealed class FakeBrailleTranslator : IBrailleTranslator
     /// <summary>Every text translated, oldest first.</summary>
     public List<string> Translated { get; } = [];
 
-    public BrailleTranslation Translate(string text, int? cursorOffset = null)
+    public BrailleTranslation Translate(string text, int? cursorOffset = null, bool expandWordAtCursor = false)
     {
+        // The word holding the cursor (from its start to its end) is not contracted when expanded
+        var (expandStart, expandEnd) = (-1, -1);
+        if (expandWordAtCursor && cursorOffset is { } at)
+        {
+            expandStart = Math.Clamp(at, 0, text.Length);
+            while (expandStart > 0 && char.IsLetterOrDigit(text[expandStart - 1]))
+                expandStart--;
+            expandEnd = Math.Clamp(at, 0, text.Length);
+            while (expandEnd < text.Length && char.IsLetterOrDigit(text[expandEnd]))
+                expandEnd++;
+        }
+
         Translated.Add(text);
         var cells = new List<byte>(text.Length);
         var charForCell = new List<int>(text.Length);
@@ -41,7 +53,7 @@ public sealed class FakeBrailleTranslator : IBrailleTranslator
         var i = 0;
         while (i < text.Length)
         {
-            if (Contracted && TryContraction(text, i, out var length, out var cell))
+            if (Contracted && !(i >= expandStart && i < expandEnd) && TryContraction(text, i, out var length, out var cell))
             {
                 for (var j = i; j < i + length; j++)
                     cellForChar[j] = cells.Count;

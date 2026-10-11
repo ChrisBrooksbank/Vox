@@ -194,6 +194,12 @@ public sealed class UIATextRange : ITextRange
         return (new UIATextRange(clone, _automation), moved);
     }
 
+    public bool Select()
+    {
+        Native.Select();
+        return true;
+    }
+
     public int CompareEndpoints(TextEndpoint endpoint, ITextRange other, TextEndpoint otherEndpoint) =>
         Native.CompareEndpoints(ToUia(endpoint), AsUia(other).Native, ToUia(otherEndpoint));
 

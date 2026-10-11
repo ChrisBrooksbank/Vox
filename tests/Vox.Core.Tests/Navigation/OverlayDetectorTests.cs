@@ -76,4 +76,22 @@ public class OverlayDetectorTests
     {
         Assert.Null(OverlayDetector.Find(Page(Group(Text("Our products"), Button("Close menu")))));
     }
+
+    private static MockElement Link(string name) => new() { RuntimeId = [_id++], Name = name, ControlType = "Hyperlink" };
+
+    [Theory]
+    [InlineData("Subscribe")]
+    [InlineData("Close")] // even a button that could answer a banner: the footer only links to the policy
+    public void Footer_WithACookiePolicyLink_IsNotACookieBanner(string button)
+    {
+        var footer = Group(Text("© 2026 Shop"), Link("Cookie policy"), Link("Privacy"), Button(button));
+
+        Assert.Null(OverlayDetector.Find(Page(footer)));
+    }
+
+    [Fact]
+    public void TextAboutCookies_WithoutAnAcceptRejectOrCloseButton_IsNotACookieBanner()
+    {
+        Assert.Null(OverlayDetector.Find(Page(Group(Text("Read about our cookies"), Button("Learn more")))));
+    }
 }

@@ -27,6 +27,29 @@ public static class StateSounds
 
     /// <summary>The state <paramref name="word"/>, to be played as <paramref name="cue"/>.</summary>
     public static string Mark(string cue, string word) => $"{Start}{cue}{Separator}{word}{End}";
+
+    /// <summary>The text with every mark turned back into its word (for braille, which shows states as text).</summary>
+    public static string ToWords(string text)
+    {
+        if (text.IndexOf(Start) < 0)
+            return text;
+        var result = new StringBuilder(text.Length);
+        int i = 0;
+        while (i < text.Length)
+        {
+            int start = text.IndexOf(Start, i);
+            int separator = start < 0 ? -1 : text.IndexOf(Separator, start);
+            int end = separator < 0 ? -1 : text.IndexOf(End, separator);
+            if (end < 0)
+            {
+                result.Append(text, i, text.Length - i);
+                break;
+            }
+            result.Append(text, i, start - i).Append(text, separator + 1, end - separator - 1);
+            i = end + 1;
+        }
+        return result.ToString().Replace(Start.ToString(), "").Replace(Separator.ToString(), "").Replace(End.ToString(), "");
+    }
 }
 
 /// <summary>

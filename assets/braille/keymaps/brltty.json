@@ -1,0 +1,30 @@
+{
+  "//": "Displays through BRLTTY: BRLTTY turns the display's keys into its own commands (lineUp, panLeft, routing, typed dots); these map them. common.json still applies.",
+  "bindings": [
+    { "keys": ["lineUp"], "action": "PreviousLine" },
+    { "keys": ["lineDown"], "action": "NextLine" },
+    { "keys": ["toggleTether"], "action": "CycleTether" },
+    { "keys": ["top"], "command": "TopOfDocument" },
+    { "keys": ["bottom"], "command": "BottomOfDocument" },
+    { "keys": ["lineBegin"], "command": "StartOfLine" },
+    { "keys": ["lineEnd"], "command": "EndOfLine" },
+    { "keys": ["previousParagraph"], "command": "PrevParagraph" },
+    { "keys": ["nextParagraph"], "command": "NextParagraph" },
+    { "keys": ["sayLine"], "command": "ReadCurrentLine" },
+    { "keys": ["home"], "command": "SayFocus" },
+    { "keys": ["key_BackSpace"], "key": "Backspace" },
+    { "keys": ["key_Tab"], "key": "Tab" },
+    { "keys": ["key_Return"], "key": "Enter" },
+    { "keys": ["key_Escape"], "key": "Escape" },
+    { "keys": ["key_Home"], "key": "Home" },
+    { "keys": ["key_End"], "key": "End" },
+    { "keys": ["key_Left"], "key": "Left" },
+    { "keys": ["key_Up"], "key": "Up" },
+    { "keys": ["key_Right"], "key": "Right" },
+    { "keys": ["key_Down"], "key": "Down" },
+    { "keys": ["key_Page_Up"], "key": "PageUp" },
+    { "keys": ["key_Page_Down"], "key": "PageDown" },
+    { "keys": ["key_Insert"], "key": "Insert" },
+    { "keys": ["key_Delete"], "key": "Delete" }
+  ]
+}

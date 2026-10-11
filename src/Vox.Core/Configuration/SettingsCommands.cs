@@ -85,8 +85,9 @@ public sealed class SettingsCommands(
         {
             logger.LogError(ex, "Vox menu failed");
         }
-        // The menu's dialog is closed first, so the next dialog can open
-        pipeline.Post(new VoxDialogClosedEvent(DateTimeOffset.UtcNow));
+        // The menu's dialog is closed first, so the next dialog can open; focus returning to the
+        // page isn't announced over the chosen command
+        pipeline.Post(new VoxDialogClosedEvent(DateTimeOffset.UtcNow, QuietFocusReturn: chosen is not null));
         if (chosen is { } command)
             pipeline.Post(new NavigationCommandEvent(DateTimeOffset.UtcNow, command));
     }
@@ -129,7 +130,7 @@ public sealed class SettingsCommands(
         {
             var speechOptions = new SpeechOptions(speech.Engines, speech.GetAvailableVoices(), speech.MaxRateWpm, speech.Capabilities);
             var audioOptions = new AudioOptions(OutputDevices(), EarconSchemes());
-            await presenter.ShowAsync(settings.CurrentValue, SettingsPages.All(speechOptions, audioOptions), updateSettings).ConfigureAwait(false);
+            await presenter.ShowAsync(() => settings.CurrentValue, SettingsPages.All(speechOptions, audioOptions), updateSettings).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

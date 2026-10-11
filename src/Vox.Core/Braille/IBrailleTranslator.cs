@@ -44,8 +44,10 @@ public interface IBrailleTranslator
     /// <summary>
     /// Translates <paramref name="text"/> forward. <paramref name="cursorOffset"/> is a text offset
     /// (0 to the text's length) whose cell is reported as <see cref="BrailleTranslation.CursorCell"/>.
+    /// With <paramref name="expandWordAtCursor"/>, the word holding the cursor is written uncontracted
+    /// (computer braille), so the word being edited reads letter by letter.
     /// </summary>
-    BrailleTranslation Translate(string text, int? cursorOffset = null);
+    BrailleTranslation Translate(string text, int? cursorOffset = null, bool expandWordAtCursor = false);
 
     /// <summary>Back-translates cells typed on a braille keyboard to text.</summary>
     string BackTranslate(ReadOnlyMemory<byte> cells);

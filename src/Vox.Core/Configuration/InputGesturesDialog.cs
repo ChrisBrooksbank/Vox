@@ -181,7 +181,11 @@ public sealed class InputGesturesDialog : VoxDialog
             _services.Say("Cancelled");
             return;
         }
-        var gesture = new Gesture(modifiers, vk, mode, keypad);
+        if (Gesture.FromKey(modifiers, vk, keypad, mode) is not { } gesture)
+        {
+            _services.Say("Number pad digits type numbers and can't be used. Turn Num Lock off to use the number pad keys.");
+            return;
+        }
         var conflicts = _editor.ConflictsWith(gesture, command);
         if (conflicts.Count > 0)
         {

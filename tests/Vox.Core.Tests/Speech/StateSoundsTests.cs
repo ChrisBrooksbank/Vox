@@ -82,6 +82,35 @@ public class StateSoundsTests
     }
 
     [Fact]
+    public void ToWords_TurnsEveryMarkBackIntoItsWord()
+    {
+        var text = $"Remember me, check box, {StateSounds.Mark(StateSounds.Checked, "checked")}, menu {StateSounds.Mark(StateSounds.Collapsed, "collapsed")}";
+
+        Assert.Equal("Remember me, check box, checked, menu collapsed", StateSounds.ToWords(text));
+    }
+
+    [Fact]
+    public void ToWords_TextWithoutMarks_IsUnchanged()
+    {
+        const string text = "Read more, link";
+
+        Assert.Same(text, StateSounds.ToWords(text));
+    }
+
+    [Fact]
+    public void ToWords_MarkCutShort_LeavesNoDelimiters()
+    {
+        var mark = StateSounds.Mark(StateSounds.Selected, "selected");
+        var cut = "Item, " + mark[..^1];
+
+        var words = StateSounds.ToWords(cut + " and " + StateSounds.Mark(StateSounds.Checked, "checked"));
+
+        Assert.All(words, c => Assert.False(char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.PrivateUse));
+        Assert.StartsWith("Item, ", words);
+        Assert.EndsWith("checked", words);
+    }
+
+    [Fact]
     public void AStateOnItsOwn_IsJustTheSound()
     {
         var spoken = Speak(StateSounds.Mark(StateSounds.Checked, "checked"));

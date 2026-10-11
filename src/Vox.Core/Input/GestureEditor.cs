@@ -6,6 +6,18 @@ public sealed record Gesture(KeyModifiers Modifiers, int VkCode, string Mode, bo
     public string Describe(string screenReaderKey = "Insert") =>
         $"{InputHelp.KeyName(Modifiers, VkCode, IsKeypad || VkCode is >= 0x60 and <= 0x6F or 269, screenReaderKey)}" +
         (Mode.Equals("Any", StringComparison.OrdinalIgnoreCase) ? string.Empty : $" ({Mode.ToLowerInvariant()} mode)");
+
+    /// <summary>
+    /// The gesture for a key pressed while the dialog waits for one, bound the way the keymap
+    /// resolves it: a keypad key with Num Lock off as its keypad code (Numpad 8, not the Up arrow
+    /// it sends; Numpad Enter as <see cref="NumpadKeys.NumpadEnter"/>). Null for a Num Lock digit,
+    /// which types and is never bound.
+    /// </summary>
+    public static Gesture? FromKey(KeyModifiers modifiers, int vkCode, bool isKeypad, string mode)
+    {
+        var (code, _) = NumpadKeys.BindingCodes(vkCode, isKeypad);
+        return code < 0 ? null : new Gesture(modifiers, code, mode, isKeypad);
+    }
 }
 
 /// <summary>

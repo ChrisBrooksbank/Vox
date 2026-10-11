@@ -78,6 +78,7 @@ public sealed class SpeechQueue : IDisposable
     public ValueTask EnqueueAsync(Utterance utterance, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        RaiseQueued(utterance);
         if (IsMutedNow())
             return ValueTask.CompletedTask;
         lock (_suspendLock)
@@ -90,6 +91,7 @@ public sealed class SpeechQueue : IDisposable
 
     public void Enqueue(Utterance utterance)
     {
+        RaiseQueued(utterance);
         if (IsMutedNow())
             return;
         lock (_suspendLock)
@@ -138,6 +140,7 @@ public sealed class SpeechQueue : IDisposable
             completion.Task.ContinueWith(_ => registration.Dispose(), TaskScheduler.Default);
         }
 
+        RaiseQueued(utterance);
         if (IsMutedNow())
         {
             completion.TrySetCanceled();
@@ -282,6 +285,18 @@ public sealed class SpeechQueue : IDisposable
 
     /// <summary>Raised on the queue's thread just before an utterance is handed to the engine. Handlers must be quick.</summary>
     public event EventHandler<Utterance>? UtteranceStarted;
+
+    /// <summary>
+    /// Raised on the enqueuing thread for every utterance offered to the queue, also while speech
+    /// is paused or suspended (braille shows what Vox says when speech is off). Handlers must return quickly.
+    /// </summary>
+    public event EventHandler<Utterance>? UtteranceQueued;
+
+    private void RaiseQueued(Utterance utterance)
+    {
+        try { UtteranceQueued?.Invoke(this, utterance); }
+        catch (Exception ex) { _logger.LogError(ex, "Error in a speech queue event handler"); }
+    }
 
     /// <summary>Raised on the queue's thread when the engine has finished (or abandoned) an utterance.</summary>
     public event EventHandler<Utterance>? UtteranceFinished;

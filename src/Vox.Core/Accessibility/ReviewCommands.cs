@@ -109,6 +109,21 @@ public sealed class ReviewCommands
         }
     }
 
+    /// <summary>
+    /// Called on the UIA thread after each review command with the review cursor's position, so
+    /// braille can show its line.
+    /// </summary>
+    public Action<ITextRange>? PositionShown { get; set; }
+
+    /// <summary>Moves the review cursor <paramref name="offsetInLine"/> characters into its line (a braille routing key) and says the character.</summary>
+    public Task RouteToAsync(int offsetInLine) => RunAsync(c =>
+    {
+        if (c.Position is not { } position)
+            return null;
+        c.MoveTo(TextLines.PositionIn(position.ExpandToEnclosingUnit(TextUnit.Line), offsetInLine));
+        return c.Read(TextUnit.Character);
+    }, "route the review cursor");
+
     public Task MoveAsync(TextUnit unit, int direction) => RunAsync(c => c.Move(unit, direction), "move the review cursor");
 
     /// <summary>Reads the <paramref name="unit"/> at the review cursor, or spells it.</summary>
@@ -157,6 +172,11 @@ public sealed class ReviewCommands
                 // Spoken here, in the order commands ran: quick presses finish in order on the UIA
                 // thread, but their continuations could reach the queue out of order
                 Speak(result?.Text ?? "No text");
+                if (_cursor.Position is { } position && PositionShown is { } shown)
+                {
+                    try { shown(position); }
+                    catch (Exception ex) { _logger.LogDebug(ex, "Error showing the review line"); }
+                }
                 return result?.AtBoundary == true;
             }, window != IntPtr.Zero ? UIAThread.DocumentTimeout : null).ConfigureAwait(false);
         }

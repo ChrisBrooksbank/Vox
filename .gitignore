@@ -53,3 +53,4 @@ TestResults/
 secrets.json
 *.received.txt
 BenchmarkDotNet.Artifacts/
+.claude/worktrees/
