@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Vox.Core.Configuration;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Input;
 
@@ -16,27 +17,28 @@ public static class KeyboardReference
         var desktopKeys = new GestureEditor(desktop);
         var laptopKeys = new GestureEditor(laptop);
         var html = new StringBuilder();
-        html.Append("""
+        var title = Encode(VoxStrings.Get("KeyboardReference.Title"));
+        // The introduction is HTML (it links back to the guide)
+        html.Append($"""
             <!doctype html>
-            <html lang="en">
+            <html lang="{Encode(VoxStrings.Get("KeyboardReference.Lang"))}"{(VoxStrings.IsRightToLeft ? " dir=\"rtl\"" : string.Empty)}>
             <head>
             <meta charset="utf-8">
-            <title>Vox keyboard reference</title>
+            <title>{title}</title>
             <link rel="stylesheet" href="guide.css">
             </head>
             <body>
             <main>
-            <h1>Vox keyboard reference</h1>
-            <p>Every Vox command and its keys. "Insert" is the Vox key: Caps Lock instead if you chose it.
-            Keys marked "browse mode" or "focus mode" work only on web pages, in that mode.
-            The laptop layout has no numeric keypad keys. <a href="index.html">Back to the user guide</a>.</p>
+            <h1>{title}</h1>
+            <p>{VoxStrings.Get("KeyboardReference.Intro")}</p>
 
             """);
         foreach (var category in CommandCatalog.All.GroupBy(c => c.Category))
         {
             var name = CommandCatalog.CategoryName(category.Key);
             html.Append($"<h2>{Encode(name)}</h2>\n<table>\n<caption>{Encode(name)}</caption>\n")
-                .Append("<tr><th scope=\"col\">Command</th><th scope=\"col\">Desktop</th><th scope=\"col\">Laptop</th><th scope=\"col\">What it does</th></tr>\n");
+                .Append($"<tr><th scope=\"col\">{Encode(VoxStrings.Get("KeyboardReference.Command"))}</th><th scope=\"col\">{Encode(VoxStrings.Get("KeyboardReference.Desktop"))}</th>")
+                .Append($"<th scope=\"col\">{Encode(VoxStrings.Get("KeyboardReference.Laptop"))}</th><th scope=\"col\">{Encode(VoxStrings.Get("KeyboardReference.WhatItDoes"))}</th></tr>\n");
             foreach (var info in category)
             {
                 html.Append("<tr><th scope=\"row\">").Append(Encode(info.Name)).Append("</th>")
@@ -58,7 +60,7 @@ public static class KeyboardReference
     {
         var gestures = keys.GesturesFor(command);
         return gestures.Count == 0
-            ? "(none; see the Vox menu)"
+            ? Encode(VoxStrings.Get("KeyboardReference.NoKeys"))
             : string.Join("<br>", gestures.Select(g => $"<kbd>{Encode(g.Describe())}</kbd>"));
     }
 

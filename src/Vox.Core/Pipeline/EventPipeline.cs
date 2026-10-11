@@ -475,7 +475,7 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     /// <summary>The screen reader key as the user has it (for input help).</summary>
     private string ScreenReaderKeyName() =>
-        _settings?.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+        Input.InputHelp.ScreenReaderKeyName(_settings?.CurrentValue.ModifierKey ?? ModifierKey.Insert);
 
     private async Task HandleNavigationCommandAsync(NavigationCommandEvent evt, CancellationToken token)
     {

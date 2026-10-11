@@ -216,7 +216,7 @@ public sealed class BrowseModeController
     private readonly Input.RepeatPressConfirmation _quitConfirmation = new(TimeSpan.FromSeconds(3));
 
     private string ModifierName =>
-        _settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+        InputHelp.ScreenReaderKeyName(_settings.CurrentValue.ModifierKey);
 
     /// <summary>
     /// Raised when Escape should go to the page (the focused control has an open popup such as an
@@ -1392,7 +1392,7 @@ public sealed class BrowseModeController
     }
 
     private string DismissOverlayKey =>
-        $"{(_settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert")}+Shift+D";
+        $"{InputHelp.ScreenReaderKeyName(_settings.CurrentValue.ModifierKey)}+Shift+D";
 
     /// <summary>Starts exploring the expression at the cursor (MathCAT).</summary>
     private void InteractWithMath()

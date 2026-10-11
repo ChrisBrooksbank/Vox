@@ -243,4 +243,1254 @@
   <data name="ControlType.Window" xml:space="preserve">
     <value>window</value>
   </data>
+  <data name="CommandCategory.QuickNavigation" xml:space="preserve">
+    <value>Quick navigation</value>
+  </data>
+  <data name="CommandCategory.Reading" xml:space="preserve">
+    <value>Reading</value>
+  </data>
+  <data name="CommandCategory.BrowseMode" xml:space="preserve">
+    <value>Browse mode</value>
+  </data>
+  <data name="CommandCategory.Tables" xml:space="preserve">
+    <value>Tables</value>
+  </data>
+  <data name="CommandCategory.FindAndSelect" xml:space="preserve">
+    <value>Find, select and copy</value>
+  </data>
+  <data name="CommandCategory.ObjectNavigation" xml:space="preserve">
+    <value>Object navigation</value>
+  </data>
+  <data name="CommandCategory.Review" xml:space="preserve">
+    <value>Review cursor</value>
+  </data>
+  <data name="CommandCategory.Mouse" xml:space="preserve">
+    <value>Mouse</value>
+  </data>
+  <data name="CommandCategory.Speech" xml:space="preserve">
+    <value>Speech</value>
+  </data>
+  <data name="CommandCategory.Braille" xml:space="preserve">
+    <value>Braille</value>
+  </data>
+  <data name="CommandCategory.System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Command.NextHeading.Name" xml:space="preserve">
+    <value>Next heading</value>
+  </data>
+  <data name="Command.NextHeading.Description" xml:space="preserve">
+    <value>Moves to the next heading.</value>
+  </data>
+  <data name="Command.PrevHeading.Name" xml:space="preserve">
+    <value>Previous heading</value>
+  </data>
+  <data name="Command.PrevHeading.Description" xml:space="preserve">
+    <value>Moves to the previous heading.</value>
+  </data>
+  <data name="Command.NextLink.Name" xml:space="preserve">
+    <value>Next link</value>
+  </data>
+  <data name="Command.NextLink.Description" xml:space="preserve">
+    <value>Moves to the next link.</value>
+  </data>
+  <data name="Command.PrevLink.Name" xml:space="preserve">
+    <value>Previous link</value>
+  </data>
+  <data name="Command.PrevLink.Description" xml:space="preserve">
+    <value>Moves to the previous link.</value>
+  </data>
+  <data name="Command.NextLandmark.Name" xml:space="preserve">
+    <value>Next landmark</value>
+  </data>
+  <data name="Command.NextLandmark.Description" xml:space="preserve">
+    <value>Moves to the next landmark or region (navigation, main, search...).</value>
+  </data>
+  <data name="Command.PrevLandmark.Name" xml:space="preserve">
+    <value>Previous landmark</value>
+  </data>
+  <data name="Command.PrevLandmark.Description" xml:space="preserve">
+    <value>Moves to the previous landmark or region (navigation, main, search...).</value>
+  </data>
+  <data name="Command.NextFormField.Name" xml:space="preserve">
+    <value>Next form field</value>
+  </data>
+  <data name="Command.NextFormField.Description" xml:space="preserve">
+    <value>Moves to the next form field of any kind.</value>
+  </data>
+  <data name="Command.PrevFormField.Name" xml:space="preserve">
+    <value>Previous form field</value>
+  </data>
+  <data name="Command.PrevFormField.Description" xml:space="preserve">
+    <value>Moves to the previous form field of any kind.</value>
+  </data>
+  <data name="Command.NextTable.Name" xml:space="preserve">
+    <value>Next table</value>
+  </data>
+  <data name="Command.NextTable.Description" xml:space="preserve">
+    <value>Moves to the next table.</value>
+  </data>
+  <data name="Command.PrevTable.Name" xml:space="preserve">
+    <value>Previous table</value>
+  </data>
+  <data name="Command.PrevTable.Description" xml:space="preserve">
+    <value>Moves to the previous table.</value>
+  </data>
+  <data name="Command.NextFocusable.Name" xml:space="preserve">
+    <value>Next focusable element</value>
+  </data>
+  <data name="Command.NextFocusable.Description" xml:space="preserve">
+    <value>Moves to the next element that can take focus.</value>
+  </data>
+  <data name="Command.PrevFocusable.Name" xml:space="preserve">
+    <value>Previous focusable element</value>
+  </data>
+  <data name="Command.PrevFocusable.Description" xml:space="preserve">
+    <value>Moves to the previous element that can take focus.</value>
+  </data>
+  <data name="Command.NextButton.Name" xml:space="preserve">
+    <value>Next button</value>
+  </data>
+  <data name="Command.NextButton.Description" xml:space="preserve">
+    <value>Moves to the next button.</value>
+  </data>
+  <data name="Command.PrevButton.Name" xml:space="preserve">
+    <value>Previous button</value>
+  </data>
+  <data name="Command.PrevButton.Description" xml:space="preserve">
+    <value>Moves to the previous button.</value>
+  </data>
+  <data name="Command.NextEdit.Name" xml:space="preserve">
+    <value>Next edit field</value>
+  </data>
+  <data name="Command.NextEdit.Description" xml:space="preserve">
+    <value>Moves to the next text box.</value>
+  </data>
+  <data name="Command.PrevEdit.Name" xml:space="preserve">
+    <value>Previous edit field</value>
+  </data>
+  <data name="Command.PrevEdit.Description" xml:space="preserve">
+    <value>Moves to the previous text box.</value>
+  </data>
+  <data name="Command.NextComboBox.Name" xml:space="preserve">
+    <value>Next combo box</value>
+  </data>
+  <data name="Command.NextComboBox.Description" xml:space="preserve">
+    <value>Moves to the next combo box.</value>
+  </data>
+  <data name="Command.PrevComboBox.Name" xml:space="preserve">
+    <value>Previous combo box</value>
+  </data>
+  <data name="Command.PrevComboBox.Description" xml:space="preserve">
+    <value>Moves to the previous combo box.</value>
+  </data>
+  <data name="Command.NextCheckBox.Name" xml:space="preserve">
+    <value>Next check box</value>
+  </data>
+  <data name="Command.NextCheckBox.Description" xml:space="preserve">
+    <value>Moves to the next check box.</value>
+  </data>
+  <data name="Command.PrevCheckBox.Name" xml:space="preserve">
+    <value>Previous check box</value>
+  </data>
+  <data name="Command.PrevCheckBox.Description" xml:space="preserve">
+    <value>Moves to the previous check box.</value>
+  </data>
+  <data name="Command.NextRadioButton.Name" xml:space="preserve">
+    <value>Next radio button</value>
+  </data>
+  <data name="Command.NextRadioButton.Description" xml:space="preserve">
+    <value>Moves to the next radio button.</value>
+  </data>
+  <data name="Command.PrevRadioButton.Name" xml:space="preserve">
+    <value>Previous radio button</value>
+  </data>
+  <data name="Command.PrevRadioButton.Description" xml:space="preserve">
+    <value>Moves to the previous radio button.</value>
+  </data>
+  <data name="Command.NextList.Name" xml:space="preserve">
+    <value>Next list</value>
+  </data>
+  <data name="Command.NextList.Description" xml:space="preserve">
+    <value>Moves to the next list.</value>
+  </data>
+  <data name="Command.PrevList.Name" xml:space="preserve">
+    <value>Previous list</value>
+  </data>
+  <data name="Command.PrevList.Description" xml:space="preserve">
+    <value>Moves to the previous list.</value>
+  </data>
+  <data name="Command.NextListItem.Name" xml:space="preserve">
+    <value>Next list item</value>
+  </data>
+  <data name="Command.NextListItem.Description" xml:space="preserve">
+    <value>Moves to the next list item.</value>
+  </data>
+  <data name="Command.PrevListItem.Name" xml:space="preserve">
+    <value>Previous list item</value>
+  </data>
+  <data name="Command.PrevListItem.Description" xml:space="preserve">
+    <value>Moves to the previous list item.</value>
+  </data>
+  <data name="Command.NextGraphic.Name" xml:space="preserve">
+    <value>Next graphic</value>
+  </data>
+  <data name="Command.NextGraphic.Description" xml:space="preserve">
+    <value>Moves to the next image or graphic.</value>
+  </data>
+  <data name="Command.PrevGraphic.Name" xml:space="preserve">
+    <value>Previous graphic</value>
+  </data>
+  <data name="Command.PrevGraphic.Description" xml:space="preserve">
+    <value>Moves to the previous image or graphic.</value>
+  </data>
+  <data name="Command.NextBlockQuote.Name" xml:space="preserve">
+    <value>Next block quote</value>
+  </data>
+  <data name="Command.NextBlockQuote.Description" xml:space="preserve">
+    <value>Moves to the next block quote.</value>
+  </data>
+  <data name="Command.PrevBlockQuote.Name" xml:space="preserve">
+    <value>Previous block quote</value>
+  </data>
+  <data name="Command.PrevBlockQuote.Description" xml:space="preserve">
+    <value>Moves to the previous block quote.</value>
+  </data>
+  <data name="Command.NextFrame.Name" xml:space="preserve">
+    <value>Next frame</value>
+  </data>
+  <data name="Command.NextFrame.Description" xml:space="preserve">
+    <value>Moves to the next frame or embedded page.</value>
+  </data>
+  <data name="Command.PrevFrame.Name" xml:space="preserve">
+    <value>Previous frame</value>
+  </data>
+  <data name="Command.PrevFrame.Description" xml:space="preserve">
+    <value>Moves to the previous frame or embedded page.</value>
+  </data>
+  <data name="Command.NextSeparator.Name" xml:space="preserve">
+    <value>Next separator</value>
+  </data>
+  <data name="Command.NextSeparator.Description" xml:space="preserve">
+    <value>Moves to the next separator.</value>
+  </data>
+  <data name="Command.PrevSeparator.Name" xml:space="preserve">
+    <value>Previous separator</value>
+  </data>
+  <data name="Command.PrevSeparator.Description" xml:space="preserve">
+    <value>Moves to the previous separator.</value>
+  </data>
+  <data name="Command.NextEmbeddedObject.Name" xml:space="preserve">
+    <value>Next embedded object</value>
+  </data>
+  <data name="Command.NextEmbeddedObject.Description" xml:space="preserve">
+    <value>Moves to the next embedded object (video, audio, plug-in).</value>
+  </data>
+  <data name="Command.PrevEmbeddedObject.Name" xml:space="preserve">
+    <value>Previous embedded object</value>
+  </data>
+  <data name="Command.PrevEmbeddedObject.Description" xml:space="preserve">
+    <value>Moves to the previous embedded object (video, audio, plug-in).</value>
+  </data>
+  <data name="Command.NextVisitedLink.Name" xml:space="preserve">
+    <value>Next visited link</value>
+  </data>
+  <data name="Command.NextVisitedLink.Description" xml:space="preserve">
+    <value>Moves to the next link you have visited.</value>
+  </data>
+  <data name="Command.PrevVisitedLink.Name" xml:space="preserve">
+    <value>Previous visited link</value>
+  </data>
+  <data name="Command.PrevVisitedLink.Description" xml:space="preserve">
+    <value>Moves to the previous link you have visited.</value>
+  </data>
+  <data name="Command.NextUnvisitedLink.Name" xml:space="preserve">
+    <value>Next unvisited link</value>
+  </data>
+  <data name="Command.NextUnvisitedLink.Description" xml:space="preserve">
+    <value>Moves to the next link you haven't visited.</value>
+  </data>
+  <data name="Command.PrevUnvisitedLink.Name" xml:space="preserve">
+    <value>Previous unvisited link</value>
+  </data>
+  <data name="Command.PrevUnvisitedLink.Description" xml:space="preserve">
+    <value>Moves to the previous link you haven't visited.</value>
+  </data>
+  <data name="Command.NextNonLinkText.Name" xml:space="preserve">
+    <value>Next text after links</value>
+  </data>
+  <data name="Command.NextNonLinkText.Description" xml:space="preserve">
+    <value>Moves to the next text after a block of links.</value>
+  </data>
+  <data name="Command.PrevNonLinkText.Name" xml:space="preserve">
+    <value>Previous text after links</value>
+  </data>
+  <data name="Command.PrevNonLinkText.Description" xml:space="preserve">
+    <value>Moves to the previous text after a block of links.</value>
+  </data>
+  <data name="Command.NextTextParagraph.Name" xml:space="preserve">
+    <value>Next text paragraph</value>
+  </data>
+  <data name="Command.NextTextParagraph.Description" xml:space="preserve">
+    <value>Moves to the next paragraph of plain text.</value>
+  </data>
+  <data name="Command.PrevTextParagraph.Name" xml:space="preserve">
+    <value>Previous text paragraph</value>
+  </data>
+  <data name="Command.PrevTextParagraph.Description" xml:space="preserve">
+    <value>Moves to the previous paragraph of plain text.</value>
+  </data>
+  <data name="Command.NextUnvisitedHeading.Name" xml:space="preserve">
+    <value>Next unread heading</value>
+  </data>
+  <data name="Command.NextUnvisitedHeading.Description" xml:space="preserve">
+    <value>Moves to the next heading you haven't been on in this page.</value>
+  </data>
+  <data name="Command.PrevUnvisitedHeading.Name" xml:space="preserve">
+    <value>Previous unread heading</value>
+  </data>
+  <data name="Command.PrevUnvisitedHeading.Description" xml:space="preserve">
+    <value>Moves to the previous heading you haven't been on in this page.</value>
+  </data>
+  <data name="Command.HeadingLevel1.Name" xml:space="preserve">
+    <value>Next heading level 1</value>
+  </data>
+  <data name="Command.HeadingLevel1.Description" xml:space="preserve">
+    <value>Moves to the next heading at level 1.</value>
+  </data>
+  <data name="Command.PrevHeadingLevel1.Name" xml:space="preserve">
+    <value>Previous heading level 1</value>
+  </data>
+  <data name="Command.PrevHeadingLevel1.Description" xml:space="preserve">
+    <value>Moves to the previous heading at level 1.</value>
+  </data>
+  <data name="Command.HeadingLevel2.Name" xml:space="preserve">
+    <value>Next heading level 2</value>
+  </data>
+  <data name="Command.HeadingLevel2.Description" xml:space="preserve">
+    <value>Moves to the next heading at level 2.</value>
+  </data>
+  <data name="Command.PrevHeadingLevel2.Name" xml:space="preserve">
+    <value>Previous heading level 2</value>
+  </data>
+  <data name="Command.PrevHeadingLevel2.Description" xml:space="preserve">
+    <value>Moves to the previous heading at level 2.</value>
+  </data>
+  <data name="Command.HeadingLevel3.Name" xml:space="preserve">
+    <value>Next heading level 3</value>
+  </data>
+  <data name="Command.HeadingLevel3.Description" xml:space="preserve">
+    <value>Moves to the next heading at level 3.</value>
+  </data>
+  <data name="Command.PrevHeadingLevel3.Name" xml:space="preserve">
+    <value>Previous heading level 3</value>
+  </data>
+  <data name="Command.PrevHeadingLevel3.Description" xml:space="preserve">
+    <value>Moves to the previous heading at level 3.</value>
+  </data>
+  <data name="Command.HeadingLevel4.Name" xml:space="preserve">
+    <value>Next heading level 4</value>
+  </data>
+  <data name="Command.HeadingLevel4.Description" xml:space="preserve">
+    <value>Moves to the next heading at level 4.</value>
+  </data>
+  <data name="Command.PrevHeadingLevel4.Name" xml:space="preserve">
+    <value>Previous heading level 4</value>
+  </data>
+  <data name="Command.PrevHeadingLevel4.Description" xml:space="preserve">
+    <value>Moves to the previous heading at level 4.</value>
+  </data>
+  <data name="Command.HeadingLevel5.Name" xml:space="preserve">
+    <value>Next heading level 5</value>
+  </data>
+  <data name="Command.HeadingLevel5.Description" xml:space="preserve">
+    <value>Moves to the next heading at level 5.</value>
+  </data>
+  <data name="Command.PrevHeadingLevel5.Name" xml:space="preserve">
+    <value>Previous heading level 5</value>
+  </data>
+  <data name="Command.PrevHeadingLevel5.Description" xml:space="preserve">
+    <value>Moves to the previous heading at level 5.</value>
+  </data>
+  <data name="Command.HeadingLevel6.Name" xml:space="preserve">
+    <value>Next heading level 6</value>
+  </data>
+  <data name="Command.HeadingLevel6.Description" xml:space="preserve">
+    <value>Moves to the next heading at level 6.</value>
+  </data>
+  <data name="Command.PrevHeadingLevel6.Name" xml:space="preserve">
+    <value>Previous heading level 6</value>
+  </data>
+  <data name="Command.PrevHeadingLevel6.Description" xml:space="preserve">
+    <value>Moves to the previous heading at level 6.</value>
+  </data>
+  <data name="Command.EndOfContainer.Name" xml:space="preserve">
+    <value>End of container</value>
+  </data>
+  <data name="Command.EndOfContainer.Description" xml:space="preserve">
+    <value>Moves to the end of the list, table, landmark, block quote or frame the cursor is in.</value>
+  </data>
+  <data name="Command.StartOfContainer.Name" xml:space="preserve">
+    <value>Start of container</value>
+  </data>
+  <data name="Command.StartOfContainer.Description" xml:space="preserve">
+    <value>Moves to the start of the list, table, landmark, block quote or frame the cursor is in.</value>
+  </data>
+  <data name="Command.NextLine.Name" xml:space="preserve">
+    <value>Next line</value>
+  </data>
+  <data name="Command.NextLine.Description" xml:space="preserve">
+    <value>Moves to the next line and reads it.</value>
+  </data>
+  <data name="Command.PrevLine.Name" xml:space="preserve">
+    <value>Previous line</value>
+  </data>
+  <data name="Command.PrevLine.Description" xml:space="preserve">
+    <value>Moves to the previous line and reads it.</value>
+  </data>
+  <data name="Command.NextWord.Name" xml:space="preserve">
+    <value>Next word</value>
+  </data>
+  <data name="Command.NextWord.Description" xml:space="preserve">
+    <value>Moves to the next word and reads it.</value>
+  </data>
+  <data name="Command.PrevWord.Name" xml:space="preserve">
+    <value>Previous word</value>
+  </data>
+  <data name="Command.PrevWord.Description" xml:space="preserve">
+    <value>Moves to the previous word and reads it.</value>
+  </data>
+  <data name="Command.NextChar.Name" xml:space="preserve">
+    <value>Next character</value>
+  </data>
+  <data name="Command.NextChar.Description" xml:space="preserve">
+    <value>Moves to the next character and reads it.</value>
+  </data>
+  <data name="Command.PrevChar.Name" xml:space="preserve">
+    <value>Previous character</value>
+  </data>
+  <data name="Command.PrevChar.Description" xml:space="preserve">
+    <value>Moves to the previous character and reads it.</value>
+  </data>
+  <data name="Command.StartOfLine.Name" xml:space="preserve">
+    <value>Start of line</value>
+  </data>
+  <data name="Command.StartOfLine.Description" xml:space="preserve">
+    <value>Moves to the start of the line.</value>
+  </data>
+  <data name="Command.EndOfLine.Name" xml:space="preserve">
+    <value>End of line</value>
+  </data>
+  <data name="Command.EndOfLine.Description" xml:space="preserve">
+    <value>Moves to the end of the line.</value>
+  </data>
+  <data name="Command.TopOfDocument.Name" xml:space="preserve">
+    <value>Top of page</value>
+  </data>
+  <data name="Command.TopOfDocument.Description" xml:space="preserve">
+    <value>Moves to the top of the page.</value>
+  </data>
+  <data name="Command.BottomOfDocument.Name" xml:space="preserve">
+    <value>Bottom of page</value>
+  </data>
+  <data name="Command.BottomOfDocument.Description" xml:space="preserve">
+    <value>Moves to the bottom of the page.</value>
+  </data>
+  <data name="Command.NextParagraph.Name" xml:space="preserve">
+    <value>Next paragraph</value>
+  </data>
+  <data name="Command.NextParagraph.Description" xml:space="preserve">
+    <value>Moves to the next paragraph and reads it.</value>
+  </data>
+  <data name="Command.PrevParagraph.Name" xml:space="preserve">
+    <value>Previous paragraph</value>
+  </data>
+  <data name="Command.PrevParagraph.Description" xml:space="preserve">
+    <value>Moves to the previous paragraph and reads it.</value>
+  </data>
+  <data name="Command.ReadCurrentLine.Name" xml:space="preserve">
+    <value>Read current line</value>
+  </data>
+  <data name="Command.ReadCurrentLine.Description" xml:space="preserve">
+    <value>Reads the current line; pressed twice spells it, three times spells it phonetically.</value>
+  </data>
+  <data name="Command.ReadCurrentWord.Name" xml:space="preserve">
+    <value>Read current word</value>
+  </data>
+  <data name="Command.ReadCurrentWord.Description" xml:space="preserve">
+    <value>Reads the current word; pressed twice spells it, three times spells it phonetically.</value>
+  </data>
+  <data name="Command.ReadCurrentChar.Name" xml:space="preserve">
+    <value>Read current character</value>
+  </data>
+  <data name="Command.ReadCurrentChar.Description" xml:space="preserve">
+    <value>Reads the current character; pressed twice says its phonetic name.</value>
+  </data>
+  <data name="Command.ReadSelection.Name" xml:space="preserve">
+    <value>Read selection</value>
+  </data>
+  <data name="Command.ReadSelection.Description" xml:space="preserve">
+    <value>Reads the selected text.</value>
+  </data>
+  <data name="Command.ReadFormatting.Name" xml:space="preserve">
+    <value>Read formatting</value>
+  </data>
+  <data name="Command.ReadFormatting.Description" xml:space="preserve">
+    <value>Says the font and formatting at the caret.</value>
+  </data>
+  <data name="Command.SayAll.Name" xml:space="preserve">
+    <value>Say all</value>
+  </data>
+  <data name="Command.SayAll.Description" xml:space="preserve">
+    <value>Reads from the cursor to the end; any key stops it.</value>
+  </data>
+  <data name="Command.SayTitle.Name" xml:space="preserve">
+    <value>Say window title</value>
+  </data>
+  <data name="Command.SayTitle.Description" xml:space="preserve">
+    <value>Says the title of the window in front.</value>
+  </data>
+  <data name="Command.SayFocus.Name" xml:space="preserve">
+    <value>Say focus</value>
+  </data>
+  <data name="Command.SayFocus.Description" xml:space="preserve">
+    <value>Says the element that has focus.</value>
+  </data>
+  <data name="Command.SayStatusBar.Name" xml:space="preserve">
+    <value>Say status bar</value>
+  </data>
+  <data name="Command.SayStatusBar.Description" xml:space="preserve">
+    <value>Reads the status bar of the window in front.</value>
+  </data>
+  <data name="Command.ReadWindow.Name" xml:space="preserve">
+    <value>Read window</value>
+  </data>
+  <data name="Command.ReadWindow.Description" xml:space="preserve">
+    <value>Reads all the controls in the window in front, or the dialog's text.</value>
+  </data>
+  <data name="Command.ActivateElement.Name" xml:space="preserve">
+    <value>Activate</value>
+  </data>
+  <data name="Command.ActivateElement.Description" xml:space="preserve">
+    <value>Presses the link or button at the cursor, or moves into the form field there.</value>
+  </data>
+  <data name="Command.ToggleMode.Name" xml:space="preserve">
+    <value>Toggle browse and focus mode</value>
+  </data>
+  <data name="Command.ToggleMode.Description" xml:space="preserve">
+    <value>Switches between browse mode (single-letter navigation) and focus mode (keys go to the page).</value>
+  </data>
+  <data name="Command.ExitFocusMode.Name" xml:space="preserve">
+    <value>Leave focus mode</value>
+  </data>
+  <data name="Command.ExitFocusMode.Description" xml:space="preserve">
+    <value>Goes back to browse mode from a form field.</value>
+  </data>
+  <data name="Command.ElementsList.Name" xml:space="preserve">
+    <value>Elements list</value>
+  </data>
+  <data name="Command.ElementsList.Description" xml:space="preserve">
+    <value>Lists the page's headings, links, landmarks, form fields, buttons and tables to choose from.</value>
+  </data>
+  <data name="Command.PageSummary.Name" xml:space="preserve">
+    <value>Page summary</value>
+  </data>
+  <data name="Command.PageSummary.Description" xml:space="preserve">
+    <value>Says the page's title, language and how many headings, links, landmarks, form fields and tables it has.</value>
+  </data>
+  <data name="Command.SayLinkUrl.Name" xml:space="preserve">
+    <value>Say link address</value>
+  </data>
+  <data name="Command.SayLinkUrl.Description" xml:space="preserve">
+    <value>Says the address of the link at the cursor.</value>
+  </data>
+  <data name="Command.DismissOverlay.Name" xml:space="preserve">
+    <value>Dismiss cookie banner or dialog</value>
+  </data>
+  <data name="Command.DismissOverlay.Description" xml:space="preserve">
+    <value>Presses the Reject or Close button of the page's cookie banner or modal dialog.</value>
+  </data>
+  <data name="Command.InteractWithMath.Name" xml:space="preserve">
+    <value>Explore math</value>
+  </data>
+  <data name="Command.InteractWithMath.Description" xml:space="preserve">
+    <value>Starts or ends exploring the expression at the cursor with the arrow keys (needs MathCAT).</value>
+  </data>
+  <data name="Command.TableNextColumn.Name" xml:space="preserve">
+    <value>Next column</value>
+  </data>
+  <data name="Command.TableNextColumn.Description" xml:space="preserve">
+    <value>Moves to the next cell in the row.</value>
+  </data>
+  <data name="Command.TablePrevColumn.Name" xml:space="preserve">
+    <value>Previous column</value>
+  </data>
+  <data name="Command.TablePrevColumn.Description" xml:space="preserve">
+    <value>Moves to the previous cell in the row.</value>
+  </data>
+  <data name="Command.TableNextRow.Name" xml:space="preserve">
+    <value>Next row</value>
+  </data>
+  <data name="Command.TableNextRow.Description" xml:space="preserve">
+    <value>Moves to the next cell in the column.</value>
+  </data>
+  <data name="Command.TablePrevRow.Name" xml:space="preserve">
+    <value>Previous row</value>
+  </data>
+  <data name="Command.TablePrevRow.Description" xml:space="preserve">
+    <value>Moves to the previous cell in the column.</value>
+  </data>
+  <data name="Command.TableFirstCell.Name" xml:space="preserve">
+    <value>First cell</value>
+  </data>
+  <data name="Command.TableFirstCell.Description" xml:space="preserve">
+    <value>Moves to the first cell of the table.</value>
+  </data>
+  <data name="Command.TableLastCell.Name" xml:space="preserve">
+    <value>Last cell</value>
+  </data>
+  <data name="Command.TableLastCell.Description" xml:space="preserve">
+    <value>Moves to the last cell of the table.</value>
+  </data>
+  <data name="Command.ReadTableRow.Name" xml:space="preserve">
+    <value>Read row</value>
+  </data>
+  <data name="Command.ReadTableRow.Description" xml:space="preserve">
+    <value>Reads the whole row the cursor is in.</value>
+  </data>
+  <data name="Command.ReadTableColumn.Name" xml:space="preserve">
+    <value>Read column</value>
+  </data>
+  <data name="Command.ReadTableColumn.Description" xml:space="preserve">
+    <value>Reads the whole column the cursor is in.</value>
+  </data>
+  <data name="Command.SetColumnHeaders.Name" xml:space="preserve">
+    <value>Set column headers</value>
+  </data>
+  <data name="Command.SetColumnHeaders.Description" xml:space="preserve">
+    <value>Makes the current row the table's column headers (remembered for the page), or clears them when it already is.</value>
+  </data>
+  <data name="Command.SetRowHeaders.Name" xml:space="preserve">
+    <value>Set row headers</value>
+  </data>
+  <data name="Command.SetRowHeaders.Description" xml:space="preserve">
+    <value>Makes the current column the table's row headers (remembered for the page), or clears them when it already is.</value>
+  </data>
+  <data name="Command.Find.Name" xml:space="preserve">
+    <value>Find</value>
+  </data>
+  <data name="Command.Find.Description" xml:space="preserve">
+    <value>Opens the find box to search the page.</value>
+  </data>
+  <data name="Command.FindNext.Name" xml:space="preserve">
+    <value>Find next</value>
+  </data>
+  <data name="Command.FindNext.Description" xml:space="preserve">
+    <value>Finds the next match of the last search.</value>
+  </data>
+  <data name="Command.FindPrevious.Name" xml:space="preserve">
+    <value>Find previous</value>
+  </data>
+  <data name="Command.FindPrevious.Description" xml:space="preserve">
+    <value>Finds the previous match of the last search.</value>
+  </data>
+  <data name="Command.SelectNextChar.Name" xml:space="preserve">
+    <value>Select next character</value>
+  </data>
+  <data name="Command.SelectNextChar.Description" xml:space="preserve">
+    <value>Extends the selection by a character to the right.</value>
+  </data>
+  <data name="Command.SelectPrevChar.Name" xml:space="preserve">
+    <value>Select previous character</value>
+  </data>
+  <data name="Command.SelectPrevChar.Description" xml:space="preserve">
+    <value>Extends the selection by a character to the left.</value>
+  </data>
+  <data name="Command.SelectNextWord.Name" xml:space="preserve">
+    <value>Select next word</value>
+  </data>
+  <data name="Command.SelectNextWord.Description" xml:space="preserve">
+    <value>Extends the selection to the end of the word.</value>
+  </data>
+  <data name="Command.SelectPrevWord.Name" xml:space="preserve">
+    <value>Select previous word</value>
+  </data>
+  <data name="Command.SelectPrevWord.Description" xml:space="preserve">
+    <value>Extends the selection to the start of the word.</value>
+  </data>
+  <data name="Command.SelectNextLine.Name" xml:space="preserve">
+    <value>Select next line</value>
+  </data>
+  <data name="Command.SelectNextLine.Description" xml:space="preserve">
+    <value>Extends the selection by a line down.</value>
+  </data>
+  <data name="Command.SelectPrevLine.Name" xml:space="preserve">
+    <value>Select previous line</value>
+  </data>
+  <data name="Command.SelectPrevLine.Description" xml:space="preserve">
+    <value>Extends the selection by a line up.</value>
+  </data>
+  <data name="Command.SelectToStartOfLine.Name" xml:space="preserve">
+    <value>Select to start of line</value>
+  </data>
+  <data name="Command.SelectToStartOfLine.Description" xml:space="preserve">
+    <value>Extends the selection to the start of the line.</value>
+  </data>
+  <data name="Command.SelectToEndOfLine.Name" xml:space="preserve">
+    <value>Select to end of line</value>
+  </data>
+  <data name="Command.SelectToEndOfLine.Description" xml:space="preserve">
+    <value>Extends the selection to the end of the line.</value>
+  </data>
+  <data name="Command.SelectToTop.Name" xml:space="preserve">
+    <value>Select to top</value>
+  </data>
+  <data name="Command.SelectToTop.Description" xml:space="preserve">
+    <value>Extends the selection to the top of the page.</value>
+  </data>
+  <data name="Command.SelectToBottom.Name" xml:space="preserve">
+    <value>Select to bottom</value>
+  </data>
+  <data name="Command.SelectToBottom.Description" xml:space="preserve">
+    <value>Extends the selection to the bottom of the page.</value>
+  </data>
+  <data name="Command.SelectAll.Name" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Command.SelectAll.Description" xml:space="preserve">
+    <value>Selects the whole page.</value>
+  </data>
+  <data name="Command.CopySelection.Name" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Command.CopySelection.Description" xml:space="preserve">
+    <value>Copies the selected text to the clipboard.</value>
+  </data>
+  <data name="Command.MarkStart.Name" xml:space="preserve">
+    <value>Mark start</value>
+  </data>
+  <data name="Command.MarkStart.Description" xml:space="preserve">
+    <value>Marks the cursor position as the start of a selection.</value>
+  </data>
+  <data name="Command.SelectFromMark.Name" xml:space="preserve">
+    <value>Select from mark</value>
+  </data>
+  <data name="Command.SelectFromMark.Description" xml:space="preserve">
+    <value>Selects from the mark to the cursor; pressed twice copies it.</value>
+  </data>
+  <data name="Command.NavigatorParent.Name" xml:space="preserve">
+    <value>Navigator to parent</value>
+  </data>
+  <data name="Command.NavigatorParent.Description" xml:space="preserve">
+    <value>Moves the navigator object to the object containing it.</value>
+  </data>
+  <data name="Command.NavigatorFirstChild.Name" xml:space="preserve">
+    <value>Navigator to first child</value>
+  </data>
+  <data name="Command.NavigatorFirstChild.Description" xml:space="preserve">
+    <value>Moves the navigator object to the first object inside it.</value>
+  </data>
+  <data name="Command.NavigatorPrevious.Name" xml:space="preserve">
+    <value>Navigator to previous</value>
+  </data>
+  <data name="Command.NavigatorPrevious.Description" xml:space="preserve">
+    <value>Moves the navigator object to the previous object.</value>
+  </data>
+  <data name="Command.NavigatorNext.Name" xml:space="preserve">
+    <value>Navigator to next</value>
+  </data>
+  <data name="Command.NavigatorNext.Description" xml:space="preserve">
+    <value>Moves the navigator object to the next object.</value>
+  </data>
+  <data name="Command.ReportNavigator.Name" xml:space="preserve">
+    <value>Report navigator object</value>
+  </data>
+  <data name="Command.ReportNavigator.Description" xml:space="preserve">
+    <value>Says the navigator object.</value>
+  </data>
+  <data name="Command.NavigatorToFocus.Name" xml:space="preserve">
+    <value>Navigator to focus</value>
+  </data>
+  <data name="Command.NavigatorToFocus.Description" xml:space="preserve">
+    <value>Moves the navigator object to the focused object.</value>
+  </data>
+  <data name="Command.FocusToNavigator.Name" xml:space="preserve">
+    <value>Focus navigator object</value>
+  </data>
+  <data name="Command.FocusToNavigator.Description" xml:space="preserve">
+    <value>Moves focus to the navigator object.</value>
+  </data>
+  <data name="Command.ActivateNavigator.Name" xml:space="preserve">
+    <value>Activate navigator object</value>
+  </data>
+  <data name="Command.ActivateNavigator.Description" xml:space="preserve">
+    <value>Presses or toggles the navigator object.</value>
+  </data>
+  <data name="Command.CopyNavigatorText.Name" xml:space="preserve">
+    <value>Copy navigator text</value>
+  </data>
+  <data name="Command.CopyNavigatorText.Description" xml:space="preserve">
+    <value>Copies the navigator object's text to the clipboard.</value>
+  </data>
+  <data name="Command.ReviewPrevLine.Name" xml:space="preserve">
+    <value>Review previous line</value>
+  </data>
+  <data name="Command.ReviewPrevLine.Description" xml:space="preserve">
+    <value>Moves the review cursor to the previous line and reads it.</value>
+  </data>
+  <data name="Command.ReviewCurrentLine.Name" xml:space="preserve">
+    <value>Review current line</value>
+  </data>
+  <data name="Command.ReviewCurrentLine.Description" xml:space="preserve">
+    <value>Reads the review cursor's line; pressed twice spells it.</value>
+  </data>
+  <data name="Command.ReviewNextLine.Name" xml:space="preserve">
+    <value>Review next line</value>
+  </data>
+  <data name="Command.ReviewNextLine.Description" xml:space="preserve">
+    <value>Moves the review cursor to the next line and reads it.</value>
+  </data>
+  <data name="Command.ReviewPrevWord.Name" xml:space="preserve">
+    <value>Review previous word</value>
+  </data>
+  <data name="Command.ReviewPrevWord.Description" xml:space="preserve">
+    <value>Moves the review cursor to the previous word and reads it.</value>
+  </data>
+  <data name="Command.ReviewCurrentWord.Name" xml:space="preserve">
+    <value>Review current word</value>
+  </data>
+  <data name="Command.ReviewCurrentWord.Description" xml:space="preserve">
+    <value>Reads the review cursor's word; pressed twice spells it.</value>
+  </data>
+  <data name="Command.ReviewNextWord.Name" xml:space="preserve">
+    <value>Review next word</value>
+  </data>
+  <data name="Command.ReviewNextWord.Description" xml:space="preserve">
+    <value>Moves the review cursor to the next word and reads it.</value>
+  </data>
+  <data name="Command.ReviewPrevChar.Name" xml:space="preserve">
+    <value>Review previous character</value>
+  </data>
+  <data name="Command.ReviewPrevChar.Description" xml:space="preserve">
+    <value>Moves the review cursor to the previous character and reads it.</value>
+  </data>
+  <data name="Command.ReviewCurrentChar.Name" xml:space="preserve">
+    <value>Review current character</value>
+  </data>
+  <data name="Command.ReviewCurrentChar.Description" xml:space="preserve">
+    <value>Reads the review cursor's character; pressed twice says its phonetic name.</value>
+  </data>
+  <data name="Command.ReviewNextChar.Name" xml:space="preserve">
+    <value>Review next character</value>
+  </data>
+  <data name="Command.ReviewNextChar.Description" xml:space="preserve">
+    <value>Moves the review cursor to the next character and reads it.</value>
+  </data>
+  <data name="Command.ReviewTop.Name" xml:space="preserve">
+    <value>Review top</value>
+  </data>
+  <data name="Command.ReviewTop.Description" xml:space="preserve">
+    <value>Moves the review cursor to the top.</value>
+  </data>
+  <data name="Command.ReviewBottom.Name" xml:space="preserve">
+    <value>Review bottom</value>
+  </data>
+  <data name="Command.ReviewBottom.Description" xml:space="preserve">
+    <value>Moves the review cursor to the bottom.</value>
+  </data>
+  <data name="Command.NextReviewMode.Name" xml:space="preserve">
+    <value>Next review mode</value>
+  </data>
+  <data name="Command.NextReviewMode.Description" xml:space="preserve">
+    <value>Switches review to the next mode (object, document, screen).</value>
+  </data>
+  <data name="Command.PrevReviewMode.Name" xml:space="preserve">
+    <value>Previous review mode</value>
+  </data>
+  <data name="Command.PrevReviewMode.Description" xml:space="preserve">
+    <value>Switches review to the previous mode (object, document, screen).</value>
+  </data>
+  <data name="Command.ToggleMouseTracking.Name" xml:space="preserve">
+    <value>Toggle mouse tracking</value>
+  </data>
+  <data name="Command.ToggleMouseTracking.Description" xml:space="preserve">
+    <value>Turns reading what is under the mouse pointer on or off.</value>
+  </data>
+  <data name="Command.RouteMouseToNavigator.Name" xml:space="preserve">
+    <value>Move mouse to navigator</value>
+  </data>
+  <data name="Command.RouteMouseToNavigator.Description" xml:space="preserve">
+    <value>Moves the mouse pointer to the navigator object.</value>
+  </data>
+  <data name="Command.MouseLeftClick.Name" xml:space="preserve">
+    <value>Left click</value>
+  </data>
+  <data name="Command.MouseLeftClick.Description" xml:space="preserve">
+    <value>Clicks the left mouse button where the pointer is.</value>
+  </data>
+  <data name="Command.MouseRightClick.Name" xml:space="preserve">
+    <value>Right click</value>
+  </data>
+  <data name="Command.MouseRightClick.Description" xml:space="preserve">
+    <value>Clicks the right mouse button where the pointer is.</value>
+  </data>
+  <data name="Command.ToggleLeftMouseLock.Name" xml:space="preserve">
+    <value>Lock left mouse button</value>
+  </data>
+  <data name="Command.ToggleLeftMouseLock.Description" xml:space="preserve">
+    <value>Holds the left mouse button down, or lets it go (for dragging).</value>
+  </data>
+  <data name="Command.StopSpeech.Name" xml:space="preserve">
+    <value>Stop speech</value>
+  </data>
+  <data name="Command.StopSpeech.Description" xml:space="preserve">
+    <value>Stops speaking.</value>
+  </data>
+  <data name="Command.SettingsRingPrevious.Name" xml:space="preserve">
+    <value>Previous voice setting</value>
+  </data>
+  <data name="Command.SettingsRingPrevious.Description" xml:space="preserve">
+    <value>Picks the previous setting in the voice settings ring (voice, rate, pitch, volume, punctuation, synthesizer).</value>
+  </data>
+  <data name="Command.SettingsRingNext.Name" xml:space="preserve">
+    <value>Next voice setting</value>
+  </data>
+  <data name="Command.SettingsRingNext.Description" xml:space="preserve">
+    <value>Picks the next setting in the voice settings ring.</value>
+  </data>
+  <data name="Command.SettingsRingIncrease.Name" xml:space="preserve">
+    <value>Increase voice setting</value>
+  </data>
+  <data name="Command.SettingsRingIncrease.Description" xml:space="preserve">
+    <value>Raises the voice setting picked in the ring.</value>
+  </data>
+  <data name="Command.SettingsRingDecrease.Name" xml:space="preserve">
+    <value>Decrease voice setting</value>
+  </data>
+  <data name="Command.SettingsRingDecrease.Description" xml:space="preserve">
+    <value>Lowers the voice setting picked in the ring.</value>
+  </data>
+  <data name="Command.SpeechHistoryPrevious.Name" xml:space="preserve">
+    <value>Previous spoken text</value>
+  </data>
+  <data name="Command.SpeechHistoryPrevious.Description" xml:space="preserve">
+    <value>Says the previous thing Vox said; pressed twice copies it.</value>
+  </data>
+  <data name="Command.SpeechHistoryNext.Name" xml:space="preserve">
+    <value>Next spoken text</value>
+  </data>
+  <data name="Command.SpeechHistoryNext.Description" xml:space="preserve">
+    <value>Says the next thing Vox said; pressed twice copies it.</value>
+  </data>
+  <data name="Command.ToggleSleepMode.Name" xml:space="preserve">
+    <value>Sleep mode</value>
+  </data>
+  <data name="Command.ToggleSleepMode.Description" xml:space="preserve">
+    <value>Turns sleep mode on or off for this application: Vox stops speaking and passes every key to it.</value>
+  </data>
+  <data name="Command.ToggleSpeechViewer.Name" xml:space="preserve">
+    <value>Speech viewer</value>
+  </data>
+  <data name="Command.ToggleSpeechViewer.Description" xml:space="preserve">
+    <value>Shows or hides a window with everything Vox says.</value>
+  </data>
+  <data name="Command.TogglePauseSpeech.Name" xml:space="preserve">
+    <value>Pause speech</value>
+  </data>
+  <data name="Command.TogglePauseSpeech.Description" xml:space="preserve">
+    <value>Stops Vox speaking until pressed again (sounds still play).</value>
+  </data>
+  <data name="Command.BraillePanLeft.Name" xml:space="preserve">
+    <value>Braille back</value>
+  </data>
+  <data name="Command.BraillePanLeft.Description" xml:space="preserve">
+    <value>Shows the previous part of the braille line, or the end of the previous line.</value>
+  </data>
+  <data name="Command.BraillePanRight.Name" xml:space="preserve">
+    <value>Braille forward</value>
+  </data>
+  <data name="Command.BraillePanRight.Description" xml:space="preserve">
+    <value>Shows the next part of the braille line, or the next line.</value>
+  </data>
+  <data name="Command.CycleBrailleTether.Name" xml:space="preserve">
+    <value>Braille tether</value>
+  </data>
+  <data name="Command.CycleBrailleTether.Description" xml:space="preserve">
+    <value>Switches what the braille display follows: automatically, the focus, or the review cursor.</value>
+  </data>
+  <data name="Command.SayTime.Name" xml:space="preserve">
+    <value>Say time</value>
+  </data>
+  <data name="Command.SayTime.Description" xml:space="preserve">
+    <value>Says the time; pressed twice says the date.</value>
+  </data>
+  <data name="Command.SayBattery.Name" xml:space="preserve">
+    <value>Say battery</value>
+  </data>
+  <data name="Command.SayBattery.Description" xml:space="preserve">
+    <value>Says the battery level and whether it is charging.</value>
+  </data>
+  <data name="Command.DeveloperInfo.Name" xml:space="preserve">
+    <value>Developer information</value>
+  </data>
+  <data name="Command.DeveloperInfo.Description" xml:space="preserve">
+    <value>Says the focused element's role, class, framework and process, and copies them to the clipboard.</value>
+  </data>
+  <data name="Command.CopySettingsToSecureScreens.Name" xml:space="preserve">
+    <value>Use settings on sign-in screens</value>
+  </data>
+  <data name="Command.CopySettingsToSecureScreens.Description" xml:space="preserve">
+    <value>Copies your settings to the sign-in, lock and UAC screens.</value>
+  </data>
+  <data name="Command.OpenVoxMenu.Name" xml:space="preserve">
+    <value>Vox menu</value>
+  </data>
+  <data name="Command.OpenVoxMenu.Description" xml:space="preserve">
+    <value>Opens the Vox menu: settings, input gestures, command search, speech viewer, user guide and exit.</value>
+  </data>
+  <data name="Command.OpenUserGuide.Name" xml:space="preserve">
+    <value>User guide</value>
+  </data>
+  <data name="Command.OpenUserGuide.Description" xml:space="preserve">
+    <value>Opens the Vox user guide, with every key, in the browser.</value>
+  </data>
+  <data name="Command.CheckForUpdates.Name" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="Command.CheckForUpdates.Description" xml:space="preserve">
+    <value>Checks for a newer Vox now, and offers to install it.</value>
+  </data>
+  <data name="Command.CreatePortableCopy.Name" xml:space="preserve">
+    <value>Create portable copy</value>
+  </data>
+  <data name="Command.CreatePortableCopy.Description" xml:space="preserve">
+    <value>Copies Vox and your settings to a folder, such as a USB stick, to run on other computers.</value>
+  </data>
+  <data name="Command.RunTutorial.Name" xml:space="preserve">
+    <value>Practice lessons</value>
+  </data>
+  <data name="Command.RunTutorial.Description" xml:space="preserve">
+    <value>Runs the practice lessons, where you press each key and hear what it does.</value>
+  </data>
+  <data name="Command.ExitVox.Name" xml:space="preserve">
+    <value>Exit Vox</value>
+  </data>
+  <data name="Command.ExitVox.Description" xml:space="preserve">
+    <value>Exits Vox at once.</value>
+  </data>
+  <data name="Command.OpenCommandSearch.Name" xml:space="preserve">
+    <value>Command search</value>
+  </data>
+  <data name="Command.OpenCommandSearch.Description" xml:space="preserve">
+    <value>Finds commands by part of their name and says their keys.</value>
+  </data>
+  <data name="Command.OpenInputGestures.Name" xml:space="preserve">
+    <value>Input gestures</value>
+  </data>
+  <data name="Command.OpenInputGestures.Description" xml:space="preserve">
+    <value>Opens the list of commands and their keys, where keys can be added, removed and changed.</value>
+  </data>
+  <data name="Command.OpenSettings.Name" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Command.OpenSettings.Description" xml:space="preserve">
+    <value>Opens the Vox settings dialog; changes apply as you make them.</value>
+  </data>
+  <data name="Command.ToggleInputHelp.Name" xml:space="preserve">
+    <value>Input help</value>
+  </data>
+  <data name="Command.ToggleInputHelp.Description" xml:space="preserve">
+    <value>Turns input help on or off: while it is on, keys say what they do instead of doing it.</value>
+  </data>
+  <data name="Command.RunSetup.Name" xml:space="preserve">
+    <value>Run setup</value>
+  </data>
+  <data name="Command.RunSetup.Description" xml:space="preserve">
+    <value>Runs the welcome and setup wizard again.</value>
+  </data>
+  <data name="Command.Quit.Name" xml:space="preserve">
+    <value>Quit Vox</value>
+  </data>
+  <data name="Command.Quit.Description" xml:space="preserve">
+    <value>Exits Vox (pressed twice to confirm).</value>
+  </data>
+  <data name="InputHelp.KeyAndCommand" xml:space="preserve">
+    <value>{0}, {1}. {2}</value>
+    <comment>Input help: {0} the key, {1} the command's name, {2} what it does</comment>
+  </data>
+  <data name="Gesture.BrowseMode" xml:space="preserve">
+    <value>{0} (browse mode)</value>
+    <comment>A key that works only in browse mode: {0} the key</comment>
+  </data>
+  <data name="Gesture.FocusMode" xml:space="preserve">
+    <value>{0} (focus mode)</value>
+    <comment>A key that works only in focus mode: {0} the key</comment>
+  </data>
+  <data name="Gesture.OtherMode" xml:space="preserve">
+    <value>{0} ({1} mode)</value>
+    <comment>{0} the key, {1} the mode it works in</comment>
+  </data>
+  <data name="Key.Insert" xml:space="preserve">
+    <value>Insert</value>
+  </data>
+  <data name="Key.CapsLock" xml:space="preserve">
+    <value>Caps Lock</value>
+  </data>
+  <data name="Key.Ctrl" xml:space="preserve">
+    <value>Ctrl</value>
+  </data>
+  <data name="Key.Alt" xml:space="preserve">
+    <value>Alt</value>
+  </data>
+  <data name="Key.Shift" xml:space="preserve">
+    <value>Shift</value>
+  </data>
+  <data name="Key.NumpadDigit" xml:space="preserve">
+    <value>Numpad {0}</value>
+    <comment>{0}: a digit</comment>
+  </data>
+  <data name="Key.Function" xml:space="preserve">
+    <value>F{0}</value>
+    <comment>Function keys: {0} the number</comment>
+  </data>
+  <data name="Key.Unknown" xml:space="preserve">
+    <value>key {0}</value>
+    <comment>A key without a name: {0} its virtual key code</comment>
+  </data>
+  <data name="Key.NumpadStar" xml:space="preserve">
+    <value>Numpad Star</value>
+  </data>
+  <data name="Key.NumpadPlus" xml:space="preserve">
+    <value>Numpad Plus</value>
+  </data>
+  <data name="Key.NumpadMinus" xml:space="preserve">
+    <value>Numpad Minus</value>
+  </data>
+  <data name="Key.NumpadPeriod" xml:space="preserve">
+    <value>Numpad Period</value>
+  </data>
+  <data name="Key.NumpadSlash" xml:space="preserve">
+    <value>Numpad Slash</value>
+  </data>
+  <data name="Key.NumpadEnter" xml:space="preserve">
+    <value>Numpad Enter</value>
+  </data>
+  <data name="Key.Backspace" xml:space="preserve">
+    <value>Backspace</value>
+  </data>
+  <data name="Key.Tab" xml:space="preserve">
+    <value>Tab</value>
+  </data>
+  <data name="Key.Enter" xml:space="preserve">
+    <value>Enter</value>
+  </data>
+  <data name="Key.Escape" xml:space="preserve">
+    <value>Escape</value>
+  </data>
+  <data name="Key.Space" xml:space="preserve">
+    <value>Space</value>
+  </data>
+  <data name="Key.PageUp" xml:space="preserve">
+    <value>Page Up</value>
+  </data>
+  <data name="Key.PageDown" xml:space="preserve">
+    <value>Page Down</value>
+  </data>
+  <data name="Key.End" xml:space="preserve">
+    <value>End</value>
+  </data>
+  <data name="Key.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Key.LeftArrow" xml:space="preserve">
+    <value>Left Arrow</value>
+  </data>
+  <data name="Key.UpArrow" xml:space="preserve">
+    <value>Up Arrow</value>
+  </data>
+  <data name="Key.RightArrow" xml:space="preserve">
+    <value>Right Arrow</value>
+  </data>
+  <data name="Key.DownArrow" xml:space="preserve">
+    <value>Down Arrow</value>
+  </data>
+  <data name="Key.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Key.NumLock" xml:space="preserve">
+    <value>Num Lock</value>
+  </data>
+  <data name="Key.ScrollLock" xml:space="preserve">
+    <value>Scroll Lock</value>
+  </data>
+  <data name="Key.Applications" xml:space="preserve">
+    <value>Applications</value>
+  </data>
+  <data name="Key.PrintScreen" xml:space="preserve">
+    <value>Print Screen</value>
+  </data>
+  <data name="Key.Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Key.Semicolon" xml:space="preserve">
+    <value>Semicolon</value>
+  </data>
+  <data name="Key.Equals" xml:space="preserve">
+    <value>Equals</value>
+  </data>
+  <data name="Key.Comma" xml:space="preserve">
+    <value>Comma</value>
+  </data>
+  <data name="Key.Minus" xml:space="preserve">
+    <value>Minus</value>
+  </data>
+  <data name="Key.Period" xml:space="preserve">
+    <value>Period</value>
+  </data>
+  <data name="Key.Slash" xml:space="preserve">
+    <value>Slash</value>
+  </data>
+  <data name="Key.Grave" xml:space="preserve">
+    <value>Grave</value>
+  </data>
+  <data name="Key.LeftBracket" xml:space="preserve">
+    <value>Left Bracket</value>
+  </data>
+  <data name="Key.Backslash" xml:space="preserve">
+    <value>Backslash</value>
+  </data>
+  <data name="Key.RightBracket" xml:space="preserve">
+    <value>Right Bracket</value>
+  </data>
+  <data name="Key.Apostrophe" xml:space="preserve">
+    <value>Apostrophe</value>
+  </data>
+  <data name="KeyboardReference.Lang" xml:space="preserve">
+    <value>en</value>
+    <comment>The language of the generated keyboard reference page (its lang attribute)</comment>
+  </data>
+  <data name="KeyboardReference.Title" xml:space="preserve">
+    <value>Vox keyboard reference</value>
+  </data>
+  <data name="KeyboardReference.Intro" xml:space="preserve">
+    <value>Every Vox command and its keys. "Insert" is the Vox key: Caps Lock instead if you chose it.
+Keys marked "browse mode" or "focus mode" work only on web pages, in that mode.
+The laptop layout has no numeric keypad keys. &lt;a href="index.html"&gt;Back to the user guide&lt;/a&gt;.</value>
+    <comment>HTML: keep the link</comment>
+  </data>
+  <data name="KeyboardReference.Command" xml:space="preserve">
+    <value>Command</value>
+  </data>
+  <data name="KeyboardReference.Desktop" xml:space="preserve">
+    <value>Desktop</value>
+  </data>
+  <data name="KeyboardReference.Laptop" xml:space="preserve">
+    <value>Laptop</value>
+  </data>
+  <data name="KeyboardReference.WhatItDoes" xml:space="preserve">
+    <value>What it does</value>
+  </data>
+  <data name="KeyboardReference.NoKeys" xml:space="preserve">
+    <value>(none; see the Vox menu)</value>
+  </data>
 </root>
