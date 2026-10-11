@@ -188,6 +188,10 @@ public record VoxSettings
     public AppModules.Outlook.OutlookStatusPosition OutlookStatusPosition { get; init; } = AppModules.Outlook.OutlookStatusPosition.First;
     /// <summary>Outlook: read the message after its row when another message is selected.</summary>
     public bool OutlookAutoRead { get; init; }
+    /// <summary>File Explorer: say the column headers with a details-view item's values.</summary>
+    public bool ExplorerColumnHeaders { get; init; } = true;
+    /// <summary>Teams: which new-message announcements are said.</summary>
+    public AppModules.Teams.TeamsMessageAnnouncements TeamsMessageAnnouncements { get; init; } = AppModules.Teams.TeamsMessageAnnouncements.All;
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "eSpeak" when installed, "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }

@@ -69,6 +69,12 @@ public static class SettingsPages
         ("excel", "Microsoft Excel"),
         ("outlook", "Microsoft Outlook"),
         ("powerpoint", "Microsoft PowerPoint"),
+        ("explorer", "File Explorer"),
+        ("teams", "Microsoft Teams"),
+        ("zoom", "Zoom"),
+        ("vscode", "Visual Studio Code"),
+        ("visualstudio", "Visual Studio"),
+        ("acrobat", "Adobe Acrobat"),
     ];
 
     /// <summary>The message list column orders the Applications page offers.</summary>
@@ -103,6 +109,11 @@ public static class SettingsPages
             new() { [global::Vox.Core.AppModules.Outlook.OutlookStatusPosition.First] = "First", [global::Vox.Core.AppModules.Outlook.OutlookStatusPosition.Last] = "Last",
                     [global::Vox.Core.AppModules.Outlook.OutlookStatusPosition.Off] = "Not at all" }),
         new ToggleField("Outlook: &read the selected message", s => s.OutlookAutoRead, (s, v) => s with { OutlookAutoRead = v }),
+        new ToggleField("File Explorer: say column &headers in details view", s => s.ExplorerColumnHeaders, (s, v) => s with { ExplorerColumnHeaders = v }),
+        Choice("Teams: say &new messages", s => s.TeamsMessageAnnouncements, (s, v) => s with { TeamsMessageAnnouncements = v },
+            new() { [global::Vox.Core.AppModules.Teams.TeamsMessageAnnouncements.All] = "All",
+                    [global::Vox.Core.AppModules.Teams.TeamsMessageAnnouncements.MentionsOnly] = "Only when I'm mentioned",
+                    [global::Vox.Core.AppModules.Teams.TeamsMessageAnnouncements.Off] = "Never" }),
     ]);
 
     public static SettingsPage General() => new("General",

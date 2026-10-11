@@ -21,6 +21,8 @@
   "OutlookColumns": ["From", "Subject", "Received"],
   "OutlookStatusPosition": "First",
   "OutlookAutoRead": false,
+  "ExplorerColumnHeaders": true,
+  "TeamsMessageAnnouncements": "All",
   "UpdateChannel": "Stable",
   "VoiceName": null,
   "SpeechEngine": null,

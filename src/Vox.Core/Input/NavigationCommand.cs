@@ -250,5 +250,21 @@ public enum NavigationCommand
     /// <summary>Says the current slide's speaker notes (PowerPoint).</summary>
     PowerPointNotes,
     /// <summary>Says the current slide's title and text (PowerPoint).</summary>
-    PowerPointReadSlide
+    PowerPointReadSlide,
+
+    // Teams module
+    /// <summary>Says the latest chat message (Teams); 2 to 5 below: the ones before it.</summary>
+    TeamsReadMessage1,
+    TeamsReadMessage2,
+    TeamsReadMessage3,
+    TeamsReadMessage4,
+    TeamsReadMessage5,
+    /// <summary>Says the call's state: in a call, microphone, camera, hand (Teams).</summary>
+    TeamsCallState,
+    /// <summary>Bound to Teams' own mute, camera and hand keys, which still reach it: says what changed.</summary>
+    TeamsCallKey,
+
+    // Zoom module
+    ZoomCallState,
+    ZoomCallKey
 }

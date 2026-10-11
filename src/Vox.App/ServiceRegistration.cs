@@ -2,9 +2,11 @@ using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.AppModules;
 using Vox.Core.AppModules.Excel;
+using Vox.Core.AppModules.Explorer;
 using Vox.Core.AppModules.Office;
 using Vox.Core.AppModules.Outlook;
 using Vox.Core.AppModules.PowerPoint;
+using Vox.Core.AppModules.Teams;
 using Vox.Core.AppModules.Word;
 using Vox.Core.Audio;
 using Vox.Core.Braille;
@@ -369,6 +371,27 @@ public static class ServiceRegistration
         services.AddSingleton<IAppModule>(sp => new PowerPointModule(
             sp.GetRequiredService<IPowerPointSource>(), sp.GetRequiredService<SpeechQueue>(),
             sp.GetRequiredService<IEventSink>(), sp.GetRequiredService<ILogger<PowerPointModule>>()));
+        services.AddSingleton<UIAAppSources>();
+        services.AddSingleton<IWindowButtonSource>(sp => sp.GetRequiredService<UIAAppSources>());
+        services.AddSingleton<IDetailsRowSource>(sp => sp.GetRequiredService<UIAAppSources>());
+        // What Vox says, so applications' own announcements of the same aren't said again
+        services.AddSingleton<RecentSpeech>(sp =>
+        {
+            var recent = new RecentSpeech();
+            sp.GetRequiredService<SpeechQueue>().UtteranceQueued += (_, u) => recent.Add(u.Text);
+            return recent;
+        });
+        services.AddSingleton<IAppModule, ExplorerModule>();
+        services.AddSingleton<IAppModule>(sp => new TeamsModule(
+            sp.GetRequiredService<IWindowButtonSource>(), sp.GetRequiredService<SpeechQueue>(), sp.GetRequiredService<IEventSink>(),
+            sp.GetRequiredService<RecentSpeech>(), sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            () => sp.GetRequiredService<QuickNavHandler>().CurrentDocument));
+        services.AddSingleton<IAppModule>(sp => new ZoomModule(
+            sp.GetRequiredService<IWindowButtonSource>(), sp.GetRequiredService<SpeechQueue>(), sp.GetRequiredService<IEventSink>(),
+            sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<IAppModule>(sp => QuietAppModule.VisualStudioCode(sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<IAppModule>(sp => QuietAppModule.VisualStudio(sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<IAppModule>(sp => QuietAppModule.Acrobat(sp.GetRequiredService<RecentSpeech>()));
         services.AddSingleton<AppModuleManager>(sp =>
         {
             var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();

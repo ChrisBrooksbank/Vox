@@ -260,6 +260,13 @@ public static class CommandCatalog
         Add(NavigationCommand.PowerPointPrevShape, "PowerPoint: previous shape", "Selects the previous shape on the slide and reads it.", CommandCategory.Applications);
         Add(NavigationCommand.PowerPointNotes, "PowerPoint: speaker notes", "Says the current slide's speaker notes.", CommandCategory.Applications);
         Add(NavigationCommand.PowerPointReadSlide, "PowerPoint: read slide", "Says the current slide's number, title and text.", CommandCategory.Applications);
+        Add(NavigationCommand.TeamsReadMessage1, "Teams: latest message", "Says the chat's latest message.", CommandCategory.Applications);
+        for (int n = 2; n <= 5; n++)
+            Add(NavigationCommand.TeamsReadMessage1 + n - 1, $"Teams: message {n}", $"Says the chat's message {n} from the latest.", CommandCategory.Applications);
+        Add(NavigationCommand.TeamsCallState, "Teams: call state", "Says whether you are in a call, and whether your microphone is muted, your camera on and your hand raised.", CommandCategory.Applications);
+        Add(NavigationCommand.TeamsCallKey, "Teams: mute, camera and hand keys", "Teams' own keys (Ctrl+Shift+M, Ctrl+Shift+O, Ctrl+Shift+K) still work; Vox then says what they changed.", CommandCategory.Applications);
+        Add(NavigationCommand.ZoomCallState, "Zoom: call state", "Says whether you are in a call, and whether your microphone is muted, your video on and your hand raised.", CommandCategory.Applications);
+        Add(NavigationCommand.ZoomCallKey, "Zoom: mute, video and hand keys", "Zoom's own keys (Alt+A, Alt+V, Alt+Y) still work; Vox then says what they changed.", CommandCategory.Applications);
         Add(NavigationCommand.CheckForUpdates, "Check for updates", "Checks for a newer Vox now, and offers to install it.", CommandCategory.System);
         Add(NavigationCommand.CreatePortableCopy, "Create portable copy", "Copies Vox and your settings to a folder, such as a USB stick, to run on other computers.", CommandCategory.System);
         Add(NavigationCommand.RunTutorial, "Practice lessons", "Runs the practice lessons, where you press each key and hear what it does.", CommandCategory.System);
