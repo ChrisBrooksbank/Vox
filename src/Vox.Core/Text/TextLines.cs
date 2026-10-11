@@ -47,9 +47,10 @@ public static class TextLines
         var start = line.WithEndpoint(TextEndpoint.End, line, TextEndpoint.Start);
         if (offset <= 0)
             return start;
-        var (moved, _) = start.Move(TextUnit.Character, offset);
-        // Not past the line's end
-        return moved.CompareEndpoints(TextEndpoint.Start, line, TextEndpoint.End) > 0
+        var (moved, count) = start.Move(TextUnit.Character, offset);
+        // Not past the line's end; a move cut short ran into the document's end (a range moving by
+        // character may stop before its last character), which is the end of this, the last line
+        return count < offset || moved.CompareEndpoints(TextEndpoint.Start, line, TextEndpoint.End) > 0
             ? line.WithEndpoint(TextEndpoint.Start, line, TextEndpoint.End)
             : moved;
     }
