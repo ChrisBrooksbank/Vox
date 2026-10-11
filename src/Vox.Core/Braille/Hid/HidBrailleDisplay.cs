@@ -106,6 +106,18 @@ public sealed class HidBrailleDisplay : IBrailleDisplayDriver
     }
 
     /// <inheritdoc />
+    public void Disconnect()
+    {
+        Session? session;
+        lock (_connectLock)
+        {
+            session = _session;
+            _session = null;
+        }
+        session?.Close();
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         Session? session;

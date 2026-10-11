@@ -17,6 +17,12 @@ public interface IBrailleDisplayDriver : IBrailleDisplay, IDisposable
     /// </summary>
     bool TryConnect();
 
+    /// <summary>
+    /// Closes the display without raising <see cref="Disconnected"/> (another driver was chosen);
+    /// <see cref="TryConnect"/> may open it again. <c>Dispose</c> closes it for good.
+    /// </summary>
+    void Disconnect();
+
     /// <summary>Raised (on the driver's thread) when a connected display is lost.</summary>
     event EventHandler? Disconnected;
 }

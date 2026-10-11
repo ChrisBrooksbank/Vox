@@ -420,6 +420,9 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e)
     {
+        // Braille commands are BrailleService's
+        if (e.Command is NavigationCommand.BraillePanLeft or NavigationCommand.BraillePanRight or NavigationCommand.CycleBrailleTether)
+            return;
         if (e.Command == NavigationCommand.ToggleSpeechViewer)
         {
             _speechViewer.Toggle();

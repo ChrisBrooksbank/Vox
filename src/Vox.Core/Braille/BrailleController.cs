@@ -95,6 +95,9 @@ public sealed class BrailleController : IDisposable
 
     public BraillePresenter Presenter => _presenter;
 
+    /// <summary>A display is connected (lines that cost UIA calls to read are only read then).</summary>
+    public bool IsActive => _displays.Current.IsConnected;
+
     /// <summary>What braille follows now (changed by <see cref="CycleTether"/> or the setting).</summary>
     public BrailleTether Tether
     {
@@ -190,7 +193,7 @@ public sealed class BrailleController : IDisposable
     /// </summary>
     public void OfferMessage(string text)
     {
-        if (_settings.CurrentValue.BrailleMessageTimeoutSeconds <= 0 || string.IsNullOrWhiteSpace(text))
+        if (_settings.CurrentValue.BrailleMessageTimeoutSeconds <= 0 || string.IsNullOrWhiteSpace(text) || !IsActive)
             return;
         var queuedAt = _time.GetUtcNow();
         var message = Flatten(StateSounds.ToWords(text));

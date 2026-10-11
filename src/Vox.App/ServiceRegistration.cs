@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.Audio;
+using Vox.Core.Braille;
+using Vox.Core.Braille.Brltty;
+using Vox.Core.Braille.Hid;
 using Vox.Core.Configuration;
 using Vox.Core.Diagnostics;
 using Vox.Core.Input;
@@ -343,8 +346,24 @@ public static class ServiceRegistration
                 sp.GetRequiredService<IPortableCopyPresenter>());
         });
 
-        // Hosted service
+        // Braille: display drivers in the order auto-detect tries them, then the controller
+        services.AddSingleton<IKeyboardOutput, SendInputKeyboardOutput>();
+        services.AddSingleton<IBrailleDisplayDriver>(sp => new HidBrailleDisplay(sp.GetRequiredService<ILogger<HidBrailleDisplay>>()));
+        services.AddSingleton<IBrailleDisplayDriver>(sp => new BrlttyDisplay(logger: sp.GetRequiredService<ILogger<BrlttyDisplay>>()));
+        services.AddSingleton<BrailleDisplayManager>();
+        services.AddSingleton<IBrailleDisplaySource>(sp => sp.GetRequiredService<BrailleDisplayManager>());
+        services.AddSingleton<UIAFocusAncestry>();
+        services.AddSingleton<IBrailleRouter, BrailleRouter>();
+        services.AddSingleton<BrailleController>(sp => new BrailleController(
+            sp.GetRequiredService<IBrailleDisplaySource>(),
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            sp.GetRequiredService<IBrailleRouter>(),
+            sp.GetRequiredService<IKeyboardOutput>(),
+            sp.GetRequiredService<ILogger<BrailleController>>()));
+
+        // Hosted services: ScreenReaderService first, so its pipeline handlers run before braille's
         services.AddHostedService<ScreenReaderService>();
+        services.AddHostedService<BrailleService>();
     }
 
     /// <summary>

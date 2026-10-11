@@ -165,6 +165,43 @@ public sealed class BrowseModeController
     }
 
     /// <summary>
+    /// While browsing, the browse cursor and the browse-mode selection (for braille); null
+    /// otherwise. Call on the pipeline thread.
+    /// </summary>
+    public (VBufferCursor Cursor, (int Start, int End)? Selection)? BrowsePosition()
+    {
+        if (!_documentActive || _navigationManager.CurrentMode != InteractionMode.Browse || _cursor is null)
+            return null;
+        (int, int)? selection = _selection.IsValidFor(_cursor) && _selection.End > _selection.Start
+            ? (_selection.Start, _selection.End)
+            : null;
+        return (_cursor, selection);
+    }
+
+    /// <summary>
+    /// A braille routing key: moves the browse cursor to <paramref name="offset"/> and says the
+    /// character there; with <paramref name="activate"/> (pressed again there) activates the
+    /// element at the cursor. Call on the pipeline thread.
+    /// </summary>
+    public void RouteTo(int offset, bool activate)
+    {
+        if (BrowsePosition() is not ({ } cursor, _))
+            return;
+        if (activate)
+        {
+            HandleCommand(NavigationCommand.ActivateElement);
+            return;
+        }
+        StopSayAll();
+        _selection.Clear();
+        if (offset < 0 || offset > cursor.Document.FlatText.Length || !cursor.Document.InScope(offset))
+            return;
+        cursor.MoveTo(offset);
+        _quickNavHandler.CurrentNode = cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
+        Speak(CharText(cursor.CurrentChar) ?? "blank");
+    }
+
+    /// <summary>
     /// How long after an unanswered full-document re-capture request another may be made
     /// (the capture can fail, and then no reply ever comes).
     /// </summary>

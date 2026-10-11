@@ -12,6 +12,7 @@ public enum CommandCategory
     Review,
     Mouse,
     Speech,
+    Braille,
     System,
 }
 
@@ -49,6 +50,7 @@ public static class CommandCatalog
         CommandCategory.Review => "Review cursor",
         CommandCategory.Mouse => "Mouse",
         CommandCategory.Speech => "Speech",
+        CommandCategory.Braille => "Braille",
         _ => "System",
     };
 
@@ -212,6 +214,9 @@ public static class CommandCatalog
         Add(NavigationCommand.OpenVoxMenu, "Vox menu", "Opens the Vox menu: settings, input gestures, command search, speech viewer, user guide and exit.", CommandCategory.System);
         Add(NavigationCommand.TogglePauseSpeech, "Pause speech", "Stops Vox speaking until pressed again (sounds still play).", CommandCategory.Speech);
         Add(NavigationCommand.OpenUserGuide, "User guide", "Opens the Vox user guide, with every key, in the browser.", CommandCategory.System);
+        Add(NavigationCommand.BraillePanLeft, "Braille back", "Shows the previous part of the braille line, or the end of the previous line.", CommandCategory.Braille);
+        Add(NavigationCommand.BraillePanRight, "Braille forward", "Shows the next part of the braille line, or the next line.", CommandCategory.Braille);
+        Add(NavigationCommand.CycleBrailleTether, "Braille tether", "Switches what the braille display follows: automatically, the focus, or the review cursor.", CommandCategory.Braille);
         Add(NavigationCommand.CheckForUpdates, "Check for updates", "Checks for a newer Vox now, and offers to install it.", CommandCategory.System);
         Add(NavigationCommand.CreatePortableCopy, "Create portable copy", "Copies Vox and your settings to a folder, such as a USB stick, to run on other computers.", CommandCategory.System);
         Add(NavigationCommand.RunTutorial, "Practice lessons", "Runs the practice lessons, where you press each key and hear what it does.", CommandCategory.System);

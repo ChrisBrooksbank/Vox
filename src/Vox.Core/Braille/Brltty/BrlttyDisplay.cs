@@ -143,6 +143,20 @@ public sealed class BrlttyDisplay : IBrailleDisplayDriver
         connection.Write(cells.Span);
     }
 
+    /// <summary>Leaves tty mode and closes the connection; <see cref="TryConnect"/> may open it again.</summary>
+    public void Disconnect()
+    {
+        lock (_connectLock)
+        {
+            var connection = _connection;
+            _connection = null;
+            if (connection is null)
+                return;
+            connection.Send(BrlApiProtocol.EncodeEmpty(BrlApiPacketType.LeaveTtyMode));
+            connection.Close();
+        }
+    }
+
     /// <summary>Leaves tty mode, so BRLTTY shows its own screen again, and closes the connection.</summary>
     public void Dispose()
     {

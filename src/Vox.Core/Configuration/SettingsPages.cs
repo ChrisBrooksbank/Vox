@@ -53,7 +53,7 @@ public sealed record AudioOptions(IReadOnlyList<string> OutputDevices, IReadOnly
 public static class SettingsPages
 {
     public static IReadOnlyList<SettingsPage> All(SpeechOptions speech, AudioOptions audio) =>
-        [General(), Speech(speech), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Review()];
+        [General(), Speech(speech), Braille(), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Review()];
 
     /// <summary>Settings no page shows: edited elsewhere (sleep mode's key, the wizard) or not by people.</summary>
     public static readonly IReadOnlySet<string> NotOnAnyPage = new HashSet<string>
@@ -67,6 +67,34 @@ public static class SettingsPages
         new ToggleField("Start Vox when I &sign in", s => s.StartAtLogon, (s, v) => s with { StartAtLogon = v }),
         Choice("Check for &updates", s => s.UpdateChannel, (s, v) => s with { UpdateChannel = v },
             new() { [Updates.UpdateChannel.Off] = "Never", [Updates.UpdateChannel.Stable] = "Releases", [Updates.UpdateChannel.Beta] = "Releases and betas" }),
+    ]);
+
+    public static SettingsPage Braille() => new("Braille",
+    [
+        new ChoiceField("Braille &display",
+            [
+                new SettingChoice("Automatic (find a display)", null),
+                new SettingChoice("HID braille display", (object?)"HID"),
+                new SettingChoice("BRLTTY", (object?)"BRLTTY"),
+                new SettingChoice("No braille", (object?)Vox.Core.Braille.BrailleDisplayManager.NoneId),
+            ],
+            s => s.BrailleDisplay, (s, v) => s with { BrailleDisplay = (string?)v }),
+        new ChoiceField("Braille &table",
+            Vox.Core.Braille.BrailleTables.All.Select(t => new SettingChoice(t.DisplayName, (object?)t.Id)).ToList(),
+            s => s.BrailleTable, (s, v) => v is string table ? s with { BrailleTable = table } : s),
+        new ToggleField("Show the &word at the cursor uncontracted", s => s.BrailleExpandWordAtCursor, (s, v) => s with { BrailleExpandWordAtCursor = v }),
+        Choice("Braille &follows", s => s.BrailleTether, (s, v) => s with { BrailleTether = v },
+            new() { [BrailleTether.Automatic] = "Automatically", [BrailleTether.Focus] = "Focus", [BrailleTether.Review] = "Review cursor" }),
+        Choice("Focus &context", s => s.BrailleFocusContext, (s, v) => s with { BrailleFocusContext = v },
+            new() { [BrailleFocusContext.FillDisplay] = "Fill the display", [BrailleFocusContext.ScrollBackOnly] = "Only when scrolling back",
+                    [BrailleFocusContext.ChangedContext] = "Only what changed" }),
+        Choice("Cursor &shape", s => s.BrailleCursorShape, (s, v) => s with { BrailleCursorShape = v },
+            new() { [BrailleCursorShape.Underline] = "Dots 7 and 8", [BrailleCursorShape.Dot8] = "Dot 8", [BrailleCursorShape.AllDots] = "All dots" }),
+        new ToggleField("&Blink the cursor", s => s.BrailleCursorBlink, (s, v) => s with { BrailleCursorBlink = v }),
+        new NumberField("Cursor blink &rate (milliseconds)", 100, 2000, 50, s => s.BrailleCursorBlinkRateMs, (s, v) => s with { BrailleCursorBlinkRateMs = v }),
+        new NumberField("&Message timeout (seconds, 0: no messages)", 0, 20, 1, s => s.BrailleMessageTimeoutSeconds, (s, v) => s with { BrailleMessageTimeoutSeconds = v }),
+        new ToggleField("Show the s&election (dots 7 and 8)", s => s.BrailleShowSelection, (s, v) => s with { BrailleShowSelection = v }),
+        new ToggleField("&Avoid splitting words when panning", s => s.BrailleWordWrap, (s, v) => s with { BrailleWordWrap = v }),
     ]);
 
     public static SettingsPage Verbosity() => new("Verbosity",

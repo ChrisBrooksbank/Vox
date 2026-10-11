@@ -266,3 +266,13 @@ public record ToolTipOpenedEvent(
     DateTimeOffset Timestamp,
     string Text
 ) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// A braille routing key over a page: move the browse cursor to <paramref name="Offset"/> in the
+/// buffer, or with <paramref name="Activate"/> (pressed again there) activate what is there.
+/// </summary>
+public record BrailleRouteEvent(
+    DateTimeOffset Timestamp,
+    int Offset,
+    bool Activate
+) : ScreenReaderEvent(Timestamp);
