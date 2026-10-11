@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.Audio;
@@ -8,6 +9,7 @@ using Vox.Core.Configuration;
 using Vox.Core.Diagnostics;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
+using Vox.Core.Localization;
 using Vox.Core.MathSpeech;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
@@ -36,6 +38,10 @@ public static class ServiceRegistration
         });
         services.AddSingleton<SettingsMonitor>();
         services.AddSingleton<IOptionsMonitor<VoxSettings>>(sp => sp.GetRequiredService<SettingsMonitor>());
+
+        // Strings: every IStringLocalizer<T> reads Localization/Strings.resx in the Language setting
+        services.AddSingleton<IStringLocalizerFactory, VoxStringLocalizerFactory>();
+        services.AddTransient(typeof(IStringLocalizer<>), typeof(StringLocalizer<>));
 
         // Speech
         // The registry is the engine everything speaks through; it starts the configured engine
@@ -261,7 +267,10 @@ public static class ServiceRegistration
         services.AddSingleton<AnnouncementBuilder>(sp =>
         {
             var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
-            return new AnnouncementBuilder { StatesAsSounds = () => settings.CurrentValue.StatesAsSounds };
+            return new AnnouncementBuilder(sp.GetRequiredService<IStringLocalizer<AnnouncementBuilder>>())
+            {
+                StatesAsSounds = () => settings.CurrentValue.StatesAsSounds,
+            };
         });
         services.AddSingleton<SayAllController>();
         services.AddSingleton<IElementsListPresenter, ElementsListPresenter>();

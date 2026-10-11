@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Announce.Separator" xml:space="preserve">
+    <value>, </value>
+    <comment>Put between the parts of an announcement ("Search, edit, required")</comment>
+  </data>
+  <data name="Announce.HeadingLevel" xml:space="preserve">
+    <value>heading level {0}</value>
+    <comment>{0}: the heading's level, 1 to 6</comment>
+  </data>
+  <data name="Announce.Landmark" xml:space="preserve">
+    <value>{0} landmark</value>
+    <comment>{0}: the landmark's name (a Landmark.* string)</comment>
+  </data>
+  <data name="Announce.Position" xml:space="preserve">
+    <value>{0} of {1}</value>
+    <comment>Position in a set: {0} the item's number, {1} how many there are</comment>
+  </data>
+  <data name="Announce.Level" xml:space="preserve">
+    <value>level {0}</value>
+    <comment>Nesting level of a tree item or list: {0} the level</comment>
+  </data>
+  <data name="Landmark.Banner" xml:space="preserve">
+    <value>Banner</value>
+  </data>
+  <data name="Landmark.Complementary" xml:space="preserve">
+    <value>Complementary</value>
+  </data>
+  <data name="Landmark.Contentinfo" xml:space="preserve">
+    <value>Content info</value>
+  </data>
+  <data name="Landmark.Form" xml:space="preserve">
+    <value>Form</value>
+  </data>
+  <data name="Landmark.Main" xml:space="preserve">
+    <value>Main</value>
+  </data>
+  <data name="Landmark.Navigation" xml:space="preserve">
+    <value>Navigation</value>
+  </data>
+  <data name="Landmark.Region" xml:space="preserve">
+    <value>Region</value>
+  </data>
+  <data name="Landmark.Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="State.Visited" xml:space="preserve">
+    <value>visited</value>
+  </data>
+  <data name="State.Required" xml:space="preserve">
+    <value>required</value>
+  </data>
+  <data name="State.Expanded" xml:space="preserve">
+    <value>expanded</value>
+  </data>
+  <data name="State.Collapsed" xml:space="preserve">
+    <value>collapsed</value>
+  </data>
+  <data name="State.Checked" xml:space="preserve">
+    <value>checked</value>
+  </data>
+  <data name="State.NotChecked" xml:space="preserve">
+    <value>not checked</value>
+  </data>
+  <data name="State.HalfChecked" xml:space="preserve">
+    <value>half checked</value>
+  </data>
+  <data name="State.Selected" xml:space="preserve">
+    <value>selected</value>
+  </data>
+  <data name="State.Pressed" xml:space="preserve">
+    <value>pressed</value>
+  </data>
+  <data name="State.NotPressed" xml:space="preserve">
+    <value>not pressed</value>
+  </data>
+  <data name="State.HalfPressed" xml:space="preserve">
+    <value>half pressed</value>
+  </data>
+  <data name="State.SpellingError" xml:space="preserve">
+    <value>spelling error</value>
+  </data>
+  <data name="State.GrammarError" xml:space="preserve">
+    <value>grammar error</value>
+  </data>
+  <data name="State.InvalidEntry" xml:space="preserve">
+    <value>invalid entry</value>
+  </data>
+  <data name="State.Current" xml:space="preserve">
+    <value>current</value>
+  </data>
+  <data name="State.Current.page" xml:space="preserve">
+    <value>current page</value>
+  </data>
+  <data name="State.Current.step" xml:space="preserve">
+    <value>current step</value>
+  </data>
+  <data name="State.Current.location" xml:space="preserve">
+    <value>current location</value>
+  </data>
+  <data name="State.Current.date" xml:space="preserve">
+    <value>current date</value>
+  </data>
+  <data name="State.Current.time" xml:space="preserve">
+    <value>current time</value>
+  </data>
+  <data name="State.CurrentKind" xml:space="preserve">
+    <value>current {0}</value>
+    <comment>aria-current with a value Vox doesn't know: {0} the value as the page gives it</comment>
+  </data>
+  <data name="State.SortedAscending" xml:space="preserve">
+    <value>sorted ascending</value>
+  </data>
+  <data name="State.SortedDescending" xml:space="preserve">
+    <value>sorted descending</value>
+  </data>
+  <data name="State.Sorted" xml:space="preserve">
+    <value>sorted</value>
+  </data>
+  <data name="State.HasDetails" xml:space="preserve">
+    <value>has details</value>
+  </data>
+  <data name="ControlType.AppBar" xml:space="preserve">
+    <value>app bar</value>
+  </data>
+  <data name="ControlType.Button" xml:space="preserve">
+    <value>button</value>
+  </data>
+  <data name="ControlType.Calendar" xml:space="preserve">
+    <value>calendar</value>
+  </data>
+  <data name="ControlType.CheckBox" xml:space="preserve">
+    <value>check box</value>
+  </data>
+  <data name="ControlType.ComboBox" xml:space="preserve">
+    <value>combo box</value>
+  </data>
+  <data name="ControlType.DataGrid" xml:space="preserve">
+    <value>grid</value>
+  </data>
+  <data name="ControlType.DataItem" xml:space="preserve">
+    <value>grid item</value>
+  </data>
+  <data name="ControlType.Document" xml:space="preserve">
+    <value>document</value>
+  </data>
+  <data name="ControlType.Edit" xml:space="preserve">
+    <value>edit</value>
+  </data>
+  <data name="ControlType.Header" xml:space="preserve">
+    <value>header</value>
+  </data>
+  <data name="ControlType.HeaderItem" xml:space="preserve">
+    <value>column header</value>
+  </data>
+  <data name="ControlType.Hyperlink" xml:space="preserve">
+    <value>link</value>
+  </data>
+  <data name="ControlType.Image" xml:space="preserve">
+    <value>image</value>
+  </data>
+  <data name="ControlType.List" xml:space="preserve">
+    <value>list</value>
+  </data>
+  <data name="ControlType.ListItem" xml:space="preserve">
+    <value>list item</value>
+  </data>
+  <data name="ControlType.Menu" xml:space="preserve">
+    <value>menu</value>
+  </data>
+  <data name="ControlType.MenuBar" xml:space="preserve">
+    <value>menu bar</value>
+  </data>
+  <data name="ControlType.MenuItem" xml:space="preserve">
+    <value>menu item</value>
+  </data>
+  <data name="ControlType.ProgressBar" xml:space="preserve">
+    <value>progress bar</value>
+  </data>
+  <data name="ControlType.RadioButton" xml:space="preserve">
+    <value>radio button</value>
+  </data>
+  <data name="ControlType.ScrollBar" xml:space="preserve">
+    <value>scroll bar</value>
+  </data>
+  <data name="ControlType.SemanticZoom" xml:space="preserve">
+    <value>semantic zoom</value>
+  </data>
+  <data name="ControlType.Separator" xml:space="preserve">
+    <value>separator</value>
+  </data>
+  <data name="ControlType.Slider" xml:space="preserve">
+    <value>slider</value>
+  </data>
+  <data name="ControlType.Spinner" xml:space="preserve">
+    <value>spinner</value>
+  </data>
+  <data name="ControlType.SplitButton" xml:space="preserve">
+    <value>split button</value>
+  </data>
+  <data name="ControlType.StatusBar" xml:space="preserve">
+    <value>status bar</value>
+  </data>
+  <data name="ControlType.Tab" xml:space="preserve">
+    <value>tab list</value>
+  </data>
+  <data name="ControlType.TabItem" xml:space="preserve">
+    <value>tab</value>
+  </data>
+  <data name="ControlType.Table" xml:space="preserve">
+    <value>table</value>
+  </data>
+  <data name="ControlType.Thumb" xml:space="preserve">
+    <value>thumb</value>
+  </data>
+  <data name="ControlType.TitleBar" xml:space="preserve">
+    <value>title bar</value>
+  </data>
+  <data name="ControlType.ToolBar" xml:space="preserve">
+    <value>tool bar</value>
+  </data>
+  <data name="ControlType.ToolTip" xml:space="preserve">
+    <value>tool tip</value>
+  </data>
+  <data name="ControlType.Tree" xml:space="preserve">
+    <value>tree</value>
+  </data>
+  <data name="ControlType.TreeItem" xml:space="preserve">
+    <value>tree item</value>
+  </data>
+  <data name="ControlType.Window" xml:space="preserve">
+    <value>window</value>
+  </data>
+</root>

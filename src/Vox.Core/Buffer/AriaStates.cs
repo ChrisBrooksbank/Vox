@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.Buffer;
 
 /// <summary>
@@ -88,34 +90,34 @@ public static class AriaStates
     public static string? InvalidText(string? invalid) => invalid switch
     {
         null or "" => null,
-        "spelling" => "spelling error",
-        "grammar" => "grammar error",
-        _ => "invalid entry",
+        "spelling" => VoxStrings.Get("State.SpellingError"),
+        "grammar" => VoxStrings.Get("State.GrammarError"),
+        _ => VoxStrings.Get("State.InvalidEntry"),
     };
 
     /// <summary>Spoken text for aria-current ("current page"), or null when not current.</summary>
     public static string? CurrentText(string? current) => current switch
     {
         null or "" => null,
-        "true" => "current",
-        _ => $"current {current}",
+        "true" => VoxStrings.Get("State.Current"),
+        _ => VoxStrings.GetOrDefault("State.Current." + current, VoxStrings.Format("State.CurrentKind", current)),
     };
 
     /// <summary>Spoken text for aria-sort ("sorted ascending"), or null when not sorted.</summary>
     public static string? SortText(string? sort) => sort switch
     {
-        "ascending" => "sorted ascending",
-        "descending" => "sorted descending",
-        "other" => "sorted",
+        "ascending" => VoxStrings.Get("State.SortedAscending"),
+        "descending" => VoxStrings.Get("State.SortedDescending"),
+        "other" => VoxStrings.Get("State.Sorted"),
         _ => null,
     };
 
     /// <summary>Spoken text for a toggle button's ToggleState ("pressed"), or null when not a toggle.</summary>
     public static string? PressedText(int? toggleState) => toggleState switch
     {
-        ControlState.ToggleOff => "not pressed",
-        ControlState.ToggleOn => "pressed",
-        ControlState.ToggleIndeterminate => "half pressed",
+        ControlState.ToggleOff => VoxStrings.Get("State.NotPressed"),
+        ControlState.ToggleOn => VoxStrings.Get("State.Pressed"),
+        ControlState.ToggleIndeterminate => VoxStrings.Get("State.HalfPressed"),
         _ => null,
     };
 }

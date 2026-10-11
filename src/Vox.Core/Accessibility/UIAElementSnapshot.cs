@@ -210,7 +210,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
         if (DefaultLocalizedTypes.Contains(key)
             || string.Equals(key, Key(controlType), StringComparison.OrdinalIgnoreCase)
             || string.Equals(key, Key(ariaRole.Trim()), StringComparison.OrdinalIgnoreCase)
-            || string.Equals(key, Key(Navigation.ControlTypeNames.ToSpoken(controlType) ?? string.Empty), StringComparison.OrdinalIgnoreCase))
+            || string.Equals(key, Key(Navigation.ControlTypeNames.ToSpoken(controlType, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty), StringComparison.OrdinalIgnoreCase))
             return string.Empty;
         return type;
     }
