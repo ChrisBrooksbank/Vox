@@ -1,0 +1,13 @@
+{
+  "bindings": [
+    {"modifiers": "Insert|Alt", "vkCode": 49, "mode": "Any", "command": "TeamsReadMessage1"},
+    {"modifiers": "Insert|Alt", "vkCode": 50, "mode": "Any", "command": "TeamsReadMessage2"},
+    {"modifiers": "Insert|Alt", "vkCode": 51, "mode": "Any", "command": "TeamsReadMessage3"},
+    {"modifiers": "Insert|Alt", "vkCode": 52, "mode": "Any", "command": "TeamsReadMessage4"},
+    {"modifiers": "Insert|Alt", "vkCode": 53, "mode": "Any", "command": "TeamsReadMessage5"},
+    {"modifiers": "Insert|Alt", "vkCode": 77, "mode": "Any", "command": "TeamsCallState"},
+    {"modifiers": "Ctrl|Shift", "vkCode": 77, "mode": "Any", "command": "TeamsCallKey", "passThrough": true},
+    {"modifiers": "Ctrl|Shift", "vkCode": 79, "mode": "Any", "command": "TeamsCallKey", "passThrough": true},
+    {"modifiers": "Ctrl|Shift", "vkCode": 75, "mode": "Any", "command": "TeamsCallKey", "passThrough": true}
+  ]
+}

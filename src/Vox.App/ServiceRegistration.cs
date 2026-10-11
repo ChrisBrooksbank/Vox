@@ -1,5 +1,13 @@
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.AppModules;
+using Vox.Core.AppModules.Excel;
+using Vox.Core.AppModules.Explorer;
+using Vox.Core.AppModules.Office;
+using Vox.Core.AppModules.Outlook;
+using Vox.Core.AppModules.PowerPoint;
+using Vox.Core.AppModules.Teams;
+using Vox.Core.AppModules.Word;
 using Vox.Core.Audio;
 using Vox.Core.Braille;
 using Vox.Core.Braille.Brltty;
@@ -344,6 +352,55 @@ public static class ServiceRegistration
                 gestures,
                 sp.GetRequiredService<IVoxMenuPresenter>(),
                 sp.GetRequiredService<IPortableCopyPresenter>());
+        });
+
+        // App modules: Vox's support for particular applications, chosen by the foreground
+        // process. Office's object model is read on its own STA thread.
+        services.AddSingleton<OfficeObjectModel>();
+        services.AddSingleton<IOfficeObjectModel>(sp => sp.GetRequiredService<OfficeObjectModel>());
+        services.AddSingleton<ExcelTitleStore>(sp => new ExcelTitleStore(
+            (sp.GetService<RunPolicy>() ?? RunPolicy.Normal).AllowSettingsWrites ? ExcelTitleStore.DefaultPath : null,
+            sp.GetRequiredService<ILogger<TableHeaderStore>>()));
+        services.AddSingleton<IExcelSource, ExcelObjectModelSource>();
+        services.AddSingleton<IAppModule, ExcelModule>();
+        services.AddSingleton<IWordSource, WordObjectModelSource>();
+        services.AddSingleton<IAppModule, WordModule>();
+        services.AddSingleton<IOutlookSource, OutlookObjectModelSource>();
+        services.AddSingleton<IAppModule, OutlookModule>();
+        services.AddSingleton<IPowerPointSource, PowerPointObjectModelSource>();
+        services.AddSingleton<IAppModule>(sp => new PowerPointModule(
+            sp.GetRequiredService<IPowerPointSource>(), sp.GetRequiredService<SpeechQueue>(),
+            sp.GetRequiredService<IEventSink>(), sp.GetRequiredService<ILogger<PowerPointModule>>()));
+        services.AddSingleton<UIAAppSources>();
+        services.AddSingleton<IWindowButtonSource>(sp => sp.GetRequiredService<UIAAppSources>());
+        services.AddSingleton<IDetailsRowSource>(sp => sp.GetRequiredService<UIAAppSources>());
+        // What Vox says, so applications' own announcements of the same aren't said again
+        services.AddSingleton<RecentSpeech>(sp =>
+        {
+            var recent = new RecentSpeech();
+            sp.GetRequiredService<SpeechQueue>().UtteranceQueued += (_, u) => recent.Add(u.Text);
+            return recent;
+        });
+        services.AddSingleton<IAppModule, ExplorerModule>();
+        services.AddSingleton<IAppModule>(sp => new TeamsModule(
+            sp.GetRequiredService<IWindowButtonSource>(), sp.GetRequiredService<SpeechQueue>(), sp.GetRequiredService<IEventSink>(),
+            sp.GetRequiredService<RecentSpeech>(), sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            () => sp.GetRequiredService<QuickNavHandler>().CurrentDocument));
+        services.AddSingleton<IAppModule>(sp => new ZoomModule(
+            sp.GetRequiredService<IWindowButtonSource>(), sp.GetRequiredService<SpeechQueue>(), sp.GetRequiredService<IEventSink>(),
+            sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<IAppModule>(sp => QuietAppModule.VisualStudioCode(sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<IAppModule>(sp => QuietAppModule.VisualStudio(sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<IAppModule>(sp => QuietAppModule.Acrobat(sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<AppModuleManager>(sp =>
+        {
+            var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();
+            return new AppModuleManager(
+                sp.GetServices<IAppModule>(),
+                sp.GetRequiredService<IForegroundWindow>(),
+                dispatcher.SetAppKeyMap,
+                sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+                sp.GetRequiredService<ILogger<AppModuleManager>>());
         });
 
         // Braille: display drivers in the order auto-detect tries them, then the controller

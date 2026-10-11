@@ -1,0 +1,8 @@
+{
+  "bindings": [
+    {"modifiers": "Insert|Alt", "vkCode": 77, "mode": "Any", "command": "ZoomCallState"},
+    {"modifiers": "Alt", "vkCode": 65, "mode": "Any", "command": "ZoomCallKey", "passThrough": true},
+    {"modifiers": "Alt", "vkCode": 86, "mode": "Any", "command": "ZoomCallKey", "passThrough": true},
+    {"modifiers": "Alt", "vkCode": 89, "mode": "Any", "command": "ZoomCallKey", "passThrough": true}
+  ]
+}

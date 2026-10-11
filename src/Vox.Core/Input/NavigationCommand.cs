@@ -192,5 +192,79 @@ public enum NavigationCommand
     /// <summary>Shows the next part of the braille line (the next line at its end).</summary>
     BraillePanRight,
     /// <summary>Switches what braille follows: automatically, the focus, or the review cursor.</summary>
-    CycleBrailleTether
+    CycleBrailleTether,
+
+    // Excel module
+    /// <summary>Says the active cell's formula (Excel).</summary>
+    ExcelReadFormula,
+    /// <summary>Says the active cell's comment and note (Excel).</summary>
+    ExcelReadComment,
+    /// <summary>Makes the current row the sheet's column titles, or clears them (Excel).</summary>
+    ExcelSetColumnTitles,
+    /// <summary>Makes the current column the sheet's row titles, or clears them (Excel).</summary>
+    ExcelSetRowTitles,
+    /// <summary>Says the selected (or first) chart's title, type and series (Excel).</summary>
+    ExcelChartSummary,
+
+    // Word module
+    /// <summary>Says the caret's page, section, line and column (Word).</summary>
+    WordLocation,
+    WordNextHeading,
+    WordPrevHeading,
+    WordNextTable,
+    WordPrevTable,
+    WordNextList,
+    WordPrevList,
+    WordNextComment,
+    WordPrevComment,
+    WordNextRevision,
+    WordPrevRevision,
+    WordNextSpellingError,
+    WordPrevSpellingError,
+    /// <summary>Moves to the table cell on the left (Word); and right, up, down below.</summary>
+    WordTableCellLeft,
+    WordTableCellRight,
+    WordTableCellUp,
+    WordTableCellDown,
+
+    // Outlook module
+    OutlookReadFrom,
+    OutlookReadTo,
+    OutlookReadCc,
+    OutlookReadSubject,
+    OutlookReadDate,
+    OutlookReadAttachments,
+    /// <summary>Says a meeting request's time, place and the user's answer so far (Outlook).</summary>
+    OutlookMeetingStatus,
+    OutlookAcceptMeeting,
+    OutlookTentativeMeeting,
+    OutlookDeclineMeeting,
+    /// <summary>Says today's appointments (Outlook).</summary>
+    OutlookToday,
+    /// <summary>Says the appointments of the next 7 days (Outlook).</summary>
+    OutlookThisWeek,
+
+    // PowerPoint module
+    PowerPointNextShape,
+    PowerPointPrevShape,
+    /// <summary>Says the current slide's speaker notes (PowerPoint).</summary>
+    PowerPointNotes,
+    /// <summary>Says the current slide's title and text (PowerPoint).</summary>
+    PowerPointReadSlide,
+
+    // Teams module
+    /// <summary>Says the latest chat message (Teams); 2 to 5 below: the ones before it.</summary>
+    TeamsReadMessage1,
+    TeamsReadMessage2,
+    TeamsReadMessage3,
+    TeamsReadMessage4,
+    TeamsReadMessage5,
+    /// <summary>Says the call's state: in a call, microphone, camera, hand (Teams).</summary>
+    TeamsCallState,
+    /// <summary>Bound to Teams' own mute, camera and hand keys, which still reach it: says what changed.</summary>
+    TeamsCallKey,
+
+    // Zoom module
+    ZoomCallState,
+    ZoomCallKey
 }

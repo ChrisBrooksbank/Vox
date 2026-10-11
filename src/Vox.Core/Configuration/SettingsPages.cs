@@ -53,7 +53,7 @@ public sealed record AudioOptions(IReadOnlyList<string> OutputDevices, IReadOnly
 public static class SettingsPages
 {
     public static IReadOnlyList<SettingsPage> All(SpeechOptions speech, AudioOptions audio) =>
-        [General(), Speech(speech), Braille(), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Review()];
+        [General(), Speech(speech), Braille(), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Review(), Applications()];
 
     /// <summary>Settings no page shows: edited elsewhere (sleep mode's key, the wizard) or not by people.</summary>
     public static readonly IReadOnlySet<string> NotOnAnyPage = new HashSet<string>
@@ -61,6 +61,60 @@ public static class SettingsPages
         nameof(VoxSettings.SleepApps), nameof(VoxSettings.LanguageVoices), nameof(VoxSettings.AppDefaultModes),
         nameof(VoxSettings.FirstRunCompleted), nameof(VoxSettings.SchemaVersion),
     };
+
+    /// <summary>Vox's app modules, by id, with the names the Applications page shows.</summary>
+    public static readonly IReadOnlyList<(string Id, string Name)> AppModules =
+    [
+        ("word", "Microsoft Word"),
+        ("excel", "Microsoft Excel"),
+        ("outlook", "Microsoft Outlook"),
+        ("powerpoint", "Microsoft PowerPoint"),
+        ("explorer", "File Explorer"),
+        ("teams", "Microsoft Teams"),
+        ("zoom", "Zoom"),
+        ("vscode", "Visual Studio Code"),
+        ("visualstudio", "Visual Studio"),
+        ("acrobat", "Adobe Acrobat"),
+    ];
+
+    /// <summary>The message list column orders the Applications page offers.</summary>
+    public static readonly IReadOnlyList<string[]> OutlookColumnOrders =
+    [
+        ["From", "Subject", "Received"],
+        ["Subject", "From", "Received"],
+        ["From", "Subject"],
+        ["Subject", "From"],
+        ["From", "Subject", "Received", "Size"],
+        ["From", "Subject", "Received", "Categories"],
+    ];
+
+    public static SettingsPage Applications() => new("Applications",
+    [
+        .. AppModules.Select(m => (SettingField)new ToggleField($"Support for {m.Name}",
+            s => !s.DisabledAppModules.Contains(m.Id, StringComparer.OrdinalIgnoreCase),
+            (s, on) => s with
+            {
+                DisabledAppModules = on
+                    ? s.DisabledAppModules.Where(id => !string.Equals(id, m.Id, StringComparison.OrdinalIgnoreCase)).ToList()
+                    : [.. s.DisabledAppModules, m.Id],
+            })),
+        new ToggleField("Word: say &comments and tracked changes at the caret", s => s.WordReportCommentsAndRevisions, (s, v) => s with { WordReportCommentsAndRevisions = v }),
+        new ToggleField("Excel: say when a cell has a &formula", s => s.ExcelReportFormulas, (s, v) => s with { ExcelReportFormulas = v }),
+        new ToggleField("Excel: say when a cell has a &comment or note", s => s.ExcelReportCommentsAndNotes, (s, v) => s with { ExcelReportCommentsAndNotes = v }),
+        new ChoiceField("Outlook: message list &columns",
+            OutlookColumnOrders.Select(order => new SettingChoice(string.Join(", ", order), (object?)string.Join(",", order))).ToList(),
+            s => string.Join(",", s.OutlookColumns),
+            (s, v) => v is string order ? s with { OutlookColumns = [.. order.Split(',')] } : s),
+        Choice("Outlook: say message &statuses (unread, flagged, attachment)", s => s.OutlookStatusPosition, (s, v) => s with { OutlookStatusPosition = v },
+            new() { [global::Vox.Core.AppModules.Outlook.OutlookStatusPosition.First] = "First", [global::Vox.Core.AppModules.Outlook.OutlookStatusPosition.Last] = "Last",
+                    [global::Vox.Core.AppModules.Outlook.OutlookStatusPosition.Off] = "Not at all" }),
+        new ToggleField("Outlook: &read the selected message", s => s.OutlookAutoRead, (s, v) => s with { OutlookAutoRead = v }),
+        new ToggleField("File Explorer: say column &headers in details view", s => s.ExplorerColumnHeaders, (s, v) => s with { ExplorerColumnHeaders = v }),
+        Choice("Teams: say &new messages", s => s.TeamsMessageAnnouncements, (s, v) => s with { TeamsMessageAnnouncements = v },
+            new() { [global::Vox.Core.AppModules.Teams.TeamsMessageAnnouncements.All] = "All",
+                    [global::Vox.Core.AppModules.Teams.TeamsMessageAnnouncements.MentionsOnly] = "Only when I'm mentioned",
+                    [global::Vox.Core.AppModules.Teams.TeamsMessageAnnouncements.Off] = "Never" }),
+    ]);
 
     public static SettingsPage General() => new("General",
     [
