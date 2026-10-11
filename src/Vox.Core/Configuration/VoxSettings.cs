@@ -180,6 +180,8 @@ public record VoxSettings
     public bool ExcelReportFormulas { get; init; } = true;
     /// <summary>Excel: say "has comment" and "has note" for a cell with one.</summary>
     public bool ExcelReportCommentsAndNotes { get; init; } = true;
+    /// <summary>Word: say comments and tracked changes when the caret moves into them.</summary>
+    public bool WordReportCommentsAndRevisions { get; init; } = true;
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "eSpeak" when installed, "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }

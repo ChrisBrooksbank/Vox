@@ -65,6 +65,7 @@ public static class SettingsPages
     /// <summary>Vox's app modules, by id, with the names the Applications page shows.</summary>
     public static readonly IReadOnlyList<(string Id, string Name)> AppModules =
     [
+        ("word", "Microsoft Word"),
         ("excel", "Microsoft Excel"),
     ];
 
@@ -78,6 +79,7 @@ public static class SettingsPages
                     ? s.DisabledAppModules.Where(id => !string.Equals(id, m.Id, StringComparison.OrdinalIgnoreCase)).ToList()
                     : [.. s.DisabledAppModules, m.Id],
             })),
+        new ToggleField("Word: say &comments and tracked changes at the caret", s => s.WordReportCommentsAndRevisions, (s, v) => s with { WordReportCommentsAndRevisions = v }),
         new ToggleField("Excel: say when a cell has a &formula", s => s.ExcelReportFormulas, (s, v) => s with { ExcelReportFormulas = v }),
         new ToggleField("Excel: say when a cell has a &comment or note", s => s.ExcelReportCommentsAndNotes, (s, v) => s with { ExcelReportCommentsAndNotes = v }),
     ]);

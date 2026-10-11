@@ -3,6 +3,7 @@ using Vox.Core.Accessibility;
 using Vox.Core.AppModules;
 using Vox.Core.AppModules.Excel;
 using Vox.Core.AppModules.Office;
+using Vox.Core.AppModules.Word;
 using Vox.Core.Audio;
 using Vox.Core.Braille;
 using Vox.Core.Braille.Brltty;
@@ -358,6 +359,8 @@ public static class ServiceRegistration
             sp.GetRequiredService<ILogger<TableHeaderStore>>()));
         services.AddSingleton<IExcelSource, ExcelObjectModelSource>();
         services.AddSingleton<IAppModule, ExcelModule>();
+        services.AddSingleton<IWordSource, WordObjectModelSource>();
+        services.AddSingleton<IAppModule, WordModule>();
         services.AddSingleton<AppModuleManager>(sp =>
         {
             var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();

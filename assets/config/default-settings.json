@@ -17,6 +17,7 @@
   "DisabledAppModules": [],
   "ExcelReportFormulas": true,
   "ExcelReportCommentsAndNotes": true,
+  "WordReportCommentsAndRevisions": true,
   "UpdateChannel": "Stable",
   "VoiceName": null,
   "SpeechEngine": null,

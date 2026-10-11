@@ -227,6 +227,22 @@ public static class CommandCatalog
         Add(NavigationCommand.ExcelSetColumnTitles, "Excel: set column titles", "Makes the current row the sheet's column titles, said when moving to another column. Press again on that row to clear them.", CommandCategory.Applications);
         Add(NavigationCommand.ExcelSetRowTitles, "Excel: set row titles", "Makes the current column the sheet's row titles, said when moving to another row. Press again on that column to clear them.", CommandCategory.Applications);
         Add(NavigationCommand.ExcelChartSummary, "Excel: chart summary", "Says the title, type and series of the selected chart, or of the sheet's first chart.", CommandCategory.Applications);
+        Add(NavigationCommand.WordLocation, "Word: location", "Says the caret's page, section, line and column.", CommandCategory.Applications);
+        void WordPair(NavigationCommand next, NavigationCommand previous, string what)
+        {
+            Add(next, $"Word: next {what}", $"Moves the caret to the next {what} in the document and reads it.", CommandCategory.Applications);
+            Add(previous, $"Word: previous {what}", $"Moves the caret to the previous {what} in the document and reads it.", CommandCategory.Applications);
+        }
+        WordPair(NavigationCommand.WordNextHeading, NavigationCommand.WordPrevHeading, "heading");
+        WordPair(NavigationCommand.WordNextTable, NavigationCommand.WordPrevTable, "table");
+        WordPair(NavigationCommand.WordNextList, NavigationCommand.WordPrevList, "list");
+        WordPair(NavigationCommand.WordNextComment, NavigationCommand.WordPrevComment, "comment");
+        WordPair(NavigationCommand.WordNextRevision, NavigationCommand.WordPrevRevision, "tracked change");
+        WordPair(NavigationCommand.WordNextSpellingError, NavigationCommand.WordPrevSpellingError, "spelling error");
+        Add(NavigationCommand.WordTableCellLeft, "Word: cell to the left", "Moves to the table cell on the left and reads it with its column header.", CommandCategory.Applications);
+        Add(NavigationCommand.WordTableCellRight, "Word: cell to the right", "Moves to the table cell on the right and reads it with its column header.", CommandCategory.Applications);
+        Add(NavigationCommand.WordTableCellUp, "Word: cell above", "Moves to the table cell above and reads it with its row header.", CommandCategory.Applications);
+        Add(NavigationCommand.WordTableCellDown, "Word: cell below", "Moves to the table cell below and reads it with its row header.", CommandCategory.Applications);
         Add(NavigationCommand.CheckForUpdates, "Check for updates", "Checks for a newer Vox now, and offers to install it.", CommandCategory.System);
         Add(NavigationCommand.CreatePortableCopy, "Create portable copy", "Copies Vox and your settings to a folder, such as a USB stick, to run on other computers.", CommandCategory.System);
         Add(NavigationCommand.RunTutorial, "Practice lessons", "Runs the practice lessons, where you press each key and hear what it does.", CommandCategory.System);

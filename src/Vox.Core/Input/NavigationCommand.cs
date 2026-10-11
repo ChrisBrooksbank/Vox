@@ -204,5 +204,26 @@ public enum NavigationCommand
     /// <summary>Makes the current column the sheet's row titles, or clears them (Excel).</summary>
     ExcelSetRowTitles,
     /// <summary>Says the selected (or first) chart's title, type and series (Excel).</summary>
-    ExcelChartSummary
+    ExcelChartSummary,
+
+    // Word module
+    /// <summary>Says the caret's page, section, line and column (Word).</summary>
+    WordLocation,
+    WordNextHeading,
+    WordPrevHeading,
+    WordNextTable,
+    WordPrevTable,
+    WordNextList,
+    WordPrevList,
+    WordNextComment,
+    WordPrevComment,
+    WordNextRevision,
+    WordPrevRevision,
+    WordNextSpellingError,
+    WordPrevSpellingError,
+    /// <summary>Moves to the table cell on the left (Word); and right, up, down below.</summary>
+    WordTableCellLeft,
+    WordTableCellRight,
+    WordTableCellUp,
+    WordTableCellDown
 }
