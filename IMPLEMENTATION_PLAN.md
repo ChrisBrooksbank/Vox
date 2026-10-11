@@ -3,8 +3,8 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 156
-- Last updated: 2026-10-10
+- Build iterations: 157
+- Last updated: 2026-10-11
 
 ## Tasks
 
@@ -233,7 +233,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 ### Milestone C — "Braille-ready"
 
-- [ ] Add `IBrailleDisplay`, `IBrailleTranslator` and a fake display/translator for tests (spec: braille.md)
+- [x] Add `IBrailleDisplay`, `IBrailleTranslator` and a fake display/translator for tests (spec: braille.md)
 - [ ] Add `LibLouisTranslator` (dynamic P/Invoke, forward with cursor mapping, back-translation); integration test skipped when the DLL is absent (spec: braille.md)
 - [ ] Add braille settings (table, cursor shape/blink, message timeout, focus context mode, tether, show selection) to `VoxSettings` (spec: braille.md)
 - [ ] Add `BraillePresenter` for focused objects with focus-context modes and abbreviated role/state labels; unit tests (spec: braille.md)
