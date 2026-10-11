@@ -785,6 +785,30 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task PageCommands_FromOutsideThePage_LeaveItAlone()
+    {
+        LoadDocument();
+        _controller.HandleCommand(NavigationCommand.NextLine); // Intro text
+        var offset = _controller.Cursor!.TextOffset;
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Notepad", "Document", RuntimeId: [500]));
+        await Task.Delay(50);
+        lock (_spoken) _spoken.Clear();
+
+        // A braille display's top key and a quick-navigation chord, pressed in Notepad
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        _controller.HandleCommand(NavigationCommand.NextHeading);
+        await Task.Delay(100);
+
+        Assert.Equal(offset, _controller.Cursor!.TextOffset);
+        lock (_spoken) Assert.Empty(_spoken);
+
+        // Back on the page they work
+        _controller.HandleFocusChanged(new FocusChangedEvent(DateTimeOffset.UtcNow, "Read more", "Hyperlink", RuntimeId: [4]));
+        _controller.HandleCommand(NavigationCommand.TopOfDocument);
+        Assert.Equal(0, _controller.Cursor!.TextOffset);
+    }
+
+    [Fact]
     public void FocusOutsideDocument_DoesNotSwitchMode()
     {
         LoadDocument();

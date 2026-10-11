@@ -427,6 +427,11 @@ public sealed class BrowseModeController
         if (_navigationManager.CurrentMode != InteractionMode.Browse)
             return;
 
+        // The commands below work on the page, so not while it isn't in front. Typed keys only
+        // bring them on the page; a braille display's keys post them from anywhere.
+        if (!_documentActive)
+            return;
+
         if (IsCaretCommand(command))
         {
             MoveCaret(command);
