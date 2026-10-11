@@ -9,9 +9,9 @@ namespace Vox.Core.Enterprise;
 /// HTTP goes through <see cref="CreateHttpClient"/>, whose handler refuses every request while the
 /// network is off; a socket is opened only after <see cref="MayConnect"/> (a connection to this
 /// computer itself, such as BRLTTY's, never leaves it and is always allowed).
-/// <c>NetworkAccessTests</c> checks that no other code opens a connection.
+/// <c>NetworkGateTests</c> checks that no other code opens a connection.
 /// </summary>
-public static class NetworkAccess
+public static class NetworkGate
 {
     /// <summary>An HTTP client that sends nothing while <paramref name="policy"/> doesn't allow the network.</summary>
     /// <param name="inner">The handler that does the sending (tests); null: the standard one.</param>

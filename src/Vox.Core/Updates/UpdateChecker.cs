@@ -37,7 +37,7 @@ public sealed class UpdateChecker(
     /// <summary>
     /// Checks only with the release key, the channel not Off and the network allowed (no
     /// DisableNetwork policy, not a secure screen); <paramref name="http"/> refuses too when it
-    /// comes from <see cref="Enterprise.NetworkAccess.CreateHttpClient"/>.
+    /// comes from <see cref="Enterprise.NetworkGate.CreateHttpClient"/>.
     /// </summary>
     public bool IsEnabled => publicKeyPem is not null && channel() != UpdateChannel.Off && (policy?.AllowNetwork ?? true);
 

@@ -26,7 +26,7 @@ public sealed record RunPolicy(bool IsSecure)
     public bool AllowAddOns => !IsSecure && !AddOnsOffByPolicy;
     /// <summary>
     /// Whether anything may connect beyond this computer. Every network user goes through
-    /// <see cref="Enterprise.NetworkAccess"/>, which checks it.
+    /// <see cref="Enterprise.NetworkGate"/>, which checks it.
     /// </summary>
     public bool AllowNetwork => !IsSecure && !NetworkOffByPolicy;
     public bool AllowAi => !IsSecure && !AiOffByPolicy;

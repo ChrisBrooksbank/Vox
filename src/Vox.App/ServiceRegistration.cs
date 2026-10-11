@@ -309,7 +309,7 @@ public static class ServiceRegistration
             var key = policy.AllowNetwork ? UpdateChecker.ReadPublicKey(Path.Combine(AppContext.BaseDirectory, "assets", "config")) : null;
             return new UpdateChecker(
                 // Refuses every request while the network is off (DisableNetwork policy)
-                NetworkAccess.CreateHttpClient(policy, TimeSpan.FromSeconds(60)),
+                NetworkGate.CreateHttpClient(policy, TimeSpan.FromSeconds(60)),
                 () => settings.CurrentValue.UpdateChannel,
                 key,
                 UpdateChecker.DefaultFeedUrl,

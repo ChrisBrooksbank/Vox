@@ -60,7 +60,7 @@ public sealed class BrlttyDisplay : IBrailleDisplayDriver
     /// <param name="logger">Optional logger.</param>
     /// <param name="policy">
     /// What this Vox may do: a server on another computer is connected to only while it allows the
-    /// network (<see cref="Enterprise.NetworkAccess.MayConnect"/>); null: <see cref="Lifecycle.RunPolicy.Normal"/>.
+    /// network (<see cref="Enterprise.NetworkGate.MayConnect"/>); null: <see cref="Lifecycle.RunPolicy.Normal"/>.
     /// </param>
     public BrlttyDisplay(
         string host = "127.0.0.1",
@@ -111,7 +111,7 @@ public sealed class BrlttyDisplay : IBrailleDisplayDriver
             _connection?.Close();
             _connection = null;
 
-            if (!Enterprise.NetworkAccess.MayConnect(_policy, _host))
+            if (!Enterprise.NetworkGate.MayConnect(_policy, _host))
             {
                 _logger?.LogDebug("Not connecting to BRLTTY at {Host}: the network is turned off", _host);
                 return false;

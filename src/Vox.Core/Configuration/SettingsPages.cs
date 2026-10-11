@@ -205,7 +205,8 @@ public static class SettingsPages
             return pages;
         return pages.Select(page => page with
         {
-            Fields = page.Fields.Select(field => ChangesOf(field, settings).Any(policy.IsLocked) ? Lock(field) : field).ToList(),
+            Fields = page.Fields.Select(field =>
+                policy.LockAllSettings || ChangesOf(field, settings).Any(policy.IsLocked) ? Lock(field) : field).ToList(),
         }).ToList();
     }
 
