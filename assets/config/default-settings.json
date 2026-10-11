@@ -38,5 +38,16 @@
   "ReviewFollowsCaret": true,
   "MouseTracking": false,
   "MouseTextUnit": "Line",
+  "BrailleDisplay": null,
+  "BrailleTable": "en-ueb-g2.ctb",
+  "BrailleCursorShape": "Underline",
+  "BrailleCursorBlink": true,
+  "BrailleCursorBlinkRateMs": 500,
+  "BrailleMessageTimeoutSeconds": 4,
+  "BrailleFocusContext": "FillDisplay",
+  "BrailleTether": "Automatic",
+  "BrailleShowSelection": true,
+  "BrailleExpandWordAtCursor": true,
+  "BrailleWordWrap": true,
   "FirstRunCompleted": false
 }

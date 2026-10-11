@@ -1,0 +1,4 @@
+{
+  "//": "HID braille displays: common.json covers the standard keys; entries here override it.",
+  "bindings": []
+}

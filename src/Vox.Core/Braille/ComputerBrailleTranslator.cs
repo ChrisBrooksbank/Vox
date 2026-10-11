@@ -17,7 +17,7 @@ public sealed class ComputerBrailleTranslator : IBrailleTranslator
     private static readonly byte[] AsciiCells = BuildAsciiCells();
     private static readonly Dictionary<byte, char> CellChars = BuildCellChars();
 
-    public BrailleTranslation Translate(string text, int? cursorOffset = null)
+    public BrailleTranslation Translate(string text, int? cursorOffset = null, bool expandWordAtCursor = false)
     {
         var cells = new byte[text.Length];
         var map = new int[text.Length];

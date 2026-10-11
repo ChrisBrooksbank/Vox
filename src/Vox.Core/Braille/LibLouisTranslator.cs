@@ -99,7 +99,7 @@ public sealed class LibLouisTranslator : IBrailleTranslator
         }
     }
 
-    public BrailleTranslation Translate(string text, int? cursorOffset = null)
+    public BrailleTranslation Translate(string text, int? cursorOffset = null, bool expandWordAtCursor = false)
     {
         if (text.Length == 0)
             return cursorOffset is null ? BrailleTranslation.Empty : BrailleTranslation.Empty with { CursorCell = 0 };
@@ -116,7 +116,7 @@ public sealed class LibLouisTranslator : IBrailleTranslator
         }
 
         var mode = DotsIO | UcBrl;
-        if (_expandWordAtCursor && cursor is not null)
+        if ((expandWordAtCursor || _expandWordAtCursor) && cursor is not null)
             mode |= CompbrlAtCursor;
 
         var outputCapacity = input.Length * 2 + 16;

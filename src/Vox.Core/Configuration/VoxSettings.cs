@@ -112,6 +112,37 @@ public enum MouseTextUnit
     Word
 }
 
+/// <summary>How the braille cursor is drawn.</summary>
+public enum BrailleCursorShape
+{
+    /// <summary>Dots 7 and 8 (an underline).</summary>
+    Underline,
+    /// <summary>Dot 8 only.</summary>
+    Dot8,
+    /// <summary>All eight dots.</summary>
+    AllDots
+}
+
+/// <summary>How much of the context (the objects around the focus) braille shows with a newly focused object.</summary>
+public enum BrailleFocusContext
+{
+    /// <summary>The object first, then its ancestors up to the window, filling the display.</summary>
+    FillDisplay,
+    /// <summary>The object alone; panning back shows the ancestors.</summary>
+    ScrollBackOnly,
+    /// <summary>The object with the ancestors that differ from the previous focus's.</summary>
+    ChangedContext
+}
+
+/// <summary>What the braille display follows.</summary>
+public enum BrailleTether
+{
+    /// <summary>The focus, the caret and the browse cursor; review commands show the review cursor until the focus moves.</summary>
+    Automatic,
+    Focus,
+    Review
+}
+
 public record VoxSettings
 {
     public VerbosityLevel VerbosityLevel { get; init; } = VerbosityLevel.Beginner;
@@ -196,4 +227,27 @@ public record VoxSettings
     public bool MouseTracking { get; init; } = false;
     /// <summary>What mouse tracking reports: the object, or the line or word of text under the pointer.</summary>
     public MouseTextUnit MouseTextUnit { get; init; } = MouseTextUnit.Line;
+
+    /// <summary>The braille display driver by id ("HID", "BRLTTY"); null: find a display automatically; "None": no braille.</summary>
+    public string? BrailleDisplay { get; init; }
+    /// <summary>The liblouis braille table (<see cref="Braille.BrailleTables"/>); computer braille is used when liblouis isn't installed.</summary>
+    public string BrailleTable { get; init; } = "en-ueb-g2.ctb";
+    /// <summary>How the braille cursor is drawn.</summary>
+    public BrailleCursorShape BrailleCursorShape { get; init; } = BrailleCursorShape.Underline;
+    /// <summary>The braille cursor blinks.</summary>
+    public bool BrailleCursorBlink { get; init; } = true;
+    /// <summary>How long the braille cursor is shown, then hidden, when it blinks (milliseconds).</summary>
+    public int BrailleCursorBlinkRateMs { get; init; } = 500;
+    /// <summary>How long messages (what Vox says) stay on the braille display, in seconds; 0: never shown.</summary>
+    public int BrailleMessageTimeoutSeconds { get; init; } = 4;
+    /// <summary>How much context braille shows with a newly focused object.</summary>
+    public BrailleFocusContext BrailleFocusContext { get; init; } = BrailleFocusContext.FillDisplay;
+    /// <summary>What the braille display follows: the focus, the review cursor, or both.</summary>
+    public BrailleTether BrailleTether { get; init; } = BrailleTether.Automatic;
+    /// <summary>Selected text is shown with dots 7 and 8.</summary>
+    public bool BrailleShowSelection { get; init; } = true;
+    /// <summary>In contracted braille, the word at the cursor is shown uncontracted.</summary>
+    public bool BrailleExpandWordAtCursor { get; init; } = true;
+    /// <summary>Panning never splits a word across two windows.</summary>
+    public bool BrailleWordWrap { get; init; } = true;
 }
