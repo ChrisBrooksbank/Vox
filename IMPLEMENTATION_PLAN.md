@@ -252,8 +252,8 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### App modules (spec: office-apps.md)
 
-- [ ] Add `IAppModule` and `AppModuleManager` (foreground-process selection, keymap layers, announcement overrides); unit tests (spec: office-apps.md)
-- [ ] Add Office object-model helper on its own STA thread with timeouts; unit tests with a fake (spec: office-apps.md)
+- [x] Add `IAppModule` and `AppModuleManager` (foreground-process selection, keymap layers, announcement overrides); unit tests (spec: office-apps.md)
+- [x] Add Office object-model helper on its own STA thread with timeouts; unit tests with a fake (spec: office-apps.md)
 - [ ] Word: quick navigation in documents (headings, tables, lists, comments, revisions, spelling errors) (spec: office-apps.md)
 - [ ] Word: comments and tracked changes announced on caret entry; comments tab in Elements List (spec: office-apps.md)
 - [ ] Word: page/section/line/column report command; table cell navigation through `TableNavigator` (spec: office-apps.md)

@@ -174,6 +174,8 @@ public record VoxSettings
     /// overriding the automatic choice (Focus mode for web applications, else Browse mode).
     /// </summary>
     public Dictionary<string, InteractionMode> AppDefaultModes { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>App modules (by id: "word", "excel", ...) turned off: their applications are read like any other.</summary>
+    public List<string> DisabledAppModules { get; init; } = [];
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "eSpeak" when installed, "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }

@@ -13,6 +13,8 @@ public enum CommandCategory
     Mouse,
     Speech,
     Braille,
+    /// <summary>Commands of one application's module (Word, Excel, ...), only while it is in the foreground.</summary>
+    Applications,
     System,
 }
 
@@ -51,6 +53,7 @@ public static class CommandCatalog
         CommandCategory.Mouse => "Mouse",
         CommandCategory.Speech => "Speech",
         CommandCategory.Braille => "Braille",
+        CommandCategory.Applications => "Applications",
         _ => "System",
     };
 

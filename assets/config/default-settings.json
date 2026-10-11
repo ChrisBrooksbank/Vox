@@ -14,6 +14,7 @@
   "LanguageVoices": {},
   "SleepApps": [],
   "AppDefaultModes": {},
+  "DisabledAppModules": [],
   "UpdateChannel": "Stable",
   "VoiceName": null,
   "SpeechEngine": null,

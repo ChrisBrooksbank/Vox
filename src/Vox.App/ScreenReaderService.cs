@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.AppModules;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
@@ -47,6 +48,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SpeechHistoryCommands _speechHistoryCommands;
     private readonly SettingsCommands _settingsCommands;
     private readonly Vox.Core.Updates.UpdateCommands _updateCommands;
+    private readonly AppModuleManager _appModules;
     private VoxTrayIcon? _trayIcon;
     // Pause speech (Insert+S): nothing is said until it is pressed again
     private volatile bool _speechPaused;
@@ -128,8 +130,10 @@ public sealed class ScreenReaderService : IHostedService
         MouseCommands mouseCommands,
         SettingsCommands settingsCommands,
         Vox.Core.Updates.UpdateCommands updateCommands,
+        AppModuleManager appModules,
         RunPolicy? runPolicy = null)
     {
+        _appModules = appModules;
         _updateCommands = updateCommands;
         _settingsCommands = settingsCommands;
         _review = review;
@@ -226,6 +230,11 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
         _eventPipeline.FocusContextProvider = FocusContext;
         _eventPipeline.ErrorMessageProvider = _browseModeController.ErrorMessageFor;
+        // The foreground application's module may drop events, change focus announcements and
+        // see every event once handled
+        _eventPipeline.EventFilter = _appModules.ShouldProcess;
+        _eventPipeline.FocusAnnouncementFormatter = _appModules.FormatFocusAnnouncement;
+        _eventPipeline.EventProcessed += OnEventProcessed;
         // In browse mode the review cursor reviews the virtual buffer
         _review.BrowseTether = _browseModeController.ReviewTether;
 
@@ -305,6 +314,10 @@ public sealed class ScreenReaderService : IHostedService
         _browseModeController.SetupRequested -= OnSetupRequested;
         _eventPipeline.FocusAnnouncementFilter = null;
         _eventPipeline.FocusContextProvider = null;
+        _eventPipeline.EventFilter = null;
+        _eventPipeline.FocusAnnouncementFormatter = null;
+        _eventPipeline.EventProcessed -= OnEventProcessed;
+        _appModules.Stop();
         _review.BrowseTether = null;
         _speechQueue.IsMuted = null;
         _keyInputDispatcher.IsAsleep = null;
@@ -396,6 +409,9 @@ public sealed class ScreenReaderService : IHostedService
             // The page is laid out again in the new way
             if (previous is not null && previous.ScreenLayout != settings.ScreenLayout)
                 _documentTracker.RequestRecapture(null);
+            // An app module turned on or off: picked again on the pipeline thread
+            if (previous is not null && !previous.DisabledAppModules.SequenceEqual(settings.DisabledAppModules))
+                _eventPipeline.Post(new PipelineWorkEvent(DateTimeOffset.UtcNow, _appModules.Reselect));
             if (previous is null || previous.StartAtLogon != settings.StartAtLogon)
             {
                 try
@@ -422,6 +438,9 @@ public sealed class ScreenReaderService : IHostedService
     {
         // Braille commands are BrailleService's
         if (e.Command is NavigationCommand.BraillePanLeft or NavigationCommand.BraillePanRight or NavigationCommand.CycleBrailleTether)
+            return;
+        // The foreground application's own commands
+        if (_appModules.TryHandle(e.Command))
             return;
         if (e.Command == NavigationCommand.ToggleSpeechViewer)
         {
@@ -480,6 +499,8 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
     {
+        // First, so the focused application's module formats this very announcement
+        _appModules.Refresh();
         _browseModeController.HandleFocusChanged(e);
         _whereAmI.HandleFocusChanged(e);
         _review.HandleFocusChanged();
@@ -521,6 +542,8 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnMenuEventProcessed(object? sender, MenuEvent e) => _menuTracker.Handle(e.Kind);
 
+    private void OnEventProcessed(object? sender, ScreenReaderEvent e) => _appModules.OnEvent(e);
+
     /// <summary>Said before a focus announcement: the window title when focus moved into another window, then menu context.</summary>
     private string? FocusContext(FocusChangedEvent focus)
     {
@@ -544,6 +567,7 @@ public sealed class ScreenReaderService : IHostedService
     {
         // Keys typed into the new window are decided from the cached sleep state
         _sleepMode.IsAsleepNow();
+        _appModules.Update(e.ProcessId, e.WindowHandle);
         TrackBackground(_dialogReader.HandleForegroundWindowChangedAsync(e));
     }
 

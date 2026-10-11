@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.AppModules;
+using Vox.Core.AppModules.Office;
 using Vox.Core.Audio;
 using Vox.Core.Braille;
 using Vox.Core.Braille.Brltty;
@@ -344,6 +346,21 @@ public static class ServiceRegistration
                 gestures,
                 sp.GetRequiredService<IVoxMenuPresenter>(),
                 sp.GetRequiredService<IPortableCopyPresenter>());
+        });
+
+        // App modules: Vox's support for particular applications, chosen by the foreground
+        // process. Office's object model is read on its own STA thread.
+        services.AddSingleton<OfficeObjectModel>();
+        services.AddSingleton<IOfficeObjectModel>(sp => sp.GetRequiredService<OfficeObjectModel>());
+        services.AddSingleton<AppModuleManager>(sp =>
+        {
+            var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();
+            return new AppModuleManager(
+                sp.GetServices<IAppModule>(),
+                sp.GetRequiredService<IForegroundWindow>(),
+                dispatcher.SetAppKeyMap,
+                sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+                sp.GetRequiredService<ILogger<AppModuleManager>>());
         });
 
         // Braille: display drivers in the order auto-detect tries them, then the controller

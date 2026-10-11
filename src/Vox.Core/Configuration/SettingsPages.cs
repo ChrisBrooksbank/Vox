@@ -59,7 +59,7 @@ public static class SettingsPages
     public static readonly IReadOnlySet<string> NotOnAnyPage = new HashSet<string>
     {
         nameof(VoxSettings.SleepApps), nameof(VoxSettings.LanguageVoices), nameof(VoxSettings.AppDefaultModes),
-        nameof(VoxSettings.FirstRunCompleted), nameof(VoxSettings.SchemaVersion),
+        nameof(VoxSettings.DisabledAppModules), nameof(VoxSettings.FirstRunCompleted), nameof(VoxSettings.SchemaVersion),
     };
 
     public static SettingsPage General() => new("General",
