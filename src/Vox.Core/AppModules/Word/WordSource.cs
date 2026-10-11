@@ -43,6 +43,11 @@ public sealed class WordObjectModelSource : IWordSource
     private const int StartOfRangeRowNumber = 13;
     private const int StartOfRangeColumnNumber = 16;
 
+    // WdGoToItem and WdGoToDirection
+    private const int GoToHeading = 11;
+    private const int GoToNext = 2;
+    private const int GoToPrevious = 3;
+
     private readonly IOfficeObjectModel _objectModel;
 
     public WordObjectModelSource(IOfficeObjectModel objectModel)
@@ -147,8 +152,8 @@ public sealed class WordObjectModelSource : IWordSource
     {
         dynamic document = doc;
         dynamic selection = sel;
-        // wdGoToHeading, wdGoToNext / wdGoToPrevious: Word leaves the selection alone when there is none
-        dynamic range = selection.GoTo(-1, forward ? 2 : 3);
+        // Word leaves the selection alone when there is no heading that way
+        dynamic range = selection.GoTo(GoToHeading, forward ? GoToNext : GoToPrevious);
         int start = (int)range.Start;
         if (forward ? start <= caret : start >= caret)
         {
