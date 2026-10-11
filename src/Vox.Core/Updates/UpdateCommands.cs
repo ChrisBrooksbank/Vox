@@ -20,8 +20,12 @@ public sealed class UpdateCommands(
     SpeechQueue speech,
     Action exit,
     string? lastCheckFile,
-    ILogger<UpdateCommands> logger)
+    ILogger<UpdateCommands> logger,
+    Action<string>? startInstaller = null)
 {
+    /// <summary>How long the goodbye may take before Vox closes for the installer anyway.</summary>
+    public static readonly TimeSpan GoodbyeTimeout = TimeSpan.FromSeconds(3);
+
     /// <summary>How often the quiet check at startup runs.</summary>
     public static readonly TimeSpan CheckInterval = TimeSpan.FromDays(1);
 
@@ -44,8 +48,24 @@ public sealed class UpdateCommands(
             return;
         }
         var release = checker.Available!;
+        // BeginOwnDialog is pipeline-thread only, and this continues on the thread pool
+        pipeline.Post(new PipelineWorkEvent(DateTimeOffset.UtcNow, () => AskToInstall(release)));
+    }
+
+    /// <summary>Asks whether to install <paramref name="release"/>. Pipeline thread.</summary>
+    private void AskToInstall(UpdateRelease release)
+    {
         if (!browse.BeginOwnDialog())
+        {
+            // Another of Vox's dialogs is open: say what was found rather than nothing
+            Say($"Vox {release.Version} is available. Close the open Vox dialog and check again to install it.");
             return;
+        }
+        _ = AskAndInstallAsync(release);
+    }
+
+    private async Task AskAndInstallAsync(UpdateRelease release)
+    {
         bool install = false;
         try
         {
@@ -64,23 +84,34 @@ public sealed class UpdateCommands(
     private async Task InstallAsync(UpdateRelease release)
     {
         Say($"Downloading Vox {release.Version}");
+        bool started;
         try
         {
-            if (await checker.InstallAsync(release, UpdateChecker.StartMsi).ConfigureAwait(false))
-            {
-                await speech.EnqueueAndWaitAsync(new Utterance("The installer is starting. Vox will close now.", SpeechPriority.Interrupt)).ConfigureAwait(false);
-                exit();
-            }
-            else
-            {
-                Say("The download was damaged or altered, so it wasn't installed.");
-            }
+            started = await checker.InstallAsync(release, startInstaller ?? UpdateChecker.StartMsi).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Update download failed");
             Say("The update couldn't be downloaded.");
+            return;
         }
+        if (!started)
+        {
+            Say("The download was damaged or altered, so it wasn't installed.");
+            return;
+        }
+
+        // The installer is running and needs Vox's files: close whatever happens to the goodbye
+        // (focus moving to the installer interrupts it; paused speech or sleep mode drops it)
+        try
+        {
+            await speech.EnqueueAndWaitAsync(new Utterance("The installer is starting. Vox will close now.", SpeechPriority.Interrupt))
+                .WaitAsync(GoodbyeTimeout).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is TimeoutException or OperationCanceledException)
+        {
+        }
+        exit();
     }
 
     /// <summary>The quiet check at startup: at most daily, and only says something when there is an update.</summary>

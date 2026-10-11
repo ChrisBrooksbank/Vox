@@ -401,7 +401,7 @@ public sealed class ScreenReaderService : IHostedService
                 try
                 {
                     StartAtLogon.Apply(settings.StartAtLogon, _startupRegistration,
-                        StartAtLogon.CommandFor(AppContext.BaseDirectory), _runPolicy);
+                        StartAtLogon.CommandFor(AppContext.BaseDirectory), _runPolicy, VoxPaths.IsPortable);
                 }
                 catch (Exception ex)
                 {
@@ -605,7 +605,7 @@ public sealed class ScreenReaderService : IHostedService
     }
 
     private void OnVoxDialogClosedProcessed(object? sender, VoxDialogClosedEvent e) =>
-        _browseModeController.EndOwnDialog();
+        _browseModeController.EndOwnDialog(e.QuietFocusReturn);
 
     private void OnFindPromptClosedProcessed(object? sender, FindPromptClosedEvent e) =>
         _browseModeController.HandleFindPromptClosed(e);

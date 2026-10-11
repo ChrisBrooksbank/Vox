@@ -244,6 +244,10 @@ public sealed class BrowseModeController
         if (!KeepsSelection(command))
             _selection.Clear();
 
+        // Exploring ended when the keys stopped being the page's (a Vox dialog, another app, Focus mode)
+        if (_mathExplorer.IsActive && (!_documentActive || _navigationManager.CurrentMode != InteractionMode.Browse))
+            _mathExplorer.Stop();
+
         // Exploring an expression: the arrows move through it; anything else ends exploring
         if (_mathExplorer.IsActive && command != NavigationCommand.StopSpeech)
         {
@@ -720,6 +724,9 @@ public sealed class BrowseModeController
         // may switch modes (otherwise Escape to Browse mode would be undone by the next repeat)
         bool focusMoved = _lastFocusedRuntimeId is null || !_lastFocusedRuntimeId.AsSpan().SequenceEqual(runtimeId);
         _lastFocusedRuntimeId = runtimeId;
+        // Focus moving on (within the page or out of it) ends exploring an expression
+        if (focusMoved)
+            _mathExplorer.Stop();
 
         // Modes only matter inside the active document: auto-switch and follow focus only there
         var node = _quickNavHandler.CurrentDocument?.FindByRuntimeId(runtimeId);
@@ -1142,14 +1149,22 @@ public sealed class BrowseModeController
         if (_modalOpen)
             return false;
         _modalOpen = true;
-        _ignoreFocusReturnTo = _lastFocusedRuntimeId;
+        // Unlike the Elements List, nothing moves the cursor here: focus coming back when it
+        // closes is announced (and a quiet return asked for by an earlier dialog no longer applies)
+        _ignoreFocusReturnTo = null;
         UpdateDocumentActive();
         return true;
     }
 
-    /// <summary>The dialog opened with <see cref="BeginOwnDialog"/> has closed. Pipeline thread.</summary>
-    public void EndOwnDialog()
+    /// <summary>
+    /// The dialog opened with <see cref="BeginOwnDialog"/> has closed. With
+    /// <paramref name="quietFocusReturn"/> (a command chosen in it runs next) focus coming back to
+    /// where it was isn't announced over that command. Pipeline thread.
+    /// </summary>
+    public void EndOwnDialog(bool quietFocusReturn = false)
     {
+        if (quietFocusReturn)
+            _ignoreFocusReturnTo = _lastFocusedRuntimeId;
         _modalOpen = false;
         UpdateDocumentActive();
     }

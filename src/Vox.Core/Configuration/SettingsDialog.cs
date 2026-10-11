@@ -6,16 +6,16 @@ namespace Vox.Core.Configuration;
 /// <summary>Shows the settings dialog; completes when it closes.</summary>
 public interface ISettingsDialogPresenter
 {
-    /// <param name="settings">The settings when the dialog opens.</param>
+    /// <param name="settings">The settings as they are now (read again for every change).</param>
     /// <param name="pages">What it shows (<see cref="SettingsPages"/>).</param>
     /// <param name="apply">Called on the dialog's thread with every change, so it takes effect at once.</param>
-    Task ShowAsync(VoxSettings settings, IReadOnlyList<SettingsPage> pages, Action<VoxSettings> apply);
+    Task ShowAsync(Func<VoxSettings> settings, IReadOnlyList<SettingsPage> pages, Action<VoxSettings> apply);
 }
 
 /// <summary>Runs <see cref="SettingsDialog"/> on its own STA thread, as WinForms requires.</summary>
 public sealed class SettingsDialogPresenter : ISettingsDialogPresenter
 {
-    public Task ShowAsync(VoxSettings settings, IReadOnlyList<SettingsPage> pages, Action<VoxSettings> apply)
+    public Task ShowAsync(Func<VoxSettings> settings, IReadOnlyList<SettingsPage> pages, Action<VoxSettings> apply)
     {
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
@@ -43,20 +43,19 @@ public sealed class SettingsDialogPresenter : ISettingsDialogPresenter
 
 /// <summary>
 /// The settings dialog: a tab per <see cref="SettingsPage"/>, a labelled control per field
-/// (check box, spin box or combo box). Every change applies at once; OK keeps the changes,
-/// Cancel (or Escape) puts back the settings the dialog opened with.
+/// (check box, spin box or combo box). Every change applies at once, to the settings as they are
+/// then; OK keeps the changes, Cancel (or Escape) puts back the fields it changed
+/// (<see cref="SettingsEditSession"/>).
 /// </summary>
 public sealed class SettingsDialog : VoxDialog
 {
-    private readonly VoxSettings _original;
-    private readonly Action<VoxSettings> _apply;
-    private VoxSettings _current;
+    private readonly SettingsEditSession _session;
+    private readonly VoxSettings _current;
 
-    public SettingsDialog(VoxSettings settings, IReadOnlyList<SettingsPage> pages, Action<VoxSettings> apply)
+    public SettingsDialog(Func<VoxSettings> settings, IReadOnlyList<SettingsPage> pages, Action<VoxSettings> apply)
     {
-        _original = settings;
-        _current = settings;
-        _apply = apply;
+        _session = new SettingsEditSession(settings, apply);
+        _current = _session.Opening;
 
         Text = "Vox settings";
         AccessibleName = "Vox settings";
@@ -86,8 +85,8 @@ public sealed class SettingsDialog : VoxDialog
         CancelButton = cancel;
         FormClosed += (_, _) =>
         {
-            if (DialogResult != DialogResult.OK && _current != _original)
-                _apply(_original);
+            if (DialogResult != DialogResult.OK)
+                _session.Revert();
         };
     }
 
@@ -123,7 +122,7 @@ public sealed class SettingsDialog : VoxDialog
             case ToggleField toggle:
             {
                 var box = new CheckBox { Text = toggle.Label, AutoSize = true, Checked = toggle.Get(_current), AccessibleName = name };
-                box.CheckedChanged += (_, _) => Change(s => toggle.Set(s, box.Checked));
+                box.CheckedChanged += (_, _) => _session.Change(toggle, s => toggle.Set(s, box.Checked));
                 return box;
             }
             case NumberField number:
@@ -133,7 +132,7 @@ public sealed class SettingsDialog : VoxDialog
                     Minimum = number.Min, Maximum = number.Max, Increment = number.Step,
                     Value = Math.Clamp(number.Get(_current), number.Min, number.Max), AccessibleName = name, Width = 120,
                 };
-                spin.ValueChanged += (_, _) => Change(s => number.Set(s, (int)spin.Value));
+                spin.ValueChanged += (_, _) => _session.Change(number, s => number.Set(s, (int)spin.Value));
                 return spin;
             }
             case ChoiceField choice:
@@ -145,21 +144,12 @@ public sealed class SettingsDialog : VoxDialog
                 combo.SelectedIndexChanged += (_, _) =>
                 {
                     if (combo.SelectedIndex >= 0)
-                        Change(s => choice.Set(s, choice.Choices[combo.SelectedIndex].Value));
+                        _session.Change(choice, s => choice.Set(s, choice.Choices[combo.SelectedIndex].Value));
                 };
                 return combo;
             }
             default:
                 throw new ArgumentException($"No control for {field.GetType().Name}", nameof(field));
         }
-    }
-
-    private void Change(Func<VoxSettings, VoxSettings> change)
-    {
-        var updated = change(_current);
-        if (updated == _current)
-            return;
-        _current = updated;
-        _apply(updated);
     }
 }

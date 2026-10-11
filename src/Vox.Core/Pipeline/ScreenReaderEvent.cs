@@ -195,8 +195,18 @@ public record ElementsListClosedEvent(
 /// <summary>
 /// The find prompt closed; <paramref name="Request"/> is null if it was cancelled.
 /// </summary>
-/// <summary>A Vox dialog opened with <c>BrowseModeController.BeginOwnDialog</c> (settings) closed.</summary>
-public record VoxDialogClosedEvent(DateTimeOffset Timestamp) : ScreenReaderEvent(Timestamp);
+/// <summary>
+/// A Vox dialog opened with <c>BrowseModeController.BeginOwnDialog</c> (settings) closed.
+/// <paramref name="QuietFocusReturn"/>: a command chosen in it runs next (the Vox menu), so focus
+/// coming back to where it was is not announced over it.
+/// </summary>
+public record VoxDialogClosedEvent(DateTimeOffset Timestamp, bool QuietFocusReturn = false) : ScreenReaderEvent(Timestamp);
+
+/// <summary>
+/// Work to run on the pipeline thread, posted from another thread: a result that has to touch
+/// pipeline-only state (e.g. the update check opening its question with <c>BeginOwnDialog</c>).
+/// </summary>
+public record PipelineWorkEvent(DateTimeOffset Timestamp, Action Work) : ScreenReaderEvent(Timestamp);
 
 public record FindPromptClosedEvent(
     DateTimeOffset Timestamp,

@@ -43,6 +43,8 @@ public sealed class UpdateFeedTests : IDisposable
     [InlineData("""{ "other": [] }""")]
     [InlineData("""{ "releases": [ { "version": "x", "channel": "stable", "url": "https://e.com/a.msi", "sha256": "00" } ] }""")]
     [InlineData("""{ "releases": [ { "version": "1.0.0", "channel": "stable", "url": "http://e.com/a.msi", "sha256": "0000000000000000000000000000000000000000000000000000000000000000" } ] }""")]
+    // No channel: a FormatException (a failed check), not a NullReferenceException out of CheckAsync
+    [InlineData("""{ "releases": [ { "version": "1.0.0", "url": "https://e.com/a.msi", "sha256": "0000000000000000000000000000000000000000000000000000000000000000" } ] }""")]
     public void Parse_RejectsMalformedFeeds(string json) => Assert.Throws<FormatException>(() => UpdateFeed.Parse(json));
 
     [Fact]
@@ -139,13 +141,51 @@ public sealed class UpdateFeedTests : IDisposable
         string? started = null;
         Assert.True(await good.InstallAsync(good.Available!, path => started = path));
         Assert.True(File.Exists(started));
-        File.Delete(started!);
+        good.Dispose();
+        Directory.Delete(Path.GetDirectoryName(started)!, recursive: true);
 
         var tampered = Checker(feed, Sign(feed), installer: Encoding.UTF8.GetBytes("malware"));
         await tampered.CheckAsync();
         started = null;
+        var before = Directory.GetDirectories(Path.GetTempPath(), "Vox-update-*").ToHashSet();
         Assert.False(await tampered.InstallAsync(tampered.Available!, path => started = path));
         Assert.Null(started);
-        Assert.False(File.Exists(Path.Combine(Path.GetTempPath(), "Vox-1.2.0.msi")));
+        Assert.Empty(Directory.GetDirectories(Path.GetTempPath(), "Vox-update-*").Except(before)); // the download is gone
+    }
+
+    [Fact]
+    public async Task Install_DownloadsIntoAFreshFolder_AndHoldsTheCheckedFileWhileTheInstallerStarts()
+    {
+        var feed = Feed();
+        var checker = Checker(feed, Sign(feed));
+        await checker.CheckAsync();
+        var started = new List<string>();
+        byte[]? seen = null;
+
+        await checker.InstallAsync(checker.Available!, path =>
+        {
+            started.Add(path);
+            // The installer can read the checked file while Vox holds it
+            using var read = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var copy = new MemoryStream();
+            read.CopyTo(copy);
+            seen = copy.ToArray();
+        });
+        await checker.InstallAsync(checker.Available!, started.Add);
+
+        try
+        {
+            Assert.Equal(Installer, seen);
+            // Not a predictable name in %TEMP%: a new folder each time
+            Assert.All(started, path => Assert.NotEqual(Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar),
+                Path.GetDirectoryName(path)));
+            Assert.NotEqual(Path.GetDirectoryName(started[0]), Path.GetDirectoryName(started[1]));
+        }
+        finally
+        {
+            checker.Dispose();
+            foreach (var path in started)
+                Directory.Delete(Path.GetDirectoryName(path)!, recursive: true);
+        }
     }
 }

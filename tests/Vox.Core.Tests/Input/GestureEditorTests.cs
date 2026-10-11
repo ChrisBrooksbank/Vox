@@ -38,6 +38,31 @@ public sealed class GestureEditorTests : IDisposable
     }
 
     [Fact]
+    public void CapturedKeypadKey_WithNumLockOff_IsBoundAsTheKeypadKey_NotTheArrowItSends()
+    {
+        const int VK_UP = 0x26, VK_RETURN = 0x0D;
+        var editor = new GestureEditor([new KeyBinding(KeyModifiers.None, VK_UP, "Focus", "NextLine")]);
+
+        var numpad8 = Gesture.FromKey(KeyModifiers.None, VK_UP, isKeypad: true, "Any")!;
+        editor.Add(NavigationCommand.SayAll, numpad8);
+
+        Assert.Equal(NumpadKeys.Numpad8, numpad8.VkCode);
+        Assert.Equal("Numpad 8", numpad8.Describe());
+        Assert.Empty(editor.ConflictsWith(numpad8, NavigationCommand.SayAll));
+        Assert.Equal([new Gesture(KeyModifiers.None, VK_UP, "Focus")], editor.GesturesFor(NavigationCommand.NextLine)); // the arrow keeps its binding
+        Assert.Equal([new KeyBinding(KeyModifiers.None, NumpadKeys.Numpad8, "Any", "SayAll")], editor.UserBindings());
+        Assert.Equal(NumpadKeys.NumpadEnter, Gesture.FromKey(KeyModifiers.None, VK_RETURN, isKeypad: true, "Any")!.VkCode);
+        Assert.Equal(VK_UP, Gesture.FromKey(KeyModifiers.None, VK_UP, isKeypad: false, "Any")!.VkCode); // the dedicated arrow
+    }
+
+    [Fact]
+    public void CapturedNumLockDigit_IsNotAGesture()
+    {
+        Assert.Null(Gesture.FromKey(KeyModifiers.None, NumpadKeys.Numpad5, isKeypad: false, "Any"));
+        Assert.Null(Gesture.FromKey(KeyModifiers.None, NumpadKeys.Decimal, isKeypad: false, "Any"));
+    }
+
+    [Fact]
     public void AddingATakenKey_IsAConflict_AndReplacesIt()
     {
         var editor = new GestureEditor(Layout);

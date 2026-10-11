@@ -65,7 +65,7 @@ public sealed class CommandSearchDialog : VoxDialog
 
         _query = new TextBox { AccessibleName = "Search for", Width = 420 };
         _results = new ListBox { AccessibleName = "Commands", Width = 420, Height = 300 };
-        _query.TextChanged += (_, _) => Update();
+        _query.TextChanged += (_, _) => ShowResults();
         _query.KeyDown += (_, e) =>
         {
             if (e.KeyCode == Keys.Down && _results.Items.Count > 0)
@@ -89,7 +89,7 @@ public sealed class CommandSearchDialog : VoxDialog
         ActiveControl = _query;
     }
 
-    private void Update()
+    private void ShowResults()
     {
         _results.BeginUpdate();
         _results.Items.Clear();

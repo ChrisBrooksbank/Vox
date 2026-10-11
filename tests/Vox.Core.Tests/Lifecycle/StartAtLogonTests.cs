@@ -51,4 +51,16 @@ public class StartAtLogonTests
         Assert.False(StartAtLogon.Apply(false, registration, "\"vox.exe\"", RunPolicy.Secure));
         Assert.Equal("\"vox.exe\"", registration.Command);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Apply_FromAPortableCopy_LeavesTheInstalledVoxsRegistrationAlone(bool enabled)
+    {
+        var installed = "\"C:\\Program Files\\Vox\\Vox.Watchdog.exe\"";
+        var registration = new FakeRegistration { Command = installed };
+
+        Assert.False(StartAtLogon.Apply(enabled, registration, "\"E:\\Vox\\Vox.App.exe\"", RunPolicy.Normal, isPortable: true));
+        Assert.Equal(installed, registration.Command);
+    }
 }

@@ -334,6 +334,10 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     BrailleRouteProcessed?.Invoke(this, brailleRoute);
                     break;
 
+                case PipelineWorkEvent work:
+                    work.Work();
+                    break;
+
                 default:
                     _logger.LogWarning("Unhandled event type: {EventType}", evt.GetType().Name);
                     break;
