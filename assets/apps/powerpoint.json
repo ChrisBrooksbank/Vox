@@ -1,0 +1,8 @@
+{
+  "bindings": [
+    {"modifiers": "Insert|Alt", "vkCode": 34, "mode": "Any", "command": "PowerPointNextShape"},
+    {"modifiers": "Insert|Alt", "vkCode": 33, "mode": "Any", "command": "PowerPointPrevShape"},
+    {"modifiers": "Insert|Alt", "vkCode": 78, "mode": "Any", "command": "PowerPointNotes"},
+    {"modifiers": "Insert|Alt", "vkCode": 83, "mode": "Any", "command": "PowerPointReadSlide"}
+  ]
+}

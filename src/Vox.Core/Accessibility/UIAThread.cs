@@ -44,7 +44,8 @@ public sealed class UIAThread : IDisposable
     {
     }
 
-    internal UIAThread(ILogger<UIAThread> logger, string name)
+    /// <summary>A thread named <paramref name="name"/>: other STA work with the same timeouts (Office's object model).</summary>
+    public UIAThread(ILogger<UIAThread> logger, string name)
     {
         _logger = logger;
         _name = name;

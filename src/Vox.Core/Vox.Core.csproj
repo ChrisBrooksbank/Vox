@@ -22,5 +22,7 @@
     <EmbeddedResource Include="..\..\assets\speech\*.json" LogicalName="Vox.Core.speech.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\assets\braille\*.json" LogicalName="Vox.Core.braille.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\assets\braille\keymaps\*.json" LogicalName="Vox.Core.braille.keymaps.%(Filename)%(Extension)" />
+    <!-- App modules' keys (AppModuleKeyMaps): assets/apps/<module id>.json -->
+    <EmbeddedResource Include="..\..\assets\apps\*.json" LogicalName="Vox.Core.apps.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

@@ -343,6 +343,20 @@ public sealed class KeyMap
     public static KeyMap LoadFromJson(string json, out IReadOnlyList<string> warnings) =>
         Build(Parse(json).Bindings, out warnings);
 
+    /// <summary>
+    /// A keymap of <paramref name="bindings"/> (an app module's layer); a later binding replaces an
+    /// earlier one on the same key. Unknown commands and modes are reported through <paramref name="warnings"/>.
+    /// </summary>
+    public static KeyMap FromBindings(IEnumerable<KeyBinding> bindings, out IReadOnlyList<string> warnings) =>
+        Build(bindings.Select(b => new KeyBindingEntry
+        {
+            Modifiers = b.Modifiers == KeyModifiers.None ? "None" : b.Modifiers.ToString().Replace(", ", "|"),
+            VkCode = b.VkCode,
+            Mode = b.Mode,
+            Command = b.Command,
+            PassThrough = b.PassThrough,
+        }), out warnings);
+
     private static KeyMapFile Parse(string json)
     {
         var options = new JsonSerializerOptions

@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    { "modifiers": "Insert", "vkCode": 113, "mode": "Any", "command": "ExcelReadFormula" },
+    { "modifiers": "Insert|Alt", "vkCode": 67, "mode": "Any", "command": "ExcelReadComment" },
+    { "modifiers": "Insert|Shift", "vkCode": 67, "mode": "Any", "command": "ExcelSetColumnTitles" },
+    { "modifiers": "Insert|Shift", "vkCode": 82, "mode": "Any", "command": "ExcelSetRowTitles" },
+    { "modifiers": "Insert|Shift", "vkCode": 71, "mode": "Any", "command": "ExcelChartSummary" }
+  ]
+}
