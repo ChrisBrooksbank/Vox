@@ -43,6 +43,29 @@ public static class ServiceRegistration
             };
         });
         services.AddSingleton<SettingsMonitor>();
+        // Configuration profiles, laid over the settings as soon as they exist; none on secure screens
+        services.AddSingleton<ProfileManager>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var profiles = new ProfileManager(new ProfileStore(
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? ProfileStore.DefaultDirectory : null,
+                sp.GetRequiredService<ILogger<ProfileStore>>()));
+            sp.GetRequiredService<SettingsMonitor>().AttachProfiles(profiles);
+            return profiles;
+        });
+        services.AddSingleton<IProfilesPresenter, ProfilesPresenter>();
+        services.AddSingleton<ProfileCommands>(sp =>
+        {
+            var appModules = sp.GetRequiredService<AppModuleManager>();
+            return new ProfileCommands(
+                sp.GetRequiredService<IProfilesPresenter>(),
+                sp.GetRequiredService<ProfileManager>(),
+                () => appModules.ActiveProcessName,
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<IEventSink>(),
+                sp.GetRequiredService<SpeechQueue>(),
+                sp.GetRequiredService<ILogger<ProfileCommands>>());
+        });
         services.AddSingleton<IOptionsMonitor<VoxSettings>>(sp => sp.GetRequiredService<SettingsMonitor>());
 
         // Speech

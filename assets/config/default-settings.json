@@ -15,6 +15,7 @@
   "SleepApps": [],
   "AppDefaultModes": {},
   "DisabledAppModules": [],
+  "AnnounceProfileSwitches": true,
   "ExcelReportFormulas": true,
   "ExcelReportCommentsAndNotes": true,
   "WordReportCommentsAndRevisions": true,

@@ -49,6 +49,8 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SettingsCommands _settingsCommands;
     private readonly Vox.Core.Updates.UpdateCommands _updateCommands;
     private readonly AppModuleManager _appModules;
+    private readonly ProfileManager _profiles;
+    private readonly ProfileCommands _profileCommands;
     private VoxTrayIcon? _trayIcon;
     // Pause speech (Insert+S): nothing is said until it is pressed again
     private volatile bool _speechPaused;
@@ -131,8 +133,12 @@ public sealed class ScreenReaderService : IHostedService
         SettingsCommands settingsCommands,
         Vox.Core.Updates.UpdateCommands updateCommands,
         AppModuleManager appModules,
+        ProfileManager profiles,
+        ProfileCommands profileCommands,
         RunPolicy? runPolicy = null)
     {
+        _profiles = profiles;
+        _profileCommands = profileCommands;
         _appModules = appModules;
         _updateCommands = updateCommands;
         _settingsCommands = settingsCommands;
@@ -235,6 +241,10 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.EventFilter = _appModules.ShouldProcess;
         _eventPipeline.FocusAnnouncementFormatter = _appModules.FormatFocusAnnouncement;
         _eventPipeline.EventProcessed += OnEventProcessed;
+        // Configuration profiles follow the foreground application and Say All
+        _appModules.ForegroundAppChanged += OnForegroundAppChanged;
+        _sayAllController.ReadingChanged += OnSayAllReadingChanged;
+        _profiles.Switched += OnProfileSwitched;
         // In browse mode the review cursor reviews the virtual buffer
         _review.BrowseTether = _browseModeController.ReviewTether;
 
@@ -317,6 +327,9 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.EventFilter = null;
         _eventPipeline.FocusAnnouncementFormatter = null;
         _eventPipeline.EventProcessed -= OnEventProcessed;
+        _appModules.ForegroundAppChanged -= OnForegroundAppChanged;
+        _sayAllController.ReadingChanged -= OnSayAllReadingChanged;
+        _profiles.Switched -= OnProfileSwitched;
         _appModules.Stop();
         _review.BrowseTether = null;
         _speechQueue.IsMuted = null;
@@ -493,7 +506,7 @@ public sealed class ScreenReaderService : IHostedService
             && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
             && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
-            && !_updateCommands.TryHandle(e.Command))
+            && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -543,6 +556,16 @@ public sealed class ScreenReaderService : IHostedService
     private void OnMenuEventProcessed(object? sender, MenuEvent e) => _menuTracker.Handle(e.Kind);
 
     private void OnEventProcessed(object? sender, ScreenReaderEvent e) => _appModules.OnEvent(e);
+
+    private void OnForegroundAppChanged(object? sender, string? processName) => _profiles.SetForegroundApp(processName);
+
+    private void OnSayAllReadingChanged(object? sender, bool reading) => _profiles.SetSayAll(reading);
+
+    private void OnProfileSwitched(object? sender, string? profile)
+    {
+        if (_settings.CurrentValue.AnnounceProfileSwitches)
+            _speechQueue.Enqueue(new Utterance(ProfileCommands.SwitchAnnouncement(profile), SpeechPriority.Normal));
+    }
 
     /// <summary>Said before a focus announcement: the window title when focus moved into another window, then menu context.</summary>
     private string? FocusContext(FocusChangedEvent focus)

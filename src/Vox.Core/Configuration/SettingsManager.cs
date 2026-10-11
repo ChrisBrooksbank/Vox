@@ -198,7 +198,11 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
 {
     private readonly SettingsManager _manager;
     private readonly ILogger<SettingsMonitor> _logger;
+    // The normal configuration (the settings file), and what it makes with the active profiles
+    private VoxSettings _normal;
     private VoxSettings _current;
+    private readonly object _updateLock = new();
+    private ProfileManager? _profiles;
     private readonly object _listenerLock = new();
     private readonly List<Action<VoxSettings, string?>> _listeners = new();
     private FileSystemWatcher? _watcher;
@@ -209,27 +213,83 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
     {
         _manager = manager;
         _logger = logger;
-        _current = _manager.Load();
+        _normal = _manager.Load();
+        _current = _normal;
         StartWatching();
     }
 
+    /// <summary>The effective settings: the normal configuration with the active profiles laid over it.</summary>
     public VoxSettings CurrentValue => _current;
 
-    public VoxSettings Get(string? name) => _current;
+    /// <summary>The normal configuration, without profiles.</summary>
+    public VoxSettings NormalValue => _normal;
 
     /// <summary>
-    /// Updates the current settings in memory and persists to disk.
-    /// Notifies all registered OnChange listeners.
+    /// Lays the active configuration profiles over the settings from now on; when they change the
+    /// settings are worked out again and listeners told.
     /// </summary>
-    public void UpdateSettings(VoxSettings settings)
+    public void AttachProfiles(ProfileManager profiles)
     {
-        _current = settings;
-        Interlocked.Exchange(ref _lastProgrammaticSaveTick, Environment.TickCount64);
-        _manager.Save(settings);
+        _profiles = profiles;
+        profiles.Changed += (_, _) => Recompute();
+        Recompute();
+    }
+
+    private void Recompute()
+    {
+        VoxSettings settings;
+        lock (_updateLock)
+        {
+            settings = _profiles?.Apply(_normal) ?? _normal;
+            if (settings == _current)
+                return;
+            _current = settings;
+        }
+        Notify(settings);
+    }
+
+    private void Notify(VoxSettings settings)
+    {
         Action<VoxSettings, string?>[] snapshot;
         lock (_listenerLock) { snapshot = _listeners.ToArray(); }
         foreach (var listener in snapshot)
             listener(settings, null);
+    }
+
+    public VoxSettings Get(string? name) => _current;
+
+    /// <summary>
+    /// Changes the settings to <paramref name="settings"/> and saves them, notifying all OnChange
+    /// listeners. While a configuration profile is active, what changed is kept in that profile
+    /// (all but the global settings), as NVDA does; otherwise in the normal configuration.
+    /// </summary>
+    public void UpdateSettings(VoxSettings settings)
+    {
+        VoxSettings effective;
+        lock (_updateLock)
+        {
+            if (_profiles is { EditTarget: not null } profiles)
+            {
+                var forNormal = profiles.RecordChanges(ProfileSettings.Diff(_current, settings));
+                if (forNormal.Count > 0)
+                    SaveNormal(ProfileSettings.Merge(_normal, [forNormal]));
+                effective = profiles.Apply(_normal);
+            }
+            else
+            {
+                SaveNormal(settings);
+                effective = _profiles?.Apply(_normal) ?? _normal;
+            }
+            _current = effective;
+        }
+        Notify(effective);
+    }
+
+    private void SaveNormal(VoxSettings settings)
+    {
+        _normal = settings;
+        Interlocked.Exchange(ref _lastProgrammaticSaveTick, Environment.TickCount64);
+        _manager.Save(settings);
     }
 
     public IDisposable? OnChange(Action<VoxSettings, string?> listener)
@@ -283,12 +343,15 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
                 _logger.LogWarning("Settings file changed but could not be read; keeping current settings");
                 return;
             }
-            _current = reloaded;
+            VoxSettings effective;
+            lock (_updateLock)
+            {
+                _normal = reloaded;
+                effective = _profiles?.Apply(reloaded) ?? reloaded;
+                _current = effective;
+            }
             _logger.LogInformation("Settings reloaded from file change");
-            Action<VoxSettings, string?>[] snapshot;
-            lock (_listenerLock) { snapshot = _listeners.ToArray(); }
-            foreach (var listener in snapshot)
-                listener(reloaded, null);
+            Notify(effective);
         }
         catch (Exception ex)
         {

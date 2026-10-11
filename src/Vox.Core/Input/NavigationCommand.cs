@@ -193,6 +193,8 @@ public enum NavigationCommand
     BraillePanRight,
     /// <summary>Switches what braille follows: automatically, the focus, or the review cursor.</summary>
     CycleBrailleTether,
+    /// <summary>Opens the configuration profiles dialog.</summary>
+    OpenProfiles,
 
     // Excel module
     /// <summary>Says the active cell's formula (Excel).</summary>

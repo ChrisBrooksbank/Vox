@@ -272,6 +272,7 @@ public static class CommandCatalog
         Add(NavigationCommand.RunTutorial, "Practice lessons", "Runs the practice lessons, where you press each key and hear what it does.", CommandCategory.System);
         Add(NavigationCommand.ExitVox, "Exit Vox", "Exits Vox at once.", CommandCategory.System);
         Add(NavigationCommand.OpenCommandSearch, "Command search", "Finds commands by part of their name and says their keys.", CommandCategory.System);
+        Add(NavigationCommand.OpenProfiles, "Configuration profiles", "Opens the configuration profiles: sets of settings used in an application, during Say All, or when chosen.", CommandCategory.System);
         Add(NavigationCommand.OpenInputGestures, "Input gestures", "Opens the list of commands and their keys, where keys can be added, removed and changed.", CommandCategory.System);
         Add(NavigationCommand.OpenSettings, "Settings", "Opens the Vox settings dialog; changes apply as you make them.", CommandCategory.System);
         Add(NavigationCommand.ToggleInputHelp, "Input help", "Turns input help on or off: while it is on, keys say what they do instead of doing it.", CommandCategory.System);
