@@ -171,6 +171,53 @@ public class ExcelModuleTests : IDisposable
     }
 
     [Fact]
+    public async Task CellSelectedAfterItsFocus_TheCellIsStillSaid()
+    {
+        // Excel selects the cell an arrow key moves to; that event may follow the focus event
+        var gate = new TaskCompletionSource();
+        _office.Gate = gate.Task;
+        MoveTo(5, 2, "42");
+
+        _module.FormatFocusAnnouncement(CellFocus(), "B5");
+        _module.OnEvent(new ElementSelectedEvent(DateTimeOffset.UtcNow, [1, 2], "B5"));
+        gate.SetResult();
+
+        await _engine.WaitForTextAsync("42, B5");
+    }
+
+    [Fact]
+    public async Task FocusMovingToAnotherControl_DropsTheCellStillBeingRead()
+    {
+        var gate = new TaskCompletionSource();
+        _office.Gate = gate.Task;
+        MoveTo(5, 2, "old");
+        _module.FormatFocusAnnouncement(CellFocus(), "B5");
+
+        // Ctrl+F before Excel answered: the Find dialog's announcement must not be cut off
+        _module.FormatFocusAnnouncement(new FocusChangedEvent(DateTimeOffset.UtcNow, "Find what", "Edit"), "Find what, edit");
+        gate.SetResult();
+        await Task.Delay(100);
+
+        Assert.DoesNotContain(_engine.SpokenText, t => t.Contains("old"));
+    }
+
+    [Fact]
+    public async Task ComingBackToExcel_DropsAnAnswerFromBefore()
+    {
+        var gate = new TaskCompletionSource();
+        _office.Gate = gate.Task;
+        MoveTo(5, 2, "old");
+        _module.FormatFocusAnnouncement(CellFocus(), "B5");
+
+        _module.OnDeactivated();
+        _module.OnActivated(new AppActivation(1, "EXCEL", new IntPtr(5)));
+        gate.SetResult();
+        await Task.Delay(100);
+
+        Assert.DoesNotContain(_engine.SpokenText, t => t.Contains("old"));
+    }
+
+    [Fact]
     public void OtherControls_KeepVoxsAnnouncement() =>
         Assert.Equal("Name box, edit", _module.FormatFocusAnnouncement(new FocusChangedEvent(DateTimeOffset.UtcNow, "Name box", "Edit"), "Name box, edit"));
 

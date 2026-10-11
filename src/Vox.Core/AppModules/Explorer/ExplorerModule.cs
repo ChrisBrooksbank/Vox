@@ -70,6 +70,8 @@ public sealed class ExplorerModule : AppModule
     public override void OnActivated(AppActivation activation)
     {
         base.OnActivated(activation);
+        // A row read before Explorer was left is stale
+        _sequence++;
         _onItem = false;
     }
 
@@ -77,6 +79,8 @@ public sealed class ExplorerModule : AppModule
     {
         if (focus.ControlType != "ListItem")
         {
+            // A row read still on its way would be said over this control (F2's rename box)
+            _sequence++;
             _onItem = false;
             return announcement;
         }

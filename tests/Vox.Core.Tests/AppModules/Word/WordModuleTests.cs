@@ -232,3 +232,112 @@ public class WordModuleTests : IDisposable
     public void OtherCommands_AreNotTheModules() =>
         Assert.False(_module.TryHandle(NavigationCommand.ExcelReadFormula));
 }
+
+// Plain stand-ins for Word's object model, read late bound by WordObjectModelSource as COM
+// objects would be. Only the members heading navigation reads.
+
+public sealed class FakeWordApp
+{
+    public FakeWordDocument ActiveDocument { get; } = new();
+    public FakeWordSelection Selection { get; } = new();
+}
+
+public sealed class FakeWordDocument
+{
+    public FakeWordRange Range(int start, int end) => new() { Start = start };
+}
+
+public sealed class FakeWordRange
+{
+    public int Start { get; set; }
+    public FakeWordParagraph? Paragraph { get; set; }
+    public FakeWordParagraph Paragraphs(int index) => Paragraph!;
+    public void Select()
+    {
+    }
+}
+
+public sealed class FakeWordParagraph
+{
+    public int OutlineLevel { get; set; }
+    public FakeWordText Range { get; set; } = new();
+}
+
+public sealed class FakeWordText
+{
+    public string Text { get; set; } = string.Empty;
+}
+
+public sealed class FakeWordSelection
+{
+    public int Start { get; set; }
+    public List<(int What, int Which)> GoToCalls { get; } = [];
+    /// <summary>Where GoTo lands for each (What, Which); anything else leaves the selection where it is.</summary>
+    public Dictionary<(int What, int Which), FakeWordRange> Targets { get; } = new();
+
+    public FakeWordRange GoTo(int what, int which)
+    {
+        GoToCalls.Add((what, which));
+        return Targets.TryGetValue((what, which), out var target) ? target : new FakeWordRange { Start = Start };
+    }
+}
+
+public class WordObjectModelSourceTests
+{
+    private const int GoToHeading = 11; // WdGoToItem.wdGoToHeading
+    private const int GoToNext = 2;
+    private const int GoToPrevious = 3;
+
+    private readonly FakeOfficeObjectModel _office = new();
+    private readonly FakeWordApp _word = new();
+    private readonly WordObjectModelSource _source;
+
+    public WordObjectModelSourceTests()
+    {
+        _office.Applications[Vox.Core.AppModules.Office.OfficeApp.Word] = _word;
+        _source = new WordObjectModelSource(_office);
+    }
+
+    [Fact]
+    public async Task NextHeading_GoesToTheNextHeadingWithWordsGoTo()
+    {
+        _word.Selection.Start = 10;
+        _word.Selection.Targets[(GoToHeading, GoToNext)] = new FakeWordRange
+        {
+            Start = 50,
+            Paragraph = new FakeWordParagraph { OutlineLevel = 2, Range = new FakeWordText { Text = "Results\r" } },
+        };
+
+        var result = await _source.MoveToAsync(IntPtr.Zero, WordElementKind.Heading, forward: true);
+
+        Assert.Equal([(GoToHeading, GoToNext)], _word.Selection.GoToCalls);
+        Assert.Equal("Results, heading level 2", WordAnnouncer.Element(result!.Element!));
+    }
+
+    [Fact]
+    public async Task PreviousHeading_GoesBackWithWordsGoTo()
+    {
+        _word.Selection.Start = 80;
+        _word.Selection.Targets[(GoToHeading, GoToPrevious)] = new FakeWordRange
+        {
+            Start = 20,
+            Paragraph = new FakeWordParagraph { OutlineLevel = 1, Range = new FakeWordText { Text = "Intro\r" } },
+        };
+
+        var result = await _source.MoveToAsync(IntPtr.Zero, WordElementKind.Heading, forward: false);
+
+        Assert.Equal([(GoToHeading, GoToPrevious)], _word.Selection.GoToCalls);
+        Assert.Equal("Intro, heading level 1", WordAnnouncer.Element(result!.Element!));
+    }
+
+    [Fact]
+    public async Task NoHeadingThatWay_SaysSo()
+    {
+        _word.Selection.Start = 80;
+
+        var result = await _source.MoveToAsync(IntPtr.Zero, WordElementKind.Heading, forward: true);
+
+        Assert.NotNull(result);
+        Assert.Null(result.Element);
+    }
+}

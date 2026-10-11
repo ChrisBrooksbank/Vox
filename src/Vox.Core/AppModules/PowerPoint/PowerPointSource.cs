@@ -52,7 +52,7 @@ public sealed class PowerPointObjectModelSource : IPowerPointSource
             var read = new PowerPointShape(
                 Try(() => (string)shape.Name) ?? $"Shape {i}",
                 type,
-                Try(() => (bool)shape.HasTextFrame && (bool)shape.TextFrame.HasText ? (string)shape.TextFrame.TextRange.Text : null),
+                Try(() => IsTrue((object?)shape.HasTextFrame) && IsTrue((object?)shape.TextFrame.HasText) ? (string)shape.TextFrame.TextRange.Text : null),
                 Try(() => (string)shape.AlternativeText),
                 type == 14 ? Try(() => (int)shape.PlaceholderFormat.Type) : 0);
             if (title is null && PowerPointFormatter.IsTitle(read))
@@ -67,6 +67,14 @@ public sealed class PowerPointObjectModelSource : IPowerPointSource
             Try(() => (int)app.ActivePresentation.Slides.Count),
             title, shapes, notes, inShow);
     }
+
+    /// <summary>An MsoTriState (msoTrue is -1, msoCTrue 1, msoFalse 0; it arrives as a number) or a bool.</summary>
+    public static bool IsTrue(object? value) => value switch
+    {
+        bool b => b,
+        null => false,
+        _ => Convert.ToInt32(value) != 0,
+    };
 
     private static T? Try<T>(Func<T?> read)
     {

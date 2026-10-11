@@ -37,7 +37,8 @@ public interface IOfficeObjectModel
 /// thread replaced, so a hung Office never holds up the next call. The application object is found
 /// through the window's native object model (<c>AccessibleObjectFromWindow</c> with
 /// <c>OBJID_NATIVEOM</c> on the document window), which works as soon as the window exists, and
-/// else through the running object table. It is cached per application until a call fails.
+/// else through the running object table. Each Office thread caches it per application until a
+/// call fails.
 /// </summary>
 public sealed class OfficeObjectModel : IOfficeObjectModel, IDisposable
 {
@@ -46,22 +47,18 @@ public sealed class OfficeObjectModel : IOfficeObjectModel, IDisposable
 
     private readonly UIAThread _thread;
     private readonly ILogger _logger;
-    // Only touched on the Office thread (cleared from the timeout handler through a generation check)
-    private readonly Dictionary<OfficeApp, (object Application, IntPtr Window)> _applications = new();
-    private int _generation;
-    private int _cachedGeneration;
+    // Each Office thread's own objects: an object belongs to the apartment of the thread that
+    // made it, and a call abandoned on a replaced thread may still be adding one when it returns
+    private readonly ThreadLocal<Dictionary<OfficeApp, (object Application, IntPtr Window)>> _applications =
+        new(() => new Dictionary<OfficeApp, (object Application, IntPtr Window)>());
 
     public OfficeObjectModel(ILogger<OfficeObjectModel>? logger = null, ILogger<UIAThread>? threadLogger = null)
     {
         _logger = (ILogger?)logger ?? NullLogger.Instance;
         _thread = new UIAThread(threadLogger ?? NullLogger<UIAThread>.Instance, "Vox-Office-STA");
-        _thread.CallTimedOut += (_, _) =>
-        {
-            // The thread is stuck in a call into Office: later calls get a new thread, and the
-            // objects made on the old one are not used again
-            Interlocked.Increment(ref _generation);
-            _thread.ReplaceStuckThread();
-        };
+        // The thread is stuck in a call into Office: later calls get a new thread, which finds
+        // the applications again (the objects made on the old one stay with it)
+        _thread.CallTimedOut += (_, _) => _thread.ReplaceStuckThread();
     }
 
     public async Task<T?> RunAsync<T>(OfficeApp app, IntPtr window, Func<dynamic, T?> work, TimeSpan? timeout = null) where T : class
@@ -82,7 +79,7 @@ public sealed class OfficeObjectModel : IOfficeObjectModel, IDisposable
                 catch (COMException ex) when (IsDisconnected(ex))
                 {
                     // Office was closed or restarted: find it again next time
-                    _applications.Remove(app);
+                    _applications.Value!.Remove(app);
                     throw;
                 }
             }, timeout ?? DefaultTimeout).ConfigureAwait(false);
@@ -102,18 +99,13 @@ public sealed class OfficeObjectModel : IOfficeObjectModel, IDisposable
 
     private object? Application(OfficeApp app, IntPtr window)
     {
-        int generation = Volatile.Read(ref _generation);
-        if (generation != _cachedGeneration)
-        {
-            _applications.Clear();
-            _cachedGeneration = generation;
-        }
-        if (_applications.TryGetValue(app, out var cached) && (window == IntPtr.Zero || cached.Window == window))
+        var applications = _applications.Value!;
+        if (applications.TryGetValue(app, out var cached) && (window == IntPtr.Zero || cached.Window == window))
             return cached.Application;
 
         var application = FromWindow(app, window) ?? FromRunningObjectTable(app);
         if (application is not null)
-            _applications[app] = (application, window);
+            applications[app] = (application, window);
         return application;
     }
 
@@ -183,7 +175,11 @@ public sealed class OfficeObjectModel : IOfficeObjectModel, IDisposable
         return found;
     }
 
-    public void Dispose() => _thread.Dispose();
+    public void Dispose()
+    {
+        _thread.Dispose();
+        _applications.Dispose();
+    }
 
     private const uint ObjIdNativeOm = 0xFFFFFFF0;
     private static readonly Guid IDispatchId = new("00020400-0000-0000-C000-000000000046");
