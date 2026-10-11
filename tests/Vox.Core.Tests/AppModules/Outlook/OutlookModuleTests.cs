@@ -115,8 +115,15 @@ public class OutlookModuleTests : IDisposable
         public List<OutlookAppointment> Appointments { get; } = [];
         public List<(DateTime, DateTime)> AppointmentQueries { get; } = [];
         public List<OutlookMeetingAnswer> Answers { get; } = [];
+        /// <summary>When set, reading the message waits for this (Outlook answering late).</summary>
+        public Task? Gate { get; set; }
 
-        public Task<OutlookMessage?> CurrentMessageAsync(IntPtr window) => Task.FromResult(Message);
+        public async Task<OutlookMessage?> CurrentMessageAsync(IntPtr window)
+        {
+            if (Gate is { } gate)
+                await gate.ConfigureAwait(false);
+            return Message;
+        }
         public Task<string?> BodyAsync(IntPtr window) => Task.FromResult(Body);
 
         public Task<IReadOnlyList<OutlookAppointment>?> AppointmentsAsync(DateTime from, DateTime to)
@@ -182,6 +189,24 @@ public class OutlookModuleTests : IDisposable
     [Fact]
     public void OtherControls_KeepVoxsAnnouncement() =>
         Assert.Equal("Reply, button", _module.FormatFocusAnnouncement(new FocusChangedEvent(DateTimeOffset.UtcNow, "Reply", "Button"), "Reply, button"));
+
+    [Fact]
+    public async Task FocusMovingToAnotherControl_DropsTheRowStillBeingRead()
+    {
+        _settings.Set(_settings.CurrentValue with { OutlookAutoRead = true });
+        var gate = new TaskCompletionSource();
+        _outlook.Gate = gate.Task;
+        _outlook.Message = new OutlookMessage(OutlookItemKind.Mail, "Ann", "Budget", Now);
+        _outlook.Body = "Please see attached.";
+        _module.FormatFocusAnnouncement(Row("Ann Budget"), "Ann Budget");
+
+        // Tab to the reading pane before Outlook answered: its announcement must not be cut off
+        _module.FormatFocusAnnouncement(new FocusChangedEvent(DateTimeOffset.UtcNow, "Message", "Document"), "Message, document");
+        gate.SetResult();
+        await Task.Delay(100);
+
+        Assert.DoesNotContain(_engine.SpokenText, t => t.Contains("Budget") || t.Contains("attached"));
+    }
 
     [Fact]
     public async Task AutoRead_ReadsTheBodyAfterTheRow_OncePerMessage()

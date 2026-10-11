@@ -104,7 +104,15 @@ public class ExplorerModuleTests : IDisposable
     private sealed class FakeRows : IDetailsRowSource
     {
         public IReadOnlyList<DetailsCell>? Row { get; set; }
-        public Task<IReadOnlyList<DetailsCell>?> FocusedRowAsync() => Task.FromResult(Row);
+        /// <summary>When set, reading the row waits for this (UIA answering late).</summary>
+        public Task? Gate { get; set; }
+
+        public async Task<IReadOnlyList<DetailsCell>?> FocusedRowAsync()
+        {
+            if (Gate is { } gate)
+                await gate.ConfigureAwait(false);
+            return Row;
+        }
     }
 
     private readonly FakeRows _rows = new();
@@ -161,6 +169,22 @@ public class ExplorerModuleTests : IDisposable
         _module.FormatFocusAnnouncement(Item("Recycle Bin"), "Recycle Bin, list item, 3 of 10");
 
         await _engine.WaitForTextAsync("Recycle Bin, list item, 3 of 10");
+    }
+
+    [Fact]
+    public async Task FocusMovingToAnotherControl_DropsTheRowStillBeingRead()
+    {
+        var gate = new TaskCompletionSource();
+        _rows.Gate = gate.Task;
+        _rows.Row = Row;
+        _module.FormatFocusAnnouncement(Item("report.docx"), "report.docx, list item");
+
+        // F2 before the row was read: the rename box's announcement must not be cut off
+        _module.FormatFocusAnnouncement(new FocusChangedEvent(DateTimeOffset.UtcNow, "report.docx", "Edit"), "report.docx, edit");
+        gate.SetResult();
+        await Task.Delay(100);
+
+        Assert.Empty(_engine.SpokenText);
     }
 
     [Fact]

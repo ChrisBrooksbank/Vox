@@ -72,6 +72,8 @@ public sealed class OutlookModule : AppModule
     public override void OnActivated(AppActivation activation)
     {
         base.OnActivated(activation);
+        // A row (or body) read before Outlook was left is stale
+        _sequence++;
         _lastMessage = null;
     }
 
@@ -82,7 +84,11 @@ public sealed class OutlookModule : AppModule
     public override string? FormatFocusAnnouncement(FocusChangedEvent focus, string announcement)
     {
         if (!IsRow(focus))
+        {
+            // A row or body read still on its way would be said over this control
+            _sequence++;
             return announcement;
+        }
         long sequence = ++_sequence;
         var window = Window;
         _ = Task.Run(async () =>

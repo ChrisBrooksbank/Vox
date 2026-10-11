@@ -27,6 +27,8 @@ public sealed class ExcelModule : AppModule
 
     // Pipeline thread only
     private long _sequence;
+    // The sequence of a cell read not answered yet, or 0
+    private long _pendingCellRead;
     private ExcelCell? _lastCell;
     private bool _onCell;
 
@@ -50,7 +52,9 @@ public sealed class ExcelModule : AppModule
     public override void OnActivated(AppActivation activation)
     {
         base.OnActivated(activation);
-        // Coming back to Excel: the sheet is said again with the first cell
+        // Coming back to Excel: the sheet is said again with the first cell, and an answer from
+        // before is stale
+        _sequence++;
         _lastCell = null;
         _onCell = false;
     }
@@ -59,6 +63,8 @@ public sealed class ExcelModule : AppModule
     {
         if (!IsCell(focus))
         {
+            // A cell read still on its way would be said over this control
+            _sequence++;
             _onCell = false;
             return announcement;
         }
@@ -72,8 +78,9 @@ public sealed class ExcelModule : AppModule
 
     public override void OnEvent(ScreenReaderEvent evt)
     {
-        // Extending the selection (Shift+arrows) selects cells without moving the focus
-        if (evt is ElementSelectedEvent && _onCell)
+        // Extending the selection (Shift+arrows) selects cells without moving the focus. Moving
+        // to a cell selects it too: the cell read on its way already says the selection.
+        if (evt is ElementSelectedEvent && _onCell && _pendingCellRead != _sequence)
             ReadCell(null, interrupt: true, selectionOnly: true);
     }
 
@@ -84,6 +91,8 @@ public sealed class ExcelModule : AppModule
     private void ReadCell(string? fallback, bool interrupt, bool selectionOnly)
     {
         long sequence = ++_sequence;
+        if (!selectionOnly)
+            _pendingCellRead = sequence;
         var window = Window;
         _ = Task.Run(async () =>
         {
@@ -94,6 +103,8 @@ public sealed class ExcelModule : AppModule
 
     private void CellRead(long sequence, ExcelCell? cell, string? fallback, bool interrupt, bool selectionOnly)
     {
+        if (sequence == _pendingCellRead)
+            _pendingCellRead = 0;
         // The user has moved on
         if (sequence != _sequence || !IsActive)
             return;
