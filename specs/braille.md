@@ -13,7 +13,7 @@ Braille output and input for refreshable braille displays: liblouis translation,
 
 ## Requirements
 
-- [ ] `IBrailleDisplay`: `IsConnected`, `CellCount`, `Write(cells, cursorPos)`, `KeyPressed` event (with display-specific key names)
+- [x] `IBrailleDisplay`: `IsConnected`, `CellCount`, `Write(cells, cursorPos)`, `KeyPressed` event (with display-specific key names)
 - [ ] `IBrailleTranslator` and `LibLouisTranslator` (P/Invoke to `liblouis.dll`, LGPL, loaded dynamically): forward translation with cursor mapping, back-translation for input; tables chosen in settings (default `en-ueb-g2.ctb`, plus computer braille `en-us-comp8.ctb`)
 - [ ] Show the uncontracted word at the cursor when contracted braille is on (setting)
 - [ ] `HidBrailleDisplay`: Windows HID braille usage page driver (auto-detect)
