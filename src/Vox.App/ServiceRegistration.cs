@@ -359,7 +359,11 @@ public static class ServiceRegistration
             sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
             sp.GetRequiredService<IBrailleRouter>(),
             sp.GetRequiredService<IKeyboardOutput>(),
-            sp.GetRequiredService<ILogger<BrailleController>>()));
+            sp.GetRequiredService<ILogger<BrailleController>>(),
+            // liblouis is an add-on: never loaded in secure mode
+            translatorFactory: (sp.GetService<RunPolicy>() ?? RunPolicy.Normal).AllowAddOns
+                ? table => BrailleTranslatorFactory.Create(table, null, sp.GetRequiredService<ILogger<BrailleController>>())
+                : _ => new ComputerBrailleTranslator()));
 
         // Hosted services: ScreenReaderService first, so its pipeline handlers run before braille's
         services.AddHostedService<ScreenReaderService>();

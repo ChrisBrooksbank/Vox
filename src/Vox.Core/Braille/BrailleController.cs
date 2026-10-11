@@ -86,7 +86,9 @@ public sealed class BrailleController : IDisposable
         _viewport = new BrailleViewport(_translator);
         _keyMap = BrailleKeyMap.ForDriver(null);
         _tether = _tetherSetting = settings.CurrentValue.BrailleTether;
-        _input = new BrailleInput(() => _translator, () => BrailleTables.IsContracted(_table), keyboard);
+        // Computer braille (no liblouis) is never contracted, whatever the table setting says
+        _input = new BrailleInput(() => _translator,
+            () => _translator is not ComputerBrailleTranslator && BrailleTables.IsContracted(_table), keyboard);
 
         _displays.DisplayChanged += OnDisplayChanged;
         _displays.KeyPressed += OnKeyPressed;
