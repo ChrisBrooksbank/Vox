@@ -243,6 +243,23 @@ public static class CommandCatalog
         Add(NavigationCommand.WordTableCellRight, "Word: cell to the right", "Moves to the table cell on the right and reads it with its column header.", CommandCategory.Applications);
         Add(NavigationCommand.WordTableCellUp, "Word: cell above", "Moves to the table cell above and reads it with its row header.", CommandCategory.Applications);
         Add(NavigationCommand.WordTableCellDown, "Word: cell below", "Moves to the table cell below and reads it with its row header.", CommandCategory.Applications);
+        foreach (var (command, field) in new[]
+                 {
+                     (NavigationCommand.OutlookReadFrom, "sender"), (NavigationCommand.OutlookReadTo, "recipients"),
+                     (NavigationCommand.OutlookReadCc, "copied recipients"), (NavigationCommand.OutlookReadSubject, "subject"),
+                     (NavigationCommand.OutlookReadDate, "date"), (NavigationCommand.OutlookReadAttachments, "attachments"),
+                 })
+            Add(command, $"Outlook: read {field}", $"Says the {field} of the open or selected message.", CommandCategory.Applications);
+        Add(NavigationCommand.OutlookMeetingStatus, "Outlook: meeting status", "Says a meeting request's time, place and your answer so far.", CommandCategory.Applications);
+        Add(NavigationCommand.OutlookAcceptMeeting, "Outlook: accept meeting", "Press twice to accept the selected meeting request and send the answer.", CommandCategory.Applications);
+        Add(NavigationCommand.OutlookTentativeMeeting, "Outlook: tentatively accept meeting", "Press twice to tentatively accept the selected meeting request and send the answer.", CommandCategory.Applications);
+        Add(NavigationCommand.OutlookDeclineMeeting, "Outlook: decline meeting", "Press twice to decline the selected meeting request and send the answer.", CommandCategory.Applications);
+        Add(NavigationCommand.OutlookToday, "Outlook: today's appointments", "Says today's appointments: time, subject, place and organizer.", CommandCategory.Applications);
+        Add(NavigationCommand.OutlookThisWeek, "Outlook: this week's appointments", "Says the appointments of the next 7 days.", CommandCategory.Applications);
+        Add(NavigationCommand.PowerPointNextShape, "PowerPoint: next shape", "Selects the next shape on the slide and reads it.", CommandCategory.Applications);
+        Add(NavigationCommand.PowerPointPrevShape, "PowerPoint: previous shape", "Selects the previous shape on the slide and reads it.", CommandCategory.Applications);
+        Add(NavigationCommand.PowerPointNotes, "PowerPoint: speaker notes", "Says the current slide's speaker notes.", CommandCategory.Applications);
+        Add(NavigationCommand.PowerPointReadSlide, "PowerPoint: read slide", "Says the current slide's number, title and text.", CommandCategory.Applications);
         Add(NavigationCommand.CheckForUpdates, "Check for updates", "Checks for a newer Vox now, and offers to install it.", CommandCategory.System);
         Add(NavigationCommand.CreatePortableCopy, "Create portable copy", "Copies Vox and your settings to a folder, such as a USB stick, to run on other computers.", CommandCategory.System);
         Add(NavigationCommand.RunTutorial, "Practice lessons", "Runs the practice lessons, where you press each key and hear what it does.", CommandCategory.System);

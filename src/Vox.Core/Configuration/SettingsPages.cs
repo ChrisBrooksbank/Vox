@@ -67,6 +67,19 @@ public static class SettingsPages
     [
         ("word", "Microsoft Word"),
         ("excel", "Microsoft Excel"),
+        ("outlook", "Microsoft Outlook"),
+        ("powerpoint", "Microsoft PowerPoint"),
+    ];
+
+    /// <summary>The message list column orders the Applications page offers.</summary>
+    public static readonly IReadOnlyList<string[]> OutlookColumnOrders =
+    [
+        ["From", "Subject", "Received"],
+        ["Subject", "From", "Received"],
+        ["From", "Subject"],
+        ["Subject", "From"],
+        ["From", "Subject", "Received", "Size"],
+        ["From", "Subject", "Received", "Categories"],
     ];
 
     public static SettingsPage Applications() => new("Applications",
@@ -82,6 +95,14 @@ public static class SettingsPages
         new ToggleField("Word: say &comments and tracked changes at the caret", s => s.WordReportCommentsAndRevisions, (s, v) => s with { WordReportCommentsAndRevisions = v }),
         new ToggleField("Excel: say when a cell has a &formula", s => s.ExcelReportFormulas, (s, v) => s with { ExcelReportFormulas = v }),
         new ToggleField("Excel: say when a cell has a &comment or note", s => s.ExcelReportCommentsAndNotes, (s, v) => s with { ExcelReportCommentsAndNotes = v }),
+        new ChoiceField("Outlook: message list &columns",
+            OutlookColumnOrders.Select(order => new SettingChoice(string.Join(", ", order), (object?)string.Join(",", order))).ToList(),
+            s => string.Join(",", s.OutlookColumns),
+            (s, v) => v is string order ? s with { OutlookColumns = [.. order.Split(',')] } : s),
+        Choice("Outlook: say message &statuses (unread, flagged, attachment)", s => s.OutlookStatusPosition, (s, v) => s with { OutlookStatusPosition = v },
+            new() { [global::Vox.Core.AppModules.Outlook.OutlookStatusPosition.First] = "First", [global::Vox.Core.AppModules.Outlook.OutlookStatusPosition.Last] = "Last",
+                    [global::Vox.Core.AppModules.Outlook.OutlookStatusPosition.Off] = "Not at all" }),
+        new ToggleField("Outlook: &read the selected message", s => s.OutlookAutoRead, (s, v) => s with { OutlookAutoRead = v }),
     ]);
 
     public static SettingsPage General() => new("General",

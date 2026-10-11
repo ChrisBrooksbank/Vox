@@ -3,6 +3,8 @@ using Vox.Core.Accessibility;
 using Vox.Core.AppModules;
 using Vox.Core.AppModules.Excel;
 using Vox.Core.AppModules.Office;
+using Vox.Core.AppModules.Outlook;
+using Vox.Core.AppModules.PowerPoint;
 using Vox.Core.AppModules.Word;
 using Vox.Core.Audio;
 using Vox.Core.Braille;
@@ -361,6 +363,12 @@ public static class ServiceRegistration
         services.AddSingleton<IAppModule, ExcelModule>();
         services.AddSingleton<IWordSource, WordObjectModelSource>();
         services.AddSingleton<IAppModule, WordModule>();
+        services.AddSingleton<IOutlookSource, OutlookObjectModelSource>();
+        services.AddSingleton<IAppModule, OutlookModule>();
+        services.AddSingleton<IPowerPointSource, PowerPointObjectModelSource>();
+        services.AddSingleton<IAppModule>(sp => new PowerPointModule(
+            sp.GetRequiredService<IPowerPointSource>(), sp.GetRequiredService<SpeechQueue>(),
+            sp.GetRequiredService<IEventSink>(), sp.GetRequiredService<ILogger<PowerPointModule>>()));
         services.AddSingleton<AppModuleManager>(sp =>
         {
             var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();

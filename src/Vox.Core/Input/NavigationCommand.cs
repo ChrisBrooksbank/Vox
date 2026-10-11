@@ -225,5 +225,30 @@ public enum NavigationCommand
     WordTableCellLeft,
     WordTableCellRight,
     WordTableCellUp,
-    WordTableCellDown
+    WordTableCellDown,
+
+    // Outlook module
+    OutlookReadFrom,
+    OutlookReadTo,
+    OutlookReadCc,
+    OutlookReadSubject,
+    OutlookReadDate,
+    OutlookReadAttachments,
+    /// <summary>Says a meeting request's time, place and the user's answer so far (Outlook).</summary>
+    OutlookMeetingStatus,
+    OutlookAcceptMeeting,
+    OutlookTentativeMeeting,
+    OutlookDeclineMeeting,
+    /// <summary>Says today's appointments (Outlook).</summary>
+    OutlookToday,
+    /// <summary>Says the appointments of the next 7 days (Outlook).</summary>
+    OutlookThisWeek,
+
+    // PowerPoint module
+    PowerPointNextShape,
+    PowerPointPrevShape,
+    /// <summary>Says the current slide's speaker notes (PowerPoint).</summary>
+    PowerPointNotes,
+    /// <summary>Says the current slide's title and text (PowerPoint).</summary>
+    PowerPointReadSlide
 }

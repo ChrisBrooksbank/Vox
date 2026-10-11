@@ -182,6 +182,12 @@ public record VoxSettings
     public bool ExcelReportCommentsAndNotes { get; init; } = true;
     /// <summary>Word: say comments and tracked changes when the caret moves into them.</summary>
     public bool WordReportCommentsAndRevisions { get; init; } = true;
+    /// <summary>Outlook: the message list columns read, in order ("From", "Subject", "Received", "Size", "Categories", "To").</summary>
+    public List<string> OutlookColumns { get; init; } = ["From", "Subject", "Received"];
+    /// <summary>Outlook: whether a message's statuses (unread, flagged, attachment) are said before or after its columns.</summary>
+    public AppModules.Outlook.OutlookStatusPosition OutlookStatusPosition { get; init; } = AppModules.Outlook.OutlookStatusPosition.First;
+    /// <summary>Outlook: read the message after its row when another message is selected.</summary>
+    public bool OutlookAutoRead { get; init; }
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "eSpeak" when installed, "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }
