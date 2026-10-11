@@ -24,6 +24,7 @@
   <li><a href="#desktop">Applications and documents</a></li>
   <li><a href="#review">Reviewing the screen</a></li>
   <li><a href="#speech">Speech</a></li>
+  <li><a href="#braille">Braille</a></li>
   <li><a href="#settings">Settings and your own keys</a></li>
   <li><a href="#sleep">Sleep mode</a></li>
   <li><a href="#trouble">When something goes wrong</a></li>
@@ -73,6 +74,10 @@
 <h2 id="speech">Speech</h2>
 <p><kbd>Ctrl</kbd> stops speech. <kbd>Insert+Ctrl+Left</kbd> and <kbd>Right</kbd> pick a voice setting (voice, rate, pitch, volume, punctuation, synthesizer), <kbd>Insert+Ctrl+Up</kbd> and <kbd>Down</kbd> change it. <kbd>Insert+S</kbd> pauses all speech until pressed again. <kbd>Insert+Shift+F11</kbd> says again what Vox said a moment ago.</p>
 <p>Math in web pages is spoken and can be explored with <kbd>Insert+Alt+M</kbd> when the optional MathCAT component is installed.</p>
+
+<h2 id="braille">Braille</h2>
+<p>Vox finds a braille display by itself: HID braille displays (most displays made since 2018) plug in over USB or Bluetooth and need nothing else; older displays work through BRLTTY. The display shows the focused object with its surroundings (<q>Remember me chk ( )</q>, <q>Home lnk</q>), the line with the caret in a text field, and the line with the browse cursor on a web page. The cursor shows as dots 7 and 8, and selected text is underlined the same way. What Vox says is also shown for a few seconds.</p>
+<p>The display's pan keys move along the line and on to the next or previous line. A routing key moves the caret or the browse cursor to that cell; pressed again on a link or button, it activates it. Type on the braille keyboard as you would on a note taker: Space with dots for arrows, Tab, Escape and Vox commands. <kbd>Insert+Ctrl+T</kbd> switches the display between following the focus, the review cursor, or both. The Braille tab of Settings chooses the display, the braille table (contracted or not), the cursor and how much context to show. Contracted braille needs the optional liblouis component; without it Vox shows computer braille.</p>
 
 <h2 id="settings">Settings and your own keys</h2>
 <p><kbd>Insert+Ctrl+G</kbd> opens Settings. Every change applies at once; Cancel puts things back as they were. In Input gestures (Vox menu) you can add, change and remove the keys of any command; your keys are kept separately from the standard ones, so "Reset all to standard keys" always brings those back.</p>
