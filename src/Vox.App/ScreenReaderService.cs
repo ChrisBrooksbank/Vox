@@ -64,6 +64,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly FirstRunWizard _firstRunWizard;
     private readonly IOptionsMonitor<VoxSettings> _settings;
     private readonly IHostApplicationLifetime _lifetime;
+    private readonly RemoteSessionMonitor? _remoteSessions;
     private readonly ILogger<ScreenReaderService> _logger;
     private int _setupRunning;
 
@@ -128,8 +129,10 @@ public sealed class ScreenReaderService : IHostedService
         MouseCommands mouseCommands,
         SettingsCommands settingsCommands,
         Vox.Core.Updates.UpdateCommands updateCommands,
-        RunPolicy? runPolicy = null)
+        RunPolicy? runPolicy = null,
+        RemoteSessionMonitor? remoteSessions = null)
     {
+        _remoteSessions = remoteSessions;
         _updateCommands = updateCommands;
         _settingsCommands = settingsCommands;
         _review = review;
@@ -265,11 +268,42 @@ public sealed class ScreenReaderService : IHostedService
                 ? "Vox screen reader ready"
                 : "Vox screen reader ready, but keyboard commands are unavailable. Try running Vox as administrator.",
             SpeechPriority.Normal));
+
+        // Said once: in a remote session the keys and audio go through the remote-desktop client
+        if (_remoteSessions is not null)
+        {
+            if (_remoteSessions.Current.Announcement is { } remote && !_runPolicy.IsSecure)
+                _speechQueue.Enqueue(new Utterance(remote, SpeechPriority.Normal));
+            _remoteSessions.Changed += OnRemoteSessionChanged;
+            try { Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitch; }
+            catch (Exception ex) { _logger.LogDebug(ex, "Session changes won't be noticed"); }
+        }
+    }
+
+    // Reconnecting to the session from Remote Desktop, or at the computer again
+    private void OnSessionSwitch(object? sender, Microsoft.Win32.SessionSwitchEventArgs e)
+    {
+        if (e.Reason is Microsoft.Win32.SessionSwitchReason.RemoteConnect or Microsoft.Win32.SessionSwitchReason.ConsoleConnect)
+            _remoteSessions?.Refresh();
+    }
+
+    private void OnRemoteSessionChanged(object? sender, RemoteSession session)
+    {
+        ApplySettings(_settings.CurrentValue);
+        if (!_runPolicy.IsSecure)
+            _speechQueue.Enqueue(new Utterance(session.Announcement ?? "Local session", SpeechPriority.Normal));
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Vox Screen Reader stopping");
+
+        if (_remoteSessions is not null)
+        {
+            _remoteSessions.Changed -= OnRemoteSessionChanged;
+            try { Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitch; }
+            catch (Exception ex) { _logger.LogDebug(ex, "Could not unsubscribe from session changes"); }
+        }
 
         // Stop key input first so no new commands arrive
         _keyInputDispatcher.Stop();
@@ -360,6 +394,9 @@ public sealed class ScreenReaderService : IHostedService
     /// </summary>
     private void ApplySettings(VoxSettings settings)
     {
+        // As the settings work in this session (a remote one turns some audio settings off)
+        if (_remoteSessions is not null)
+            settings = _remoteSessions.Current.Adjust(settings);
         lock (_settingsLock)
         {
             var previous = _appliedSettings;

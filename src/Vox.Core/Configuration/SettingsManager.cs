@@ -11,7 +11,7 @@ namespace Vox.Core.Configuration;
 /// </summary>
 public sealed class SettingsManager
 {
-    public static readonly string DefaultUserSettingsPath = Path.Combine(
+    public static string DefaultUserSettingsPath => Path.Combine(
         Lifecycle.VoxPaths.UserData, "settings.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -49,6 +49,13 @@ public sealed class SettingsManager
     public bool ReadOnly { get; init; }
 
     /// <summary>
+    /// The computer's default settings (<see cref="Enterprise.MachineSettings"/>), laid between the
+    /// built-in defaults and the user's file: what a new user starts with, and what a user's file
+    /// doesn't say. Null: none.
+    /// </summary>
+    public JsonObject? MachineDefaults { get; init; }
+
+    /// <summary>
     /// Loads settings from the user settings file, falling back to defaults if not found or invalid.
     /// </summary>
     public VoxSettings Load()
@@ -83,7 +90,8 @@ public sealed class SettingsManager
             // a newer one is read as far as this version understands it, and never overwritten
             int version = SettingsMigrations.Migrate(document);
             _fileIsNewer = version > VoxSettings.CurrentSchemaVersion;
-            var loaded = document.Deserialize<VoxSettings>(JsonOptions);
+            var loaded = (MachineDefaults is null ? document : Enterprise.SettingValues.Overlay(MachineDefaults, document))
+                .Deserialize<VoxSettings>(JsonOptions);
             if (loaded is null)
                 return false;
 
@@ -167,6 +175,24 @@ public sealed class SettingsManager
 
     private VoxSettings LoadDefaults()
     {
+        if (MachineDefaults is not null)
+        {
+            try
+            {
+                var builtIn = File.Exists(_defaultSettingsPath) ? JsonNode.Parse(File.ReadAllText(_defaultSettingsPath)) as JsonObject : null;
+                var settings = Enterprise.SettingValues.Overlay(builtIn, MachineDefaults).Deserialize<VoxSettings>(JsonOptions);
+                if (settings is not null)
+                {
+                    _logger.LogInformation("Loaded default settings with the computer's defaults");
+                    return settings;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+            {
+                _logger.LogWarning(ex, "Failed to apply the computer's default settings");
+            }
+        }
+
         if (File.Exists(_defaultSettingsPath))
         {
             try
@@ -205,13 +231,20 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
     // Track last programmatic save time to suppress the resulting file watcher event
     private long _lastProgrammaticSaveTick;
 
-    public SettingsMonitor(SettingsManager manager, ILogger<SettingsMonitor> logger)
+    // The organization's policies: laid over every settings value this monitor gives out
+    private readonly Enterprise.PolicySettings _policy;
+
+    public SettingsMonitor(SettingsManager manager, ILogger<SettingsMonitor> logger, Enterprise.PolicySettings? policy = null)
     {
         _manager = manager;
         _logger = logger;
-        _current = _manager.Load();
+        _policy = policy ?? Enterprise.PolicySettings.None;
+        _current = _policy.Apply(_manager.Load());
         StartWatching();
     }
+
+    /// <summary>The organization's policies, which these settings always follow.</summary>
+    public Enterprise.PolicySettings Policy => _policy;
 
     public VoxSettings CurrentValue => _current;
 
@@ -223,6 +256,8 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
     /// </summary>
     public void UpdateSettings(VoxSettings settings)
     {
+        // A setting the policy sets can't be changed, whoever changes it
+        settings = _policy.Restrain(_current, settings);
         _current = settings;
         Interlocked.Exchange(ref _lastProgrammaticSaveTick, Environment.TickCount64);
         _manager.Save(settings);
@@ -283,6 +318,7 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
                 _logger.LogWarning("Settings file changed but could not be read; keeping current settings");
                 return;
             }
+            reloaded = _policy.Restrain(_current, reloaded);
             _current = reloaded;
             _logger.LogInformation("Settings reloaded from file change");
             Action<VoxSettings, string?>[] snapshot;

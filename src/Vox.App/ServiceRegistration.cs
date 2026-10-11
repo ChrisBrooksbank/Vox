@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.Audio;
@@ -6,6 +7,7 @@ using Vox.Core.Braille.Brltty;
 using Vox.Core.Braille.Hid;
 using Vox.Core.Configuration;
 using Vox.Core.Diagnostics;
+using Vox.Core.Enterprise;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
 using Vox.Core.MathSpeech;
@@ -32,8 +34,14 @@ public static class ServiceRegistration
             return new SettingsManager(logger, defaultSettingsPath, policy.SettingsPath)
             {
                 ReadOnly = !policy.AllowSettingsWrites,
+                // What the administrator set for new users (the installer's properties, machine-settings.json)
+                MachineDefaults = MachineSettings.Read(sp.GetRequiredService<IRegistryReader>(), MachineSettings.FilePath, logger),
             };
         });
+        services.AddSingleton<IRegistryReader, Win32RegistryReader>();
+        // The organization's policies (Program.cs reads them first, as they shape RunPolicy and paths)
+        services.TryAddSingleton(sp => PolicySettings.Read(sp.GetRequiredService<IRegistryReader>(),
+            includeUser: !(sp.GetService<RunPolicy>() ?? RunPolicy.Normal).IsSecure));
         services.AddSingleton<SettingsMonitor>();
         services.AddSingleton<IOptionsMonitor<VoxSettings>>(sp => sp.GetRequiredService<SettingsMonitor>());
 
@@ -193,6 +201,9 @@ public static class ServiceRegistration
         services.AddSingleton<MouseTracker>(sp => ActivatorUtilities.CreateInstance<MouseTracker>(sp,
             new Action<VoxSettings>(sp.GetRequiredService<SettingsMonitor>().UpdateSettings)));
         services.AddSingleton<IStartupRegistration, RunKeyStartupRegistration>();
+        // Remote Desktop / Citrix: said at startup; some audio settings are off remotely
+        services.AddSingleton<IRemoteSessionProbe, Win32RemoteSessionProbe>();
+        services.AddSingleton<RemoteSessionMonitor>();
         services.AddSingleton<IAudioDucker, Win32AudioDucker>();
         services.AddSingleton<DuckingController>(sp =>
         {
@@ -297,12 +308,14 @@ public static class ServiceRegistration
             var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
             var key = policy.AllowNetwork ? UpdateChecker.ReadPublicKey(Path.Combine(AppContext.BaseDirectory, "assets", "config")) : null;
             return new UpdateChecker(
-                new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
+                // Refuses every request while the network is off (DisableNetwork policy)
+                NetworkAccess.CreateHttpClient(policy, TimeSpan.FromSeconds(60)),
                 () => settings.CurrentValue.UpdateChannel,
                 key,
                 UpdateChecker.DefaultFeedUrl,
                 typeof(ServiceRegistration).Assembly.GetName().Version ?? new Version(0, 1),
-                sp.GetRequiredService<ILogger<UpdateChecker>>());
+                sp.GetRequiredService<ILogger<UpdateChecker>>(),
+                policy);
         });
         services.AddSingleton<UpdateCommands>(sp =>
         {
@@ -343,13 +356,15 @@ public static class ServiceRegistration
                 sp.GetRequiredService<SpeechQueue>(),
                 gestures,
                 sp.GetRequiredService<IVoxMenuPresenter>(),
-                sp.GetRequiredService<IPortableCopyPresenter>());
+                sp.GetRequiredService<IPortableCopyPresenter>(),
+                sp.GetRequiredService<PolicySettings>());
         });
 
         // Braille: display drivers in the order auto-detect tries them, then the controller
         services.AddSingleton<IKeyboardOutput, SendInputKeyboardOutput>();
         services.AddSingleton<IBrailleDisplayDriver>(sp => new HidBrailleDisplay(sp.GetRequiredService<ILogger<HidBrailleDisplay>>()));
-        services.AddSingleton<IBrailleDisplayDriver>(sp => new BrlttyDisplay(logger: sp.GetRequiredService<ILogger<BrlttyDisplay>>()));
+        services.AddSingleton<IBrailleDisplayDriver>(sp => new BrlttyDisplay(logger: sp.GetRequiredService<ILogger<BrlttyDisplay>>(),
+            policy: sp.GetService<RunPolicy>() ?? RunPolicy.Normal));
         services.AddSingleton<BrailleDisplayManager>();
         services.AddSingleton<IBrailleDisplaySource>(sp => sp.GetRequiredService<BrailleDisplayManager>());
         services.AddSingleton<UIAFocusAncestry>();
