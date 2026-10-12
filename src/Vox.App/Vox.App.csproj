@@ -4,9 +4,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OutputType>Exe</OutputType>
-    <!-- UI access needs a signed exe: only signed builds ask for it (docs/signing.md) -->
-    <ApplicationManifest Condition="'$(VoxSigningCertificate)' == ''">app.manifest</ApplicationManifest>
-    <ApplicationManifest Condition="'$(VoxSigningCertificate)' != ''">app.uiaccess.manifest</ApplicationManifest>
+    <!-- UI access needs a signed exe: only signed builds ask for it (docs/signing.md). VoxUiAccess=true
+         asks for it in a build that is signed afterwards, by SignPath -->
+    <VoxUiAccess Condition="'$(VoxUiAccess)' == '' And '$(VoxSigningCertificate)' != ''">true</VoxUiAccess>
+    <ApplicationManifest Condition="'$(VoxUiAccess)' != 'true'">app.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="'$(VoxUiAccess)' == 'true'">app.uiaccess.manifest</ApplicationManifest>
     <VoxSignTool Condition="'$(VoxSignTool)' == ''">signtool.exe</VoxSignTool>
     <VoxTimestampUrl Condition="'$(VoxTimestampUrl)' == ''">http://timestamp.digicert.com</VoxTimestampUrl>
   </PropertyGroup>

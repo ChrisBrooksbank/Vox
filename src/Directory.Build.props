@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Every Vox program and library is the product "Vox"; SignPath signs only files that say so (docs/signing.md) -->
+    <Product>Vox</Product>
+  </PropertyGroup>
+</Project>
