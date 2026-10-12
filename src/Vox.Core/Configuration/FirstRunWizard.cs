@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 using Vox.Core.Speech;
 
 namespace Vox.Core.Configuration;
@@ -86,7 +87,7 @@ public sealed class FirstRunWizard
             bool proceed = await RunWelcomeStepAsync(cancellationToken);
             if (!proceed)
             {
-                await SpeakAsync($"Setup skipped. You can run it again at any time with {RerunKeyDescription}.", cancellationToken);
+                await SpeakAsync(VoxStrings.Format("Wizard.Skipped", RerunKeyDescription), cancellationToken);
                 settings = settings with { FirstRunCompleted = true };
                 _settingsMonitor.UpdateSettings(settings);
                 return;
@@ -116,9 +117,7 @@ public sealed class FirstRunWizard
             // Step 8: Completion
             settings = settings with { FirstRunCompleted = true };
             _settingsMonitor.UpdateSettings(settings);
-            await SpeakAsync(
-                "Setup complete. Welcome to Vox.",
-                cancellationToken);
+            await SpeakAsync(VoxStrings.Get("Wizard.Complete"), cancellationToken);
 
             _logger.LogInformation("First-run wizard completed");
         }
@@ -134,7 +133,7 @@ public sealed class FirstRunWizard
             _speechEngine.SetVoice(saved.VoiceName ?? string.Empty);
             try
             {
-                await SpeakAsync("Setup ended. Your choices so far are saved.", cancellationToken);
+                await SpeakAsync(VoxStrings.Get("Wizard.Ended"), cancellationToken);
             }
             catch (OperationCanceledException) { }
         }
@@ -159,9 +158,13 @@ public sealed class FirstRunWizard
 
     /// <summary>How the key that runs setup again is spoken (RunSetup in the keymap: modifier+Ctrl+S).</summary>
     private string RerunKeyDescription =>
-        (_settingsMonitor.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert") + " Control S";
+        VoxStrings.Format("Wizard.RerunKey", InputHelp.ScreenReaderKeyName(_settingsMonitor.CurrentValue.ModifierKey));
 
     private bool _exitOnEscape;
+
+    /// <summary>A setting's value as the wizard says it ("Beginner", "Laptop"): the Enum.&lt;type&gt;.&lt;value&gt; string.</summary>
+    private static string EnumName<T>(T value) where T : struct, Enum =>
+        VoxStrings.GetOrDefault($"Enum.{typeof(T).Name}.{value}", value.ToString());
 
     private sealed class WizardExitException(string reason) : Exception(reason);
 
@@ -177,11 +180,7 @@ public sealed class FirstRunWizard
 
         try
         {
-            var key = await PromptAsync(
-                "Welcome to Vox screen reader. " +
-                "This guided setup will help you configure speech rate, voice, verbosity, keyboard layout and modifier key. " +
-                "Press Enter to begin, or Escape to skip setup.",
-                timeoutCts.Token);
+            var key = await PromptAsync(VoxStrings.Get("Wizard.Welcome"), timeoutCts.Token);
 
             while (true)
             {
@@ -215,10 +214,7 @@ public sealed class FirstRunWizard
         int rate = settings.SpeechRateWpm;
         _speechEngine.SetRate(rate);
 
-        var key = await PromptAsync(
-            $"Step 1 of 6: Speech rate. Current rate is {rate} words per minute. " +
-            "Press Up to increase, Down to decrease, or Enter to accept.",
-            cancellationToken);
+        var key = await PromptAsync(VoxStrings.Format("Wizard.RatePrompt", rate), cancellationToken);
 
         while (key.VkCode != VirtualKeys.Return)
         {
@@ -228,7 +224,7 @@ public sealed class FirstRunWizard
                     ? Math.Min(rate + (rate >= FastRateFromWpm ? FastRateStep : RateStep), MaxRateWpm)
                     : Math.Max(rate - (rate > FastRateFromWpm ? FastRateStep : RateStep), MinRateWpm);
                 _speechEngine.SetRate(rate);
-                key = await PromptAsync($"{rate} words per minute. The quick brown fox jumps over the lazy dog.", cancellationToken);
+                key = await PromptAsync(VoxStrings.Format("Wizard.RateSample", rate, VoxStrings.Get("Wizard.SampleSentence")), cancellationToken);
                 continue;
             }
             key = await WaitForKeyDownAsync(cancellationToken);
@@ -236,7 +232,7 @@ public sealed class FirstRunWizard
 
         settings = settings with { SpeechRateWpm = rate };
         _settingsMonitor.UpdateSettings(settings);
-        await SpeakAsync($"Speech rate set to {rate} words per minute.", cancellationToken);
+        await SpeakAsync(VoxStrings.Format("Wizard.RateSet", rate), cancellationToken);
         return settings;
     }
 
@@ -245,7 +241,7 @@ public sealed class FirstRunWizard
         var voices = _speechEngine.GetAvailableVoices();
         if (voices.Count == 0)
         {
-            await SpeakAsync("Step 2 of 6: No additional voices found. Continuing with default voice.", cancellationToken);
+            await SpeakAsync(VoxStrings.Get("Wizard.NoVoices"), cancellationToken);
             return settings;
         }
 
@@ -258,11 +254,7 @@ public sealed class FirstRunWizard
         }
         int initialIndex = currentIndex;
 
-        var key = await PromptAsync(
-            $"Step 2 of 6: Voice selection. {voices.Count} voices available. " +
-            $"Current voice: {voices[currentIndex]}. " +
-            "Press Up or Down to cycle voices, Enter to accept.",
-            cancellationToken);
+        var key = await PromptAsync(VoxStrings.Format("Wizard.VoicePrompt", voices.Count, voices[currentIndex]), cancellationToken);
 
         while (key.VkCode != VirtualKeys.Return)
         {
@@ -272,7 +264,7 @@ public sealed class FirstRunWizard
                     ? (currentIndex + 1) % voices.Count
                     : (currentIndex - 1 + voices.Count) % voices.Count;
                 _speechEngine.SetVoice(voices[currentIndex]);
-                key = await PromptAsync($"{voices[currentIndex]}. The quick brown fox jumps over the lazy dog.", cancellationToken);
+                key = await PromptAsync(VoxStrings.Format("Wizard.VoiceSample", voices[currentIndex], VoxStrings.Get("Wizard.SampleSentence")), cancellationToken);
                 continue;
             }
             key = await WaitForKeyDownAsync(cancellationToken);
@@ -285,19 +277,13 @@ public sealed class FirstRunWizard
             settings = settings with { VoiceName = voices[currentIndex] };
             _settingsMonitor.UpdateSettings(settings);
         }
-        await SpeakAsync($"Voice set to {voices[currentIndex]}.", cancellationToken);
+        await SpeakAsync(VoxStrings.Format("Wizard.VoiceSet", voices[currentIndex]), cancellationToken);
         return settings;
     }
 
     private async Task<VoxSettings> RunVerbosityStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
-        var key = await PromptAsync(
-            "Step 3 of 6: Verbosity level. " +
-            "Press 1 for Beginner — all element details announced, recommended for new users. " +
-            "Press 2 for Intermediate — control type and essential state. " +
-            "Press 3 for Advanced — minimal announcements. " +
-            "Press Enter to keep the current setting.",
-            cancellationToken);
+        var key = await PromptAsync(VoxStrings.Get("Wizard.VerbosityPrompt"), cancellationToken);
 
         for (; ; key = await WaitForKeyDownAsync(cancellationToken))
         {
@@ -322,18 +308,13 @@ public sealed class FirstRunWizard
         }
 
         _settingsMonitor.UpdateSettings(settings);
-        await SpeakAsync($"Verbosity set to {settings.VerbosityLevel}.", cancellationToken);
+        await SpeakAsync(VoxStrings.Format("Wizard.VerbositySet", EnumName(settings.VerbosityLevel)), cancellationToken);
         return settings;
     }
 
     private async Task<VoxSettings> RunKeyboardLayoutStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
-        var key = await PromptAsync(
-            "Step 4 of 6: Keyboard layout. " +
-            "Press 1 for Desktop, which uses the numeric keypad, for keyboards that have one. " +
-            "Press 2 for Laptop, for keyboards without a numeric keypad; it uses Caps Lock as the modifier key. " +
-            $"Press Enter to keep {settings.KeyboardLayout}.",
-            cancellationToken);
+        var key = await PromptAsync(VoxStrings.Format("Wizard.LayoutPrompt", EnumName(settings.KeyboardLayout)), cancellationToken);
 
         for (; ; key = await WaitForKeyDownAsync(cancellationToken))
         {
@@ -354,19 +335,14 @@ public sealed class FirstRunWizard
         }
 
         _settingsMonitor.UpdateSettings(settings);
-        await SpeakAsync($"Keyboard layout set to {settings.KeyboardLayout}.", cancellationToken);
+        await SpeakAsync(VoxStrings.Format("Wizard.LayoutSet", EnumName(settings.KeyboardLayout)), cancellationToken);
         return settings;
     }
 
     private async Task<VoxSettings> RunModifierKeyStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
         var key = await PromptAsync(
-            "Step 5 of 6: Modifier key. " +
-            $"It is now {(settings.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert")}. " +
-            "Press 1 for Insert key, recommended for the desktop layout. " +
-            "Press 2 for Caps Lock, recommended for the laptop layout. " +
-            "Press Enter to keep it.",
-            cancellationToken);
+            VoxStrings.Format("Wizard.ModifierPrompt", InputHelp.ScreenReaderKeyName(settings.ModifierKey)), cancellationToken);
 
         for (; ; key = await WaitForKeyDownAsync(cancellationToken))
         {
@@ -386,32 +362,22 @@ public sealed class FirstRunWizard
         }
 
         _settingsMonitor.UpdateSettings(settings);
-        await SpeakAsync($"Modifier key set to {settings.ModifierKey}.", cancellationToken);
+        await SpeakAsync(VoxStrings.Format("Wizard.ModifierSet", EnumName(settings.ModifierKey)), cancellationToken);
         return settings;
     }
 
     private async Task RunTutorialStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
-        var modifier = settings.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
-        var sayAllKey = settings.KeyboardLayout == KeyboardLayout.Laptop ? "A" : "Down Arrow";
-        var key = await PromptAsync(
-            "Step 6 of 6: Quick tutorial. " +
-            "In browse mode, press H to jump to the next heading. " +
-            "Press K to jump to the next link. " +
-            "Press Enter to activate the current element. " +
-            $"Press {modifier} Space to toggle between browse and focus modes. " +
-            $"Press {modifier} {sayAllKey} to read from the current position. " +
-            "Press Control to stop speech at any time. " +
-            $"Press {modifier} Q twice to exit Vox, and {modifier} Control S to run this setup again. " +
-            "Press Enter to continue.",
-            cancellationToken);
+        var modifier = InputHelp.ScreenReaderKeyName(settings.ModifierKey);
+        var sayAllKey = settings.KeyboardLayout == KeyboardLayout.Laptop ? "A" : VoxStrings.Get("Key.DownArrow");
+        var key = await PromptAsync(VoxStrings.Format("Wizard.TutorialPrompt", modifier, sayAllKey), cancellationToken);
 
         while (key.VkCode != VirtualKeys.Return)
             key = await WaitForKeyDownAsync(cancellationToken);
 
         if (_lessonKeys is null)
             return;
-        key = await PromptAsync("To practise the keys now, press 1. To finish setup, press Enter.", cancellationToken);
+        key = await PromptAsync(VoxStrings.Get("Wizard.PractiseOffer"), cancellationToken);
         while (key.VkCode is not (VirtualKeys.Return or VirtualKeys.D1 or VirtualKeys.NumPad1))
             key = await WaitForKeyDownAsync(cancellationToken);
         if (key.VkCode != VirtualKeys.Return)
@@ -456,8 +422,10 @@ public sealed class FirstRunWizard
         if (_lessonKeys is null)
             return;
         var keys = _lessonKeys();
-        var modifierName = settings.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
-        var choices = string.Join(", ", TutorialLessons.All.Select((l, i) => $"{i + 1} for {l.Topic}"));
+        var modifierName = InputHelp.ScreenReaderKeyName(settings.ModifierKey);
+        var lessons = TutorialLessons.All;
+        var choices = string.Join(VoxStrings.Get("Lesson.ChoiceSeparator"),
+            lessons.Select((l, i) => VoxStrings.Format("Lesson.Choice", i + 1, l.Topic)));
         // Escape leaves the lessons, not the whole setup
         bool exitOnEscape = _exitOnEscape;
         _exitOnEscape = false;
@@ -465,7 +433,7 @@ public sealed class FirstRunWizard
         {
             while (true)
             {
-                var key = await PromptAsync($"Practice lessons. Press {choices}, or Escape to finish.", cancellationToken);
+                var key = await PromptAsync(VoxStrings.Format("Lesson.Menu", choices), cancellationToken);
                 int lesson = key.VkCode switch
                 {
                     >= VirtualKeys.D1 and <= VirtualKeys.D9 => key.VkCode - VirtualKeys.D1,
@@ -474,15 +442,15 @@ public sealed class FirstRunWizard
                 };
                 if (key.VkCode == VirtualKeys.Escape)
                     break;
-                if (lesson >= 0 && lesson < TutorialLessons.All.Count)
-                    await RunLessonAsync(TutorialLessons.All[lesson], keys, modifierName, cancellationToken);
+                if (lesson >= 0 && lesson < lessons.Count)
+                    await RunLessonAsync(lessons[lesson], keys, modifierName, cancellationToken);
             }
         }
         finally
         {
             _exitOnEscape = exitOnEscape;
         }
-        await SpeakAsync("Practice finished. The lessons are in the Vox menu whenever you want them.", cancellationToken);
+        await SpeakAsync(VoxStrings.Get("Lesson.Finished"), cancellationToken);
     }
 
     /// <summary>The attempts at a step before the lesson says the key and moves on.</summary>
@@ -493,20 +461,20 @@ public sealed class FirstRunWizard
         _swallowAllKeys = true;
         try
         {
-            await SpeakAsync($"Lesson: {lesson.Topic}. {lesson.Introduction} Escape ends the lesson.", cancellationToken);
+            await SpeakAsync(VoxStrings.Format("Lesson.Start", lesson.Topic, lesson.Introduction), cancellationToken);
             foreach (var step in lesson.Steps)
             {
                 if (TutorialLessons.KeyFor(step.Command, keys) is not { } gesture)
                     continue;
                 var keyName = gesture.Describe(modifierName);
-                var key = await PromptAsync($"{step.Instruction}, press {keyName}.", cancellationToken);
+                var key = await PromptAsync(VoxStrings.Format("Lesson.Ask", step.Instruction, keyName), cancellationToken);
                 for (int attempt = 1; ; attempt++)
                 {
                     if (key.VkCode == VirtualKeys.Escape && key.Modifiers == KeyModifiers.None)
                         return;
                     if (TutorialLessons.Matches(key, gesture))
                     {
-                        await SpeakAsync($"Right. {step.Done}", cancellationToken);
+                        await SpeakAsync(VoxStrings.Format("Lesson.Right", step.Done), cancellationToken);
                         break;
                     }
                     if (InputHelp.IsModifierKey(key.VkCode))
@@ -516,14 +484,14 @@ public sealed class FirstRunWizard
                     }
                     if (attempt >= Attempts)
                     {
-                        await SpeakAsync($"The key is {keyName}. Moving on.", cancellationToken);
+                        await SpeakAsync(VoxStrings.Format("Lesson.KeyIs", keyName), cancellationToken);
                         break;
                     }
                     var pressed = InputHelp.KeyName(key.Modifiers, key.VkCode, key.IsKeypad, modifierName);
-                    key = await PromptAsync($"That was {pressed}. {step.Instruction}, press {keyName}.", cancellationToken);
+                    key = await PromptAsync(VoxStrings.Format("Lesson.ThatWas", pressed, step.Instruction, keyName), cancellationToken);
                 }
             }
-            await SpeakAsync($"That's the {lesson.Topic} lesson done.", cancellationToken);
+            await SpeakAsync(VoxStrings.Format("Lesson.Done", lesson.Topic), cancellationToken);
         }
         finally
         {

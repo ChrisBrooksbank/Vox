@@ -1,6 +1,8 @@
 using System.Text;
+using Microsoft.Extensions.Localization;
 using Vox.Core.Buffer;
 using Vox.Core.Configuration;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -13,10 +15,21 @@ namespace Vox.Core.Navigation;
 ///   [required] [invalid entry] [current] [expanded/collapsed] [checked/pressed/selected] [sorted]
 ///   [shortcut keys] [position] [has details] [error message] [description]
 ///
-/// Each field is gated by the corresponding flag on <see cref="VerbosityProfile"/>.
+/// Each field is gated by the corresponding flag on <see cref="VerbosityProfile"/>. Every word
+/// Vox adds comes from the string resources (<see cref="VoxStrings"/>), in the language in use.
 /// </summary>
 public sealed class AnnouncementBuilder
 {
+    private readonly IStringLocalizer? _strings;
+
+    /// <param name="strings">The strings to use; null: <see cref="VoxStrings.Localizer"/>.</param>
+    public AnnouncementBuilder(IStringLocalizer<AnnouncementBuilder>? strings = null)
+    {
+        _strings = strings;
+    }
+
+    private IStringLocalizer L => _strings ?? VoxStrings.Localizer;
+
     /// <summary>
     /// When this returns true, checked, expanded and selected states are marked to be played as
     /// sounds (<see cref="Speech.StateSounds"/>) instead of spoken. Set at startup.
@@ -35,19 +48,26 @@ public sealed class AnnouncementBuilder
     public string Build(VBufferNode node, VerbosityProfile profile, bool announceVisitedLinks)
     {
         var sb = new StringBuilder();
+        var separator = L["Announce.Separator"].Value;
+        void Append(StringBuilder sb, string text)
+        {
+            if (sb.Length > 0)
+                sb.Append(separator);
+            sb.Append(text);
+        }
         bool sounds = StatesAsSounds?.Invoke() == true;
         string State(string cue, string word) => sounds ? Speech.StateSounds.Mark(cue, word) : word;
 
         // Heading level — "heading level 2"
         if (profile.AnnounceHeadingLevel && node.IsHeading)
         {
-            Append(sb, $"heading level {node.HeadingLevel}");
+            Append(sb, L["Announce.HeadingLevel", node.HeadingLevel].Value);
         }
 
         // Landmark type — "navigation landmark"
         if (profile.AnnounceLandmarkType && node.IsLandmark)
         {
-            Append(sb, $"{node.LandmarkType} landmark");
+            Append(sb, L["Announce.Landmark", LandmarkName(node.LandmarkType)].Value);
         }
 
         // Element name — always included (core content)
@@ -73,13 +93,13 @@ public sealed class AnnouncementBuilder
         // Visited state — "visited"
         if (announceVisitedLinks && profile.AnnounceVisitedState && node.IsLink && node.IsVisited)
         {
-            Append(sb, "visited");
+            Append(sb, L["State.Visited"].Value);
         }
 
         // Required state — "required"
         if (profile.AnnounceRequiredState && node.IsRequired)
         {
-            Append(sb, "required");
+            Append(sb, L["State.Required"].Value);
         }
 
         // Invalid entry — "invalid entry", "spelling error" (aria-invalid); essential at every verbosity
@@ -98,8 +118,8 @@ public sealed class AnnouncementBuilder
         if (profile.AnnounceExpandedState && node.IsExpandable)
         {
             Append(sb, node.IsExpanded
-                ? State(Speech.StateSounds.Expanded, "expanded")
-                : State(Speech.StateSounds.Collapsed, "collapsed"));
+                ? State(Speech.StateSounds.Expanded, L["State.Expanded"].Value)
+                : State(Speech.StateSounds.Collapsed, L["State.Collapsed"].Value));
         }
 
         // Checked / selected state — essential, so announced at every verbosity regardless of
@@ -120,9 +140,9 @@ public sealed class AnnouncementBuilder
             else if (node.IsSelected is { } selected)
             {
                 if (node.ControlType == "RadioButton")
-                    Append(sb, selected ? State(Speech.StateSounds.Checked, "checked") : State(Speech.StateSounds.NotChecked, "not checked"));
+                    Append(sb, selected ? State(Speech.StateSounds.Checked, L["State.Checked"].Value) : State(Speech.StateSounds.NotChecked, L["State.NotChecked"].Value));
                 else if (selected)
-                    Append(sb, State(Speech.StateSounds.Selected, "selected"));
+                    Append(sb, State(Speech.StateSounds.Selected, L["State.Selected"].Value));
             }
         }
 
@@ -142,15 +162,15 @@ public sealed class AnnouncementBuilder
         if (profile.AnnouncePositionInfo)
         {
             if (node.PositionInSet > 0 && node.SizeOfSet >= node.PositionInSet)
-                Append(sb, $"{node.PositionInSet} of {node.SizeOfSet}");
+                Append(sb, L["Announce.Position", node.PositionInSet, node.SizeOfSet].Value);
             if (node.Level > 0 && !node.IsHeading)
-                Append(sb, $"level {node.Level}");
+                Append(sb, L["Announce.Level", node.Level].Value);
         }
 
         // Details elsewhere on the page — "has details" (aria-details)
         if (profile.AnnounceElementDescription && node.HasDetails)
         {
-            Append(sb, "has details");
+            Append(sb, L["State.HasDetails"].Value);
         }
 
         // Error message of an invalid entry — "Enter a valid email" (aria-errormessage)
@@ -229,9 +249,9 @@ public sealed class AnnouncementBuilder
     /// <summary>Spoken text for a UIA ToggleState, or null when not a toggle.</summary>
     public static string? ToggleStateText(int? toggleState) => toggleState switch
     {
-        ControlState.ToggleOff => "not checked",
-        ControlState.ToggleOn => "checked",
-        ControlState.ToggleIndeterminate => "half checked",
+        ControlState.ToggleOff => VoxStrings.Get("State.NotChecked"),
+        ControlState.ToggleOn => VoxStrings.Get("State.Checked"),
+        ControlState.ToggleIndeterminate => VoxStrings.Get("State.HalfChecked"),
         _ => null,
     };
 
@@ -241,14 +261,10 @@ public sealed class AnnouncementBuilder
     public string Build(VBufferNode node, VerbosityLevel level) =>
         Build(node, VerbosityProfile.For(level));
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private static void Append(StringBuilder sb, string text)
-    {
-        if (sb.Length > 0)
-            sb.Append(", ");
-        sb.Append(text);
-    }
+    /// <summary>
+    /// A landmark's spoken name ("Navigation"): the buffer keeps the English name of its role,
+    /// which is looked up in the strings (an unknown one is said as it is).
+    /// </summary>
+    public static string LandmarkName(string landmarkType) =>
+        VoxStrings.GetOrDefault("Landmark." + landmarkType.Replace(" ", string.Empty), landmarkType);
 }

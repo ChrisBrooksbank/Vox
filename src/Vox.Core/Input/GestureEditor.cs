@@ -3,9 +3,18 @@ namespace Vox.Core.Input;
 /// <summary>A key as it is bound: the keys, and where it applies ("Browse", "Focus" or "Any").</summary>
 public sealed record Gesture(KeyModifiers Modifiers, int VkCode, string Mode, bool IsKeypad = false)
 {
-    public string Describe(string screenReaderKey = "Insert") =>
-        $"{InputHelp.KeyName(Modifiers, VkCode, IsKeypad || VkCode is >= 0x60 and <= 0x6F or 269, screenReaderKey)}" +
-        (Mode.Equals("Any", StringComparison.OrdinalIgnoreCase) ? string.Empty : $" ({Mode.ToLowerInvariant()} mode)");
+    /// <summary>The key's name, and the mode it works in unless it works everywhere ("Shift+H (browse mode)").</summary>
+    public string Describe(string? screenReaderKey = null)
+    {
+        var key = InputHelp.KeyName(Modifiers, VkCode, IsKeypad || VkCode is >= 0x60 and <= 0x6F or 269, screenReaderKey);
+        if (Mode.Equals("Any", StringComparison.OrdinalIgnoreCase))
+            return key;
+        if (Mode.Equals("Browse", StringComparison.OrdinalIgnoreCase))
+            return Localization.VoxStrings.Format("Gesture.BrowseMode", key);
+        if (Mode.Equals("Focus", StringComparison.OrdinalIgnoreCase))
+            return Localization.VoxStrings.Format("Gesture.FocusMode", key);
+        return Localization.VoxStrings.Format("Gesture.OtherMode", key, Mode.ToLowerInvariant());
+    }
 
     /// <summary>
     /// The gesture for a key pressed while the dialog waits for one, bound the way the keymap

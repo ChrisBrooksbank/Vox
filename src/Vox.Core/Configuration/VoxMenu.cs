@@ -1,5 +1,6 @@
 using System.Windows.Forms;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 using Vox.Core.Navigation;
 
 namespace Vox.Core.Configuration;
@@ -10,21 +11,24 @@ public sealed record VoxMenuItem(string Text, NavigationCommand Command);
 /// <summary>The Vox menu (Insert+N, and the tray icon's menu): Vox's dialogs and switches in one place.</summary>
 public static class VoxMenu
 {
-    public static readonly IReadOnlyList<VoxMenuItem> Items =
+    /// <summary>The entries, named by their VoxMenu.&lt;command&gt; strings ('&amp;' marks the access key).</summary>
+    public static IReadOnlyList<VoxMenuItem> Items =>
     [
-        new("&Settings...", NavigationCommand.OpenSettings),
-        new("&Input gestures...", NavigationCommand.OpenInputGestures),
-        new("Con&figuration profiles...", NavigationCommand.OpenProfiles),
-        new("&Command search...", NavigationCommand.OpenCommandSearch),
-        new("Speech &viewer", NavigationCommand.ToggleSpeechViewer),
-        new("&Pause speech", NavigationCommand.TogglePauseSpeech),
-        new("User &guide", NavigationCommand.OpenUserGuide),
-        new("Practice &lessons...", NavigationCommand.RunTutorial),
-        new("Create p&ortable copy...", NavigationCommand.CreatePortableCopy),
-        new("Check for &updates...", NavigationCommand.CheckForUpdates),
-        new("Run &welcome wizard...", NavigationCommand.RunSetup),
-        new("E&xit Vox", NavigationCommand.ExitVox),
+        Item(NavigationCommand.OpenSettings),
+        Item(NavigationCommand.OpenInputGestures),
+        Item(NavigationCommand.OpenProfiles),
+        Item(NavigationCommand.OpenCommandSearch),
+        Item(NavigationCommand.ToggleSpeechViewer),
+        Item(NavigationCommand.TogglePauseSpeech),
+        Item(NavigationCommand.OpenUserGuide),
+        Item(NavigationCommand.RunTutorial),
+        Item(NavigationCommand.CreatePortableCopy),
+        Item(NavigationCommand.CheckForUpdates),
+        Item(NavigationCommand.RunSetup),
+        Item(NavigationCommand.ExitVox),
     ];
+
+    private static VoxMenuItem Item(NavigationCommand command) => new(VoxStrings.Get($"VoxMenu.{command}"), command);
 }
 
 /// <summary>Shows the Vox menu; the command chosen, or null.</summary>
@@ -69,13 +73,14 @@ public sealed class VoxMenuPresenter : IVoxMenuPresenter
 public sealed class VoxMenuDialog : VoxDialog
 {
     private readonly ListBox _list;
+    private readonly IReadOnlyList<VoxMenuItem> _items;
 
     public NavigationCommand? Chosen { get; private set; }
 
     public VoxMenuDialog()
     {
-        Text = "Vox menu";
-        AccessibleName = "Vox menu";
+        Text = VoxStrings.Get("VoxMenu.Title");
+        AccessibleName = Text;
         AccessibleRole = AccessibleRole.Dialog;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -83,8 +88,9 @@ public sealed class VoxMenuDialog : VoxDialog
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-        _list = new ListBox { AccessibleName = "Vox menu", Width = 260, Height = 170 };
-        foreach (var item in VoxMenu.Items)
+        _list = new ListBox { AccessibleName = Text, Width = 260, Height = 170 };
+        _items = VoxMenu.Items;
+        foreach (var item in _items)
             _list.Items.Add(item.Text.Replace("&", string.Empty));
         _list.SelectedIndex = 0;
         _list.KeyDown += (_, e) =>
@@ -97,7 +103,7 @@ public sealed class VoxMenuDialog : VoxDialog
         };
         _list.DoubleClick += (_, _) => Choose();
 
-        var close = new Button { Text = "Close", AutoSize = true, DialogResult = DialogResult.Cancel };
+        var close = new Button { Text = VoxStrings.Get("Dialog.Close"), AutoSize = true, DialogResult = DialogResult.Cancel };
         var layout = new TableLayoutPanel { AutoSize = true, ColumnCount = 1, Padding = new Padding(8) };
         layout.Controls.Add(_list);
         layout.Controls.Add(close);
@@ -110,7 +116,7 @@ public sealed class VoxMenuDialog : VoxDialog
     {
         if (_list.SelectedIndex < 0)
             return;
-        Chosen = VoxMenu.Items[_list.SelectedIndex].Command;
+        Chosen = _items[_list.SelectedIndex].Command;
         DialogResult = DialogResult.OK;
         Close();
     }
@@ -136,7 +142,7 @@ public sealed class VoxTrayIcon : IDisposable
                 menu.Items.Add(item.Text, null, (_, _) => run(item.Command));
             using var icon = new NotifyIcon
             {
-                Text = "Vox screen reader",
+                Text = VoxStrings.Get("VoxMenu.TrayTip"),
                 Icon = System.Drawing.SystemIcons.Application,
                 ContextMenuStrip = menu,
                 Visible = true,
