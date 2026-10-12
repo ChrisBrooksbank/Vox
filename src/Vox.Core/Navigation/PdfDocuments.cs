@@ -1,11 +1,13 @@
 using Vox.Core.Buffer;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
 /// <summary>
 /// PDFs opened in Edge (or Chrome): their viewer exposes the PDF's tag tree as an ordinary web
 /// document, so a tagged PDF is browsed like a page. An untagged PDF has no structure (no
-/// headings, lists or tables), and a scanned one no text at all; both are said on load.
+/// headings, lists or tables), and a scanned one no text at all; both are said on load, with
+/// the offer to recognise the text on the screen (Insert+R, <see cref="Ocr.OcrCommands"/>).
 /// </summary>
 public static class PdfDocuments
 {
@@ -20,14 +22,24 @@ public static class PdfDocuments
         return path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>What to say when a PDF is loaded, or null for any other document.</summary>
-    public static string? LoadAnnouncement(VBufferDocument document)
+    /// <summary>
+    /// What to say when a PDF is loaded, or null for any other document. An untagged or scanned
+    /// PDF also offers text recognition, with <paramref name="recognizeKey"/> (null: no offer).
+    /// </summary>
+    public static string? LoadAnnouncement(VBufferDocument document, string? recognizeKey = null)
     {
         if (!IsPdf(document))
             return null;
+        string announcement;
         if (string.IsNullOrWhiteSpace(document.FlatText))
-            return "PDF document with no text, probably a scanned image";
-        bool structured = document.Headings.Count > 0 || document.Lists.Count > 0 || document.TableModels.Any(t => !t.IsLayoutTable);
-        return structured ? "PDF document" : "Untagged PDF document: no headings or structure";
+            announcement = "PDF document with no text, probably a scanned image";
+        else if (IsStructured(document))
+            return "PDF document";
+        else
+            announcement = "Untagged PDF document: no headings or structure";
+        return recognizeKey is null ? announcement : $"{announcement}. {VoxStrings.Format("Ocr.PdfOffer", recognizeKey)}";
     }
+
+    private static bool IsStructured(VBufferDocument document) =>
+        document.Headings.Count > 0 || document.Lists.Count > 0 || document.TableModels.Any(t => !t.IsLayoutTable);
 }

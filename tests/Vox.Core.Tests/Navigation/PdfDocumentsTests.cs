@@ -65,6 +65,19 @@ public class PdfDocumentsTests
     }
 
     [Fact]
+    public void UntaggedAndScannedPdfs_OfferTextRecognition()
+    {
+        var untagged = Document("https://example.com/a.pdf", new Element(2, "Text", "Summary"));
+        var scanned = Document("https://example.com/scan.pdf", new Element(2, "Image"));
+        var tagged = Document("https://example.com/a.pdf", new Element(2, "Text", "Summary", ariaRole: "heading", headingLevel: 1));
+
+        Assert.Equal("Untagged PDF document: no headings or structure. Press Insert+R to recognize the text on the screen.",
+            PdfDocuments.LoadAnnouncement(untagged, "Insert+R"));
+        Assert.EndsWith("Press Insert+R to recognize the text on the screen.", PdfDocuments.LoadAnnouncement(scanned, "Insert+R"));
+        Assert.Equal("PDF document", PdfDocuments.LoadAnnouncement(tagged, "Insert+R"));
+    }
+
+    [Fact]
     public void WebPage_SaysNothing() =>
         Assert.Null(PdfDocuments.LoadAnnouncement(Document("https://example.com/", new Element(2, "Text", "Hello"))));
 }

@@ -523,6 +523,38 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         }, UIAThread.DocumentTimeout); // may search the whole document
     }
 
+    /// <summary>
+    /// Where the element behind <paramref name="node"/> is on the screen (scrolled into view
+    /// first), or null when it can't be found or has no location. For text recognition.
+    /// </summary>
+    public async Task<Ocr.ScreenRect?> ElementBoundsAsync(VBufferNode node)
+    {
+        var (element, scrolled) = await _uiaThread.RunAsync<(IUIAutomationElement? Element, bool Scrolled)>(() =>
+        {
+            var root = _documentRoot;
+            if (root is null) return (null, false);
+
+            var found = _documentRuntimeId is not null && node.UIARuntimeId.AsSpan().SequenceEqual(_documentRuntimeId)
+                ? root
+                : FindInDocument(root, node.UIARuntimeId, _uiaProvider.CacheRequest);
+            // The page itself is already where it is shown; an image may be scrolled out of view
+            if (found is null || ReferenceEquals(found, root)) return (found, false);
+            var before = UIANavigatorObject.BoundsOf(found);
+            try { UIANavigatorObject.For(found, _uiaProvider).ScrollIntoView(); }
+            catch (Exception ex) { _logger.LogDebug(ex, "Could not scroll an element into view"); }
+            return (found, UIANavigatorObject.BoundsOf(found) != before);
+        }, UIAThread.DocumentTimeout).ConfigureAwait(false); // may search the whole document
+        if (element is null)
+            return null;
+
+        // Give the browser time to draw the page where it scrolled to
+        if (scrolled)
+            await Task.Delay(ScrollSettleTime).ConfigureAwait(false);
+        return await _uiaThread.RunAsync(() => UIANavigatorObject.BoundsOf(element)).ConfigureAwait(false);
+    }
+
+    private static readonly TimeSpan ScrollSettleTime = TimeSpan.FromMilliseconds(250);
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------

@@ -132,7 +132,7 @@ public sealed class SettingsCommands(
             var speechOptions = new SpeechOptions(speech.Engines, speech.GetAvailableVoices(), speech.MaxRateWpm, speech.Capabilities);
             var audioOptions = new AudioOptions(OutputDevices(), EarconSchemes());
             // Settings the organization's policy sets are shown, but can't be changed
-            var pages = SettingsPages.WithPolicy(SettingsPages.All(speechOptions, audioOptions),
+            var pages = SettingsPages.WithPolicy(SettingsPages.All(speechOptions, audioOptions, Ocr.WindowsOcrEngine.Languages()),
                 policy ?? Enterprise.PolicySettings.None, settings.CurrentValue);
             await presenter.ShowAsync(() => settings.CurrentValue, pages, updateSettings).ConfigureAwait(false);
         }

@@ -1001,7 +1001,7 @@ public sealed class BrowseModeController
     private void AnnounceLoaded(VBufferDocument document, bool fresh, string? processName)
     {
         // A PDF says whether it can be browsed by structure (after what loading it says)
-        if (fresh && PdfDocuments.LoadAnnouncement(document) is { } pdf)
+        if (fresh && PdfDocuments.LoadAnnouncement(document, RecognizeKey) is { } pdf)
             _speechQueue.Enqueue(new Utterance(pdf, SpeechPriority.Normal));
         AnnounceOverlay(document);
 
@@ -1394,6 +1394,31 @@ public sealed class BrowseModeController
         }
         _announcedOverlay = id;
         _speechQueue.Enqueue(new Utterance(OverlayDetector.Announcement(overlay!, DismissOverlayKey), SpeechPriority.Normal));
+    }
+
+    /// <summary>
+    /// The key a command is on in the keymap in use, as people read it ("Insert+R"), or null when
+    /// it has none. Set by the host.
+    /// </summary>
+    public Func<NavigationCommand, string?>? KeyNameFor { get; set; }
+
+    private string RecognizeKey =>
+        KeyNameFor?.Invoke(NavigationCommand.RecognizeNavigator) ?? $"{ModifierName}+R";
+
+    /// <summary>
+    /// While browsing, what text recognition reads: the graphic at the browse cursor, else the
+    /// page as shown (an untagged or scanned PDF); null when not browsing. Pipeline thread.
+    /// </summary>
+    public VBufferNode? RecognitionTarget()
+    {
+        if (!_documentActive || _navigationManager.CurrentMode != InteractionMode.Browse || _cursor is null)
+            return null;
+        for (var node = _cursor.CurrentNode; node is not null; node = node.Parent)
+        {
+            if (PageElements.IsGraphic(node))
+                return node;
+        }
+        return _cursor.Document.Root;
     }
 
     private string DismissOverlayKey =>

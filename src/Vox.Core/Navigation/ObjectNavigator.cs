@@ -32,6 +32,9 @@ public interface INavigatorObject
 
     /// <summary>Scrolls the object into view where it can be (before it is clicked).</summary>
     void ScrollIntoView() { }
+
+    /// <summary>Where the object is on the screen, or null when it has no location.</summary>
+    Ocr.ScreenRect? GetBounds() => null;
 }
 
 /// <summary>A navigator movement.</summary>

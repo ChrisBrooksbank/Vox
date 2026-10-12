@@ -10,6 +10,7 @@ using Vox.Core.Input;
 using Vox.Core.Lifecycle;
 using Vox.Core.Localization;
 using Vox.Core.Navigation;
+using Vox.Core.Ocr;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -57,6 +58,7 @@ public sealed class ScreenReaderService : IHostedService
     private volatile bool _speechPaused;
     private readonly SleepMode _sleepMode;
     private readonly MouseCommands _mouseCommands;
+    private readonly OcrCommands _ocr;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -137,6 +139,7 @@ public sealed class ScreenReaderService : IHostedService
         AppModuleManager appModules,
         ProfileManager profiles,
         ProfileCommands profileCommands,
+        OcrCommands ocr,
         RunPolicy? runPolicy = null,
         RemoteSessionMonitor? remoteSessions = null)
     {
@@ -153,6 +156,7 @@ public sealed class ScreenReaderService : IHostedService
         _speechHistoryCommands = speechHistoryCommands;
         _sleepMode = sleepMode;
         _mouseCommands = mouseCommands;
+        _ocr = ocr;
         _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
         _duckingController = duckingController;
@@ -251,6 +255,9 @@ public sealed class ScreenReaderService : IHostedService
         _profiles.Switched += OnProfileSwitched;
         // In browse mode the review cursor reviews the virtual buffer
         _review.BrowseTether = _browseModeController.ReviewTether;
+        // While browsing, text recognition reads the graphic at the cursor or the page
+        _ocr.BrowseTarget = _browseModeController.RecognitionTarget;
+        _browseModeController.KeyNameFor = KeyNameFor;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
         _navigationManager.ModeChanged += OnModeChanged;
@@ -367,6 +374,8 @@ public sealed class ScreenReaderService : IHostedService
         _profiles.Switched -= OnProfileSwitched;
         _appModules.Stop();
         _review.BrowseTether = null;
+        _ocr.BrowseTarget = null;
+        _browseModeController.KeyNameFor = null;
         _speechQueue.IsMuted = null;
         _keyInputDispatcher.IsAsleep = null;
         _trayIcon?.Dispose();
@@ -565,11 +574,26 @@ public sealed class ScreenReaderService : IHostedService
             return;
         }
         if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
-            && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command)
+            && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command) && !_ocr.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
             && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
             && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
+    }
+
+    /// <summary>The key <paramref name="command"/> is on in the keymap in use ("Insert+R"), or null.</summary>
+    private string? KeyNameFor(NavigationCommand command)
+    {
+        // The browse-mode key: what is offered is offered while browsing
+        var key = _keyInputDispatcher.KeyMap.Bindings
+            .Where(b => b.Command == command)
+            .Select(b => b.Key)
+            .OrderBy(k => k.Mode == InteractionMode.Browse ? 0 : 1)
+            .Cast<KeyMapKey?>()
+            .FirstOrDefault();
+        return key is { } found
+            ? InputHelp.KeyName(found.Modifiers, found.VkCode, screenReaderKey: InputHelp.ScreenReaderKeyName(_settings.CurrentValue.ModifierKey))
+            : null;
     }
 
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)

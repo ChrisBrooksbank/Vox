@@ -1110,6 +1110,24 @@
   <data name="Command.PrevReviewMode.Description" xml:space="preserve">
     <value>Switches review to the previous mode (object, document, screen).</value>
   </data>
+  <data name="Command.RecognizeNavigator.Name" xml:space="preserve">
+    <value>Recognize text</value>
+  </data>
+  <data name="Command.RecognizeNavigator.Description" xml:space="preserve">
+    <value>Recognizes the text of the navigator object (while browsing, the graphic at the cursor, or else the page as shown), says it and puts the review cursor in it.</value>
+  </data>
+  <data name="Command.RecognizeWindow.Name" xml:space="preserve">
+    <value>Recognize window text</value>
+  </data>
+  <data name="Command.RecognizeWindow.Description" xml:space="preserve">
+    <value>Recognizes the text of the whole window, says it and puts the review cursor in it.</value>
+  </data>
+  <data name="Command.ClickRecognizedWord.Name" xml:space="preserve">
+    <value>Click recognized word</value>
+  </data>
+  <data name="Command.ClickRecognizedWord.Description" xml:space="preserve">
+    <value>Clicks the recognized word at the review cursor.</value>
+  </data>
   <data name="Command.ToggleMouseTracking.Name" xml:space="preserve">
     <value>Toggle mouse tracking</value>
   </data>
@@ -2586,5 +2604,38 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   </data>
   <data name="Choice.Language.Windows" xml:space="preserve">
     <value>As Windows</value>
+  </data>
+  <data name="Setting.OcrLanguage" xml:space="preserve">
+    <value>Text recognition language</value>
+  </data>
+  <data name="Choice.OcrLanguage.Automatic" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="Ocr.Recognizing" xml:space="preserve">
+    <value>Recognizing</value>
+  </data>
+  <data name="Ocr.NoText" xml:space="preserve">
+    <value>No text recognized</value>
+  </data>
+  <data name="Ocr.NoLocation" xml:space="preserve">
+    <value>No location</value>
+  </data>
+  <data name="Ocr.NotOnThisScreen" xml:space="preserve">
+    <value>Not available on this screen</value>
+  </data>
+  <data name="Ocr.NotInstalled" xml:space="preserve">
+    <value>Text recognition is not available. Add a language's optical character recognition feature in Windows Settings, Time and language, Language and region.</value>
+  </data>
+  <data name="Ocr.Failed" xml:space="preserve">
+    <value>Could not recognize text</value>
+  </data>
+  <data name="Ocr.NoRecognizedText" xml:space="preserve">
+    <value>No recognized text</value>
+  </data>
+  <data name="Ocr.Clicking" xml:space="preserve">
+    <value>Click {0}</value>
+  </data>
+  <data name="Ocr.PdfOffer" xml:space="preserve">
+    <value>Press {0} to recognize the text on the screen.</value>
   </data>
 </root>
