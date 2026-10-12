@@ -276,5 +276,17 @@ public enum NavigationCommand
     /// <summary>Recognises the text of the foreground window and reviews it.</summary>
     RecognizeWindow,
     /// <summary>Clicks the recognised word at the review cursor.</summary>
-    ClickRecognizedWord
+    ClickRecognizedWord,
+
+    // AI
+    /// <summary>Describes the navigator object (while browsing: the graphic at the cursor, else the page) and reviews the description.</summary>
+    DescribeObject,
+    /// <summary>Asks a question about the window in front and reviews the answer.</summary>
+    AskAboutScreen,
+    /// <summary>Summarises the page being browsed and reviews the summary.</summary>
+    SummarizePage,
+    /// <summary>Moves the browse cursor to where the page's main content starts (pressed again: the next suggestion).</summary>
+    MoveToMainContent,
+    /// <summary>Asks for the cloud AI provider's API key (Vox menu).</summary>
+    SetAiKey
 }

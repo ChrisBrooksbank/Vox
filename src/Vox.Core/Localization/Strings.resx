@@ -2638,4 +2638,208 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Ocr.PdfOffer" xml:space="preserve">
     <value>Press {0} to recognize the text on the screen.</value>
   </data>
+  <data name="Dialog.OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Dialog.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="VoxMenu.SetAiKey" xml:space="preserve">
+    <value>Set &amp;AI provider key...</value>
+  </data>
+  <data name="Command.DescribeObject.Name" xml:space="preserve">
+    <value>Describe image or object</value>
+  </data>
+  <data name="Command.DescribeObject.Description" xml:space="preserve">
+    <value>Describes the navigator object with AI (while browsing, the graphic at the cursor, or else the page as shown), says the description and puts the review cursor in it. Pressed again while describing, cancels.</value>
+  </data>
+  <data name="Command.AskAboutScreen.Name" xml:space="preserve">
+    <value>Ask about the screen</value>
+  </data>
+  <data name="Command.AskAboutScreen.Description" xml:space="preserve">
+    <value>Asks a question ("how do I...") about the window in front and answers it with AI from a picture of the window and its controls' text; the answer is said and put under the review cursor.</value>
+  </data>
+  <data name="Command.SummarizePage.Name" xml:space="preserve">
+    <value>Summarize page</value>
+  </data>
+  <data name="Command.SummarizePage.Description" xml:space="preserve">
+    <value>Summarizes the page being browsed (with AI when it is set up and allowed, else from the page's headings and text), says the summary and puts the review cursor in it.</value>
+  </data>
+  <data name="Command.MoveToMainContent.Name" xml:space="preserve">
+    <value>Move to main content</value>
+  </data>
+  <data name="Command.MoveToMainContent.Description" xml:space="preserve">
+    <value>Moves to where the page's main content starts: the main landmark, the first level 1 heading or the longest passage of text. Pressed again, goes to the next suggestion.</value>
+  </data>
+  <data name="Command.SetAiKey.Name" xml:space="preserve">
+    <value>Set AI provider key</value>
+  </data>
+  <data name="Command.SetAiKey.Description" xml:space="preserve">
+    <value>Asks for the cloud AI provider's API key and keeps it, encrypted for this Windows user.</value>
+  </data>
+  <data name="SettingsPage.Ai" xml:space="preserve">
+    <value>AI</value>
+  </data>
+  <data name="Setting.AiCloudProvider" xml:space="preserve">
+    <value>Cloud AI provider</value>
+  </data>
+  <data name="Setting.AiCloudConsent" xml:space="preserve">
+    <value>Send to the cloud AI provider</value>
+  </data>
+  <data name="Setting.AnnounceCaptchas" xml:space="preserve">
+    <value>Announce CAPTCHAs and their accessible alternatives</value>
+  </data>
+  <data name="Choice.AiCloudProvider.None" xml:space="preserve">
+    <value>None (this computer only)</value>
+  </data>
+  <data name="Choice.AiCloudProvider.Claude" xml:space="preserve">
+    <value>Claude (Anthropic)</value>
+  </data>
+  <data name="Choice.AiConsentMode.Ask" xml:space="preserve">
+    <value>Ask first, once per session</value>
+  </data>
+  <data name="Choice.AiConsentMode.Allow" xml:space="preserve">
+    <value>Always, without asking</value>
+  </data>
+  <data name="Choice.AiConsentMode.Never" xml:space="preserve">
+    <value>Never</value>
+  </data>
+  <data name="Ai.Describing" xml:space="preserve">
+    <value>Describing image</value>
+  </data>
+  <data name="Ai.DescribingPage" xml:space="preserve">
+    <value>Describing the page</value>
+  </data>
+  <data name="Ai.Thinking" xml:space="preserve">
+    <value>Thinking</value>
+  </data>
+  <data name="Ai.Summarizing" xml:space="preserve">
+    <value>Summarizing</value>
+  </data>
+  <data name="Ai.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Ai.NotOnAPage" xml:space="preserve">
+    <value>Not on a page</value>
+  </data>
+  <data name="Ai.Ask.Title" xml:space="preserve">
+    <value>Ask about the screen</value>
+  </data>
+  <data name="Ai.Ask.Label" xml:space="preserve">
+    <value>&amp;Question about the window in front:</value>
+  </data>
+  <data name="Ai.Key.Title" xml:space="preserve">
+    <value>AI provider key</value>
+  </data>
+  <data name="Ai.Key.Label" xml:space="preserve">
+    <value>&amp;API key for the cloud AI provider. It is kept encrypted for your Windows account and only sent to the provider:</value>
+  </data>
+  <data name="Ai.Key.Saved" xml:space="preserve">
+    <value>AI provider key saved. Nothing is sent to the provider without your consent.</value>
+  </data>
+  <data name="Ai.Key.NotSaved" xml:space="preserve">
+    <value>The key could not be saved.</value>
+  </data>
+  <data name="Ai.Consent.Title" xml:space="preserve">
+    <value>Send to the cloud?</value>
+  </data>
+  <data name="Ai.Consent.DescribeImage" xml:space="preserve">
+    <value>Send a picture of this to {0} to describe it? It leaves this computer. You can change this in the AI settings.</value>
+  </data>
+  <data name="Ai.Consent.ExplainScreen" xml:space="preserve">
+    <value>Send a picture of this window and its text to {0} to answer your question? It leaves this computer. You can change this in the AI settings.</value>
+  </data>
+  <data name="Ai.Consent.SummarizePage" xml:space="preserve">
+    <value>Send the text of this page to {0} to summarize it? It leaves this computer. You can change this in the AI settings.</value>
+  </data>
+  <data name="Ai.Refusal.SecureScreen" xml:space="preserve">
+    <value>Not available on this screen</value>
+  </data>
+  <data name="Ai.Refusal.TurnedOffByPolicy" xml:space="preserve">
+    <value>AI is turned off by your organization</value>
+  </data>
+  <data name="Ai.Refusal.NetworkOff" xml:space="preserve">
+    <value>The network is turned off for Vox, so only AI on this computer can be used</value>
+  </data>
+  <data name="Ai.Refusal.PasswordField" xml:space="preserve">
+    <value>Password fields are never sent</value>
+  </data>
+  <data name="Ai.Refusal.PrivateApp" xml:space="preserve">
+    <value>This application is private: its windows are never sent</value>
+  </data>
+  <data name="Ai.Refusal.CloudNever" xml:space="preserve">
+    <value>Sending to the cloud is turned off in the AI settings</value>
+  </data>
+  <data name="Ai.Refusal.Declined" xml:space="preserve">
+    <value>Nothing was sent</value>
+  </data>
+  <data name="Ai.Refusal.NotSetUp" xml:space="preserve">
+    <value>No AI is set up. Choose Set AI provider key in the Vox menu, or set up a model on this computer; see the user guide.</value>
+  </data>
+  <data name="Ai.Failure.NotSetUp" xml:space="preserve">
+    <value>No AI is set up</value>
+  </data>
+  <data name="Ai.Failure.KeyRejected" xml:space="preserve">
+    <value>{0} rejected the API key. Set it again from the Vox menu.</value>
+  </data>
+  <data name="Ai.Failure.Busy" xml:space="preserve">
+    <value>{0} is busy or over its limit; try again later</value>
+  </data>
+  <data name="Ai.Failure.Declined" xml:space="preserve">
+    <value>{0} declined to answer</value>
+  </data>
+  <data name="Ai.Failure.Failed" xml:space="preserve">
+    <value>{0} could not be reached or did not answer</value>
+  </data>
+  <data name="MainContent.Landmark" xml:space="preserve">
+    <value>Main landmark</value>
+  </data>
+  <data name="MainContent.Heading" xml:space="preserve">
+    <value>Main heading</value>
+  </data>
+  <data name="MainContent.Passage" xml:space="preserve">
+    <value>Longest passage of text</value>
+  </data>
+  <data name="MainContent.None" xml:space="preserve">
+    <value>No main content found</value>
+  </data>
+  <data name="PageDigest.Untitled" xml:space="preserve">
+    <value>Untitled page</value>
+  </data>
+  <data name="PageDigest.MainHeading" xml:space="preserve">
+    <value>Main heading: {0}</value>
+  </data>
+  <data name="PageDigest.ReadingTime" xml:space="preserve">
+    <value>About {0} minutes to read</value>
+  </data>
+  <data name="PageDigest.ReadingTimeOne" xml:space="preserve">
+    <value>About a minute to read</value>
+  </data>
+  <data name="PageDigest.Sections" xml:space="preserve">
+    <value>Sections: {0}</value>
+  </data>
+  <data name="PageDigest.SectionsMore" xml:space="preserve">
+    <value>Sections: {0}, and {1} more</value>
+  </data>
+  <data name="PageDigest.Opening" xml:space="preserve">
+    <value>It opens: {0}</value>
+  </data>
+  <data name="PageDigest.MainContentKey" xml:space="preserve">
+    <value>{0} moves to the main content.</value>
+  </data>
+  <data name="Captcha.ReCaptcha" xml:space="preserve">
+    <value>reCAPTCHA on this page. Check the I'm not a robot box; if a picture challenge appears, its Get an audio challenge button gives one you can listen to.</value>
+  </data>
+  <data name="Captcha.HCaptcha" xml:space="preserve">
+    <value>hCaptcha on this page. It has no audio challenge: its accessibility option (sign up once by email at hcaptcha.com/accessibility) lets you through, or ask the site for help.</value>
+  </data>
+  <data name="Captcha.Turnstile" xml:space="preserve">
+    <value>Cloudflare check on this page. It usually passes by itself in a few seconds; if a check box appears, check it.</value>
+  </data>
+  <data name="Captcha.Other" xml:space="preserve">
+    <value>CAPTCHA on this page. Look for an audio challenge or an accessibility option near it, or ask the site for help; Vox doesn't solve CAPTCHAs.</value>
+  </data>
+  <data name="Captcha.AudioButton" xml:space="preserve">
+    <value>Audio alternative: {0} button.</value>
+  </data>
 </root>

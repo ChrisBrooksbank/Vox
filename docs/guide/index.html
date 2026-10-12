@@ -24,6 +24,7 @@
   <li><a href="#desktop">Applications and documents</a></li>
   <li><a href="#review">Reviewing the screen</a></li>
   <li><a href="#ocr">Reading text in pictures</a></li>
+  <li><a href="#ai">Describing pictures and summarising pages (AI)</a></li>
   <li><a href="#speech">Speech</a></li>
   <li><a href="#braille">Braille</a></li>
   <li><a href="#office">Office, Teams and other applications</a></li>
@@ -76,6 +77,10 @@
 
 <h2 id="ocr">Reading text in pictures</h2>
 <p><kbd>Insert+R</kbd> recognises the text of the navigator object (while browsing, the graphic at the cursor, or else the page as shown, such as a scanned PDF) and reads it; <kbd>Insert+Ctrl+R</kbd> recognises the whole window. The review keys then read the recognised text again, and <kbd>Insert+Ctrl+Enter</kbd> clicks the word the review cursor is on. Text is recognised on your computer by Windows; nothing is sent anywhere. Windows needs the optical character recognition feature of your language (Settings, Time and language, Language and region).</p>
+
+<h2 id="ai">Describing pictures and summarising pages (AI)</h2>
+<p><kbd>Insert+G</kbd> describes the navigator object (while browsing, the graphic at the cursor, or else the page as shown); <kbd>Insert+Alt+G</kbd> asks a question about the window in front, such as "how do I attach a file?". In browse mode <kbd>Insert+Ctrl+I</kbd> summarises the page and <kbd>Insert+Ctrl+M</kbd> moves to where its main content starts (press again for the next suggestion). Answers are spoken and can be read again with the review keys. Press the same key again, or <kbd>Ctrl</kbd>, to cancel.</p>
+<p>These need an AI model: one on your computer (Ollama), or Claude with your own API key (Vox menu, Set AI provider key). Nothing is sent off your computer without your say-so: Vox asks the first time in each session (AI settings page), and never sends password fields, the windows of password managers, or anything from the sign-in screens. Without AI, the page summary comes from the page's headings and text. When a page has a CAPTCHA, Vox says so and how to get past it accessibly (an audio challenge or accessibility option); it never solves CAPTCHAs.</p>
 
 <h2 id="speech">Speech</h2>
 <p><kbd>Ctrl</kbd> stops speech. <kbd>Insert+Ctrl+Left</kbd> and <kbd>Right</kbd> pick a voice setting (voice, rate, pitch, volume, punctuation, synthesizer), <kbd>Insert+Ctrl+Up</kbd> and <kbd>Down</kbd> change it. <kbd>Insert+S</kbd> pauses all speech until pressed again. <kbd>Insert+Shift+F11</kbd> says again what Vox said a moment ago.</p>

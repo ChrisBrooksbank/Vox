@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.Ai;
 using Vox.Core.AppModules;
 using Vox.Core.AppModules.Excel;
 using Vox.Core.AppModules.Explorer;
@@ -349,6 +350,54 @@ public static class ServiceRegistration
         services.AddSingleton<IVoxMenuPresenter, VoxMenuPresenter>();
         services.AddSingleton<IPortableCopyPresenter, PortableCopyPresenter>();
         services.AddSingleton<IConfirmPresenter, ConfirmPresenter>();
+        services.AddSingleton<ITextPrompt, TextPromptPresenter>();
+        services.AddSingleton<OwnDialogRunner>(sp => new OwnDialogRunner(
+            sp.GetRequiredService<BrowseModeController>(), sp.GetRequiredService<EventPipeline>()));
+        // AI: a model on this computer first, else the cloud provider the user set up, never
+        // without consent, never on secure screens (docs/ai.md)
+        services.AddSingleton<IAiKeyStore>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            return new ProtectedAiKeyStore(policy.AllowUserProfileAccess && policy.AllowAi ? ProtectedAiKeyStore.DefaultPath : null,
+                sp.GetRequiredService<ILogger<ProtectedAiKeyStore>>());
+        });
+        services.AddSingleton<LocalImageDescriber>(sp => new LocalImageDescriber(
+            // Only ever an address on this computer, which the gate allows with the network off
+            NetworkGate.CreateHttpClient(sp.GetService<RunPolicy>() ?? RunPolicy.Normal, TimeSpan.FromMinutes(3)),
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            sp.GetRequiredService<ILogger<LocalImageDescriber>>()));
+        services.AddSingleton<CloudImageDescriber>(sp => new CloudImageDescriber(
+            NetworkGate.CreateHttpClient(sp.GetService<RunPolicy>() ?? RunPolicy.Normal, TimeSpan.FromSeconds(90)),
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            sp.GetRequiredService<IAiKeyStore>(),
+            sp.GetRequiredService<ILogger<CloudImageDescriber>>()));
+        services.AddSingleton<AiConsent>(sp => new AiConsent(
+            sp.GetService<RunPolicy>() ?? RunPolicy.Normal, sp.GetRequiredService<IOptionsMonitor<VoxSettings>>()));
+        services.AddSingleton<IAiConsentPrompt, AiConsentPrompt>();
+        services.AddSingleton<DescriptionCache>(_ => new DescriptionCache());
+        services.AddSingleton<AiAssistant>(sp => new AiAssistant(
+            sp.GetRequiredService<LocalImageDescriber>(),
+            sp.GetRequiredService<CloudImageDescriber>(),
+            sp.GetRequiredService<AiConsent>(),
+            sp.GetRequiredService<IAiConsentPrompt>(),
+            sp.GetRequiredService<DescriptionCache>(),
+            sp.GetRequiredService<ILogger<AiAssistant>>()));
+        services.AddSingleton<IAiContextSource, UIAAiContextSource>();
+        services.AddSingleton<AiCommands>(sp => new AiCommands(
+            sp.GetRequiredService<AiAssistant>(),
+            sp.GetRequiredService<IScreenCapture>(),
+            sp.GetRequiredService<IOcrTargetSource>(),
+            sp.GetRequiredService<IAiContextSource>(),
+            sp.GetRequiredService<ReviewCommands>(),
+            sp.GetRequiredService<ITextPrompt>(),
+            sp.GetRequiredService<OwnDialogRunner>(),
+            sp.GetRequiredService<IAiKeyStore>(),
+            sp.GetService<RunPolicy>() ?? RunPolicy.Normal,
+            sp.GetRequiredService<IAudioCuePlayer>(),
+            sp.GetRequiredService<SpeechQueue>(),
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            sp.GetRequiredService<ILogger<AiCommands>>(),
+            sp.GetRequiredService<SettingsMonitor>().UpdateSettings));
         // Updates: only with the release key shipped beside Vox, and never on secure screens
         services.AddSingleton<UpdateChecker>(sp =>
         {

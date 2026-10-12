@@ -407,6 +407,73 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task Captcha_IsAnnouncedOnce_WithItsAccessibleWayThrough()
+    {
+        var root = new MockElement { RuntimeId = [120], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [121], Name = "Sign in" })
+            .AddChild(new MockElement { RuntimeId = [122], Name = "reCAPTCHA", ControlType = "Pane" }
+                .AddChild(new MockElement { RuntimeId = [123], Name = "I'm not a robot", ControlType = "CheckBox" }));
+        var document = new VBufferBuilder().Build(root);
+
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+        await WaitForSpeech(u => u.Text.StartsWith("reCAPTCHA on this page."));
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+        await Task.Delay(100);
+
+        lock (_spoken) Assert.Single(_spoken, u => u.Text.StartsWith("reCAPTCHA on this page."));
+    }
+
+    [Fact]
+    public async Task Captchas_AreNotAnnounced_WhenTurnedOff()
+    {
+        _settings = new VoxSettings { AnnounceCaptchas = false };
+        var root = new MockElement { RuntimeId = [125], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [126], Name = "Sign in" })
+            .AddChild(new MockElement { RuntimeId = [127], Name = "reCAPTCHA", ControlType = "Pane" });
+
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, new VBufferBuilder().Build(root), null));
+        await Task.Delay(200);
+
+        lock (_spoken) Assert.DoesNotContain(_spoken, u => u.Text.Contains("reCAPTCHA on this page"));
+    }
+
+    [Fact]
+    public async Task MoveToMainContent_GoesThere_ThenToTheNextSuggestion()
+    {
+        var prose = "The council approved the new park on Tuesday after a long debate about its cost.";
+        var main = new MockElement { RuntimeId = [131], ControlType = "Group", AriaRole = "main" }
+            .AddChild(new MockElement { RuntimeId = [132], Name = "Welcome to the site" });
+        var root = new MockElement { RuntimeId = [130], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [133], Name = "Home", ControlType = "Hyperlink" })
+            .AddChild(main)
+            .AddChild(new MockElement { RuntimeId = [134], Name = "Park approved", AriaRole = "heading", AriaProperties = "level=1" })
+            .AddChild(new MockElement { RuntimeId = [135], Name = prose });
+        var document = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+
+        _controller.HandleCommand(NavigationCommand.MoveToMainContent);
+        await WaitForSpeech(u => u.Text == "Main landmark");
+        await WaitForSpeech(u => u.Text.Contains("Welcome to the site"));
+        Assert.Equal(document.FindByRuntimeId([132])!.TextRange.Start, _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.MoveToMainContent);
+        await WaitForSpeech(u => u.Text == "Main heading");
+        Assert.Equal(document.FindByRuntimeId([134])!.TextRange.Start, _controller.Cursor!.TextOffset);
+    }
+
+    [Fact]
+    public void BrowsedDocument_IsThePage_OnlyWhileBrowsing()
+    {
+        var root = new MockElement { RuntimeId = [140], ControlType = "Document" }.AddChild(new MockElement { RuntimeId = [141], Name = "Text" });
+        var document = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+
+        Assert.Same(document, _controller.BrowsedDocument());
+        _navigationManager.SwitchTo(InteractionMode.Focus, "test", announce: false);
+        Assert.Null(_controller.BrowsedDocument());
+    }
+
+    [Fact]
     public void WebApplication_StartsInFocusMode()
     {
         var app = new MockElement { RuntimeId = [97], ControlType = "Group", AriaRole = "application" }

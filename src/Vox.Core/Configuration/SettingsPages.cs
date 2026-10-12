@@ -60,13 +60,16 @@ public static class SettingsPages
 {
     /// <param name="ocrLanguages">The languages Windows can recognise text in (BCP 47 tags).</param>
     public static IReadOnlyList<SettingsPage> All(SpeechOptions speech, AudioOptions audio, IReadOnlyList<string>? ocrLanguages = null) =>
-        [General(), Speech(speech), Braille(), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Review(ocrLanguages), Applications()];
+        [General(), Speech(speech), Braille(), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Review(ocrLanguages), Ai(), Applications()];
 
     /// <summary>Settings no page shows: edited elsewhere (sleep mode's key, the wizard) or not by people.</summary>
     public static readonly IReadOnlySet<string> NotOnAnyPage = new HashSet<string>
     {
         nameof(VoxSettings.SleepApps), nameof(VoxSettings.LanguageVoices), nameof(VoxSettings.AppDefaultModes),
         nameof(VoxSettings.FirstRunCompleted), nameof(VoxSettings.SchemaVersion),
+        // Free text, edited in settings.json (docs/ai.md); the key is set from the Vox menu
+        nameof(VoxSettings.AiModel), nameof(VoxSettings.AiEndpoint), nameof(VoxSettings.AiPrivateApps),
+        nameof(VoxSettings.AiLocalModel), nameof(VoxSettings.AiLocalEndpoint),
     };
 
     /// <summary>Vox's app modules, by id, with the names the Applications page shows (product names, not translated).</summary>
@@ -208,6 +211,13 @@ public static class SettingsPages
         new ChoiceField(L("Setting.OcrLanguage"),
             [new SettingChoice(L("Choice.OcrLanguage.Automatic"), null), .. (ocrLanguages ?? []).Select(l => new SettingChoice(LanguageName(l), (object?)l))],
             s => s.OcrLanguage, (s, v) => s with { OcrLanguage = (string?)v }),
+    ]);
+
+    public static SettingsPage Ai() => new(L("SettingsPage.Ai"),
+    [
+        Choice(L("Setting.AiCloudProvider"), s => s.AiCloudProvider, (s, v) => s with { AiCloudProvider = v }),
+        Choice(L("Setting.AiCloudConsent"), s => s.AiCloudConsent, (s, v) => s with { AiCloudConsent = v }),
+        new ToggleField(L("Setting.AnnounceCaptchas"), s => s.AnnounceCaptchas, (s, v) => s with { AnnounceCaptchas = v }),
     ]);
 
     /// <summary>A language as people read it ("français (France)"), else its tag.</summary>

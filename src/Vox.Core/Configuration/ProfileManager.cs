@@ -17,6 +17,10 @@ public sealed class ProfileManager
     {
         nameof(VoxSettings.SchemaVersion), nameof(VoxSettings.FirstRunCompleted), nameof(VoxSettings.SleepApps),
         nameof(VoxSettings.StartAtLogon), nameof(VoxSettings.UpdateChannel), nameof(VoxSettings.AnnounceProfileSwitches),
+        // What may leave the computer is decided once, never by whichever profile is active
+        nameof(VoxSettings.AiCloudProvider), nameof(VoxSettings.AiModel), nameof(VoxSettings.AiEndpoint),
+        nameof(VoxSettings.AiCloudConsent), nameof(VoxSettings.AiPrivateApps), nameof(VoxSettings.AiLocalModel),
+        nameof(VoxSettings.AiLocalEndpoint),
     };
 
     private readonly ProfileStore _store;

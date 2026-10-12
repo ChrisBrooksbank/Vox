@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 203
+- Build iterations: 204
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -286,12 +286,12 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [x] Add `IOcrEngine` and `WindowsOcrEngine`; screen-capture helper for window, navigator and image bounds (blocked in secure mode) (spec: ocr-ai.md)
 - [x] Present OCR results as a reviewable `ITextDocument` with word positions and click-on-word; Insert+R recognises the navigator object; unit tests (spec: ocr-ai.md)
 - [x] Offer OCR for untagged PDFs (spec: ocr-ai.md)
-- [ ] Add `IImageDescriber`, consent rules (ask/allow/never; never password fields, secure desktop or private apps) and description cache; unit tests (spec: ocr-ai.md)
-- [ ] Add `LocalImageDescriber` (Windows AI APIs) and `CloudImageDescriber` (user-configured provider and key) (spec: ocr-ai.md)
-- [ ] Add Insert+G describe image/object with progress cue and cancellation (spec: ocr-ai.md)
-- [ ] Add screen explanation question prompt with answer as a reviewable buffer (spec: ocr-ai.md)
-- [ ] Add CAPTCHA detection and guidance to audio alternatives/accessibility options (no solving) (spec: ocr-ai.md)
-- [ ] Add page summary and main-content suggestions (local first, cloud with consent) (spec: ocr-ai.md)
+- [x] Add `IImageDescriber`, consent rules (ask/allow/never; never password fields, secure desktop or private apps) and description cache; unit tests (spec: ocr-ai.md)
+- [x] Add `LocalImageDescriber` (a local vision model through Ollama; Windows AI APIs need package identity — see docs/ai.md) and `CloudImageDescriber` (user-configured provider and key) (spec: ocr-ai.md)
+- [x] Add Insert+G describe image/object with progress cue and cancellation (spec: ocr-ai.md)
+- [x] Add screen explanation question prompt with answer as a reviewable buffer (spec: ocr-ai.md)
+- [x] Add CAPTCHA detection and guidance to audio alternatives/accessibility options (no solving) (spec: ocr-ai.md)
+- [x] Add page summary and main-content suggestions (local first, cloud with consent) (spec: ocr-ai.md)
 
 #### Extensibility (spec: extensibility.md)
 
