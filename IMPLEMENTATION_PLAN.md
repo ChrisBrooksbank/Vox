@@ -8,6 +8,45 @@
 
 ## Tasks
 
+### Milestone F — "Easy to switch to"
+
+#### Bring your settings (spec: switching.md)
+
+- [ ] Add `NvdaSettingsImporter` reading `nvda.ini` (rate, pitch, volume, voice match, punctuation, capitals, typing echo, braille) into `VoxSettings`, with an `ImportReport` of what was brought over and skipped; unit tests over sample files (spec: switching.md)
+- [ ] Import NVDA `gestures.ini` bindings for commands Vox has into the user `keymap.json` and `speechDicts` dictionaries into `dictionaries/user.json` / `voices/<voice>.json` (unsupported regex entries reported as skipped); backups of replaced files; unit tests (spec: switching.md)
+- [ ] Add `JawsSettingsImporter` for the newest JAWS user settings folder: `.jkm` key assignments mapped to Vox commands, `.jdf` dictionary entries, rate/punctuation from `default.jcf`; unit tests over sample files (spec: switching.md)
+- [ ] Offer the import in the first-run wizard when NVDA or JAWS settings are found and from the Vox menu (not in secure mode); show the report as a reviewable document; add `Vox.App --import-settings nvda|jaws` for unattended deployment; unit tests (spec: switching.md)
+
+#### JAWS keyboard layout (spec: switching.md)
+
+- [ ] Add `KeyboardLayout.Jaws` with `assets/config/jaws-keymap.json` overlaid through `KeyMap.LoadLayout` (desktop and laptop variants) covering the common JAWS keys; copied and embedded like the other keymaps; tests for resolution, conflicts, and that the keyboard reference, tutorial and input help use its keys (spec: switching.md)
+- [ ] Add "Vox for JAWS users" and "Vox for NVDA users" pages to `docs/guide` mapping familiar keys and concepts (spec: switching.md)
+
+#### Custom labels and per-site settings (spec: switching.md)
+
+- [ ] Add custom labels: a command to label the element at the browse cursor or focus, stored per site by a stable element signature, applied by `VBufferBuilder` and focus announcements, with a dialog to edit/delete; `CommandCatalog` entry and key; not in secure mode; unit tests (signature survives updates) (spec: switching.md)
+- [ ] Add per-site settings (start mode, verbosity, screen layout, auto-dismiss overlays) layered above application profiles in `ProfileManager`, set from a dialog while browsing; unit tests (spec: switching.md)
+- [ ] Add label pack export/import and a label-pack add-on package type installable from the add-on store; unit tests (spec: switching.md)
+
+#### AI that fixes pages (spec: switching.md)
+
+- [ ] Add automatic labels: background local descriptions of unlabelled graphics and icon-only buttons after a load (cloud only with "allow" consent and not a private site), rate-limited, cached by image hash and site, applied as "described" custom labels; setting to turn off; never in secure mode or with `DisableAI`; unit tests (spec: switching.md)
+- [ ] Add "Ask the page": a question prompt answered from the buffer text (local first, cloud with consent), offering to move the browse cursor to an element the answer names (ids checked against the buffer); unit tests (spec: switching.md)
+
+#### Safe trial (spec: switching.md)
+
+- [ ] Add trial mode (wizard and `--trial`): detect and pause/stop a running NVDA or Narrator, and a key plus Vox menu item that quits Vox and restarts it; unit tests over fakes (spec: switching.md)
+- [ ] Make Vox.Watchdog start Narrator (or the screen reader trial mode recorded) after repeated crashes instead of leaving the user without speech, and say why on next start; unit tests (spec: switching.md)
+
+#### Proof of speed (spec: switching.md)
+
+- [ ] Record keypress-to-speech latency (p95) and time to first speech on large pages (corpus plus a 10,000-row table page) in the E2E runs; CI fails on a regression beyond a set margin (spec: switching.md)
+- [ ] Add `docs/performance.md` with Vox's figures, hardware, versions and a manual method for measuring NVDA and JAWS the same way (spec: switching.md)
+
+#### Organisations (spec: switching.md)
+
+- [ ] Add `docs/organisations.md`: cost comparison method, deployment checklist (MSI properties, Group Policy, profiles, add-on trust, unattended settings import), conformance links and support (spec: switching.md)
+
 ### Configuration & Settings (spec: first-run-experience.md)
 
 - [x] Add `VoxSettings` record with all config fields: VerbosityLevel, SpeechRateWpm, VoiceName, TypingEchoMode, AudioCuesEnabled, AnnounceVisitedLinks, ModifierKey, FirstRunCompleted (spec: first-run-experience.md)
@@ -352,45 +391,6 @@ Isolation (longer term):
 
 - [ ] Document in `docs/security.md` and `docs/enterprise.md` that add-ons run in-process with full rights and bypass `NetworkGate`; add a Group Policy allowing only signed or catalogue add-ons (`AddOnTrust.Signed`/`Catalogue`), enforced by `AddOnManager` at install and load; unit tests (spec: extensibility.md)
 - [ ] Design (in `docs/addons.md`) out-of-process hosting for add-on speech engines and braille drivers over a local channel, keeping app modules in-process for latency (spec: extensibility.md)
-
-### Milestone F — "Easy to switch to"
-
-#### Bring your settings (spec: switching.md)
-
-- [ ] Add `NvdaSettingsImporter` reading `nvda.ini` (rate, pitch, volume, voice match, punctuation, capitals, typing echo, braille) into `VoxSettings`, with an `ImportReport` of what was brought over and skipped; unit tests over sample files (spec: switching.md)
-- [ ] Import NVDA `gestures.ini` bindings for commands Vox has into the user `keymap.json` and `speechDicts` dictionaries into `dictionaries/user.json` / `voices/<voice>.json` (unsupported regex entries reported as skipped); backups of replaced files; unit tests (spec: switching.md)
-- [ ] Add `JawsSettingsImporter` for the newest JAWS user settings folder: `.jkm` key assignments mapped to Vox commands, `.jdf` dictionary entries, rate/punctuation from `default.jcf`; unit tests over sample files (spec: switching.md)
-- [ ] Offer the import in the first-run wizard when NVDA or JAWS settings are found and from the Vox menu (not in secure mode); show the report as a reviewable document; add `Vox.App --import-settings nvda|jaws` for unattended deployment; unit tests (spec: switching.md)
-
-#### JAWS keyboard layout (spec: switching.md)
-
-- [ ] Add `KeyboardLayout.Jaws` with `assets/config/jaws-keymap.json` overlaid through `KeyMap.LoadLayout` (desktop and laptop variants) covering the common JAWS keys; copied and embedded like the other keymaps; tests for resolution, conflicts, and that the keyboard reference, tutorial and input help use its keys (spec: switching.md)
-- [ ] Add "Vox for JAWS users" and "Vox for NVDA users" pages to `docs/guide` mapping familiar keys and concepts (spec: switching.md)
-
-#### Custom labels and per-site settings (spec: switching.md)
-
-- [ ] Add custom labels: a command to label the element at the browse cursor or focus, stored per site by a stable element signature, applied by `VBufferBuilder` and focus announcements, with a dialog to edit/delete; `CommandCatalog` entry and key; not in secure mode; unit tests (signature survives updates) (spec: switching.md)
-- [ ] Add per-site settings (start mode, verbosity, screen layout, auto-dismiss overlays) layered above application profiles in `ProfileManager`, set from a dialog while browsing; unit tests (spec: switching.md)
-- [ ] Add label pack export/import and a label-pack add-on package type installable from the add-on store; unit tests (spec: switching.md)
-
-#### AI that fixes pages (spec: switching.md)
-
-- [ ] Add automatic labels: background local descriptions of unlabelled graphics and icon-only buttons after a load (cloud only with "allow" consent and not a private site), rate-limited, cached by image hash and site, applied as "described" custom labels; setting to turn off; never in secure mode or with `DisableAI`; unit tests (spec: switching.md)
-- [ ] Add "Ask the page": a question prompt answered from the buffer text (local first, cloud with consent), offering to move the browse cursor to an element the answer names (ids checked against the buffer); unit tests (spec: switching.md)
-
-#### Safe trial (spec: switching.md)
-
-- [ ] Add trial mode (wizard and `--trial`): detect and pause/stop a running NVDA or Narrator, and a key plus Vox menu item that quits Vox and restarts it; unit tests over fakes (spec: switching.md)
-- [ ] Make Vox.Watchdog start Narrator (or the screen reader trial mode recorded) after repeated crashes instead of leaving the user without speech, and say why on next start; unit tests (spec: switching.md)
-
-#### Proof of speed (spec: switching.md)
-
-- [ ] Record keypress-to-speech latency (p95) and time to first speech on large pages (corpus plus a 10,000-row table page) in the E2E runs; CI fails on a regression beyond a set margin (spec: switching.md)
-- [ ] Add `docs/performance.md` with Vox's figures, hardware, versions and a manual method for measuring NVDA and JAWS the same way (spec: switching.md)
-
-#### Organisations (spec: switching.md)
-
-- [ ] Add `docs/organisations.md`: cost comparison method, deployment checklist (MSI properties, Group Policy, profiles, add-on trust, unattended settings import), conformance links and support (spec: switching.md)
 
 ## Completed
 
