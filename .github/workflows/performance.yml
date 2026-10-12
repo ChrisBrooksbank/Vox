@@ -1,0 +1,50 @@
+name: Performance
+
+# Vox's speed figures (docs/performance.md): keypress-to-speech latency (95th percentile) and time
+# to first speech on every test page, the 10,000-row table included. Fails when a figure is worse
+# than tests/Vox.E2E.Tests/Performance/baseline.json beyond its margins. The end-to-end tests drive
+# a real desktop, so the runner needs an unlocked interactive session: set the repository variable
+# VOX_PERF_RUNNER to a self-hosted runner's label for steady figures.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance
+  cancel-in-progress: false
+
+jobs:
+  performance:
+    runs-on: ${{ vars.VOX_PERF_RUNNER || 'windows-latest' }}
+    timeout-minutes: 60
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      VOX_E2E: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build
+        run: dotnet build tests/Vox.E2E.Tests --configuration Release
+
+      - name: Measure and hold to the baseline
+        env:
+          VOX_PERF_REPORT: ${{ runner.temp }}/vox-performance.json
+        run: dotnet test tests/Vox.E2E.Tests --no-build --configuration Release --filter "FullyQualifiedName~Performance" --logger "console;verbosity=normal"
+
+      - name: Upload the figures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance
+          path: ${{ runner.temp }}/vox-performance.json
+          if-no-files-found: ignore

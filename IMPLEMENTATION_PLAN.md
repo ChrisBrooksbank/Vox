@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 4
-- Build iterations: 225
+- Build iterations: 226
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -40,7 +40,7 @@
 
 #### Proof of speed (spec: switching.md)
 
-- [ ] Record keypress-to-speech latency (p95) and time to first speech on large pages (corpus plus a 10,000-row table page) in the E2E runs; CI fails on a regression beyond a set margin (spec: switching.md)
+- [x] Record keypress-to-speech latency (p95) and time to first speech on large pages (corpus plus a 10,000-row table page) in the E2E runs; CI fails on a regression beyond a set margin (spec: switching.md)
 - [ ] Add `docs/performance.md` with Vox's figures, hardware, versions and a manual method for measuring NVDA and JAWS the same way (spec: switching.md)
 
 #### Organisations (spec: switching.md)

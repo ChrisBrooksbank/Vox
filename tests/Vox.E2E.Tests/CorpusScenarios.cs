@@ -29,6 +29,7 @@ public static class CorpusScenarios
         new("annotations", "annotations.html", "Annotations, figures and abbreviations", ["Down", "Down", "Down", "Down", "Down", "Down"]),
         new("math", "math.html", "Math", ["Down", "Down", "Down", "Insert+Alt+M"]),
         new("long-page", "long-page.html", "Long page", ["Insert+Shift+I", "H", "H", "Ctrl+End", "Shift+H"]),
+        new("large-table", "large-table.html", "Large table", ["T", "Ctrl+Alt+Down", "Ctrl+Alt+Down", "Ctrl+Alt+Right", "Ctrl+End", "Shift+T"]),
     ];
 
     public static Scenario Find(string name) => All.Single(s => s.Name == name);
