@@ -62,4 +62,32 @@ public static class DictionaryImport
     private static bool SameRule(PronunciationEntry a, PronunciationEntry b) =>
         a.Type == b.Type && a.CaseSensitive == b.CaseSensitive
         && string.Equals(a.Pattern, b.Pattern, a.CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Plans <paramref name="target"/> (a dictionary file in <paramref name="voxUserFolder"/>) with
+    /// <paramref name="entries"/> merged in: into what is already planned for it (two source
+    /// dictionaries for one voice), else into the file on disk. Nothing is planned when nothing changes.
+    /// </summary>
+    public static void Plan(string target, IReadOnlyList<ImportedEntry> entries, string voxUserFolder, ImportReport report, List<PlannedFile> files)
+    {
+        int planned = files.FindIndex(f => string.Equals(f.Path, target, StringComparison.OrdinalIgnoreCase));
+        string? existing;
+        try
+        {
+            existing = planned >= 0 ? files[planned].Content : File.Exists(target) ? File.ReadAllText(target) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            foreach (var entry in entries)
+                report.AddSkipped(entry.Source, entry.Entry.Pattern, ImportSkipReason.Unreadable, ex.Message);
+            return;
+        }
+        string name = Path.GetRelativePath(voxUserFolder, target).Replace('\\', '/');
+        if (Merge(existing, entries, name, report) is not { } json)
+            return;
+        if (planned >= 0)
+            files[planned] = new PlannedFile(target, json);
+        else
+            files.Add(new PlannedFile(target, json));
+    }
 }

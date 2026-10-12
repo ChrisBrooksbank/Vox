@@ -62,7 +62,7 @@ public sealed class NvdaSettingsImporter
         var files = new List<PlannedFile>();
 
         string gesturesPath = Path.Combine(nvdaFolder, NvdaGesturesImporter.FileName);
-        if (ReadSource(gesturesPath, report) is { } gestures)
+        if (ImportFileReader.Read(gesturesPath, report) is { } gestures)
         {
             var layout = result.Settings.KeyboardLayout;
             var keys = NvdaGesturesImporter.Parse(gestures, layout, report);
@@ -102,39 +102,11 @@ public sealed class NvdaSettingsImporter
         return result with { Files = files };
     }
 
-    // One dictionary file into one of Vox's (planned, or merged into what is already planned for it)
-    internal static void ImportDictionary(string source, string target, string voxUserFolder, ImportReport report, List<PlannedFile> files)
+    // One NVDA dictionary into one of Vox's
+    private static void ImportDictionary(string source, string target, string voxUserFolder, ImportReport report, List<PlannedFile> files)
     {
-        if (ReadSource(source, report) is not { } text)
-            return;
-        var entries = NvdaDictionaryImporter.Parse(text, Path.GetFileName(source), report);
-        // A second NVDA dictionary may go to the same file (two voice dictionaries for one voice)
-        int planned = files.FindIndex(f => string.Equals(f.Path, target, StringComparison.OrdinalIgnoreCase));
-        string? existing = planned >= 0 ? files[planned].Content : File.Exists(target) ? File.ReadAllText(target) : null;
-        string name = Path.GetRelativePath(voxUserFolder, target).Replace('\\', '/');
-        if (DictionaryImport.Merge(existing, entries, name, report) is not { } json)
-            return;
-        if (planned >= 0)
-            files[planned] = new PlannedFile(target, json);
-        else
-            files.Add(new PlannedFile(target, json));
-    }
-
-    /// <summary>A source file's text, or null when it doesn't exist or can't be read (reported).</summary>
-    internal static string? ReadSource(string path, ImportReport report)
-    {
-        if (!File.Exists(path))
-            return null;
-        report.AddFile(path);
-        try
-        {
-            return File.ReadAllText(path);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            report.AddSkipped(Path.GetFileName(path), null, ImportSkipReason.Unreadable, ex.Message);
-            return null;
-        }
+        if (ImportFileReader.Read(source, report) is { } text)
+            DictionaryImport.Plan(target, NvdaDictionaryImporter.Parse(text, Path.GetFileName(source), report), voxUserFolder, report, files);
     }
 
     /// <summary>Imports the settings file at <paramref name="path"/>; a file that can't be read is reported, nothing changed.</summary>
@@ -503,19 +475,5 @@ public sealed class NvdaSettingsImporter
             import.Set(prefix + key, target, value, get, with);
         else
             import.Report.AddSkipped(prefix + key, text, ImportSkipReason.Unsupported);
-    }
-
-    // The settings being built and the report of each change
-    private sealed class ImportState(VoxSettings settings, ImportReport report)
-    {
-        public VoxSettings Settings { get; private set; } = settings;
-
-        public ImportReport Report { get; } = report;
-
-        public void Set<T>(string source, string target, T value, Func<VoxSettings, T> get, Func<VoxSettings, T, VoxSettings> with)
-        {
-            Report.AddImported(source, target, value, get(Settings));
-            Settings = with(Settings, value);
-        }
     }
 }

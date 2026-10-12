@@ -40,3 +40,24 @@ public static class ImportFileWriter
         }
     }
 }
+
+/// <summary>Reads another screen reader's settings files for an import.</summary>
+public static class ImportFileReader
+{
+    /// <summary>A source file's text, or null when it doesn't exist or can't be read (reported); a file read is added to the report.</summary>
+    public static string? Read(string path, ImportReport report)
+    {
+        if (!File.Exists(path))
+            return null;
+        report.AddFile(path);
+        try
+        {
+            return File.ReadAllText(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            report.AddSkipped(Path.GetFileName(path), null, ImportSkipReason.Unreadable, ex.Message);
+            return null;
+        }
+    }
+}

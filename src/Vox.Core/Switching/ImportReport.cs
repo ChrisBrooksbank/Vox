@@ -1,3 +1,5 @@
+using Vox.Core.Configuration;
+
 namespace Vox.Core.Switching;
 
 /// <summary>The screen reader settings are brought over from.</summary>
@@ -91,4 +93,18 @@ public sealed class ImportReport
         IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
         _ => value.ToString(),
     };
+}
+
+// The settings being built and the report of each change
+internal sealed class ImportState(VoxSettings settings, ImportReport report)
+{
+    public VoxSettings Settings { get; private set; } = settings;
+
+    public ImportReport Report { get; } = report;
+
+    public void Set<T>(string source, string target, T value, Func<VoxSettings, T> get, Func<VoxSettings, T, VoxSettings> with)
+    {
+        Report.AddImported(source, target, value, get(Settings));
+        Settings = with(Settings, value);
+    }
 }

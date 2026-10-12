@@ -1,4 +1,4 @@
-# Bringing your settings from NVDA
+# Bringing your settings from NVDA or JAWS
 
 Vox can read another screen reader's settings and bring over what it has a counterpart for. Each
 import ends with a report: what was brought over (with the value it replaced in Vox), and what was
@@ -26,3 +26,19 @@ Dictionary entries keep their type (anywhere, whole word, regular expression) an
 regular expressions are Python's: those .NET reads the same way are converted (named groups, and
 `\1` or `\g<name>` in the replacement); the others are listed as skipped. Vox's own entries are
 kept; an imported entry with the same pattern replaces Vox's.
+
+## JAWS
+
+Read from the newest JAWS version's user settings folder
+(`%APPDATA%\Freedom Scientific\JAWS\<version>\Settings\enu`, or the first language there):
+
+| JAWS | Vox |
+| --- | --- |
+| `default.jcf`: `Rate` (percent, approximately), `Punctuation` (0 none to 3 all), `TypingEcho` (0 off, 1 characters, 2 words, 3 both) | speech rate, punctuation level, typing echo |
+| `default.jkm`, and `chrome.jkm`, `msedge.jkm`, `firefox.jkm`: `[Common Keys]` and `[Desktop Keys]` or `[Laptop Keys]` (whichever layout Vox uses) | `keymap.json`, for scripts Vox has a command for (say all, say line/word/character, window title, time, the virtual cursor toggle, the links/headings/form fields lists, quick navigation keys, table navigation, find...) |
+| `*.jdf` dictionaries: `.word.replacement.voice.` lines | `dictionaries\user.json` for every voice, `dictionaries\voices\<voice>.json` for a voice installed for Vox |
+
+The JAWS key (Insert, or Caps Lock on a laptop) becomes Vox's screen reader key. Only key
+assignments are brought over, never what a script does: scripts with no Vox command, other
+applications' `.jkm` files, braille and touch keys and keys with the Windows key are listed as
+skipped. A dictionary word with `*` at its start or end ("*ing") matches the rest of the word.
