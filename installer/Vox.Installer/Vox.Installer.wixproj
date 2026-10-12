@@ -6,6 +6,9 @@
   -->
   <PropertyGroup>
     <OutputName>Vox</OutputName>
+    <!-- Vox is published for win-x64 into Program Files (64-bit): a 32-bit package fails ICE80 and
+         would write HKLM\Software\Vox under WOW6432Node, where the 64-bit Vox doesn't look -->
+    <InstallerPlatform>x64</InstallerPlatform>
     <VoxVersion Condition="'$(VoxVersion)' == ''">0.1.0</VoxVersion>
     <DefineConstants>PublishDir=$(PublishDir);VoxVersion=$(VoxVersion)</DefineConstants>
     <SuppressValidation Condition="'$(OS)' != 'Windows_NT'">true</SuppressValidation>
