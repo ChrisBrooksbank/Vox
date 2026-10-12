@@ -1,4 +1,5 @@
 using Vox.Core.Configuration;
+using Vox.Core.Input;
 using Vox.Core.Speech;
 using Vox.Core.Switching;
 using Xunit;
@@ -209,5 +210,47 @@ public sealed class NvdaSettingsImporterTests
 
         Assert.Same(current, result.Settings);
         Assert.Equal(ImportSkipReason.Unreadable, Assert.Single(result.Report.Skipped).Reason);
+    }
+
+    [Fact]
+    public void Folder_BringsOverSettingsKeysAndDictionaries_AsPlannedFiles()
+    {
+        string vox = Path.Combine(Path.GetTempPath(), "vox-user-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(vox, PronunciationRule.FolderName));
+        try
+        {
+            File.WriteAllText(Path.Combine(vox, PronunciationRule.FolderName, PronunciationRule.UserFileName),
+                PronunciationDictionary.ToJson([new PronunciationEntry("lol", "L O L", PronunciationMatch.Anywhere)]));
+            string nvda = Path.Combine(AppContext.BaseDirectory, "Switching", "Samples", "nvda-folder");
+
+            var result = Importer().ImportFolder(nvda, new VoxSettings(), vox, layout => KeyMap.LayoutBindings(vox, layout));
+
+            Assert.Equal("Microsoft David", result.Settings.VoiceName);
+            var keymap = Assert.Single(result.Files, f => f.Path == Path.Combine(vox, KeyMap.UserFileName));
+            var bindings = KeyMap.ParseBindings(keymap.Content);
+            Assert.Contains(new KeyBinding(KeyModifiers.Insert, 'A', "Any", "SayAll"), bindings);
+            Assert.Contains(new KeyBinding(KeyModifiers.None, 'J', "Browse", "NextHeading"), bindings);
+
+            var user = Assert.Single(result.Files, f => f.Path.EndsWith(PronunciationRule.UserFileName, StringComparison.Ordinal));
+            var entries = PronunciationDictionary.ReadEntries(user.Content);
+            Assert.Equal("laughing out loud", Assert.Single(entries, e => e.Pattern == "lol").Replacement);
+            Assert.Contains(entries, e => e.Pattern == "Vox");
+
+            var david = Assert.Single(result.Files, f => f.Path == PronunciationRule.VoiceFile(Path.Combine(vox, PronunciationRule.FolderName), "Microsoft David"));
+            Assert.Equal("jif", Assert.Single(PronunciationDictionary.ReadEntries(david.Content)).Replacement);
+            Assert.Equal(3, result.Files.Count);
+
+            // Julie isn't installed; NVDA's audiotts has no counterpart
+            Assert.Contains(result.Report.Skipped, s => s.Value!.EndsWith("frFR_JulieM", StringComparison.Ordinal) && s.Reason == ImportSkipReason.NotInstalled);
+            Assert.Contains(result.Report.Skipped, s => s.Value == "Anna" && s.Reason == ImportSkipReason.NoCounterpart);
+            Assert.Contains(result.Report.Imported, i => i.Target == "dictionaries/user.json: lol" && i.PreviousValue == "L O L");
+            Assert.Equal(6, result.Report.Files.Count);
+            // Nothing written yet
+            Assert.False(File.Exists(Path.Combine(vox, KeyMap.UserFileName)));
+        }
+        finally
+        {
+            Directory.Delete(vox, recursive: true);
+        }
     }
 }

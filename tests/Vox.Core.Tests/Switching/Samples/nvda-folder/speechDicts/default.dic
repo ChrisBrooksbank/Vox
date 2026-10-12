@@ -1,0 +1,8 @@
+# Comment for the next entry
+Vox	vocks	1	2
+lol	laughing out loud	0	0
+\#tag	hash tag	0	0
+(?P<n>\d+)px	\g<n> pixels	0	1
+(?u)\w+ing	\1	0	1
+not enough fields	1
+bad	flag	x	0

@@ -1,11 +1,16 @@
 using Vox.Core.Braille;
 using Vox.Core.Configuration;
+using Vox.Core.Input;
 using Vox.Core.Speech;
 
 namespace Vox.Core.Switching;
 
 /// <summary>Settings with what an import changed in them, and the report of what it did.</summary>
-public sealed record SettingsImportResult(VoxSettings Settings, ImportReport Report);
+public sealed record SettingsImportResult(VoxSettings Settings, ImportReport Report)
+{
+    /// <summary>Vox's files the import would write (the user keymap, dictionaries), through <see cref="ImportFileWriter"/>.</summary>
+    public IReadOnlyList<PlannedFile> Files { get; init; } = [];
+}
 
 /// <summary>
 /// Brings NVDA's settings (<c>%APPDATA%\nvda\nvda.ini</c>) over into <see cref="VoxSettings"/>:
@@ -36,6 +41,101 @@ public sealed class NvdaSettingsImporter
 
     /// <summary>The user's NVDA settings file, or null when NVDA has never saved settings here.</summary>
     public static string? FindConfiguration() => File.Exists(DefaultConfigPath) ? DefaultConfigPath : null;
+
+    /// <summary>NVDA's settings folder for the current user (installed copy).</summary>
+    public static string DefaultFolder => Path.GetDirectoryName(DefaultConfigPath)!;
+
+    /// <summary>
+    /// Imports everything in NVDA's settings folder: nvda.ini into the settings, gestures.ini's keys
+    /// into the user keymap and the speech dictionaries (the default one and each voice's whose voice
+    /// Vox has) into Vox's dictionaries. Vox's files are only planned (<see cref="SettingsImportResult.Files"/>),
+    /// not written.
+    /// </summary>
+    /// <param name="voxUserFolder">Vox's user data folder (<c>VoxPaths.UserData</c>), where its keymap and dictionaries are.</param>
+    /// <param name="layoutBindings">The bindings of a Vox keyboard layout (<see cref="KeyMap.LayoutBindings"/>).</param>
+    public SettingsImportResult ImportFolder(string nvdaFolder, VoxSettings current, string voxUserFolder,
+        Func<KeyboardLayout, IReadOnlyList<KeyBinding>> layoutBindings)
+    {
+        string ini = Path.Combine(nvdaFolder, ConfigFileName);
+        var result = File.Exists(ini) ? ImportFile(ini, current) : new SettingsImportResult(current, new ImportReport(ImportSource.Nvda));
+        var report = result.Report;
+        var files = new List<PlannedFile>();
+
+        string gesturesPath = Path.Combine(nvdaFolder, NvdaGesturesImporter.FileName);
+        if (ReadSource(gesturesPath, report) is { } gestures)
+        {
+            var layout = result.Settings.KeyboardLayout;
+            var keys = NvdaGesturesImporter.Parse(gestures, layout, report);
+            if (KeymapImport.PlanFile(voxUserFolder, layoutBindings(layout), keys, report) is { } keymap)
+                files.Add(keymap);
+        }
+
+        string dictionaries = Path.Combine(nvdaFolder, NvdaDictionaryImporter.FolderName);
+        string voxDictionaries = Path.Combine(voxUserFolder, PronunciationRule.FolderName);
+        ImportDictionary(Path.Combine(dictionaries, NvdaDictionaryImporter.DefaultFileName),
+            Path.Combine(voxDictionaries, PronunciationRule.UserFileName), voxUserFolder, report, files);
+
+        string voiceDictionaries = Path.Combine(dictionaries, NvdaDictionaryImporter.VoiceFolderName);
+        if (Directory.Exists(voiceDictionaries))
+        {
+            foreach (var synthFolder in Directory.GetDirectories(voiceDictionaries).Order(StringComparer.OrdinalIgnoreCase))
+            {
+                string synth = Path.GetFileName(synthFolder);
+                string? engine = EngineFor(synth);
+                var voices = engine is null ? null : _voicesForEngine(engine);
+                foreach (var file in Directory.GetFiles(synthFolder, "*.dic").Order(StringComparer.OrdinalIgnoreCase))
+                {
+                    string? voiceId = NvdaDictionaryImporter.VoiceIdOf(file, synth);
+                    string? voice = voices is null ? null : VoiceMatcher.Match(voiceId, voices);
+                    if (voice is null)
+                    {
+                        report.AddFile(file);
+                        report.AddSkipped(Path.GetFileName(file), voiceId,
+                            engine is null ? ImportSkipReason.NoCounterpart : ImportSkipReason.NotInstalled);
+                        continue;
+                    }
+                    ImportDictionary(file, PronunciationRule.VoiceFile(voxDictionaries, voice), voxUserFolder, report, files);
+                }
+            }
+        }
+
+        return result with { Files = files };
+    }
+
+    // One dictionary file into one of Vox's (planned, or merged into what is already planned for it)
+    internal static void ImportDictionary(string source, string target, string voxUserFolder, ImportReport report, List<PlannedFile> files)
+    {
+        if (ReadSource(source, report) is not { } text)
+            return;
+        var entries = NvdaDictionaryImporter.Parse(text, Path.GetFileName(source), report);
+        // A second NVDA dictionary may go to the same file (two voice dictionaries for one voice)
+        int planned = files.FindIndex(f => string.Equals(f.Path, target, StringComparison.OrdinalIgnoreCase));
+        string? existing = planned >= 0 ? files[planned].Content : File.Exists(target) ? File.ReadAllText(target) : null;
+        string name = Path.GetRelativePath(voxUserFolder, target).Replace('\\', '/');
+        if (DictionaryImport.Merge(existing, entries, name, report) is not { } json)
+            return;
+        if (planned >= 0)
+            files[planned] = new PlannedFile(target, json);
+        else
+            files.Add(new PlannedFile(target, json));
+    }
+
+    /// <summary>A source file's text, or null when it doesn't exist or can't be read (reported).</summary>
+    internal static string? ReadSource(string path, ImportReport report)
+    {
+        if (!File.Exists(path))
+            return null;
+        report.AddFile(path);
+        try
+        {
+            return File.ReadAllText(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            report.AddSkipped(Path.GetFileName(path), null, ImportSkipReason.Unreadable, ex.Message);
+            return null;
+        }
+    }
 
     /// <summary>Imports the settings file at <paramref name="path"/>; a file that can't be read is reported, nothing changed.</summary>
     public SettingsImportResult ImportFile(string path, VoxSettings current)

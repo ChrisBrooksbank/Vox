@@ -47,6 +47,7 @@ public sealed class ImportReport
     private readonly List<ImportedItem> _imported = [];
     private readonly List<SkippedItem> _skipped = [];
     private readonly List<string> _files = [];
+    private readonly List<string> _backups = [];
 
     public ImportReport(ImportSource source) => Source = source;
 
@@ -59,10 +60,15 @@ public sealed class ImportReport
 
     public IReadOnlyList<SkippedItem> Skipped => _skipped;
 
+    /// <summary>Copies of Vox's own files made before the import replaced them.</summary>
+    public IReadOnlyList<string> Backups => _backups;
+
     /// <summary>The import changed at least one of Vox's settings or files.</summary>
     public bool HasChanges => _imported.Any(i => i.Changed);
 
     public void AddFile(string path) => _files.Add(path);
+
+    public void AddBackup(string path) => _backups.Add(path);
 
     public void AddImported(string source, string target, object? value, object? previousValue) =>
         _imported.Add(new ImportedItem(source, target, Format(value), Format(previousValue)));

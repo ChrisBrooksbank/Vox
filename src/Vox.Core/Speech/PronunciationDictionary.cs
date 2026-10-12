@@ -116,6 +116,10 @@ public sealed class PronunciationDictionary
         return new PronunciationDictionary(file.Entries.Where(e => e is not null), out warnings);
     }
 
+    /// <summary>A dictionary file's entries as written, invalid ones included (for editing the file).</summary>
+    public static IReadOnlyList<PronunciationEntry> ReadEntries(string json) =>
+        (JsonSerializer.Deserialize<File>(json, JsonOptions) ?? new File()).Entries.Where(e => e is not null).ToList();
+
     /// <summary>The JSON for a dictionary file with <paramref name="entries"/>.</summary>
     public static string ToJson(IEnumerable<PronunciationEntry> entries) =>
         JsonSerializer.Serialize(new File { Entries = entries.ToList() }, JsonOptions);

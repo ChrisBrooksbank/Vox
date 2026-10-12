@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 4
-- Build iterations: 213
+- Build iterations: 214
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -13,7 +13,7 @@
 #### Bring your settings (spec: switching.md)
 
 - [x] Add `NvdaSettingsImporter` reading `nvda.ini` (rate, pitch, volume, voice match, punctuation, capitals, typing echo, braille) into `VoxSettings`, with an `ImportReport` of what was brought over and skipped; unit tests over sample files (spec: switching.md)
-- [ ] Import NVDA `gestures.ini` bindings for commands Vox has into the user `keymap.json` and `speechDicts` dictionaries into `dictionaries/user.json` / `voices/<voice>.json` (unsupported regex entries reported as skipped); backups of replaced files; unit tests (spec: switching.md)
+- [x] Import NVDA `gestures.ini` bindings for commands Vox has into the user `keymap.json` and `speechDicts` dictionaries into `dictionaries/user.json` / `voices/<voice>.json` (unsupported regex entries reported as skipped); backups of replaced files; unit tests (spec: switching.md)
 - [ ] Add `JawsSettingsImporter` for the newest JAWS user settings folder: `.jkm` key assignments mapped to Vox commands, `.jdf` dictionary entries, rate/punctuation from `default.jcf`; unit tests over sample files (spec: switching.md)
 - [ ] Offer the import in the first-run wizard when NVDA or JAWS settings are found and from the Vox menu (not in secure mode); show the report as a reviewable document; add `Vox.App --import-settings nvda|jaws` for unattended deployment; unit tests (spec: switching.md)
 
@@ -408,4 +408,4 @@ Isolation (longer term):
 - Settings go in Vox.Core/Configuration/
 - Navigation goes in Vox.Core/Navigation/
 - Virtual buffer goes in Vox.Core/Buffer/
-- `NvdaSettingsImporter` is not yet registered in DI: the wiring task gives it the voices per engine (`Func<string, IReadOnlyList<string>?>`, null for an engine not installed) and saves its result through `SettingsMonitor.UpdateSettings`
+- `NvdaSettingsImporter` is not yet registered in DI: the wiring task gives it the voices per engine (`Func<string, IReadOnlyList<string>?>`, null for an engine not installed) and saves its result through `SettingsMonitor.UpdateSettings`; `ImportFolder` (nvda.ini, gestures.ini, speech dictionaries) returns the keymap and dictionary files as `PlannedFile`s for `ImportFileWriter.Write` (backups) — the wiring task writes them and backs up settings.json too

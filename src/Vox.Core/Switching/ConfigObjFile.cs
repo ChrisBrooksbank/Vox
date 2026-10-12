@@ -143,6 +143,9 @@ public sealed class ConfigObjFile
         if (value.Length >= 1 && value[0] is '"' or '\'')
         {
             int end = value.IndexOf(value[0], 1);
+            // A list with a quoted item ("kb:NVDA+,", kb:a) is left as written for its reader to split
+            if (end > 0 && value[(end + 1)..].TrimStart().StartsWith(','))
+                return value;
             return end > 0 ? value[1..end] : value[1..];
         }
         // An unquoted value ends at a comment

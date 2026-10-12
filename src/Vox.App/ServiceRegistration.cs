@@ -133,7 +133,7 @@ public static class ServiceRegistration
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
             // Secure screens never read the user's profile
             var directory = policy.AllowUserProfileAccess
-                ? Path.Combine(VoxPaths.UserData, "dictionaries")
+                ? Path.Combine(VoxPaths.UserData, PronunciationRule.FolderName)
                 : null;
             var engine = sp.GetRequiredService<ISpeechEngine>();
             var rule = new PronunciationRule(PronunciationRule.LoadBuiltInDefault(), directory, () => engine.CurrentVoice,
