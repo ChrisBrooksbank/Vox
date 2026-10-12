@@ -119,6 +119,9 @@ public static class SettingsPages
 
     public static SettingsPage General() => new(L("SettingsPage.General"),
     [
+        new ChoiceField(L("Setting.Language"),
+            [new SettingChoice(L("Choice.Language.Windows"), null), .. VoxLanguages.All.Select(l => new SettingChoice(l.NativeName, (object?)l.Code))],
+            s => s.Language, (s, v) => s with { Language = (string?)v }),
         new ToggleField(L("Setting.StartAtLogon"), s => s.StartAtLogon, (s, v) => s with { StartAtLogon = v }),
         new ToggleField(L("Setting.AnnounceProfileSwitches"), s => s.AnnounceProfileSwitches, (s, v) => s with { AnnounceProfileSwitches = v }),
         Choice(L("Setting.UpdateChannel"), s => s.UpdateChannel, (s, v) => s with { UpdateChannel = v }),

@@ -165,6 +165,8 @@ public record VoxSettings
     public bool StatesAsSounds { get; init; } = false;
     /// <summary>Text in another language (a page's lang) is read with a voice for that language.</summary>
     public bool AutoLanguageSwitching { get; init; } = true;
+    /// <summary>The language Vox speaks and shows its own words in (a culture name, "fr"); null follows Windows' display language.</summary>
+    public string? Language { get; init; }
     /// <summary>The voice to use for a language (BCP 47 tag or just the language, e.g. "fr"), overriding the automatic choice.</summary>
     public Dictionary<string, string> LanguageVoices { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Applications (process names) in sleep mode: Vox neither speaks nor takes keys while they have focus.</summary>

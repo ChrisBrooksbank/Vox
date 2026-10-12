@@ -1,0 +1,145 @@
+{
+  "comment": "Symbol names for fr: they replace the English names (symbols-en.json); levels and pauses stay the English file's. Machine-translated: to be reviewed by a native speaker (docs/translating.md).",
+  "symbols": [
+    {
+      "symbol": "!",
+      "name": "point d'exclamation"
+    },
+    {
+      "symbol": ".",
+      "name": "point"
+    },
+    {
+      "symbol": ",",
+      "name": "virgule"
+    },
+    {
+      "symbol": "?",
+      "name": "point d'interrogation"
+    },
+    {
+      "symbol": "'",
+      "name": "apostrophe"
+    },
+    {
+      "symbol": "\"",
+      "name": "guillemet"
+    },
+    {
+      "symbol": "(",
+      "name": "parenthèse ouvrante"
+    },
+    {
+      "symbol": ")",
+      "name": "parenthèse fermante"
+    },
+    {
+      "symbol": "[",
+      "name": "crochet ouvrant"
+    },
+    {
+      "symbol": "]",
+      "name": "crochet fermant"
+    },
+    {
+      "symbol": "{",
+      "name": "accolade ouvrante"
+    },
+    {
+      "symbol": "}",
+      "name": "accolade fermante"
+    },
+    {
+      "symbol": "-",
+      "name": "tiret"
+    },
+    {
+      "symbol": ":",
+      "name": "deux-points"
+    },
+    {
+      "symbol": ";",
+      "name": "point-virgule"
+    },
+    {
+      "symbol": "…",
+      "name": "points de suspension"
+    },
+    {
+      "symbol": "#",
+      "name": "dièse"
+    },
+    {
+      "symbol": "$",
+      "name": "dollar"
+    },
+    {
+      "symbol": "%",
+      "name": "pour cent"
+    },
+    {
+      "symbol": "&",
+      "name": "et commercial"
+    },
+    {
+      "symbol": "*",
+      "name": "astérisque"
+    },
+    {
+      "symbol": "+",
+      "name": "plus"
+    },
+    {
+      "symbol": "/",
+      "name": "barre oblique"
+    },
+    {
+      "symbol": "<",
+      "name": "inférieur"
+    },
+    {
+      "symbol": "=",
+      "name": "égal"
+    },
+    {
+      "symbol": ">",
+      "name": "supérieur"
+    },
+    {
+      "symbol": "@",
+      "name": "arobase"
+    },
+    {
+      "symbol": "\\",
+      "name": "barre oblique inverse"
+    },
+    {
+      "symbol": "^",
+      "name": "accent circonflexe"
+    },
+    {
+      "symbol": "_",
+      "name": "souligné"
+    },
+    {
+      "symbol": "|",
+      "name": "barre verticale"
+    },
+    {
+      "symbol": "~",
+      "name": "tilde"
+    },
+    {
+      "symbol": "•",
+      "name": "puce"
+    },
+    {
+      "symbol": "€",
+      "name": "euro"
+    },
+    {
+      "symbol": "£",
+      "name": "livre"
+    }
+  ]
+}

@@ -146,8 +146,10 @@ public static class ServiceRegistration
                 // On the text as it is on screen, before anything replaces words
                 new CapitalsRule(() => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue),
                 sp.GetRequiredService<PronunciationRule>(),
-                new PunctuationRule(SymbolDictionary.LoadBuiltIn(),
-                    () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.PunctuationLevel),
+                // Symbols named in the page's language, else Vox's
+                new PunctuationRule(SymbolDictionary.ForLanguage,
+                    () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.PunctuationLevel,
+                    () => VoxStrings.EffectiveCulture.TwoLetterISOLanguageName),
                 // After symbols, which leave separators inside numbers alone
                 new NumbersRule(() => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.Numbers),
             ],

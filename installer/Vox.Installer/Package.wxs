@@ -5,7 +5,7 @@
     one has the Ctrl+Alt+V hotkey,
   - STARTATLOGON=1: a shortcut in the all-users Startup folder, so Vox starts at sign-in.
   - DESKTOPSHORTCUT=0: no desktop shortcut; INSTALLSERVICE=0: no secure-screen service.
-  - UPDATECHANNEL, KEYBOARDLAYOUT, MODIFIERKEY, VERBOSITY, SPEECHRATE: the computer's
+  - UPDATECHANNEL, KEYBOARDLAYOUT, MODIFIERKEY, VERBOSITY, SPEECHRATE, LANGUAGE: the computer's
     default settings, written to HKLM\Software\Vox\Defaults (MachineSettings; a property not
     given writes an empty value, which Vox ignores). Users can still change them; to enforce
     a setting use Group Policy (installer/policy, docs/enterprise.md).
@@ -25,6 +25,7 @@
     <Property Id="MODIFIERKEY" Secure="yes" />
     <Property Id="VERBOSITY" Secure="yes" />
     <Property Id="SPEECHRATE" Secure="yes" />
+    <Property Id="LANGUAGE" Secure="yes" />
     <Property Id="ARPCOMMENTS" Value="A screen reader for Windows." />
 
     <StandardDirectory Id="ProgramFiles64Folder">
@@ -81,6 +82,7 @@
         <RegistryValue Name="ModifierKey" Type="string" Value="[MODIFIERKEY]" />
         <RegistryValue Name="VerbosityLevel" Type="string" Value="[VERBOSITY]" />
         <RegistryValue Name="SpeechRateWpm" Type="string" Value="[SPEECHRATE]" />
+        <RegistryValue Name="Language" Type="string" Value="[LANGUAGE]" />
       </RegistryKey>
       <RegistryValue Root="HKLM" Key="Software\Vox" Name="MachineDefaults" Type="integer" Value="1" KeyPath="yes" />
     </Component>

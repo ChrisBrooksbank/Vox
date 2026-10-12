@@ -11,6 +11,7 @@
   "Indentation": "Off",
   "StatesAsSounds": false,
   "AutoLanguageSwitching": true,
+  "Language": null,
   "LanguageVoices": {},
   "SleepApps": [],
   "AppDefaultModes": {},

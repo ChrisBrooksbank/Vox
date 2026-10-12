@@ -1,0 +1,145 @@
+{
+  "comment": "Symbol names for de: they replace the English names (symbols-en.json); levels and pauses stay the English file's. Machine-translated: to be reviewed by a native speaker (docs/translating.md).",
+  "symbols": [
+    {
+      "symbol": "!",
+      "name": "Ausrufezeichen"
+    },
+    {
+      "symbol": ".",
+      "name": "Punkt"
+    },
+    {
+      "symbol": ",",
+      "name": "Komma"
+    },
+    {
+      "symbol": "?",
+      "name": "Fragezeichen"
+    },
+    {
+      "symbol": "'",
+      "name": "Apostroph"
+    },
+    {
+      "symbol": "\"",
+      "name": "Anführungszeichen"
+    },
+    {
+      "symbol": "(",
+      "name": "Klammer auf"
+    },
+    {
+      "symbol": ")",
+      "name": "Klammer zu"
+    },
+    {
+      "symbol": "[",
+      "name": "eckige Klammer auf"
+    },
+    {
+      "symbol": "]",
+      "name": "eckige Klammer zu"
+    },
+    {
+      "symbol": "{",
+      "name": "geschweifte Klammer auf"
+    },
+    {
+      "symbol": "}",
+      "name": "geschweifte Klammer zu"
+    },
+    {
+      "symbol": "-",
+      "name": "Bindestrich"
+    },
+    {
+      "symbol": ":",
+      "name": "Doppelpunkt"
+    },
+    {
+      "symbol": ";",
+      "name": "Semikolon"
+    },
+    {
+      "symbol": "…",
+      "name": "Auslassungspunkte"
+    },
+    {
+      "symbol": "#",
+      "name": "Raute"
+    },
+    {
+      "symbol": "$",
+      "name": "Dollar"
+    },
+    {
+      "symbol": "%",
+      "name": "Prozent"
+    },
+    {
+      "symbol": "&",
+      "name": "und"
+    },
+    {
+      "symbol": "*",
+      "name": "Stern"
+    },
+    {
+      "symbol": "+",
+      "name": "plus"
+    },
+    {
+      "symbol": "/",
+      "name": "Schrägstrich"
+    },
+    {
+      "symbol": "<",
+      "name": "kleiner"
+    },
+    {
+      "symbol": "=",
+      "name": "gleich"
+    },
+    {
+      "symbol": ">",
+      "name": "größer"
+    },
+    {
+      "symbol": "@",
+      "name": "at"
+    },
+    {
+      "symbol": "\\",
+      "name": "umgekehrter Schrägstrich"
+    },
+    {
+      "symbol": "^",
+      "name": "Zirkumflex"
+    },
+    {
+      "symbol": "_",
+      "name": "Unterstrich"
+    },
+    {
+      "symbol": "|",
+      "name": "senkrechter Strich"
+    },
+    {
+      "symbol": "~",
+      "name": "Tilde"
+    },
+    {
+      "symbol": "•",
+      "name": "Aufzählungspunkt"
+    },
+    {
+      "symbol": "€",
+      "name": "Euro"
+    },
+    {
+      "symbol": "£",
+      "name": "Pfund"
+    }
+  ]
+}

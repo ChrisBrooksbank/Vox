@@ -41,6 +41,13 @@ public static class BrailleTables
         Table("da-dk-g16.ctb", false),
         Table("no-no-g1.ctb", false),
         Table("pl-pl-comp8.ctb", false),
+        Table("pt-pt-g1.utb", false),
+        Table("pt-pt-g2.ctb", true),
+        Table("ar-ar-g1.utb", false),
+        Table("ar-ar-g2.ctb", true),
+        Table("zh-chn.ctb", false),
+        Table("ja-kantenji.utb", false),
+        Table("hi-in-g1.utb", false),
     ];
 
     // A table named by its BrailleTable.<id> string, in the language in use

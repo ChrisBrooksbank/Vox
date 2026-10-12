@@ -421,6 +421,8 @@ public sealed class VBufferBuilder
         var value = FormControls.BufferValue(node);
         if (value is not null)
             text = string.IsNullOrEmpty(text) ? value : $"{text} {value}";
+        // Invisible direction marks in Arabic and Hebrew text: the cursor would stop on nothing
+        text = Text.BidiText.WithoutControls(text, out _);
         if (string.IsNullOrEmpty(text)) return;
 
         flatText.Append(text);

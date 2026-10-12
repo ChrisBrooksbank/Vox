@@ -2560,4 +2560,31 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Dialog.Close" xml:space="preserve">
     <value>Close</value>
   </data>
+  <data name="BrailleTable.pt-pt-g1.utb" xml:space="preserve">
+    <value>Portuguese, uncontracted</value>
+  </data>
+  <data name="BrailleTable.pt-pt-g2.ctb" xml:space="preserve">
+    <value>Portuguese, contracted</value>
+  </data>
+  <data name="BrailleTable.ar-ar-g1.utb" xml:space="preserve">
+    <value>Arabic, uncontracted</value>
+  </data>
+  <data name="BrailleTable.ar-ar-g2.ctb" xml:space="preserve">
+    <value>Arabic, contracted</value>
+  </data>
+  <data name="BrailleTable.zh-chn.ctb" xml:space="preserve">
+    <value>Chinese (Mandarin, China)</value>
+  </data>
+  <data name="BrailleTable.ja-kantenji.utb" xml:space="preserve">
+    <value>Japanese (Kantenji)</value>
+  </data>
+  <data name="BrailleTable.hi-in-g1.utb" xml:space="preserve">
+    <value>Hindi (Bharati braille)</value>
+  </data>
+  <data name="Setting.Language" xml:space="preserve">
+    <value>&amp;Language</value>
+  </data>
+  <data name="Choice.Language.Windows" xml:space="preserve">
+    <value>As Windows</value>
+  </data>
 </root>

@@ -8,6 +8,7 @@ using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
+using Vox.Core.Localization;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
@@ -451,6 +452,8 @@ public sealed class ScreenReaderService : IHostedService
                 _audioCuePlayer.KeepAwake = settings.KeepAudioDeviceAwake;
             if (previous is null || previous.AudioDucking != settings.AudioDucking)
                 _duckingController.SetMode(settings.AudioDucking);
+            if (previous is null || previous.Language != settings.Language)
+                ApplyLanguage(previous, settings);
             if (previous is null || previous.ModifierKey != settings.ModifierKey)
                 _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
             // At startup the keymap was loaded for the configured layout already
@@ -474,6 +477,28 @@ public sealed class ScreenReaderService : IHostedService
                     _logger.LogWarning(ex, "Could not change the start-at-logon registration");
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Vox's strings follow the Language setting at once. When it changes and the braille table is
+    /// still the old language's usual one, braille follows too.
+    /// </summary>
+    private void ApplyLanguage(VoxSettings? previous, VoxSettings settings)
+    {
+        var before = VoxStrings.EffectiveCulture;
+        VoxStrings.Culture = VoxLanguages.Culture(settings.Language);
+        if (settings.Language is not null && VoxStrings.Culture is null)
+            _logger.LogWarning("Unknown language {Language} in the settings; following Windows", settings.Language);
+        if (previous is null)
+            return;
+        var table = VoxLanguages.BrailleTableFor(VoxStrings.EffectiveCulture);
+        if (string.Equals(settings.BrailleTable, VoxLanguages.BrailleTableFor(before), StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(settings.BrailleTable, table, StringComparison.OrdinalIgnoreCase)
+            && _settings is SettingsMonitor monitor)
+        {
+            // Not from inside this settings change
+            _ = Task.Run(() => monitor.UpdateSettings(monitor.CurrentValue with { BrailleTable = table }));
         }
     }
 

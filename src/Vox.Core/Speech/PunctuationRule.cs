@@ -16,23 +16,36 @@ public sealed class PunctuationRule : ITextRule
 {
     private const char VariationSelector = '️';
 
-    private readonly SymbolDictionary _symbols;
+    private readonly Func<string?, SymbolDictionary> _dictionaryFor;
+    private readonly Func<string?> _language;
     private readonly Func<PunctuationLevel> _level;
-    // Symbols by their first character, longest first (so "..." wins over ".")
-    private readonly Dictionary<char, string[]> _byFirstChar;
+    // Per dictionary: its symbols by their first character, longest first (so "..." wins over ".")
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<SymbolDictionary, Dictionary<char, string[]>> _indexes = new();
     private static readonly Regex Spaces = new(@"[ \t]{2,}", RegexOptions.Compiled);
     // Space left before a kept punctuation mark by a dropped symbol ("(cartoon)," → "cartoon ,")
     private static readonly Regex SpaceBeforePunctuation = new(@"[ \t]+(?=[.,;:?!…](\s|$))", RegexOptions.Compiled);
 
     public PunctuationRule(SymbolDictionary symbols, Func<PunctuationLevel> level)
+        : this(_ => symbols, level, () => null)
     {
-        _symbols = symbols;
+    }
+
+    /// <summary>
+    /// Symbols named in the utterance's language (the page's), else in <paramref name="language"/>
+    /// (Vox's language), from <paramref name="dictionaryFor"/> (<see cref="SymbolDictionary.ForLanguage"/>).
+    /// </summary>
+    public PunctuationRule(Func<string?, SymbolDictionary> dictionaryFor, Func<PunctuationLevel> level, Func<string?> language)
+    {
+        _dictionaryFor = dictionaryFor;
         _level = level;
-        _byFirstChar = symbols.Entries
+        _language = language;
+    }
+
+    private Dictionary<char, string[]> IndexOf(SymbolDictionary symbols) =>
+        _indexes.GetValue(symbols, static d => d.Entries
             .Select(e => e.Symbol)
             .GroupBy(s => s[0])
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.Length).ToArray());
-    }
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.Length).ToArray()));
 
     public string Apply(string text, Utterance utterance)
     {
@@ -41,8 +54,13 @@ public sealed class PunctuationRule : ITextRule
         if (text.IndexOf(VariationSelector) >= 0)
             text = text.Replace(VariationSelector.ToString(), string.Empty);
 
+        var language = utterance.Language ?? _language();
+        var symbols = _dictionaryFor(language);
+        var byFirstChar = IndexOf(symbols);
+        bool english = language is null || language.StartsWith("en", StringComparison.OrdinalIgnoreCase);
+
         var trimmed = text.Trim();
-        if (trimmed.Length > 0 && _symbols.TryGet(trimmed, out var single))
+        if (trimmed.Length > 0 && symbols.TryGet(trimmed, out var single))
             return single.Name;
 
         var level = _level();
@@ -50,12 +68,12 @@ public sealed class PunctuationRule : ITextRule
         int copiedTo = 0;
         for (int i = 0; i < text.Length; i++)
         {
-            if (Match(text, i) is not { } symbol)
+            if (Match(byFirstChar, text, i) is not { } symbol)
                 continue;
             if (symbol is "." or "," && IsNumberSeparator(text, i))
                 continue;
 
-            _symbols.TryGet(symbol, out var entry);
+            symbols.TryGet(symbol, out var entry);
             int repeats = 1;
             while (string.CompareOrdinal(text, i + repeats * symbol.Length, symbol, 0, symbol.Length) == 0)
                 repeats++;
@@ -68,7 +86,8 @@ public sealed class PunctuationRule : ITextRule
             }
             else if (repeats >= MinRepeats)
             {
-                result.Append(' ').Append(repeats).Append(' ').Append(Plural(entry.Name)).Append(' ');
+                // Other languages' plurals aren't made by rule: "4 tiret"
+                result.Append(' ').Append(repeats).Append(' ').Append(english ? Plural(entry.Name) : entry.Name).Append(' ');
             }
             else
             {
@@ -101,9 +120,9 @@ public sealed class PunctuationRule : ITextRule
     }
 
     /// <summary>The longest symbol starting at <paramref name="index"/>, or null.</summary>
-    private string? Match(string text, int index)
+    private static string? Match(Dictionary<char, string[]> byFirstChar, string text, int index)
     {
-        if (!_byFirstChar.TryGetValue(text[index], out var candidates))
+        if (!byFirstChar.TryGetValue(text[index], out var candidates))
             return null;
         foreach (var candidate in candidates)
         {

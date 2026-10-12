@@ -18,6 +18,7 @@ The MSI installs per machine to `Program Files\Vox` (needed for UI access, `docs
 | `MODIFIERKEY` | | `Insert` or `CapsLock` |
 | `VERBOSITY` | | `Beginner`, `Intermediate` or `Advanced` |
 | `SPEECHRATE` | | words per minute |
+| `LANGUAGE` | | Vox's language: `en`, `es`, `fr`, `de`, `pt`, `zh`, `ja`, `ar`, `hi` (none: Windows' language) |
 
 The settings properties become the computer's **default settings**, written to
 `HKLM\Software\Vox\Defaults`. Users start with them and may change them.
