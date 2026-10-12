@@ -78,6 +78,17 @@ public class SettingsRingTests : IDisposable
     }
 
     [Fact]
+    public void Volume_BelowTheFloor_IsNotRaisedByTurningItDown()
+    {
+        _ring.Move(+1);
+        _ring.Move(+1);
+        _settings = _settings with { SpeechVolume = 5 };
+
+        Assert.Equal("5", _ring.Change(-1));
+        Assert.Equal("10", _ring.Change(+1));
+    }
+
+    [Fact]
     public void Punctuation_StepsThroughTheLevels()
     {
         _ring.Move(+1);

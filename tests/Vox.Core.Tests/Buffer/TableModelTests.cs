@@ -91,6 +91,19 @@ public class TableModelTests
     }
 
     [Fact]
+    public void Build_HugeRowSpan_IsClippedBeforeItsSlotsAreLaidOut()
+    {
+        // A bogus span (int.MaxValue from a broken provider) used to lay out every slot it named
+        var (_, model) = Build(Table("T", "table",
+            Row(Cell("A", rowSpan: int.MaxValue), Cell("B")),
+            Row(Cell("C"))));
+
+        Assert.Equal(2, model.Cells[0].RowSpan);
+        Assert.Equal("A", Text(model.CellAt(1, 0)));
+        Assert.Equal((1, 1), (model.Cells[2].Row, model.Cells[2].Column));
+    }
+
+    [Fact]
     public void Build_FindsRowsInsideRowGroups()
     {
         var head = new MockElement { RuntimeId = [_nextId++], ControlType = "Group", AriaRole = "rowgroup" };

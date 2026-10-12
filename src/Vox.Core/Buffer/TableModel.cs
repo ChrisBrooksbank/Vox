@@ -178,7 +178,9 @@ public sealed class TableModel
             foreach (var node in rowCells)
             {
                 while (occupied[r].Contains(column)) column++;
-                int rowSpan = Math.Max(1, node.RowSpan);
+                // A row span past the last row is clipped to the table, as browsers do (before
+                // marking slots, so a huge span can't make the build slow)
+                int rowSpan = Math.Clamp(node.RowSpan, 1, rows.Count - r);
                 int columnSpan = Math.Max(1, node.ColumnSpan);
                 for (int rr = r; rr < r + rowSpan; rr++)
                 {
@@ -195,16 +197,7 @@ public sealed class TableModel
         if (cells.Count == 0)
             return null;
 
-        // A row span past the last row is clipped to the table, as browsers do
-        int rowCount = rows.Count;
-        for (int i = 0; i < cells.Count; i++)
-        {
-            var cell = cells[i];
-            if (cell.Row + cell.RowSpan > rowCount)
-                cells[i] = cell with { RowSpan = rowCount - cell.Row };
-        }
-
-        return new TableModel(table, cells, rowCount, columnCount);
+        return new TableModel(table, cells, rows.Count, columnCount);
     }
 
     /// <summary>The cell kind of a node by ARIA role, or UIA HeaderItem for a column header.</summary>
