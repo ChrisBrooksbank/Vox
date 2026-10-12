@@ -70,6 +70,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly Vox.Core.Switching.SettingsImportCommands _importCommands;
     private readonly Vox.Core.Labels.CustomLabelCommands _labelCommands;
     private readonly SiteSettingsCommands _siteSettingsCommands;
+    private readonly Vox.Core.Labels.AutomaticLabeler? _automaticLabels;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -160,8 +161,10 @@ public sealed class ScreenReaderService : IHostedService
         Vox.Core.Labels.CustomLabelCommands labelCommands,
         SiteSettingsCommands siteSettingsCommands,
         RunPolicy? runPolicy = null,
-        RemoteSessionMonitor? remoteSessions = null)
+        RemoteSessionMonitor? remoteSessions = null,
+        Vox.Core.Labels.AutomaticLabeler? automaticLabels = null)
     {
+        _automaticLabels = automaticLabels;
         _addOns = addOns;
         _addOnCommands = addOnCommands;
         _remoteSession = remoteSession;
@@ -419,6 +422,7 @@ public sealed class ScreenReaderService : IHostedService
         _sayAllController.ReadingChanged -= OnSayAllReadingChanged;
         _profiles.Switched -= OnProfileSwitched;
         _browseModeController.SiteChanged -= OnSiteChanged;
+        _automaticLabels?.Cancel();
         _appModules.Stop();
         // A remote session ends (keys held on this computer are released), then add-ons close
         _remoteSession.Dispose();
@@ -774,8 +778,13 @@ public sealed class ScreenReaderService : IHostedService
     private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>
         _documentTracker.OnStructureChanged(e.RuntimeId);
 
-    private void OnDocumentChangedProcessed(object? sender, DocumentChangedEvent e) =>
+    private void OnDocumentChangedProcessed(object? sender, DocumentChangedEvent e)
+    {
         _browseModeController.HandleDocumentChanged(e);
+        // Unlabelled graphics and icon buttons are described in the background once the whole page is there
+        if (!e.IsPartial && e.Document is { } document && _automaticLabels is { } labels)
+            TrackBackground(labels.OnDocumentLoaded(document));
+    }
 
     private void OnSubtreeChangedProcessed(object? sender, SubtreeChangedEvent e) =>
         _browseModeController.HandleSubtreeChanged(e);

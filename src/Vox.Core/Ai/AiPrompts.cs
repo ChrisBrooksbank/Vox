@@ -11,6 +11,12 @@ public static class AiPrompts
     /// <summary>The most page text sent for a summary (characters); longer pages are cut, and the model is told.</summary>
     public const int MaxContextLength = 200_000;
 
+    /// <summary>The question asked of a picture for an automatic label (<see cref="Labels.AutomaticLabeler"/>).</summary>
+    public const string LabelQuestion =
+        "This is a button, link or picture on a web page that has no text label. Give it a short label, as a " +
+        "screen reader would read it: what it does if it is a control (\"Search\", \"Close\", \"Next slide\"), " +
+        "else what it shows. A few words only, no full sentence, no full stop.";
+
     /// <summary>The system instructions for <paramref name="request"/>.</summary>
     public static string Instructions(AiRequest request)
     {

@@ -52,12 +52,21 @@ Whatever the settings say:
 
 - **Password fields**: Insert+G on a password field, or a question while the focus is in one, sends nothing ("Password fields are never sent").
 - **Private applications**: windows of the applications in `AiPrivateApps` (process names; KeePass, KeePassXC, 1Password and Bitwarden by default) are never sent to the cloud.
+- **Private sites**: pages of the web sites in `AiPrivateSites` (host names in `settings.json`, such as `"bank.example.com"`; a name covers its subdomains; none by default) are never sent to the cloud: no summary, question or automatic label.
 - **The sign-in, lock and UAC screens**: no AI at all, local or cloud.
 - **Organization policy**: `DisableAI` turns every AI feature off; `DisableNetwork` leaves only a model on this computer ([Deploying Vox in an organization](enterprise.md)).
 
-Only the area being described is captured, when you press the key. Pictures, questions and answers stay in memory; they are never written to disk or the log.
+Only the area being described is captured, when you press the key (or, for automatic labels, the unlabelled element on the screen). Pictures, questions and answers stay in memory; they are never written to disk or the log.
 
 AI settings are the same in every configuration profile: a profile can't turn cloud sending on.
+
+## Automatic labels
+
+After a web page has loaded, Vox describes its unlabelled graphics and its buttons and links with nothing but an icon in them (no name, or a file name such as `ic_send.svg`) in the background, and keeps each description as a custom label marked "described" for the site ([custom labels](switching.md#custom-labels)): the page is read again with the new names, and the next visit uses them at once. Your own label for an element always wins, and renaming a described label in the custom labels dialog makes it yours.
+
+- Only elements on the screen are described (the page is never scrolled for it), at most 8 for a page and 20 a minute; the same picture on the same site is described once.
+- The model on this computer is used. Claude is used only when **Send to the cloud** is Allow (never on a yes for this session, and nobody is asked) and the site is not private.
+- Settings, AI, **Describe unlabelled graphics and buttons automatically** turns it off (`AutomaticLabels`). Never on the secure screens, with `DisableAI`, or without a describer set up.
 
 ## Page summaries and main content
 

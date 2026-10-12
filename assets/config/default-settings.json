@@ -57,6 +57,8 @@
   "AiEndpoint": null,
   "AiCloudConsent": "Ask",
   "AiPrivateApps": ["KeePass", "KeePassXC", "1Password", "Bitwarden"],
+  "AiPrivateSites": [],
+  "AutomaticLabels": true,
   "AiLocalModel": null,
   "AiLocalEndpoint": "http://localhost:11434",
   "AnnounceCaptchas": true,

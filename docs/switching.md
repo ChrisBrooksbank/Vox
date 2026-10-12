@@ -103,6 +103,10 @@ label's site's labels as a `.voxlabels` label pack, and Import label pack adds a
 published as a label-pack add-on in the add-on store ([add-ons](addons.md#label-packs)); its
 labels apply while it is enabled, under your own.
 
+Graphics and icon-only buttons with no name are also labelled automatically, in the background,
+when AI is set up: such labels are marked "described" in the dialog, and your own label replaces
+one ([automatic labels](ai.md#automatic-labels)).
+
 ## Settings for a web site
 
 Instead of a profile per browser, a site can have settings of its own (Vox menu, Settings for this

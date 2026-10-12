@@ -124,6 +124,7 @@ public sealed class AiCommands
         if (Cancel(announce: true))
             return Task.CompletedTask;
         var node = BrowseTarget?.Invoke();
+        var page = node is null ? null : BrowseDocument?.Invoke()?.Root.Value;
         var tether = _review.BrowseTether?.Invoke();
         if (!Ready())
             return Task.CompletedTask;
@@ -141,7 +142,7 @@ public sealed class AiCommands
             if (node is not null)
             {
                 var window = await _context.WindowTargetAsync().ConfigureAwait(false);
-                target = window with { IsPassword = window.IsPassword || node.IsPassword };
+                target = window with { IsPassword = window.IsPassword || node.IsPassword, Site = page };
             }
             else
             {
@@ -227,7 +228,7 @@ public sealed class AiCommands
         return RunAsync(VoxStrings.Get("Ai.Summarizing"), async token =>
         {
             // The buffer never holds a password's value; whose window it is still counts
-            var target = (await _context.WindowTargetAsync().ConfigureAwait(false)) with { IsPassword = false };
+            var target = (await _context.WindowTargetAsync().ConfigureAwait(false)) with { IsPassword = false, Site = document.Root.Value };
             var answer = await AskAsync(new AiRequest(AiTask.SummarizePage, null, null, text, Language()), target, token)
                 .ConfigureAwait(false);
             token.ThrowIfCancellationRequested();

@@ -297,6 +297,17 @@ public record VoxSettings
     /// fields and the secure screens never are, whatever is listed.
     /// </summary>
     public List<string> AiPrivateApps { get; init; } = ["KeePass", "KeePassXC", "1Password", "Bitwarden"];
+    /// <summary>
+    /// Web sites (host names, "bank.example.com"; a name covers its subdomains) whose pages are
+    /// never sent to the cloud provider: not for a summary, a question or an automatic label.
+    /// </summary>
+    public List<string> AiPrivateSites { get; init; } = [];
+    /// <summary>
+    /// After a page loads, describe its unlabelled graphics and icon-only buttons in the background
+    /// and keep the descriptions as custom labels (the describer on this computer; the cloud
+    /// provider only when <see cref="AiCloudConsent"/> is Allow).
+    /// </summary>
+    public bool AutomaticLabels { get; init; } = true;
     /// <summary>A vision model on this computer (served by Ollama), used before the cloud provider; null: none.</summary>
     public string? AiLocalModel { get; init; }
     /// <summary>Where the local model is served; only an address on this computer is ever used.</summary>

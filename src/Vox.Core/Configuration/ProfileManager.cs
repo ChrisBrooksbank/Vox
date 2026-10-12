@@ -21,7 +21,7 @@ public sealed class ProfileManager
         // What may leave the computer is decided once, never by whichever profile is active
         nameof(VoxSettings.AiCloudProvider), nameof(VoxSettings.AiModel), nameof(VoxSettings.AiEndpoint),
         nameof(VoxSettings.AiCloudConsent), nameof(VoxSettings.AiPrivateApps), nameof(VoxSettings.AiLocalModel),
-        nameof(VoxSettings.AiLocalEndpoint),
+        nameof(VoxSettings.AiLocalEndpoint), nameof(VoxSettings.AiPrivateSites),
         // Where add-ons come from and how remote access connects are about the computer, not a profile
         nameof(VoxSettings.AddOnCatalogueUrl), nameof(VoxSettings.RemotePort), nameof(VoxSettings.RemoteUseRelay),
         nameof(VoxSettings.RemoteRelay), nameof(VoxSettings.RemoteAddress),

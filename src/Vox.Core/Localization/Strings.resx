@@ -2730,6 +2730,9 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="Setting.AnnounceCaptchas" xml:space="preserve">
     <value>Announce CAPTCHAs and their accessible alternatives</value>
   </data>
+  <data name="Setting.AutomaticLabels" xml:space="preserve">
+    <value>Describe unlabelled graphics and buttons automatically</value>
+  </data>
   <data name="Choice.AiCloudProvider.None" xml:space="preserve">
     <value>None (this computer only)</value>
   </data>
@@ -2810,6 +2813,12 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   </data>
   <data name="Ai.Refusal.CloudNever" xml:space="preserve">
     <value>Sending to the cloud is turned off in the AI settings</value>
+  </data>
+  <data name="Ai.Refusal.PrivateSite" xml:space="preserve">
+    <value>This web site is private: its pages are never sent</value>
+  </data>
+  <data name="Ai.Refusal.NotInBackground" xml:space="preserve">
+    <value>Only AI on this computer is used without asking; allow sending to the cloud in the AI settings for more</value>
   </data>
   <data name="Ai.Refusal.Declined" xml:space="preserve">
     <value>Nothing was sent</value>

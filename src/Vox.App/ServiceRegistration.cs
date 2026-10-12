@@ -471,6 +471,20 @@ public static class ServiceRegistration
                 sp.GetRequiredService<ILogger<CustomLabelCommands>>(),
                 sp.GetRequiredService<SpeechQueue>());
         });
+        // Automatic labels: unlabelled graphics and icon buttons described in the background
+        services.AddSingleton<AutomaticLabeler>(sp =>
+        {
+            var tracker = sp.GetRequiredService<BrowseDocumentTracker>();
+            return new AutomaticLabeler(
+                sp.GetRequiredService<AiAssistant>(),
+                sp.GetRequiredService<IScreenCapture>(),
+                tracker,
+                sp.GetRequiredService<IAiContextSource>(),
+                sp.GetRequiredService<CustomLabelStore>(),
+                sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+                () => tracker.RequestRecapture(null),
+                sp.GetRequiredService<ILogger<AutomaticLabeler>>());
+        });
         // Settings from NVDA and JAWS (Vox menu, first-run wizard); none on secure screens
         services.AddSingleton<ISettingsImportPresenter, SettingsImportPresenter>();
         services.AddSingleton<SettingsImportCommands>(sp =>
