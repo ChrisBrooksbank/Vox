@@ -13,9 +13,9 @@ Make inaccessible content usable: local OCR of windows, objects and images; imag
 
 ## Requirements
 
-- [ ] `IOcrEngine` and `WindowsOcrEngine` (`Windows.Media.Ocr`, local); language from settings
-- [ ] Screen capture helper for the foreground window, navigator object bounds or image element bounds (not available in secure mode)
-- [ ] OCR result as a reviewable `ITextDocument` with word positions; routing/click on a recognised word; Insert+R recognises the navigator object
+- [x] `IOcrEngine` and `WindowsOcrEngine` (`Windows.Media.Ocr`, local); language from settings
+- [x] Screen capture helper for the foreground window, navigator object bounds or image element bounds (not available in secure mode)
+- [x] OCR result as a reviewable `ITextDocument` with word positions; routing/click on a recognised word; Insert+R recognises the navigator object
 - [ ] `IImageDescriber` with `LocalImageDescriber` (Windows AI APIs where present) and `CloudImageDescriber` (user-configured provider and API key, e.g. the Claude API)
 - [ ] Consent: first cloud use per session asks; setting to always ask / allow / never; never send password fields, secure-desktop content, or windows from apps on a private list
 - [ ] Insert+G describes the image or object under the cursor; result cached by image hash; "Describing image…" progress cue; cancellable
