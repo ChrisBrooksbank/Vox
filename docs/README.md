@@ -58,6 +58,8 @@ coming from [NVDA](guide/nvda.html) and [JAWS](guide/jaws.html). Its source is i
 - [Translating Vox](translating.md): string resources, symbol names and checking a translation.
 - [End-to-end tests](e2e.md): Vox against Edge, Notepad, Explorer and Settings.
 - [Benchmarks](benchmarks.md): measuring how quickly Vox responds.
+- [Performance](performance.md): keypress-to-speech latency and time to first speech, the CI
+  regression gate, and how to measure NVDA and JAWS the same way.
 - [Security review](security.md): reporting problems privately, and the checklist every release
   is reviewed against.
 - [Static review rounds](reviews/README.md): the bug-fix plans from earlier code reviews, kept
