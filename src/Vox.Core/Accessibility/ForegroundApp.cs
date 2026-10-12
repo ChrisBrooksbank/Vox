@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Accessibility;
 
@@ -52,7 +53,7 @@ public sealed class Win32ForegroundApp : IForegroundApp
         }
         catch
         {
-            return "Application";
+            return VoxStrings.Get("ForegroundApp.Unknown");
         }
     }
 

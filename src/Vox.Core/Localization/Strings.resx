@@ -3223,4 +3223,129 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Remote.StopWaitingQuestion" xml:space="preserve">
     <value>Stop waiting for remote control?</value>
   </data>
+  <data name="Uia.NotAvailable" xml:space="preserve">
+    <value>Not available</value>
+  </data>
+  <data name="Uia.NoText" xml:space="preserve">
+    <value>No text</value>
+  </data>
+  <data name="Uia.NoFocus" xml:space="preserve">
+    <value>No focus</value>
+  </data>
+  <data name="Uia.NoNavigatorObject" xml:space="preserve">
+    <value>No navigator object</value>
+  </data>
+  <data name="Review.ObjectMode" xml:space="preserve">
+    <value>Object review</value>
+  </data>
+  <data name="Review.DocumentMode" xml:space="preserve">
+    <value>Document review</value>
+  </data>
+  <data name="Review.ScreenMode" xml:space="preserve">
+    <value>Screen review</value>
+  </data>
+  <data name="ObjectNav.NotFocusable" xml:space="preserve">
+    <value>Not focusable</value>
+  </data>
+  <data name="ObjectNav.NoAction" xml:space="preserve">
+    <value>No action</value>
+  </data>
+  <data name="ObjectNav.CouldNotCopy" xml:space="preserve">
+    <value>Could not copy</value>
+  </data>
+  <data name="ObjectNav.CopiedText" xml:space="preserve">
+    <value>{0}, copied to clipboard</value>
+    <comment>{0} is the copied text.</comment>
+  </data>
+  <data name="ObjectNav.Copied" xml:space="preserve">
+    <value>Copied to clipboard</value>
+  </data>
+  <data name="ObjectNav.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+    <comment>Said for an object with no name and no known control type.</comment>
+  </data>
+  <data name="Mouse.LeftClick" xml:space="preserve">
+    <value>Left click</value>
+  </data>
+  <data name="Mouse.RightClick" xml:space="preserve">
+    <value>Right click</value>
+  </data>
+  <data name="Mouse.LeftLocked" xml:space="preserve">
+    <value>Left mouse button locked</value>
+  </data>
+  <data name="Mouse.LeftUnlocked" xml:space="preserve">
+    <value>Left mouse button unlocked</value>
+  </data>
+  <data name="Mouse.TrackingOn" xml:space="preserve">
+    <value>Mouse tracking on</value>
+  </data>
+  <data name="Mouse.TrackingOff" xml:space="preserve">
+    <value>Mouse tracking off</value>
+  </data>
+  <data name="FocusedText.NoSelection" xml:space="preserve">
+    <value>No selection</value>
+  </data>
+  <data name="WhereAmI.NoTitle" xml:space="preserve">
+    <value>No title</value>
+  </data>
+  <data name="WhereAmI.NoStatusBar" xml:space="preserve">
+    <value>No status bar</value>
+  </data>
+  <data name="WhereAmI.NoWindow" xml:space="preserve">
+    <value>No window</value>
+  </data>
+  <data name="WhereAmI.Copied" xml:space="preserve">
+    <value>{0}. Copied to clipboard</value>
+    <comment>{0} is the copied text, its lines joined with ". ".</comment>
+  </data>
+  <data name="ForegroundApp.Unknown" xml:space="preserve">
+    <value>Application</value>
+    <comment>The name said for an application whose name cannot be read (as in "Application not responding").</comment>
+  </data>
+  <data name="Braille.TetherFocus" xml:space="preserve">
+    <value>Braille tethered to focus</value>
+  </data>
+  <data name="Braille.TetherReview" xml:space="preserve">
+    <value>Braille tethered to review</value>
+  </data>
+  <data name="Braille.TetherAutomatic" xml:space="preserve">
+    <value>Braille tethered automatically</value>
+  </data>
+  <data name="App.Ready" xml:space="preserve">
+    <value>Vox screen reader ready</value>
+  </data>
+  <data name="App.ReadyWithoutKeyboard" xml:space="preserve">
+    <value>Vox screen reader ready, but keyboard commands are unavailable. Try running Vox as administrator.</value>
+  </data>
+  <data name="App.LocalSession" xml:space="preserve">
+    <value>Local session</value>
+  </data>
+  <data name="App.SpeechOn" xml:space="preserve">
+    <value>Speech on</value>
+  </data>
+  <data name="App.SpeechPaused" xml:space="preserve">
+    <value>Speech paused</value>
+  </data>
+  <data name="App.InputHelpOn" xml:space="preserve">
+    <value>Input help on</value>
+  </data>
+  <data name="App.InputHelpOff" xml:space="preserve">
+    <value>Input help off</value>
+  </data>
+  <data name="App.GuideNotAvailableHere" xml:space="preserve">
+    <value>The user guide isn't available here</value>
+  </data>
+  <data name="App.GuideNotInstalled" xml:space="preserve">
+    <value>The user guide isn't installed</value>
+  </data>
+  <data name="App.GuideOpenFailed" xml:space="preserve">
+    <value>Could not open the user guide</value>
+  </data>
+  <data name="App.Exiting" xml:space="preserve">
+    <value>Vox exiting</value>
+  </data>
+  <data name="Watchdog.CouldNotRestart" xml:space="preserve">
+    <value>Vox has stopped working and could not be restarted.</value>
+    <comment>Said by the watchdog when Vox keeps crashing.</comment>
+  </data>
 </root>

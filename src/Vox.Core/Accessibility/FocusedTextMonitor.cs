@@ -3,6 +3,7 @@ using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 using Vox.Core.Text;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Accessibility;
 
@@ -95,7 +96,7 @@ public sealed class FocusedTextMonitor : IFocusedTextReader
             var selection = document.GetSelection();
             var selected = selection.Count > 0 ? selection[0] : null;
             if (selected is null || selected.IsDegenerate)
-                return "No selection";
+                return VoxStrings.Get("FocusedText.NoSelection");
             var text = selected.GetText(TextCaretTracker.MaxSpokenLength);
             return text.Length <= 2 ? TextSpeech.ForCharacter(text) : TextSpeech.ForUnit(text, TextUnit.Word);
         }

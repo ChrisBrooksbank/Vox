@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Speech;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Braille;
 
@@ -336,9 +337,9 @@ public sealed class BrailleController : IDisposable
     /// <summary>Text for <paramref name="tether"/> as Vox says it.</summary>
     public static string Describe(BrailleTether tether) => tether switch
     {
-        BrailleTether.Focus => "Braille tethered to focus",
-        BrailleTether.Review => "Braille tethered to review",
-        _ => "Braille tethered automatically",
+        BrailleTether.Focus => VoxStrings.Get("Braille.TetherFocus"),
+        BrailleTether.Review => VoxStrings.Get("Braille.TetherReview"),
+        _ => VoxStrings.Get("Braille.TetherAutomatic"),
     };
 
     private void OnKeyPressed(object? sender, BrailleKeyEventArgs e)

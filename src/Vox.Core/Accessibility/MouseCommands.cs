@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Vox.Core.Input;
 using Vox.Core.Speech;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Accessibility;
 
@@ -132,7 +133,7 @@ public sealed class MouseCommands : IDisposable
     public void Click(MouseButton button)
     {
         // Said before the click, which may move focus (whose announcement then follows)
-        Speak(button == MouseButton.Left ? "Left click" : "Right click");
+        Speak(button == MouseButton.Left ? VoxStrings.Get("Mouse.LeftClick") : VoxStrings.Get("Mouse.RightClick"));
         try
         {
             lock (_lock)
@@ -173,7 +174,7 @@ public sealed class MouseCommands : IDisposable
             _logger.LogWarning(ex, "Could not change the left mouse button lock");
             return;
         }
-        Speak(locked ? "Left mouse button locked" : "Left mouse button unlocked");
+        Speak(locked ? VoxStrings.Get("Mouse.LeftLocked") : VoxStrings.Get("Mouse.LeftUnlocked"));
     }
 
     /// <summary>Moves the pointer to the navigator object.</summary>
@@ -185,12 +186,12 @@ public sealed class MouseCommands : IDisposable
             {
                 if (_navigation.CurrentObject() is not { } current)
                 {
-                    Speak("No navigator object");
+                    Speak(VoxStrings.Get("Uia.NoNavigatorObject"));
                     return;
                 }
                 if (current.GetClickPoint() is not { } point)
                 {
-                    Speak("No location");
+                    Speak(VoxStrings.Get("Ocr.NoLocation"));
                     return;
                 }
                 _mouse.MoveTo(point.X, point.Y);
@@ -202,7 +203,7 @@ public sealed class MouseCommands : IDisposable
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Could not move the mouse to the navigator object");
-            Speak("Not available");
+            Speak(VoxStrings.Get("Uia.NotAvailable"));
         }
     }
 

@@ -8,6 +8,7 @@ using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 using TextUnit = Vox.Core.Text.TextUnit;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Accessibility;
 
@@ -127,7 +128,7 @@ public sealed class MouseTracker : IDisposable
         {
             _logger.LogWarning(ex, "Could not change the mouse tracking setting");
         }
-        _speechQueue.Enqueue(new Utterance(on ? "Mouse tracking on" : "Mouse tracking off", SpeechPriority.Interrupt));
+        _speechQueue.Enqueue(new Utterance(on ? VoxStrings.Get("Mouse.TrackingOn") : VoxStrings.Get("Mouse.TrackingOff"), SpeechPriority.Interrupt));
         return true;
     }
 

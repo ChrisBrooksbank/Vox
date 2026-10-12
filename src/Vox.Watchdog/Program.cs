@@ -30,7 +30,7 @@ var supervisor = new VoxSupervisor(
     () =>
     {
         using var synthesizer = new SpeechSynthesizer();
-        synthesizer.Speak("Vox has stopped working and could not be restarted.");
+        synthesizer.Speak(Vox.Core.Localization.VoxStrings.Get("Watchdog.CouldNotRestart"));
     },
     logger,
     startInSafeMode: RestartRequest.HasFlag(voxArgs, RunPolicy.SafeFlag));
