@@ -137,7 +137,13 @@ public sealed class SettingsRing
             case Setting.Pitch:
                 return settings with { SpeechPitch = Math.Clamp(settings.SpeechPitch + direction * PercentStep, 0, 100) };
             case Setting.Volume:
-                return settings with { SpeechVolume = Math.Clamp(settings.SpeechVolume + direction * PercentStep, MinVolume, 100) };
+            {
+                // Never turned down below the floor, nor up by turning it down (a lower volume set elsewhere)
+                int volume = settings.SpeechVolume + direction * PercentStep;
+                return direction < 0 && volume < MinVolume
+                    ? settings with { SpeechVolume = Math.Min(settings.SpeechVolume, MinVolume) }
+                    : settings with { SpeechVolume = Math.Clamp(volume, MinVolume, 100) };
+            }
             case Setting.Punctuation:
             {
                 int level = Math.Clamp((int)settings.PunctuationLevel + direction, (int)PunctuationLevel.None, (int)PunctuationLevel.All);

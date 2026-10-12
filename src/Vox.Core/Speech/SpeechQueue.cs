@@ -312,7 +312,7 @@ public sealed class SpeechQueue : IDisposable
         var first = group[0].Utterance;
         var utterance = group.Count == 1
             ? first
-            : new Utterance(string.Join(". ", group.Select(g => g.Utterance.Text)), first.Priority, first.SoundCue);
+            : first with { Text = string.Join(". ", group.Select(g => g.Utterance.Text)) };
         var epoch = group.Max(g => g.Epoch);
 
         using var speechCts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -385,7 +385,8 @@ public sealed class SpeechQueue : IDisposable
     }
 
     /// <summary>
-    /// Groups consecutive Normal utterances (to be spoken as one); every other utterance is its own group.
+    /// Groups consecutive Normal utterances (to be spoken as one) that are spoken the same way (language,
+    /// voice, pitch; no sound cue of their own); every other utterance is its own group.
     /// </summary>
     private static List<List<QueuedUtterance>> CoalesceUtterances(List<QueuedUtterance> utterances)
     {
@@ -398,7 +399,8 @@ public sealed class SpeechQueue : IDisposable
             if (utterances[i].Utterance.Priority == SpeechPriority.Normal)
             {
                 var j = i + 1;
-                while (j < utterances.Count && utterances[j].Utterance.Priority == SpeechPriority.Normal)
+                while (j < utterances.Count && utterances[j].Utterance.Priority == SpeechPriority.Normal
+                    && SpokenAlike(utterances[i].Utterance, utterances[j].Utterance))
                 {
                     group.Add(utterances[j]);
                     j++;
@@ -414,6 +416,11 @@ public sealed class SpeechQueue : IDisposable
 
         return result;
     }
+
+    private static bool SpokenAlike(Utterance first, Utterance next) =>
+        next.SoundCue is null && first.PitchOffset == next.PitchOffset
+        && string.Equals(first.Language, next.Language, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(first.Voice, next.Voice, StringComparison.Ordinal);
 
     public void Dispose()
     {

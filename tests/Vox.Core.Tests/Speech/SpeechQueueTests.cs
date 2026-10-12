@@ -69,6 +69,32 @@ public class SpeechQueueTests
     }
 
     [Fact]
+    public async Task Enqueue_NormalUtterancesInDifferentLanguages_AreNotMerged()
+    {
+        _queue.Enqueue(new Utterance("Bonjour", SpeechPriority.Normal) { Language = "fr-FR" });
+        _queue.Enqueue(new Utterance("Hello", SpeechPriority.Normal) { Language = "en-GB" });
+
+        await Task.Delay(500);
+
+        _engineMock.Verify(e => e.SpeakAsync(
+            It.Is<Utterance>(u => u.Text == "Bonjour" && u.Language == "fr-FR"), It.IsAny<CancellationToken>()), Times.Once);
+        _engineMock.Verify(e => e.SpeakAsync(
+            It.Is<Utterance>(u => u.Text == "Hello" && u.Language == "en-GB"), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Enqueue_MergedNormalUtterances_KeepTheirLanguage()
+    {
+        _queue.Enqueue(new Utterance("Bonjour", SpeechPriority.Normal) { Language = "fr-FR" });
+        _queue.Enqueue(new Utterance("Salut", SpeechPriority.Normal) { Language = "fr-FR" });
+
+        await Task.Delay(500);
+
+        _engineMock.Verify(e => e.SpeakAsync(
+            It.Is<Utterance>(u => u.Text == "Bonjour. Salut" && u.Language == "fr-FR"), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Enqueue_HighPriorityBeforeLow_HighSpeaksFirst()
     {
         var speakOrder = new List<string>();

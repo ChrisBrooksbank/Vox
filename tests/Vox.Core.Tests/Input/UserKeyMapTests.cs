@@ -61,6 +61,23 @@ public sealed class UserKeyMapTests : IDisposable
     }
 
     [Fact]
+    public void NullEntriesAndValues_AreReadAsLeftOut()
+    {
+        // Hand-edited: a null entry, and a binding with null mode and modifiers (read as "Any", "None")
+        var map = Load("""
+            { "bindings": [
+              null,
+              { "modifiers": null, "vkCode": 122, "mode": null, "command": "SayTime" },
+              { "modifiers": "Insert", "vkCode": 74, "mode": "Any", "command": null }
+            ] }
+            """, out var warnings);
+
+        Assert.True(map.TryResolveOutsideDocument(KeyModifiers.None, 122, out var command, out _));
+        Assert.Equal(NavigationCommand.SayTime, command);
+        Assert.Contains(warnings, w => w.Contains("unrecognized command"));
+    }
+
+    [Fact]
     public void TwoBindingsOnOneKey_AreAConflict_AndTheLastWins()
     {
         var map = Load("""
