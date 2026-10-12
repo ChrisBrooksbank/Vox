@@ -66,3 +66,24 @@ public class CursorBenchmarks
         return found;
     }
 }
+
+/// <summary>Applying a live-page update (one link re-captured) to a 10,000-element page.</summary>
+[MemoryDiagnoser]
+public class IncrementalUpdateBenchmarks
+{
+    private VBufferDocument _document = null!;
+    private VBufferNode _target = null!;
+    private SyntheticElement _replacement = null!;
+    private readonly IncrementalUpdater _updater = new();
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        _document = new VBufferBuilder().Build(SyntheticPage.Build(10_000));
+        _target = _document.Links[_document.Links.Count / 2];
+        _replacement = new SyntheticElement { RuntimeId = _target.UIARuntimeId, Name = "changed link", ControlType = "Hyperlink", IsFocusable = true };
+    }
+
+    [Benchmark]
+    public VBufferDocument ReplaceLink() => _updater.ApplyUpdateDetailed(_document, _target.UIARuntimeId, _replacement).Document;
+}

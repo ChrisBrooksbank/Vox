@@ -868,22 +868,8 @@ public sealed class UIAEventSubscriber :
 
     private static bool ParseAriaPropertyBool(string? ariaProps, string key)
     {
-        if (string.IsNullOrEmpty(ariaProps)) return false;
-
         // Format: "key=value;key2=value2" or "key:value,key2:value2"
-        foreach (var segment in ariaProps.Split(';', ','))
-        {
-            var sep = segment.IndexOf('=');
-            if (sep < 0) sep = segment.IndexOf(':');
-            if (sep < 0) continue;
-
-            var k = segment[..sep].Trim().ToLowerInvariant();
-            var v = segment[(sep + 1)..].Trim().ToLowerInvariant();
-
-            if (k == key.ToLowerInvariant())
-                return v is "true" or "1" or "yes";
-        }
-        return false;
+        return Vox.Core.Buffer.VBufferBuilder.ParseAriaPropertyBool(ariaProps ?? string.Empty, key);
     }
 
     public void Dispose()

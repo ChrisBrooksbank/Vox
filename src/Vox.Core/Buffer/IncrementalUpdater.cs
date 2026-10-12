@@ -77,15 +77,19 @@ public sealed class IncrementalUpdater
         var oldSubtreeNodes = CollectSubtree(oldSubtreeRoot);
         int oldSubtreeCount = oldSubtreeNodes.Count;
 
-        // Find the position of the old subtree root in document order.
+        // Find the position of the old subtree root in document order (its Id, as built).
         var oldNodes = document.AllNodes;
-        int insertIndex = -1;
-        for (int i = 0; i < oldNodes.Count; i++)
+        int insertIndex = oldSubtreeRoot.Id;
+        if (insertIndex < 0 || insertIndex >= oldNodes.Count || !ReferenceEquals(oldNodes[insertIndex], oldSubtreeRoot))
         {
-            if (ReferenceEquals(oldNodes[i], oldSubtreeRoot))
+            insertIndex = -1;
+            for (int i = 0; i < oldNodes.Count; i++)
             {
-                insertIndex = i;
-                break;
+                if (ReferenceEquals(oldNodes[i], oldSubtreeRoot))
+                {
+                    insertIndex = i;
+                    break;
+                }
             }
         }
 
@@ -113,10 +117,10 @@ public sealed class IncrementalUpdater
 
         // Build new FlatText by splicing.
         string oldFlatText = document.FlatText;
-        string newFlatText =
-            oldFlatText[..oldTextStart] +
-            newSubtreeText +
-            oldFlatText[oldTextEnd..];
+        var newFlatText = new System.Text.StringBuilder(oldFlatText.Length - oldTextLen + newSubtreeText.Length)
+            .Append(oldFlatText, 0, oldTextStart)
+            .Append(newSubtreeText)
+            .Append(oldFlatText, oldTextEnd, oldFlatText.Length - oldTextEnd);
 
         int textDelta = newSubtreeText.Length - oldTextLen;
 
@@ -172,16 +176,16 @@ public sealed class IncrementalUpdater
 
         // The re-captured subtree ends its text in '\n' again; re-join inline runs so a changed
         // link doesn't split its paragraph into lines (same-length replacements, offsets unchanged)
-        var joined = new System.Text.StringBuilder(newFlatText);
         if (document.ScreenLayout)
         {
+            var subtreeEnd = VBufferBuilder.SubtreeTextEnds(allNewNodes);
             if (oldSubtreeRoot.Parent is not null && copies.TryGetValue(oldSubtreeRoot.Parent, out var spliceParent))
-                RestoreLineEnds(spliceParent, joined);
-            VBufferBuilder.JoinInlineRuns(allNewNodes, joined);
+                RestoreLineEnds(spliceParent, newFlatText, subtreeEnd);
+            VBufferBuilder.JoinInlineRuns(allNewNodes, newFlatText, subtreeEnd);
         }
 
         return new IncrementalUpdateResult(
-            new VBufferDocument(joined.ToString(), allNewNodes[0], allNewNodes) { ScreenLayout = document.ScreenLayout },
+            new VBufferDocument(newFlatText.ToString(), allNewNodes[0], allNewNodes) { ScreenLayout = document.ScreenLayout },
             recaptureRuntimeId, oldTextStart, oldTextEnd, textDelta);
     }
 
@@ -196,25 +200,18 @@ public sealed class IncrementalUpdater
     /// line ends of the siblings at the splice point and of each ancestor level are restored
     /// before the runs are joined again — otherwise a paragraph could run into the next block.
     /// </summary>
-    private static void RestoreLineEnds(VBufferNode spliceParent, System.Text.StringBuilder text)
+    /// <param name="subtreeEnd">Each node's subtree text end by Id (<see cref="VBufferBuilder.SubtreeTextEnds"/>).</param>
+    private static void RestoreLineEnds(VBufferNode spliceParent, System.Text.StringBuilder text, int[] subtreeEnd)
     {
         for (var parent = spliceParent; parent is not null; parent = parent.Parent)
         {
             foreach (var child in parent.Children)
             {
-                int end = SubtreeTextEnd(child);
+                int end = subtreeEnd[child.Id];
                 if (end > child.TextRange.Start && end <= text.Length && text[end - 1] == ' ')
                     text[end - 1] = '\n';
             }
         }
-    }
-
-    private static int SubtreeTextEnd(VBufferNode node)
-    {
-        int end = node.TextRange.End;
-        foreach (var child in node.Children)
-            end = Math.Max(end, SubtreeTextEnd(child));
-        return end;
     }
 
     private static List<VBufferNode> CollectSubtree(VBufferNode node)
