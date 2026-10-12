@@ -17,7 +17,8 @@ namespace Vox.Core.Ai;
 /// <summary>
 /// The AI commands: describe the navigator object (Insert+G; while browsing, the graphic at the
 /// browse cursor, else the page), ask a question about the window in front (Insert+Alt+G),
-/// summarise the page being browsed (Insert+Ctrl+I), and set the cloud provider's key (Vox menu).
+/// summarise the page being browsed (Insert+Ctrl+I), ask a question about the page (Insert+Alt+Q),
+/// and set the cloud provider's key (Vox menu).
 /// Answers are said and put under the review cursor. Everything goes through
 /// <see cref="AiAssistant"/>, so the consent rules always apply. One request runs at a time: the
 /// progress cue plays until it is answered, and pressing an AI command again (or Ctrl, stop
@@ -31,7 +32,7 @@ public sealed class AiCommands
     private readonly IAiContextSource _context;
     private readonly ReviewCommands _review;
     private readonly ITextPrompt _textPrompt;
-    private readonly Func<Func<Task<string?>>, Task<string?>> _runDialog;
+    private readonly OwnDialogRunner? _dialogs;
     private readonly IAiKeyStore _keys;
     private readonly RunPolicy _policy;
     private readonly IAudioCuePlayer _cues;
@@ -39,6 +40,7 @@ public sealed class AiCommands
     private readonly IOptionsMonitor<VoxSettings> _settings;
     private readonly Action<VoxSettings>? _updateSettings;
     private readonly ILogger<AiCommands> _logger;
+    private readonly IConfirmPresenter? _confirm;
     private readonly TimeSpan _progressInterval;
     private readonly TimeSpan _dialogSettleTime;
     private readonly List<string> _questions = new();
@@ -51,15 +53,17 @@ public sealed class AiCommands
     public AiCommands(AiAssistant ai, IScreenCapture capture, IOcrTargetSource targets, IAiContextSource context,
         ReviewCommands review, ITextPrompt textPrompt, OwnDialogRunner? dialogs, IAiKeyStore keys, RunPolicy policy,
         IAudioCuePlayer cues, SpeechQueue speechQueue, IOptionsMonitor<VoxSettings> settings, ILogger<AiCommands> logger,
-        Action<VoxSettings>? updateSettings = null, TimeSpan? progressInterval = null, TimeSpan? dialogSettleTime = null)
+        Action<VoxSettings>? updateSettings = null, TimeSpan? progressInterval = null, TimeSpan? dialogSettleTime = null,
+        IConfirmPresenter? confirm = null)
     {
+        _confirm = confirm;
         _ai = ai;
         _capture = capture;
         _targets = targets;
         _context = context;
         _review = review;
         _textPrompt = textPrompt;
-        _runDialog = dialogs is null ? show => show() : show => dialogs.RunAsync(show, whenBusy: null);
+        _dialogs = dialogs;
         _keys = keys;
         _policy = policy;
         _cues = cues;
@@ -81,6 +85,12 @@ public sealed class AiCommands
     /// <summary>The page being browsed (for the summary), or null when not browsing. Pipeline thread. Set by the host.</summary>
     public Func<VBufferDocument?>? BrowseDocument { get; set; }
 
+    /// <summary>The page that has focus, browse or focus mode (to ask about), or null. Pipeline thread. Set by the host.</summary>
+    public Func<VBufferDocument?>? PageDocument { get; set; }
+
+    /// <summary>Moves the browse cursor to an element an answer named (the host runs it on the pipeline thread). Set by the host.</summary>
+    public Action<VBufferNode>? GoToElement { get; set; }
+
     /// <summary>The key that moves to the main content, as people read it, or null. Set by the host.</summary>
     public Func<string?>? MainContentKey { get; set; }
 
@@ -98,6 +108,7 @@ public sealed class AiCommands
             case NavigationCommand.DescribeObject: _ = DescribeAsync(); return true;
             case NavigationCommand.AskAboutScreen: _ = AskAboutScreenAsync(); return true;
             case NavigationCommand.SummarizePage: _ = SummarizePageAsync(); return true;
+            case NavigationCommand.AskPage: _ = AskPageAsync(); return true;
             case NavigationCommand.SetAiKey: _ = SetKeyAsync(); return true;
             default: return false;
         }
@@ -173,8 +184,8 @@ public sealed class AiCommands
         string? question;
         try
         {
-            question = await _runDialog(() => _textPrompt.AskAsync(VoxStrings.Get("Ai.Ask.Title"), VoxStrings.Get("Ai.Ask.Label"),
-                history: Questions())).ConfigureAwait(false);
+            question = await RunDialog(() => _textPrompt.AskAsync(VoxStrings.Get("Ai.Ask.Title"), VoxStrings.Get("Ai.Ask.Label"),
+                history: Questions()), whenBusy: null).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -243,6 +254,98 @@ public sealed class AiCommands
         });
     }
 
+    /// <summary>
+    /// Ask the page: asks for a question, answers it from the page's text (the describer on this
+    /// computer first, else the cloud one with consent), and when the answer is at a line of the
+    /// page, offers to move the browse cursor there. Call on the pipeline thread: the page is
+    /// read before it returns.
+    /// </summary>
+    public async Task AskPageAsync()
+    {
+        if (Cancel(announce: true))
+            return;
+        var document = PageDocument?.Invoke();
+        if (document is null)
+        {
+            Speak(VoxStrings.Get("Ai.NotOnAPage"));
+            return;
+        }
+        var local = _ai.Consent.ForLocal();
+        if (local.Decision == AiConsentDecision.Refused)
+        {
+            Speak(AiConsent.Explain(local.Reason));
+            return;
+        }
+        if (!_ai.IsSetUp)
+        {
+            Speak(VoxStrings.Get("Ai.Refusal.NotSetUp"));
+            return;
+        }
+        var page = PageQuestion.For(document);
+        var tether = _review.BrowseTether?.Invoke();
+
+        // Say no before asking a question that couldn't be answered
+        var target = (await _context.WindowTargetAsync().ConfigureAwait(false)) with { IsPassword = false, Site = document.Root.Value };
+        if (_ai.Describer is { IsLocal: false } && _ai.Consent.ForCloud(target) is { Decision: AiConsentDecision.Refused } refused)
+        {
+            Speak(AiConsent.Explain(refused.Reason));
+            return;
+        }
+
+        string? question;
+        try
+        {
+            question = await RunDialog(() => _textPrompt.AskAsync(VoxStrings.Get("Ai.AskPage.Title"), VoxStrings.Get("Ai.AskPage.Label"),
+                history: Questions()), whenBusy: null).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "The question prompt failed");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(question))
+            return;
+        RememberQuestion(question);
+
+        VBufferNode? goTo = null;
+        string? goToText = null;
+        await RunAsync(VoxStrings.Get("Ai.Thinking"), async token =>
+        {
+            var answer = await AskAsync(new AiRequest(AiTask.AskPage, null, question, page.Context, Language()), target, token)
+                .ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            if (!answer.HasText)
+            {
+                Speak(AiAssistant.Explain(answer));
+                return;
+            }
+            var (text, node, line) = page.Read(answer.Text!);
+            await ShowTextAsync(text.Length > 0 ? text : answer.Text!, tether, token).ConfigureAwait(false);
+            (goTo, goToText) = (node, line);
+        }).ConfigureAwait(false);
+
+        if (goTo is null || GoToElement is null || _confirm is null)
+            return;
+        bool go;
+        try
+        {
+            go = await RunDialog(() => _confirm.AskAsync(VoxStrings.Get("Ai.AskPage.GoTitle"),
+                VoxStrings.Format("Ai.AskPage.Go", Shorten(goToText ?? string.Empty))), whenBusy: false).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "The move prompt failed");
+            return;
+        }
+        if (go)
+            GoToElement(goTo);
+    }
+
+    private Task<T> RunDialog<T>(Func<Task<T>> show, T whenBusy) =>
+        _dialogs is null ? show() : _dialogs.RunAsync(show, whenBusy);
+
+    private static string Shorten(string line) => line.Length > 80 ? line[..80].TrimEnd() + "…" : line;
+
     /// <summary>Asks for the cloud provider's API key and keeps it (encrypted for this Windows user).</summary>
     public async Task SetKeyAsync()
     {
@@ -260,7 +363,7 @@ public sealed class AiCommands
         string? key;
         try
         {
-            key = await _runDialog(() => _textPrompt.AskAsync(VoxStrings.Get("Ai.Key.Title"), VoxStrings.Get("Ai.Key.Label"), secret: true))
+            key = await RunDialog(() => _textPrompt.AskAsync(VoxStrings.Get("Ai.Key.Title"), VoxStrings.Get("Ai.Key.Label"), secret: true), whenBusy: null)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)

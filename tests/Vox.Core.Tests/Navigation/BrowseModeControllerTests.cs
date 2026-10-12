@@ -230,6 +230,28 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task GoToElement_MovesTheCursorThere_EvenFromAnOlderCopyOfThePage()
+    {
+        var older = BuildDocument();
+        LoadDocument(focusedId: [2]);
+
+        Assert.True(_controller.GoToElement(older.FindByRuntimeId([3])!));
+
+        await WaitForSpeech(u => u.Text == "Intro text");
+        Assert.Equal([3], _controller.BrowsePosition()!.Value.Cursor.CurrentNode!.UIARuntimeId);
+    }
+
+    [Fact]
+    public void GoToElement_ANodeThePageNoLongerHas_IsRefused()
+    {
+        LoadDocument();
+        var gone = new VBufferBuilder().Build(new MockElement { RuntimeId = [99], ControlType = "Document" }
+            .AddChild(new MockElement { RuntimeId = [98], Name = "Gone" }));
+
+        Assert.False(_controller.GoToElement(gone.FindByRuntimeId([98])!));
+    }
+
+    [Fact]
     public void BrowseCommand_InFocusMode_IsIgnored()
     {
         LoadDocument();

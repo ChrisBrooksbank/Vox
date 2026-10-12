@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 4
-- Build iterations: 222
+- Build iterations: 223
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -31,7 +31,7 @@
 #### AI that fixes pages (spec: switching.md)
 
 - [x] Add automatic labels: background local descriptions of unlabelled graphics and icon-only buttons after a load (cloud only with "allow" consent and not a private site), rate-limited, cached by image hash and site, applied as "described" custom labels; setting to turn off; never in secure mode or with `DisableAI`; unit tests (spec: switching.md)
-- [ ] Add "Ask the page": a question prompt answered from the buffer text (local first, cloud with consent), offering to move the browse cursor to an element the answer names (ids checked against the buffer); unit tests (spec: switching.md)
+- [x] Add "Ask the page": a question prompt answered from the buffer text (local first, cloud with consent), offering to move the browse cursor to an element the answer names (ids checked against the buffer); unit tests (spec: switching.md)
 
 #### Safe trial (spec: switching.md)
 

@@ -318,5 +318,9 @@ public enum NavigationCommand
 
     // Per-site settings
     /// <summary>Opens the settings of the web site being browsed (start mode, verbosity, screen layout, cookie banners).</summary>
-    OpenSiteSettings
+    OpenSiteSettings,
+
+    // AI that fixes pages
+    /// <summary>Asks a question about the page being browsed, answered from its text; offers to move to what the answer names.</summary>
+    AskPage
 }

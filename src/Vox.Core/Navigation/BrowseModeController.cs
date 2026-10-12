@@ -1501,6 +1501,35 @@ public sealed class BrowseModeController
     public VBufferDocument? BrowsedDocument() =>
         _documentActive && _navigationManager.CurrentMode == InteractionMode.Browse ? _quickNavHandler.CurrentDocument : null;
 
+    /// <summary>The page that has focus (in browse or focus mode), or null when none does. Pipeline thread.</summary>
+    public VBufferDocument? ActiveDocument() => _documentActive ? _quickNavHandler.CurrentDocument : null;
+
+    /// <summary>
+    /// Moves the browse cursor to <paramref name="node"/> (of this or an earlier copy of the page,
+    /// found again by its runtime id), in browse mode, and reads its line; false, with the error cue, when the page
+    /// no longer has it. Pipeline thread.
+    /// </summary>
+    public bool GoToElement(VBufferNode node)
+    {
+        var document = _quickNavHandler.CurrentDocument;
+        var found = document?.FindByRuntimeId(node.UIARuntimeId);
+        if (document is null || _cursor is null || found is null || !document.InScope(found))
+        {
+            _audioCuePlayer.Play("error");
+            Speak(VoxStrings.Get("Browse.ElementGone"));
+            return false;
+        }
+        StopSayAll();
+        _selection.Clear();
+        // The browse cursor is where reading goes on from
+        if (_navigationManager.CurrentMode != InteractionMode.Browse)
+            _navigationManager.SwitchTo(InteractionMode.Browse, "moved to an answer", announce: false);
+        MoveTo(found);
+        ApplyCursorSettings(_cursor);
+        SpeakContent(LineText(_cursor.ReadCurrentLine()));
+        return true;
+    }
+
     /// <summary>
     /// The key a command is on in the keymap in use, as people read it ("Insert+R"), or null when
     /// it has none. Set by the host.

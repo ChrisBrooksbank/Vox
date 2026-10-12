@@ -120,7 +120,21 @@ public class AiCommandsTests : IDisposable
     private AiCommands Commands(AiAssistant? assistant = null) => new(assistant ?? _assistant, _capture, _targets, _context, _review,
         _textPrompt, null, _keys, _policy, _audio, _queue, AiTestSupport.Settings(() => _settings),
         NullLogger<AiCommands>.Instance, s => _saved = _settings = s, progressInterval: TimeSpan.FromMilliseconds(20),
-        dialogSettleTime: TimeSpan.Zero);
+        dialogSettleTime: TimeSpan.Zero, confirm: _confirm);
+
+    private sealed class FakeConfirm : IConfirmPresenter
+    {
+        public bool Answer { get; set; } = true;
+        public List<string> Questions { get; } = new();
+
+        public Task<bool> AskAsync(string title, string question)
+        {
+            lock (Questions) Questions.Add(question);
+            return Task.FromResult(Answer);
+        }
+    }
+
+    private readonly FakeConfirm _confirm = new();
 
     public void Dispose()
     {
@@ -371,6 +385,118 @@ public class AiCommandsTests : IDisposable
 
         Assert.Equal("Not available on this screen", await Run(Commands().SetKeyAsync));
         Assert.Empty(_textPrompt.Asked);
+    }
+
+    [Fact]
+    public async Task AskPage_SendsTheNumberedPage_AndOffersToMoveToWhatTheAnswerNames()
+    {
+        var page = Page();
+        _textPrompt.Answer = "When do I plant them?";
+        _cloud.Answer = $"After the last frost.\nGO TO: [{NumberOf(page, "Tomatoes need sun")}]";
+        var moved = new List<VBufferNode>();
+        var commands = Commands();
+        commands.PageDocument = () => page;
+        commands.GoToElement = moved.Add;
+
+        Assert.Equal("After the last frost.", await Run(commands.AskPageAsync));
+        await WaitUntil(() => moved.Count > 0);
+
+        var request = Assert.Single(_cloud.Requests);
+        Assert.Equal(AiTask.AskPage, request.Task);
+        Assert.Equal("When do I plant them?", request.Question);
+        Assert.Contains("] Growing tomatoes", request.Context);
+        Assert.Contains("] Tomatoes need sun", request.Context);
+        Assert.Contains("Tomatoes need sun", Assert.Single(_confirm.Questions));
+        Assert.Contains("patience", page.FlatText[Assert.Single(moved).TextRange.Start..]);
+    }
+
+    [Fact]
+    public async Task AskPage_ALineThePageDoesNotHave_IsNotOffered()
+    {
+        _cloud.Answer = "It doesn't say.\nGO TO: [99]";
+        var moved = new List<VBufferNode>();
+        var commands = Commands();
+        commands.PageDocument = Page;
+        commands.GoToElement = moved.Add;
+
+        Assert.Equal("It doesn't say.", await Run(commands.AskPageAsync));
+
+        Assert.Empty(_confirm.Questions);
+        Assert.Empty(moved);
+    }
+
+    [Fact]
+    public async Task AskPage_SayingNo_StaysPut()
+    {
+        _cloud.Answer = $"Sun and water.\nGO TO: [{NumberOf(Page(), "Tomatoes need sun")}]";
+        _confirm.Answer = false;
+        var moved = new List<VBufferNode>();
+        var commands = Commands();
+        commands.PageDocument = Page;
+        commands.GoToElement = moved.Add;
+
+        Assert.Equal("Sun and water.", await Run(commands.AskPageAsync));
+        await WaitUntil(() => _confirm.Questions.Count > 0);
+
+        Assert.Empty(moved);
+    }
+
+    [Fact]
+    public async Task AskPage_ThisComputerFirst_ThenNoConsentIsAsked()
+    {
+        _local.IsAvailable = true;
+        _local.Answer = "Plant after the last frost.";
+        var commands = Commands();
+        commands.PageDocument = Page;
+
+        Assert.Equal("Plant after the last frost.", await Run(commands.AskPageAsync));
+
+        Assert.Single(_local.Requests);
+        Assert.Empty(_cloud.Requests);
+        Assert.Empty(_consent.Questions);
+    }
+
+    [Fact]
+    public async Task AskPage_APrivateSite_IsRefusedBeforeAsking()
+    {
+        _settings = _settings with { AiPrivateSites = ["bank.example.com"] };
+        var page = PageAt("https://bank.example.com/account");
+        var commands = Commands();
+        commands.PageDocument = () => page;
+
+        Assert.Equal("This web site is private: its pages are never sent", await Run(commands.AskPageAsync));
+
+        Assert.Empty(_textPrompt.Asked);
+        Assert.Empty(_cloud.Requests);
+    }
+
+    [Fact]
+    public async Task AskPage_NotOnAPage_OrOnSecureScreens_SaysSo()
+    {
+        Assert.Equal("Not on a page", await Run(Commands().AskPageAsync));
+
+        _policy = RunPolicy.Secure;
+        var assistant = new AiAssistant(_local, _cloud, new AiConsent(RunPolicy.Secure, AiTestSupport.Settings(() => _settings)),
+            _consent, new DescriptionCache(), NullLogger<AiAssistant>.Instance);
+        var commands = Commands(assistant);
+        commands.PageDocument = Page;
+        Assert.Equal("Not available on this screen", await Run(commands.AskPageAsync));
+        Assert.Empty(_textPrompt.Asked);
+    }
+
+    private static int NumberOf(VBufferDocument page, string text)
+    {
+        var context = PageQuestion.For(page).Context;
+        int at = context.IndexOf("] " + text, StringComparison.Ordinal);
+        int open = context.LastIndexOf('[', at);
+        return int.Parse(context[(open + 1)..at]);
+    }
+
+    private static VBufferDocument PageAt(string address)
+    {
+        var root = new MockElement { RuntimeId = [8000], ControlType = "Document", Value = address };
+        root.AddChild(new MockElement { RuntimeId = [8001], Name = "Your balance" });
+        return new VBufferBuilder().Build(root);
     }
 
     private static async Task WaitUntil(Func<bool> condition)

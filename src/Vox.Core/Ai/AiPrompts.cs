@@ -40,6 +40,12 @@ public static class AiPrompts
                 common + " You are given the text of a web page. Summarise it in at most five short sentences: what " +
                 "the page is, its main points, and anything the reader is asked to do. Then, on a new line, say " +
                 "where the main content starts, quoting the first words of that part exactly.",
+            AiTask.AskPage =>
+                common + " You are given the text of a web page, one line per line, each starting with its number in " +
+                "brackets, such as [12]. Answer the person's question from the page's text only; if the page doesn't " +
+                "say, say so. Be brief, and don't mention the line numbers in your answer. When the answer is at one " +
+                "place on the page the person may want to go to (a heading, link, button, field or passage), end " +
+                "with one more line, exactly \"GO TO: [n]\", n being that line's number.",
             _ => common,
         };
     }
@@ -53,7 +59,7 @@ public static class AiPrompts
             var context = request.Context.Length > MaxContextLength
                 ? request.Context[..MaxContextLength] + "\n[The rest of the text was left out: it is too long.]"
                 : request.Context;
-            var heading = request.Task == AiTask.SummarizePage ? "Page text:" : "Controls and text of the window:";
+            var heading = request.Task is AiTask.SummarizePage or AiTask.AskPage ? "Page text:" : "Controls and text of the window:";
             parts.Add($"{heading}\n{context}");
         }
         if (!string.IsNullOrWhiteSpace(request.Question))

@@ -11,6 +11,8 @@ public enum AiTask
     ExplainScreen,
     /// <summary>Summarise a page from its text.</summary>
     SummarizePage,
+    /// <summary>Answer a question about a page from its numbered text (<see cref="PageQuestion"/>), naming the line the answer is at.</summary>
+    AskPage,
 }
 
 /// <summary>

@@ -296,6 +296,10 @@ public sealed class ScreenReaderService : IHostedService
         // ... and so does describing; the summary reads the page being browsed
         _ai.BrowseTarget = _browseModeController.RecognitionTarget;
         _ai.BrowseDocument = _browseModeController.BrowsedDocument;
+        // Ask the page: any page with focus; moving to the answer happens on the pipeline thread
+        _ai.PageDocument = _browseModeController.ActiveDocument;
+        _ai.GoToElement = node => _eventPipeline.Post(new PipelineWorkEvent(DateTimeOffset.UtcNow,
+            () => _browseModeController.GoToElement(node)));
         _ai.MainContentKey = () => KeyNameFor(NavigationCommand.MoveToMainContent);
         _browseModeController.KeyNameFor = KeyNameFor;
 
@@ -432,6 +436,8 @@ public sealed class ScreenReaderService : IHostedService
         _ocr.BrowseTarget = null;
         _ai.BrowseTarget = null;
         _ai.BrowseDocument = null;
+        _ai.PageDocument = null;
+        _ai.GoToElement = null;
         _ai.MainContentKey = null;
         _ai.Cancel();
         _browseModeController.KeyNameFor = null;

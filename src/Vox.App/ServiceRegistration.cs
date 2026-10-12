@@ -417,7 +417,8 @@ public static class ServiceRegistration
             sp.GetRequiredService<SpeechQueue>(),
             sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
             sp.GetRequiredService<ILogger<AiCommands>>(),
-            sp.GetRequiredService<SettingsMonitor>().UpdateSettings));
+            sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+            confirm: sp.GetRequiredService<IConfirmPresenter>()));
         // Updates: only with the release key shipped beside Vox, and never on secure screens
         services.AddSingleton<UpdateChecker>(sp =>
         {
