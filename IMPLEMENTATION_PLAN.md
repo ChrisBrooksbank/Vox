@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 4
-- Build iterations: 217
+- Build iterations: 218
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -20,7 +20,7 @@
 #### JAWS keyboard layout (spec: switching.md)
 
 - [x] Add `KeyboardLayout.Jaws` with `assets/config/jaws-keymap.json` overlaid through `KeyMap.LoadLayout` (desktop and laptop variants) covering the common JAWS keys; copied and embedded like the other keymaps; tests for resolution, conflicts, and that the keyboard reference, tutorial and input help use its keys (spec: switching.md)
-- [ ] Add "Vox for JAWS users" and "Vox for NVDA users" pages to `docs/guide` mapping familiar keys and concepts (spec: switching.md)
+- [x] Add "Vox for JAWS users" and "Vox for NVDA users" pages to `docs/guide` mapping familiar keys and concepts (spec: switching.md)
 
 #### Custom labels and per-site settings (spec: switching.md)
 

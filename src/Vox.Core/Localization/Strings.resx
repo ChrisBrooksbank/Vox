@@ -1516,7 +1516,7 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   </data>
   <data name="KeyboardReference.JawsIntro" xml:space="preserve">
     <value>Every Vox command and its keys in the JAWS desktop and laptop layouts, which add the common JAWS keys to Vox's own. "Insert" is the Vox key: Caps Lock instead if you chose it.
-Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. &lt;a href="index.html"&gt;Back to the user guide&lt;/a&gt;.</value>
+Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. &lt;a href="jaws.html"&gt;Vox for JAWS users&lt;/a&gt;; &lt;a href="index.html"&gt;back to the user guide&lt;/a&gt;.</value>
     <comment>HTML: keep the links</comment>
   </data>
   <data name="KeyboardReference.JawsDesktop" xml:space="preserve">

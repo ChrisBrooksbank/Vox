@@ -4,7 +4,8 @@ Each guide is a plain page with headings, so a screen reader's heading keys move
 The guides are grouped by who they are for. To install Vox, start with [Installing Vox](install.md).
 
 The **user guide** is installed with Vox: open the Vox menu (Insert+N) and choose User guide. It
-comes with a keyboard reference that lists every command and its keys. Its source is in
+comes with a keyboard reference that lists every command and its keys, and pages for people
+coming from [NVDA](guide/nvda.html) and [JAWS](guide/jaws.html). Its source is in
 [guide/](guide/index.html).
 
 ## Using Vox
