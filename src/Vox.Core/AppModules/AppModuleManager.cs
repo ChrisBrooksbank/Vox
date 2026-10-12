@@ -48,8 +48,25 @@ public sealed class AppModuleManager
         _processName = processName ?? ProcessName;
     }
 
-    /// <summary>Every module Vox has.</summary>
-    public IReadOnlyList<IAppModule> Modules => _modules;
+    // Add-ons' modules, which come before Vox's own for the same application (replaced whole)
+    private volatile IReadOnlyList<IAppModule> _addOnModules = [];
+
+    /// <summary>Every module Vox has: add-ons' first, then its own.</summary>
+    public IReadOnlyList<IAppModule> Modules => [.. _addOnModules, .. _modules];
+
+    /// <summary>
+    /// Sets the add-ons' app modules (pipeline thread): they come before Vox's own module for the
+    /// same application. The module for the foreground application is picked again at once.
+    /// </summary>
+    public void SetAddOnModules(IReadOnlyList<IAppModule> modules)
+    {
+        _addOnModules = modules.ToList();
+        _keyMaps.Clear();
+        Reselect();
+    }
+
+    /// <summary>Raised (on the pipeline thread) after another module becomes active, or none: the new one or null.</summary>
+    public event EventHandler<IAppModule?>? ActiveModuleChanged;
 
     /// <summary>The module of the foreground application, or null (any thread).</summary>
     public IAppModule? ActiveModule => _active;
@@ -104,16 +121,17 @@ public sealed class AppModuleManager
         ForegroundAppChanged?.Invoke(this, name);
     }
 
-    /// <summary>The module for <paramref name="processName"/>, unless it is turned off; null when none.</summary>
+    /// <summary>The first module for <paramref name="processName"/> that isn't turned off; null when none.</summary>
     public IAppModule? ModuleFor(string processName)
     {
         var disabled = _settings?.CurrentValue.DisabledAppModules;
-        foreach (var module in _modules)
+        foreach (var module in Modules)
         {
             if (!module.ProcessNames.Contains(processName, StringComparer.OrdinalIgnoreCase))
                 continue;
+            // A module turned off leaves the application to the next one for it (an add-on's to Vox's own)
             if (disabled is not null && disabled.Contains(module.Id, StringComparer.OrdinalIgnoreCase))
-                return null;
+                continue;
             return module;
         }
         return null;
@@ -190,6 +208,7 @@ public sealed class AppModuleManager
         _setAppKeyMap(module is null ? null : KeyMapOf(module));
         if (module is not null)
             Activate(module, activation);
+        ActiveModuleChanged?.Invoke(this, module);
     }
 
     private void Activate(IAppModule module, AppActivation activation)

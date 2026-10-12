@@ -1,0 +1,11 @@
+{
+  "id": "vox.sample",
+  "name": "Vox sample add-on",
+  "version": "1.0.0",
+  "author": "The Vox project",
+  "description": "Shows what an add-on can do: a command (Insert+Ctrl+F12 says hello), Notepad support (Insert+Alt+F12 counts the words in the text), a speech filter (e.g. is said as for example) and a plug-in that counts focus changes.",
+  "minApiVersion": "1.0",
+  "maxApiVersion": "1.0",
+  "entryAssembly": "Vox.SampleAddOn.dll",
+  "url": "https://github.com/ChrisBrooksbank/Vox/tree/master/samples/Vox.SampleAddOn"
+}

@@ -2842,4 +2842,385 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Captcha.AudioButton" xml:space="preserve">
     <value>Audio alternative: {0} button.</value>
   </data>
+  <data name="Command.ManageAddOns.Name" xml:space="preserve">
+    <value>Manage add-ons</value>
+  </data>
+  <data name="Command.ManageAddOns.Description" xml:space="preserve">
+    <value>Lists the installed add-ons, and turns them on or off, removes them or installs one from a file.</value>
+  </data>
+  <data name="Command.GetAddOns.Name" xml:space="preserve">
+    <value>Add-on store</value>
+  </data>
+  <data name="Command.GetAddOns.Description" xml:space="preserve">
+    <value>Browses and searches Vox's signed add-on catalogue, and installs or updates add-ons from it.</value>
+  </data>
+  <data name="Command.RestartWithoutAddOns.Name" xml:space="preserve">
+    <value>Restart with add-ons disabled</value>
+  </data>
+  <data name="Command.RestartWithoutAddOns.Description" xml:space="preserve">
+    <value>Restarts Vox in safe mode, with no add-on loaded; in safe mode, restarts it with add-ons again.</value>
+  </data>
+  <data name="Command.RemoteAccess.Name" xml:space="preserve">
+    <value>Remote access</value>
+  </data>
+  <data name="Command.RemoteAccess.Description" xml:space="preserve">
+    <value>Lets this computer be controlled by another Vox, or controls another computer; while a session is running, offers to end it.</value>
+  </data>
+  <data name="Command.ToggleRemoteControl.Name" xml:space="preserve">
+    <value>Switch remote control</value>
+  </data>
+  <data name="Command.ToggleRemoteControl.Description" xml:space="preserve">
+    <value>While connected to another computer, switches between sending your keys to it and using this computer.</value>
+  </data>
+  <data name="Command.DisconnectRemote.Name" xml:space="preserve">
+    <value>End remote session</value>
+  </data>
+  <data name="Command.DisconnectRemote.Description" xml:space="preserve">
+    <value>Ends the remote session, or stops waiting for the other computer.</value>
+  </data>
+  <data name="VoxMenu.ManageAddOns" xml:space="preserve">
+    <value>Manage add-o&amp;ns...</value>
+  </data>
+  <data name="VoxMenu.GetAddOns" xml:space="preserve">
+    <value>Add-on s&amp;tore...</value>
+  </data>
+  <data name="VoxMenu.RemoteAccess" xml:space="preserve">
+    <value>&amp;Remote access...</value>
+  </data>
+  <data name="VoxMenu.RestartWithoutAddOns" xml:space="preserve">
+    <value>Restart with add-ons &amp;disabled</value>
+  </data>
+  <data name="VoxMenu.RestartWithAddOns" xml:space="preserve">
+    <value>Restart with add-ons &amp;enabled</value>
+  </data>
+  <data name="AddOns.NeedsNewerVox" xml:space="preserve">
+    <value>{0} needs a newer Vox (add-on API {1}; this Vox has {2}).</value>
+  </data>
+  <data name="AddOns.MadeForOlderVox" xml:space="preserve">
+    <value>{0} was made for an older Vox (add-on API {1}) and does not work with this one ({2}).</value>
+  </data>
+  <data name="AddOns.NotOnThisScreen" xml:space="preserve">
+    <value>Add-ons are not available on this screen.</value>
+  </data>
+  <data name="AddOns.OffByPolicy" xml:space="preserve">
+    <value>Add-ons are turned off by your organization.</value>
+  </data>
+  <data name="AddOns.SafeMode" xml:space="preserve">
+    <value>Not loaded: Vox is in safe mode.</value>
+  </data>
+  <data name="AddOns.SafeModeStartup" xml:space="preserve">
+    <value>Safe mode: add-ons are disabled.</value>
+  </data>
+  <data name="AddOns.Damaged" xml:space="preserve">
+    <value>Its files are damaged or incomplete.</value>
+  </data>
+  <data name="AddOns.LoadFailed" xml:space="preserve">
+    <value>It could not be loaded.</value>
+  </data>
+  <data name="AddOns.StartFailed" xml:space="preserve">
+    <value>It failed to start.</value>
+  </data>
+  <data name="AddOns.TurnedOff" xml:space="preserve">
+    <value>{0} was turned off because it kept failing.</value>
+  </data>
+  <data name="AddOns.CatalogueMismatch" xml:space="preserve">
+    <value>The download is not the one Vox's add-on catalogue lists.</value>
+  </data>
+  <data name="AddOns.RestartingSafe" xml:space="preserve">
+    <value>Restarting Vox with add-ons disabled</value>
+  </data>
+  <data name="AddOns.RestartingNormal" xml:space="preserve">
+    <value>Restarting Vox with add-ons enabled</value>
+  </data>
+  <data name="AddOns.State.Running" xml:space="preserve">
+    <value>running</value>
+  </data>
+  <data name="AddOns.State.Disabled" xml:space="preserve">
+    <value>disabled</value>
+  </data>
+  <data name="AddOns.State.Incompatible" xml:space="preserve">
+    <value>incompatible</value>
+  </data>
+  <data name="AddOns.State.Failed" xml:space="preserve">
+    <value>failed</value>
+  </data>
+  <data name="AddOns.State.TurnedOff" xml:space="preserve">
+    <value>turned off after failing</value>
+  </data>
+  <data name="AddOns.State.NotLoaded" xml:space="preserve">
+    <value>not loaded</value>
+  </data>
+  <data name="AddOns.ListLine" xml:space="preserve">
+    <value>{0} {1}, {2}</value>
+  </data>
+  <data name="AddOns.Details.Title" xml:space="preserve">
+    <value>{0}, version {1}</value>
+  </data>
+  <data name="AddOns.Details.Author" xml:space="preserve">
+    <value>By {0}</value>
+  </data>
+  <data name="AddOns.Details.State" xml:space="preserve">
+    <value>State: {0}</value>
+  </data>
+  <data name="AddOns.Details.Commands" xml:space="preserve">
+    <value>Commands:</value>
+  </data>
+  <data name="AddOns.Details.Command" xml:space="preserve">
+    <value>{0}: {1}. {2}</value>
+  </data>
+  <data name="AddOns.Details.NoKey" xml:space="preserve">
+    <value>no key</value>
+  </data>
+  <data name="AddOns.Trust.Catalogue" xml:space="preserve">
+    <value>From Vox's signed add-on catalogue.</value>
+  </data>
+  <data name="AddOns.Trust.TrustedPublisher" xml:space="preserve">
+    <value>Signed by a trusted publisher (key {0}).</value>
+  </data>
+  <data name="AddOns.Trust.UnknownPublisher" xml:space="preserve">
+    <value>Signed by a publisher Vox does not know (key {0}).</value>
+  </data>
+  <data name="AddOns.Trust.Unsigned" xml:space="preserve">
+    <value>Not signed.</value>
+  </data>
+  <data name="AddOns.TrustWarning" xml:space="preserve">
+    <value>Add-ons run with your permissions and can read your screen: install it only if you trust where it came from.</value>
+  </data>
+  <data name="AddOns.InstallTitle" xml:space="preserve">
+    <value>Install add-on</value>
+  </data>
+  <data name="AddOns.InstallQuestion" xml:space="preserve">
+    <value>Install {0} {1} by {2}?</value>
+  </data>
+  <data name="AddOns.UpdateQuestion" xml:space="preserve">
+    <value>Update {0} from version {3} to {1} by {2}?</value>
+  </data>
+  <data name="AddOns.Installed" xml:space="preserve">
+    <value>{0} {1} installed.</value>
+  </data>
+  <data name="AddOns.Updated" xml:space="preserve">
+    <value>{0} updated to {1}.</value>
+  </data>
+  <data name="AddOns.InstallFailed" xml:space="preserve">
+    <value>{0} could not be installed: {1}</value>
+  </data>
+  <data name="AddOns.Refused" xml:space="preserve">
+    <value>Not installed: {0}</value>
+  </data>
+  <data name="AddOns.Enabled" xml:space="preserve">
+    <value>{0} turned on.</value>
+  </data>
+  <data name="AddOns.EnabledInSafeMode" xml:space="preserve">
+    <value>{0} turned on. It loads when Vox restarts with add-ons enabled.</value>
+  </data>
+  <data name="AddOns.Disabled" xml:space="preserve">
+    <value>{0} turned off.</value>
+  </data>
+  <data name="AddOns.NotChanged" xml:space="preserve">
+    <value>{0} could not be changed.</value>
+  </data>
+  <data name="AddOns.RemoveTitle" xml:space="preserve">
+    <value>Remove add-on</value>
+  </data>
+  <data name="AddOns.RemoveQuestion" xml:space="preserve">
+    <value>Remove {0}? Its settings are kept.</value>
+  </data>
+  <data name="AddOns.Removed" xml:space="preserve">
+    <value>{0} removed.</value>
+  </data>
+  <data name="AddOns.NotRemoved" xml:space="preserve">
+    <value>{0} could not be removed.</value>
+  </data>
+  <data name="AddOns.Dialog.Title" xml:space="preserve">
+    <value>Add-ons</value>
+  </data>
+  <data name="AddOns.Dialog.TitleSafeMode" xml:space="preserve">
+    <value>Add-ons (safe mode: none loaded)</value>
+  </data>
+  <data name="AddOns.Dialog.List" xml:space="preserve">
+    <value>Installed &amp;add-ons</value>
+  </data>
+  <data name="AddOns.Dialog.Details" xml:space="preserve">
+    <value>&amp;Details</value>
+  </data>
+  <data name="AddOns.Dialog.Disable" xml:space="preserve">
+    <value>&amp;Turn off</value>
+  </data>
+  <data name="AddOns.Dialog.Enable" xml:space="preserve">
+    <value>&amp;Turn on</value>
+  </data>
+  <data name="AddOns.Dialog.Remove" xml:space="preserve">
+    <value>&amp;Remove</value>
+  </data>
+  <data name="AddOns.Dialog.Install" xml:space="preserve">
+    <value>&amp;Install from file...</value>
+  </data>
+  <data name="AddOns.Dialog.None" xml:space="preserve">
+    <value>No add-ons installed</value>
+  </data>
+  <data name="AddOns.Dialog.ChooseFile" xml:space="preserve">
+    <value>Choose an add-on package</value>
+  </data>
+  <data name="AddOns.Dialog.FileFilter" xml:space="preserve">
+    <value>Vox add-ons</value>
+  </data>
+  <data name="Store.NoKey" xml:space="preserve">
+    <value>The add-on store isn't set up in this copy of Vox: there is no key to check its catalogue with.</value>
+  </data>
+  <data name="Store.NetworkOff" xml:space="preserve">
+    <value>The add-on store needs the network, which is turned off for Vox.</value>
+  </data>
+  <data name="Store.Failed" xml:space="preserve">
+    <value>The add-on catalogue couldn't be fetched, or its signature didn't check out.</value>
+  </data>
+  <data name="Store.Fetching" xml:space="preserve">
+    <value>Getting the list of add-ons</value>
+  </data>
+  <data name="Store.Downloading" xml:space="preserve">
+    <value>Downloading {0}</value>
+  </data>
+  <data name="Store.NoUpdates" xml:space="preserve">
+    <value>All add-ons are up to date.</value>
+  </data>
+  <data name="Store.Updated" xml:space="preserve">
+    <value>{0} of {1} add-ons updated.</value>
+  </data>
+  <data name="Store.Dialog.Title" xml:space="preserve">
+    <value>Add-on store</value>
+  </data>
+  <data name="Store.Dialog.Search" xml:space="preserve">
+    <value>&amp;Search</value>
+  </data>
+  <data name="Store.Dialog.List" xml:space="preserve">
+    <value>&amp;Add-ons</value>
+  </data>
+  <data name="Store.Dialog.Install" xml:space="preserve">
+    <value>&amp;Install</value>
+  </data>
+  <data name="Store.Dialog.Update" xml:space="preserve">
+    <value>&amp;Update</value>
+  </data>
+  <data name="Store.Dialog.UpdateAll" xml:space="preserve">
+    <value>Update a&amp;ll</value>
+  </data>
+  <data name="Store.Dialog.Count" xml:space="preserve">
+    <value>{0} add-ons</value>
+  </data>
+  <data name="Store.ListLine" xml:space="preserve">
+    <value>{0} {1}, by {2}, {3}</value>
+  </data>
+  <data name="Store.State.Installed" xml:space="preserve">
+    <value>installed</value>
+  </data>
+  <data name="Store.State.Update" xml:space="preserve">
+    <value>update available (installed {0})</value>
+  </data>
+  <data name="Store.State.Incompatible" xml:space="preserve">
+    <value>does not work with this Vox</value>
+  </data>
+  <data name="Store.Details.Installed" xml:space="preserve">
+    <value>Installed: version {0}</value>
+  </data>
+  <data name="Remote.Title" xml:space="preserve">
+    <value>Remote access</value>
+  </data>
+  <data name="Remote.Dialog.Controlled" xml:space="preserve">
+    <value>&amp;Allow this computer to be controlled</value>
+  </data>
+  <data name="Remote.Dialog.Controlling" xml:space="preserve">
+    <value>&amp;Control another computer</value>
+  </data>
+  <data name="Remote.Dialog.Relay" xml:space="preserve">
+    <value>Connect through a &amp;relay server</value>
+  </data>
+  <data name="Remote.Dialog.Address" xml:space="preserve">
+    <value>The other computer's a&amp;ddress</value>
+  </data>
+  <data name="Remote.Dialog.RelayAddress" xml:space="preserve">
+    <value>Relay server a&amp;ddress</value>
+  </data>
+  <data name="Remote.Dialog.Port" xml:space="preserve">
+    <value>&amp;Port to wait on</value>
+  </data>
+  <data name="Remote.Dialog.Code" xml:space="preserve">
+    <value>Session c&amp;ode</value>
+  </data>
+  <data name="Remote.Dialog.NewCode" xml:space="preserve">
+    <value>&amp;New code</value>
+  </data>
+  <data name="Remote.Dialog.Start" xml:space="preserve">
+    <value>&amp;Start</value>
+  </data>
+  <data name="Remote.Dialog.Connect" xml:space="preserve">
+    <value>Co&amp;nnect</value>
+  </data>
+  <data name="Remote.Dialog.BadCode" xml:space="preserve">
+    <value>The session code is 12 letters and digits, as the other computer shows it.</value>
+  </data>
+  <data name="Remote.Dialog.BadAddress" xml:space="preserve">
+    <value>Type a computer name or address, with :port if it is not the usual one.</value>
+  </data>
+  <data name="Remote.NotOnThisScreen" xml:space="preserve">
+    <value>Remote access is not available on this screen.</value>
+  </data>
+  <data name="Remote.NetworkOff" xml:space="preserve">
+    <value>Remote access needs the network, which is turned off for Vox.</value>
+  </data>
+  <data name="Remote.NoSession" xml:space="preserve">
+    <value>No remote session.</value>
+  </data>
+  <data name="Remote.OtherComputer" xml:space="preserve">
+    <value>the other computer</value>
+  </data>
+  <data name="Remote.Waiting" xml:space="preserve">
+    <value>Waiting for the other computer. The session code is {0}.</value>
+  </data>
+  <data name="Remote.WaitingCopied" xml:space="preserve">
+    <value>Waiting for the other computer. The session code is {0}. It is also on the clipboard.</value>
+  </data>
+  <data name="Remote.Connecting" xml:space="preserve">
+    <value>Connecting</value>
+  </data>
+  <data name="Remote.StartedControlled" xml:space="preserve">
+    <value>Remote session started: {0} can control this computer.</value>
+  </data>
+  <data name="Remote.StartedControlling" xml:space="preserve">
+    <value>Connected to {0}. Press {1} to send your keys to it.</value>
+  </data>
+  <data name="Remote.ControlOn" xml:space="preserve">
+    <value>Controlling {0}</value>
+  </data>
+  <data name="Remote.ControlOff" xml:space="preserve">
+    <value>Controlling this computer</value>
+  </data>
+  <data name="Remote.Ended" xml:space="preserve">
+    <value>Remote session ended.</value>
+  </data>
+  <data name="Remote.StoppedWaiting" xml:space="preserve">
+    <value>Stopped waiting for remote control.</value>
+  </data>
+  <data name="Remote.NotConnected" xml:space="preserve">
+    <value>Not connected.</value>
+  </data>
+  <data name="Remote.Lost" xml:space="preserve">
+    <value>The remote connection was lost.</value>
+  </data>
+  <data name="Remote.Failed" xml:space="preserve">
+    <value>Remote access failed: {0}</value>
+  </data>
+  <data name="Remote.Unreachable" xml:space="preserve">
+    <value>the other computer could not be reached</value>
+  </data>
+  <data name="Remote.WrongCode" xml:space="preserve">
+    <value>A computer tried to connect with the wrong session code.</value>
+  </data>
+  <data name="Remote.TooManyWrongCodes" xml:space="preserve">
+    <value>Too many wrong session codes: no longer waiting.</value>
+  </data>
+  <data name="Remote.DisconnectQuestion" xml:space="preserve">
+    <value>End the remote session with {0}?</value>
+  </data>
+  <data name="Remote.StopWaitingQuestion" xml:space="preserve">
+    <value>Stop waiting for remote control?</value>
+  </data>
 </root>

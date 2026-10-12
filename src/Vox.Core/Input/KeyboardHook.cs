@@ -376,6 +376,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                     Timestamp = kbStruct.time,
                     ScanCode = (int)kbStruct.scanCode,
                     IsKeypad = NumpadKeys.IsKeypad(vkCode, (kbStruct.flags & LLKHF_EXTENDED) != 0),
+                    IsExtended = (kbStruct.flags & LLKHF_EXTENDED) != 0,
                     // The tracked state, whatever the modifier: with Caps Lock as the Vox key it is
                     // only changed by a double tap passed through (and Vox turning it off)
                     CapsLockOn = _keyState.CapsLockOn

@@ -12,6 +12,9 @@ public sealed record RunPolicy(bool IsSecure)
 {
     public const string SecureFlag = "--secure";
 
+    /// <summary>Starts Vox without loading add-ons (safe mode), e.g. after one stopped Vox working.</summary>
+    public const string SafeFlag = "--safe";
+
     public static readonly RunPolicy Normal = new(false);
     public static readonly RunPolicy Secure = new(true);
 
@@ -21,6 +24,11 @@ public sealed record RunPolicy(bool IsSecure)
     public bool AddOnsOffByPolicy { get; init; }
     /// <summary>The organization's policy turned AI off (DisableAI).</summary>
     public bool AiOffByPolicy { get; init; }
+    /// <summary>
+    /// Safe mode (<see cref="SafeFlag"/>, or the Vox menu's "Restart with add-ons disabled"): no
+    /// add-on is loaded, though they can still be managed (to remove the one causing trouble).
+    /// </summary>
+    public bool SafeMode { get; init; }
 
     public bool AllowSettingsWrites => !IsSecure;
     public bool AllowAddOns => !IsSecure && !AddOnsOffByPolicy;
@@ -47,8 +55,13 @@ public sealed record RunPolicy(bool IsSecure)
         : Path.Combine(VoxPaths.LocalData, "logs");
 
     /// <summary>The policy for these command-line arguments.</summary>
-    public static RunPolicy FromArgs(IEnumerable<string> args) =>
-        args.Any(a => string.Equals(a, SecureFlag, StringComparison.OrdinalIgnoreCase) || string.Equals(a, "/secure", StringComparison.OrdinalIgnoreCase))
-            ? Secure
+    public static RunPolicy FromArgs(IEnumerable<string> args)
+    {
+        var list = args.ToList();
+        if (list.Any(a => string.Equals(a, SecureFlag, StringComparison.OrdinalIgnoreCase) || string.Equals(a, "/secure", StringComparison.OrdinalIgnoreCase)))
+            return Secure;
+        return list.Any(a => string.Equals(a, SafeFlag, StringComparison.OrdinalIgnoreCase) || string.Equals(a, "/safe", StringComparison.OrdinalIgnoreCase))
+            ? Normal with { SafeMode = true }
             : Normal;
+    }
 }

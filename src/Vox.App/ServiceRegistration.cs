@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.AddOns;
 using Vox.Core.Ai;
 using Vox.Core.AppModules;
 using Vox.Core.AppModules.Excel;
@@ -25,6 +26,7 @@ using Vox.Core.MathSpeech;
 using Vox.Core.Navigation;
 using Vox.Core.Ocr;
 using Vox.Core.Pipeline;
+using Vox.Core.Remote;
 using Vox.Core.Speech;
 using Vox.Core.Text;
 using Vox.Core.Updates;
@@ -148,6 +150,9 @@ public static class ServiceRegistration
                 // On the text as it is on screen, before anything replaces words
                 new CapitalsRule(() => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue),
                 sp.GetRequiredService<PronunciationRule>(),
+                // Add-ons' announcement filters: on words, before symbols are named (read when
+                // speaking, as the add-on manager is made after the speech queue)
+                new AddOnTextRule(() => sp.GetRequiredService<AddOnManager>().Filters),
                 // Symbols named in the page's language, else Vox's
                 new PunctuationRule(SymbolDictionary.ForLanguage,
                     () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.PunctuationLevel,
@@ -506,8 +511,104 @@ public static class ServiceRegistration
                 sp.GetRequiredService<ILogger<AppModuleManager>>());
         });
 
+        // Add-ons (docs/addons.md): each in its own load context, none in safe mode, on the secure
+        // screens or with the DisableAddOns policy. Everything they reach is looked up when used,
+        // since they reach most of Vox.
+        services.AddSingleton<RestartRequest>();
+        services.AddSingleton<AddOnTrustStore>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            return AddOnTrustStore.Load(
+                Path.Combine(AppContext.BaseDirectory, "assets", "config", AddOnTrustStore.VoxKeyFileName),
+                policy.AllowUserProfileAccess ? Path.Combine(VoxPaths.UserData, "addons", "trusted-keys") : null);
+        });
+        services.AddSingleton<AddOnManager>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var loggers = sp.GetRequiredService<ILoggerFactory>();
+            return new AddOnManager(
+                policy.AllowUserProfileAccess ? Path.Combine(VoxPaths.UserData, "addons") : null,
+                policy,
+                new AssemblyAddOnLoader(),
+                sp.GetRequiredService<AddOnTrustStore>(),
+                new AddOnIntegration
+                {
+                    Speak = (text, priority) => sp.GetRequiredService<SpeechQueue>().Enqueue(new Utterance(text, SdkEvents.Priority(priority))),
+                    StopSpeaking = () => sp.GetRequiredService<SpeechQueue>().CancelAll(),
+                    Post = work => sp.GetRequiredService<IEventSink>().Post(new PipelineWorkEvent(DateTimeOffset.UtcNow, work)),
+                    ForegroundProcessName = () => sp.GetRequiredService<AppModuleManager>().ActiveProcessName,
+                    SetAppModules = modules => sp.GetRequiredService<AppModuleManager>().SetAddOnModules(modules),
+                    ActiveAppModule = () => sp.GetRequiredService<AppModuleManager>().ActiveModule,
+                    SetKeyLayer = layer => sp.GetRequiredService<KeyInputDispatcher>().SetAddOnKeys(layer),
+                    SpeechEngines = sp.GetRequiredService<SpeechEngineRegistry>(),
+                    SelectedSpeechEngine = () => settings.CurrentValue.SpeechEngine,
+                    Braille = sp.GetRequiredService<BrailleDisplayManager>(),
+                },
+                loggers.CreateLogger,
+                sp.GetRequiredService<ILogger<AddOnManager>>());
+        });
+        services.AddSingleton<AddOnStore>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            return new AddOnStore(
+                // Refuses every request while the network is off (a catalogue on this computer still works)
+                NetworkGate.CreateHttpClient(policy, TimeSpan.FromSeconds(60)),
+                () => Uri.TryCreate(settings.CurrentValue.AddOnCatalogueUrl, UriKind.Absolute, out var url) ? url : AddOnStore.DefaultCatalogueUrl,
+                sp.GetRequiredService<AddOnTrustStore>(),
+                policy,
+                sp.GetRequiredService<ILogger<AddOnStore>>());
+        });
+        services.AddSingleton<IAddOnsPresenter, AddOnsPresenter>();
+        services.AddSingleton<IAddOnStorePresenter, AddOnStorePresenter>();
+        services.AddSingleton<AddOnCommands>(sp => new AddOnCommands(
+            sp.GetRequiredService<AddOnManager>(),
+            sp.GetRequiredService<AddOnStore>(),
+            sp.GetRequiredService<IAddOnsPresenter>(),
+            sp.GetRequiredService<IAddOnStorePresenter>(),
+            sp.GetRequiredService<IConfirmPresenter>(),
+            sp.GetRequiredService<OwnDialogRunner>(),
+            sp.GetRequiredService<IEventSink>(),
+            sp.GetRequiredService<SpeechQueue>(),
+            sp.GetRequiredService<RestartRequest>(),
+            sp.GetRequiredService<IHostApplicationLifetime>().StopApplication,
+            sp.GetRequiredService<ILogger<AddOnCommands>>()));
+
+        // Remote access (docs/remote.md): never on the secure screens or with the network off
+        services.AddSingleton<RemoteAccessSession>(sp =>
+        {
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            return new RemoteAccessSession(
+                new RemoteTransport(policy),
+                sp.GetRequiredService<SpeechQueue>(),
+                dispatcher,
+                new RemoteKeyPlayer(sp.GetRequiredService<SendInputKeyboardOutput>(), () => settings.CurrentValue.ModifierKey),
+                () => KeyNameOf(dispatcher, NavigationCommand.ToggleRemoteControl, settings.CurrentValue.ModifierKey),
+                sp.GetRequiredService<ILogger<RemoteAccessSession>>())
+            {
+                // The controlled side sends its braille line; the controlling side shows the remote one
+                Braille = policy.IsSecure ? null : sp.GetRequiredService<BrailleController>(),
+            };
+        });
+        services.AddSingleton<IRemotePresenter, RemotePresenter>();
+        services.AddSingleton<RemoteCommands>(sp => new RemoteCommands(
+            sp.GetRequiredService<RemoteAccessSession>(),
+            sp.GetRequiredService<IRemotePresenter>(),
+            sp.GetRequiredService<IConfirmPresenter>(),
+            sp.GetRequiredService<OwnDialogRunner>(),
+            sp.GetRequiredService<IClipboard>(),
+            sp.GetRequiredService<SpeechQueue>(),
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+            sp.GetService<RunPolicy>() ?? RunPolicy.Normal,
+            sp.GetRequiredService<ILogger<RemoteCommands>>()));
+
         // Braille: display drivers in the order auto-detect tries them, then the controller
-        services.AddSingleton<IKeyboardOutput, SendInputKeyboardOutput>();
+        services.AddSingleton<SendInputKeyboardOutput>();
+        services.AddSingleton<IKeyboardOutput>(sp => sp.GetRequiredService<SendInputKeyboardOutput>());
         services.AddSingleton<IBrailleDisplayDriver>(sp => new HidBrailleDisplay(sp.GetRequiredService<ILogger<HidBrailleDisplay>>()));
         services.AddSingleton<IBrailleDisplayDriver>(sp => new BrlttyDisplay(logger: sp.GetRequiredService<ILogger<BrlttyDisplay>>(),
             policy: sp.GetService<RunPolicy>() ?? RunPolicy.Normal));
@@ -529,6 +630,15 @@ public static class ServiceRegistration
         // Hosted services: ScreenReaderService first, so its pipeline handlers run before braille's
         services.AddHostedService<ScreenReaderService>();
         services.AddHostedService<BrailleService>();
+    }
+
+    /// <summary>The key <paramref name="command"/> is on in the dispatcher's keymap ("Insert+F11"), or the command's name.</summary>
+    public static string KeyNameOf(KeyInputDispatcher dispatcher, NavigationCommand command, ModifierKey modifierKey)
+    {
+        var key = dispatcher.KeyMap.Bindings.Where(b => b.Command == command).Select(b => b.Key).Cast<KeyMapKey?>().FirstOrDefault();
+        return key is { } found
+            ? InputHelp.KeyName(found.Modifiers, found.VkCode, screenReaderKey: InputHelp.ScreenReaderKeyName(modifierKey))
+            : CommandCatalog.Describe(command).Name;
     }
 
     /// <summary>

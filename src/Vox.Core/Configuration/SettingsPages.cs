@@ -70,6 +70,10 @@ public static class SettingsPages
         // Free text, edited in settings.json (docs/ai.md); the key is set from the Vox menu
         nameof(VoxSettings.AiModel), nameof(VoxSettings.AiEndpoint), nameof(VoxSettings.AiPrivateApps),
         nameof(VoxSettings.AiLocalModel), nameof(VoxSettings.AiLocalEndpoint),
+        // The store's catalogue is set in settings.json or by policy (docs/addons.md); remote
+        // access remembers what its own dialog was given (docs/remote.md)
+        nameof(VoxSettings.AddOnCatalogueUrl), nameof(VoxSettings.RemotePort), nameof(VoxSettings.RemoteUseRelay),
+        nameof(VoxSettings.RemoteRelay), nameof(VoxSettings.RemoteAddress),
     };
 
     /// <summary>Vox's app modules, by id, with the names the Applications page shows (product names, not translated).</summary>

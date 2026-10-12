@@ -42,6 +42,10 @@ public sealed class KeyInputDispatcher
     private const int HelpFlag = 0x10;
     // The key is the one a dialog is waiting for (CaptureNextKey)
     private const int CaptureFlag = 0x20;
+    // The key is an add-on command's (AddOnKeyLayer)
+    private const int AddOnFlag = 0x40;
+    // The key goes to the computer being controlled remotely (KeyForwarder)
+    private const int ForwardFlag = 0x80;
 
     private Action<KeyModifiers, int, bool>? _capture;
 
@@ -114,6 +118,35 @@ public sealed class KeyInputDispatcher
     /// are looked up before the keymap's, in the same way; takes effect with the next key.
     /// </summary>
     public void SetAppKeyMap(KeyMap? keyMap) => _appKeyMap = keyMap;
+
+    // Add-on commands' keys, checked before Vox's own; null when no add-on has any
+    private volatile AddOnKeyLayer? _addOnKeys;
+
+    /// <summary>Sets the add-on commands' keys (null: none); takes effect with the next key.</summary>
+    public void SetAddOnKeys(AddOnKeyLayer? layer) => _addOnKeys = layer;
+
+    /// <summary>The add-on commands' keys in use.</summary>
+    public AddOnKeyLayer? AddOnKeys => _addOnKeys;
+
+    private Action<KeyEvent>? _forwarder;
+    // Keys whose key-down went to the remote computer, so their key-ups go too (hook consumer thread)
+    private readonly bool[] _forwardedKeysDown = new bool[256];
+
+    /// <summary>
+    /// While set, every key (and its key-up) is swallowed and handed to it on the dispatcher's
+    /// thread instead of being run or typed, except the key bound to
+    /// <see cref="NavigationCommand.ToggleRemoteControl"/>: keys going to a computer controlled
+    /// remotely. The screen reader key itself is handed over too (<see cref="IsScreenReaderKey"/>).
+    /// </summary>
+    public Action<KeyEvent>? KeyForwarder
+    {
+        get => Volatile.Read(ref _forwarder);
+        set => Volatile.Write(ref _forwarder, value);
+    }
+
+    /// <summary>True when <paramref name="evt"/> is the screen reader key itself (Insert or Caps Lock, as set).</summary>
+    public bool IsScreenReaderKey(KeyEvent evt) =>
+        evt.VkCode == (_hook.ScreenReaderModifier == Configuration.ModifierKey.CapsLock ? 0x14 : 0x2D);
 
     /// <summary>
     /// Starts listening to keyboard events by subscribing to the hook.
@@ -193,6 +226,10 @@ public sealed class KeyInputDispatcher
         bool found = TryResolve(evt, context, escapeToPage, out var command, out var passThrough);
         int flags = context | (escapeToPage ? EscapeToPageFlag : 0);
 
+        // Controlling another computer: every key goes there, but the one that stops it
+        if (KeyForwarder is not null && !(found && command == NavigationCommand.ToggleRemoteControl))
+            return new KeyDecision(true, flags | ForwardFlag);
+
         // Asleep: everything goes to the application except the key that wakes Vox
         if (AsleepNow())
             return new KeyDecision(found && command == NavigationCommand.ToggleSleepMode && !passThrough, flags | SleepFlag);
@@ -204,6 +241,10 @@ public sealed class KeyInputDispatcher
         // Input help: keys are described, not run or typed (a modifier alone still goes through)
         if (_inputHelp)
             return new KeyDecision(!InputHelp.IsModifierKey(evt.VkCode), flags | HelpFlag);
+
+        // Add-on commands' keys come before Vox's own
+        if (TryResolveAddOn(evt, context, out _))
+            return new KeyDecision(true, flags | AddOnFlag);
 
         bool suppress = found && !passThrough;
 
@@ -250,6 +291,28 @@ public sealed class KeyInputDispatcher
         return found;
     }
 
+    private bool TryResolveAddOn(KeyEvent evt, int context, out AddOnCommandRef command)
+    {
+        command = null!;
+        if (_addOnKeys is not { } layer)
+            return false;
+        var (primary, fallback) = NumpadKeys.BindingCodes(evt.VkCode, evt.IsKeypad);
+        return LookupAddOn(layer, evt.Modifiers, primary, context, out command)
+            || (fallback is { } code && LookupAddOn(layer, evt.Modifiers, code, context, out command));
+    }
+
+    private static bool LookupAddOn(AddOnKeyLayer layer, KeyModifiers modifiers, int vkCode, int context, out AddOnCommandRef command)
+    {
+        if (vkCode < 0)
+        {
+            command = null!;
+            return false;
+        }
+        return context == OutsideDocumentContext
+            ? layer.TryResolveOutsideDocument(modifiers, vkCode, out command)
+            : layer.TryResolve(modifiers, vkCode, context == BrowseContext ? InteractionMode.Browse : InteractionMode.Focus, out command);
+    }
+
     private bool Lookup(KeyModifiers modifiers, int vkCode, int context, out NavigationCommand command, out bool passThrough)
     {
         if (vkCode < 0)
@@ -286,6 +349,32 @@ public sealed class KeyInputDispatcher
             _latency.NoteKeyPress();
         }
 
+        // Controlling another computer: keys go there (and their key-ups after them)
+        if (KeyForwarder is { } forward)
+        {
+            bool forwardedDown = evt.IsKeyDown && (evt.Decision.Context & ForwardFlag) != 0;
+            // The screen reader key itself isn't asked about: it is always swallowed here
+            bool screenReaderKey = evt.Decision.Context == 0 && evt.Decision.Suppress && IsScreenReaderKey(evt);
+            bool forwardedUp = !evt.IsKeyDown && _forwardedKeysDown[slot];
+            if (forwardedDown || screenReaderKey || forwardedUp)
+            {
+                _forwardedKeysDown[slot] = evt.IsKeyDown;
+                forward(evt);
+                return;
+            }
+        }
+        else if (!evt.IsKeyDown && _forwardedKeysDown[slot])
+        {
+            // Forwarding stopped while the key was down: its key-up is the remote computer's too
+            _forwardedKeysDown[slot] = false;
+            return;
+        }
+        else if (evt.IsKeyDown && (evt.Decision.Context & ForwardFlag) != 0)
+        {
+            // Swallowed for the remote computer just as forwarding stopped: nobody's key
+            return;
+        }
+
         if (evt.IsKeyDown)
         {
             // Resolve exactly as the hook did when the key was pressed (context and whether Escape
@@ -308,6 +397,12 @@ public sealed class KeyInputDispatcher
 
             if (help)
             {
+                if (TryResolveAddOn(evt, context, out var addOnDescribed))
+                {
+                    _commandKeysDown[slot] = true;
+                    _pipeline.Post(new InputHelpEvent(DateTimeOffset.UtcNow, null, evt.Modifiers, evt.VkCode, evt.IsKeypad, addOnDescribed));
+                    return;
+                }
                 bool bound = TryResolve(evt, context, escapeToPage, out var described, out _);
                 if (bound && described == NavigationCommand.ToggleInputHelp)
                 {
@@ -320,6 +415,16 @@ public sealed class KeyInputDispatcher
                     _commandKeysDown[slot] = true;
                     _pipeline.Post(new InputHelpEvent(DateTimeOffset.UtcNow, bound ? described : null, evt.Modifiers, evt.VkCode, evt.IsKeypad));
                 }
+                return;
+            }
+
+            bool addOnKey = decided ? (evt.Decision.Context & AddOnFlag) != 0 : !asleep && TryResolveAddOn(evt, context, out _);
+            if (addOnKey)
+            {
+                // The layer may have changed since the key was pressed: then the key does nothing
+                _commandKeysDown[slot] = true;
+                if (TryResolveAddOn(evt, context, out var addOnCommand))
+                    _pipeline.Post(new AddOnCommandEvent(DateTimeOffset.UtcNow, addOnCommand));
                 return;
             }
 

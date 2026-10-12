@@ -18,7 +18,8 @@ public sealed class SpeechEngineRegistry : ISpeechEngine, IDisposable
     public const string SapiId = "SAPI";
     public const string EspeakId = "eSpeak";
 
-    private readonly IReadOnlyList<SpeechEngineDescriptor> _engines;
+    // Replaced whole when an add-on adds or takes away an engine
+    private volatile IReadOnlyList<SpeechEngineDescriptor> _engines;
     private readonly ILogger<SpeechEngineRegistry> _logger;
     private readonly object _lock = new();
     private ISpeechEngine? _current;
@@ -39,6 +40,43 @@ public sealed class SpeechEngineRegistry : ISpeechEngine, IDisposable
 
     /// <summary>The engines, most preferred first.</summary>
     public IReadOnlyList<SpeechEngineDescriptor> Engines => _engines;
+
+    /// <summary>
+    /// Adds an engine (an add-on's) before the last, fallback, one; it is started only when chosen.
+    /// False when an engine with its id is already there.
+    /// </summary>
+    public bool Add(SpeechEngineDescriptor descriptor)
+    {
+        lock (_lock)
+        {
+            if (_engines.Any(e => string.Equals(e.Id, descriptor.Id, StringComparison.OrdinalIgnoreCase)))
+                return false;
+            var engines = _engines.ToList();
+            engines.Insert(Math.Max(0, engines.Count - 1), descriptor);
+            _engines = engines;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Takes an engine away (its add-on was turned off). When it is the one speaking, the preferred
+    /// engine starts instead.
+    /// </summary>
+    public void Remove(string id)
+    {
+        string? replacement = null;
+        lock (_lock)
+        {
+            var descriptor = _engines.FirstOrDefault(e => string.Equals(e.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (descriptor is null || _engines.Count == 1)
+                return;
+            _engines = _engines.Where(e => e != descriptor).ToList();
+            if (_currentDescriptor == descriptor)
+                replacement = StartFrom(0);
+        }
+        if (replacement is not null)
+            EngineChanged?.Invoke(this, replacement);
+    }
 
     /// <summary>The id of the engine in use (starting the preferred one if none is yet).</summary>
     public string CurrentId

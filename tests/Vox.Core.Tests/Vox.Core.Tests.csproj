@@ -21,5 +21,13 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vox.Core\Vox.Core.csproj" />
+    <!-- Built first, never referenced: the add-on loader tests load it from SampleAddOn\ like an installed add-on -->
+    <ProjectReference Include="..\..\samples\Vox.SampleAddOn\Vox.SampleAddOn.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+  <Target Name="CopySampleAddOn" AfterTargets="Build">
+    <ItemGroup>
+      <SampleAddOnFiles Include="$(MSBuildProjectDirectory)\..\..\samples\Vox.SampleAddOn\bin\$(Configuration)\$(TargetFramework)\Vox.SampleAddOn.dll;$(MSBuildProjectDirectory)\..\..\samples\Vox.SampleAddOn\bin\$(Configuration)\$(TargetFramework)\addon.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SampleAddOnFiles)" DestinationFolder="$(OutDir)SampleAddOn" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

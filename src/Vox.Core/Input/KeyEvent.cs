@@ -31,6 +31,9 @@ public readonly struct KeyEvent
     /// </summary>
     public bool IsKeypad { get; init; }
 
+    /// <summary>The key is an extended key (the hook's LLKHF_EXTENDED): right Ctrl and Alt, the dedicated navigation keys, ...</summary>
+    public bool IsExtended { get; init; }
+
     /// <summary>True when Caps Lock is toggled on (and CapsLock is not the screen reader modifier).</summary>
     public bool CapsLockOn { get; init; }
 

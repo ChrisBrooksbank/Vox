@@ -59,7 +59,7 @@ public interface IKeyboardOutput
 /// <see cref="IKeyboardOutput"/> through SendInput. The keys go through Vox's own keyboard hook
 /// like typed ones, so an arrow key sent in browse mode moves the browse cursor.
 /// </summary>
-public sealed class SendInputKeyboardOutput : IKeyboardOutput
+public sealed class SendInputKeyboardOutput : IKeyboardOutput, Remote.IRemoteKeyInjector
 {
     private const uint INPUT_KEYBOARD = 1;
     private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
@@ -101,6 +101,13 @@ public sealed class SendInputKeyboardOutput : IKeyboardOutput
     }
 
     // Navigation keys are on the extended part of the keyboard (not the keypad)
+    /// <summary>One key going down or up, as pressed on the computer controlling this one (through Vox's hook, like typed keys).</summary>
+    public void SendRaw(int vkCode, int scanCode, bool down, bool extended)
+    {
+        var flags = (extended ? KEYEVENTF_EXTENDEDKEY : 0) | (down ? 0 : KEYEVENTF_KEYUP);
+        Send([new INPUT { type = INPUT_KEYBOARD, u = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)vkCode, wScan = (ushort)scanCode, dwFlags = flags } } }]);
+    }
+
     private static bool IsExtended(int vk) => vk is >= 0x21 and <= 0x28 or 0x2D or 0x2E or 0x5B or 0x5D;
 
     private static INPUT Key(ushort vk, uint flags) =>

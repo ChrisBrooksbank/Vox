@@ -112,6 +112,12 @@ public sealed class BrailleController : IDisposable
         get { lock (_lock) return _message ?? _shown; }
     }
 
+    /// <summary>
+    /// Raised (inside the lock, so handlers must only hand it on) when a line is shown or updated: a remote
+    /// session sends it to the controlling computer.
+    /// </summary>
+    public event EventHandler<BrailleLine>? LineShown;
+
     /// <summary>Raised (outside the lock) when the tether changes, with what it is now, so it can be said.</summary>
     public event EventHandler<BrailleTether>? TetherChanged;
 
@@ -425,6 +431,8 @@ public sealed class BrailleController : IDisposable
         if (showEnd)
             _showEndOfNext = null;
         _shown = line;
+        try { LineShown?.Invoke(this, line); }
+        catch (Exception ex) { _logger.LogDebug(ex, "A braille line listener failed"); }
         DismissMessage(render: false);
         _viewport.Show(line, CellCount, ViewOptions(), sameLine);
         if (showEnd)

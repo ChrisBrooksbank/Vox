@@ -19,7 +19,8 @@ public sealed class BrailleDisplayManager : IBrailleDisplaySource, IDisposable
 
     private static readonly NoBrailleDisplay NoDisplay = new();
 
-    private readonly IReadOnlyList<IBrailleDisplayDriver> _drivers;
+    // Replaced whole when an add-on adds or takes away a driver
+    private volatile IReadOnlyList<IBrailleDisplayDriver> _drivers;
     private readonly IOptionsMonitor<VoxSettings> _settings;
     private readonly ILogger<BrailleDisplayManager> _logger;
     private readonly TimeProvider _time;
@@ -58,6 +59,45 @@ public sealed class BrailleDisplayManager : IBrailleDisplaySource, IDisposable
 
     public event EventHandler? DisplayChanged;
     public event EventHandler<BrailleKeyEventArgs>? KeyPressed;
+
+    /// <summary>Adds a driver (an add-on's), tried after Vox's own; looks for a display with it soon if none is connected.</summary>
+    public void AddDriver(IBrailleDisplayDriver driver)
+    {
+        lock (_lock)
+        {
+            if (_disposed || _drivers.Contains(driver))
+                return;
+            driver.KeyPressed += OnDriverKeyPressed;
+            driver.Disconnected += OnDriverDisconnected;
+            _drivers = [.. _drivers, driver];
+        }
+        if (_started)
+            ThreadPool.QueueUserWorkItem(_ => Scan());
+    }
+
+    /// <summary>Takes a driver away (its add-on was turned off), closing its display if it is the one in use.</summary>
+    public void RemoveDriver(IBrailleDisplayDriver driver)
+    {
+        bool wasCurrent;
+        lock (_lock)
+        {
+            if (!_drivers.Contains(driver))
+                return;
+            _drivers = _drivers.Where(d => !ReferenceEquals(d, driver)).ToList();
+            driver.KeyPressed -= OnDriverKeyPressed;
+            driver.Disconnected -= OnDriverDisconnected;
+            wasCurrent = ReferenceEquals(_current, driver);
+            if (wasCurrent)
+                _current = null;
+        }
+        if (wasCurrent)
+        {
+            driver.Disconnect();
+            DisplayChanged?.Invoke(this, EventArgs.Empty);
+            if (_started)
+                ThreadPool.QueueUserWorkItem(_ => Scan());
+        }
+    }
 
     /// <summary>Starts looking for a display (now, then every <see cref="ScanInterval"/> while none is connected).</summary>
     public void Start()

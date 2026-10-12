@@ -169,6 +169,8 @@
     { "modifiers": "Insert",      "vkCode": 71,  "mode": "Any",    "command": "DescribeObject" },
     { "modifiers": "Insert|Alt",  "vkCode": 71,  "mode": "Any",    "command": "AskAboutScreen" },
     { "modifiers": "Insert|Shift", "vkCode": 122, "mode": "Any",   "command": "SpeechHistoryPrevious" },
+    { "modifiers": "Insert",      "vkCode": 122, "mode": "Any",    "command": "ToggleRemoteControl" },
+    { "modifiers": "Insert|Ctrl", "vkCode": 122, "mode": "Any",    "command": "DisconnectRemote" },
     { "modifiers": "Insert|Shift", "vkCode": 123, "mode": "Any",   "command": "SpeechHistoryNext" },
     { "modifiers": "Insert|Shift", "vkCode": 83, "mode": "Any",    "command": "ToggleSleepMode" },
     { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },

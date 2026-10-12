@@ -98,7 +98,14 @@ public record InputHelpEvent(
     NavigationCommand? Command,
     KeyModifiers Modifiers,
     int VkCode,
-    bool IsKeypad
+    bool IsKeypad,
+    AddOnCommandRef? AddOnCommand = null
+) : ScreenReaderEvent(Timestamp);
+
+/// <summary>A key bound to an add-on's command (<see cref="AddOnKeyLayer"/>) was pressed.</summary>
+public record AddOnCommandEvent(
+    DateTimeOffset Timestamp,
+    AddOnCommandRef Command
 ) : ScreenReaderEvent(Timestamp);
 
 public record RawKeyEvent(
