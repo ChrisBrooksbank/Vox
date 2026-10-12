@@ -202,7 +202,7 @@ public static class NvdaGesturesImporter
         if (kind.StartsWith("kb(", StringComparison.Ordinal))
         {
             string gestureLayout = kind[3..].TrimEnd(')');
-            bool laptop = layout == KeyboardLayout.Laptop;
+            bool laptop = layout.IsLaptop();
             if (gestureLayout != (laptop ? "laptop" : "desktop"))
             {
                 reason = ImportSkipReason.Unsupported;

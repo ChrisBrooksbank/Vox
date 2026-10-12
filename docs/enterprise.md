@@ -14,7 +14,7 @@ The MSI installs per machine to `Program Files\Vox` (needed for UI access, [Sign
 | `DESKTOPSHORTCUT` | 1 | 0: no desktop shortcut |
 | `INSTALLSERVICE` | 1 | 0: no secure-screen service (Vox won't read sign-in, lock and UAC screens) |
 | `UPDATECHANNEL` | | `Stable`, `Beta` or `Off` |
-| `KEYBOARDLAYOUT` | | `Desktop` or `Laptop` |
+| `KEYBOARDLAYOUT` | | `Desktop`, `Laptop`, `Jaws` or `JawsLaptop` |
 | `MODIFIERKEY` | | `Insert` or `CapsLock` |
 | `VERBOSITY` | | `Beginner`, `Intermediate` or `Advanced` |
 | `SPEECHRATE` | | words per minute |

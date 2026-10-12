@@ -1,0 +1,27 @@
+{
+  "comment": "JAWS layout: the common JAWS keys, overlaid on the desktop layout (KeyboardLayout Jaws) or the laptop layout (JawsLaptop); a binding here replaces Vox's on the same key. \"bindings\" apply to both variants (keypad keys only on the desktop), \"laptopBindings\" only to the laptop variant. Keys JAWS and Vox already share are not repeated: Insert+Down Arrow (say all; laptop Insert+A), Insert+Up Arrow (say line), Insert+T (title), Insert+Tab (focus), Insert+B (window), Insert+F (font), Insert+F12 (time), Insert+F7 (links list), Ctrl+Insert+F and Insert+F3 (find, find next), Ctrl+Home and Ctrl+End (top and bottom), Insert+1 (keyboard help) and the quick navigation letters H, K (links), T, F, B, E, C, X, L, I, G, M, N, P, U, V. Commands whose Vox key a JAWS key takes move: Report navigator to Insert+Shift+O, review current word to Insert+Ctrl+Numpad 5, radio buttons to A, the link address on the laptop to Insert+Shift+K. VkCodes: Z 90, J 74, V 86, A 65, R 82, K 75, I 73, O 79, semicolon 186, F4-F6 115-117, Numpad 5 101.",
+  "bindings": [
+    { "modifiers": "Insert",       "vkCode": 90,  "mode": "Any",    "command": "ToggleMode" },
+    { "modifiers": "Insert",       "vkCode": 117, "mode": "Any",    "command": "ElementsList" },
+    { "modifiers": "Insert",       "vkCode": 116, "mode": "Any",    "command": "ElementsList" },
+    { "modifiers": "Insert|Ctrl",  "vkCode": 186, "mode": "Any",    "command": "ElementsList" },
+    { "modifiers": "Insert",       "vkCode": 74,  "mode": "Any",    "command": "OpenVoxMenu" },
+    { "modifiers": "Insert",       "vkCode": 86,  "mode": "Any",    "command": "OpenSettings" },
+    { "modifiers": "Insert",       "vkCode": 115, "mode": "Any",    "command": "Quit" },
+    { "modifiers": "None",         "vkCode": 101, "mode": "Any",    "command": "ReadCurrentChar" },
+    { "modifiers": "Insert",       "vkCode": 101, "mode": "Any",    "command": "ReadCurrentWord" },
+    { "modifiers": "Insert|Ctrl",  "vkCode": 101, "mode": "Any",    "command": "ReviewCurrentWord" },
+    { "modifiers": "Insert|Shift", "vkCode": 79,  "mode": "Any",    "command": "ReportNavigator" },
+    { "modifiers": "None",         "vkCode": 82,  "mode": "Browse", "command": "NextLandmark" },
+    { "modifiers": "Shift",        "vkCode": 82,  "mode": "Browse", "command": "PrevLandmark" },
+    { "modifiers": "None",         "vkCode": 186, "mode": "Browse", "command": "NextLandmark" },
+    { "modifiers": "Shift",        "vkCode": 186, "mode": "Browse", "command": "PrevLandmark" },
+    { "modifiers": "None",         "vkCode": 65,  "mode": "Browse", "command": "NextRadioButton" },
+    { "modifiers": "Shift",        "vkCode": 65,  "mode": "Browse", "command": "PrevRadioButton" }
+  ],
+  "laptopBindings": [
+    { "modifiers": "Insert",       "vkCode": 75,  "mode": "Any",    "command": "ReadCurrentWord" },
+    { "modifiers": "Insert|Shift", "vkCode": 75,  "mode": "Browse", "command": "SayLinkUrl" },
+    { "modifiers": "Insert",       "vkCode": 73,  "mode": "Any",    "command": "ReadCurrentLine" }
+  ]
+}

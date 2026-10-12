@@ -404,6 +404,16 @@ public sealed class FirstRunWizard
                 settings = settings with { KeyboardLayout = KeyboardLayout.Laptop, ModifierKey = ModifierKey.CapsLock };
                 break;
             }
+            if (key.VkCode == VirtualKeys.D3 || key.VkCode == VirtualKeys.NumPad3)
+            {
+                settings = settings with { KeyboardLayout = KeyboardLayout.Jaws };
+                break;
+            }
+            if (key.VkCode == VirtualKeys.D4 || key.VkCode == VirtualKeys.NumPad4)
+            {
+                settings = settings with { KeyboardLayout = KeyboardLayout.JawsLaptop, ModifierKey = ModifierKey.CapsLock };
+                break;
+            }
         }
 
         _settingsMonitor.UpdateSettings(settings);
@@ -441,7 +451,7 @@ public sealed class FirstRunWizard
     private async Task RunTutorialStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
         var modifier = InputHelp.ScreenReaderKeyName(settings.ModifierKey);
-        var sayAllKey = settings.KeyboardLayout == KeyboardLayout.Laptop ? "A" : VoxStrings.Get("Key.DownArrow");
+        var sayAllKey = settings.KeyboardLayout.IsLaptop() ? "A" : VoxStrings.Get("Key.DownArrow");
         var key = await PromptAsync(VoxStrings.Format("Wizard.TutorialPrompt", modifier, sayAllKey), cancellationToken);
 
         while (key.VkCode != VirtualKeys.Return)
@@ -584,8 +594,8 @@ public sealed class FirstRunWizard
 
     private static bool IsWizardKey(KeyEvent e) => e.VkCode is
         VirtualKeys.Return or VirtualKeys.Escape or VirtualKeys.Up or VirtualKeys.Down or
-        VirtualKeys.D1 or VirtualKeys.D2 or VirtualKeys.D3 or
-        VirtualKeys.NumPad1 or VirtualKeys.NumPad2 or VirtualKeys.NumPad3;
+        VirtualKeys.D1 or VirtualKeys.D2 or VirtualKeys.D3 or VirtualKeys.D4 or
+        VirtualKeys.NumPad1 or VirtualKeys.NumPad2 or VirtualKeys.NumPad3 or VirtualKeys.NumPad4;
 
     private async Task<KeyEvent> WaitForKeyDownAsync(CancellationToken cancellationToken)
     {
@@ -664,9 +674,11 @@ internal static class VirtualKeys
     public const int D1 = 0x31;
     public const int D2 = 0x32;
     public const int D3 = 0x33;
+    public const int D4 = 0x34;
     public const int D9 = 0x39;
     public const int NumPad1 = 0x61;
     public const int NumPad2 = 0x62;
     public const int NumPad3 = 0x63;
+    public const int NumPad4 = 0x64;
     public const int NumPad9 = 0x69;
 }

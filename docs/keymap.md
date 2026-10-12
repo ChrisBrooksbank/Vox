@@ -1,6 +1,6 @@
 # Your own keys
 
-Vox's keys come from `assets/config/default-keymap.json` (and `laptop-keymap.json` for the laptop layout). To change them, put your own bindings in `%APPDATA%\Vox\keymap.json`; they are layered on top when Vox starts or the keyboard layout changes.
+Vox's keys come from `assets/config/default-keymap.json` (and `laptop-keymap.json` for the laptop layout; the JAWS layouts add `jaws-keymap.json` on top, its `bindings` in both and its `laptopBindings` in the JAWS laptop layout only). To change them, put your own bindings in `%APPDATA%\Vox\keymap.json`; they are layered on top when Vox starts or the keyboard layout changes.
 
 ```json
 {

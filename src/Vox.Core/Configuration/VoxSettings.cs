@@ -70,7 +70,21 @@ public enum KeyboardLayout
     /// <summary>NVDA's desktop layout: review and object navigation on the numeric keypad.</summary>
     Desktop,
     /// <summary>NVDA's laptop layout: no numeric keypad, meant for CapsLock as the screen reader key.</summary>
-    Laptop
+    Laptop,
+    /// <summary>The desktop layout with the common JAWS keys on top (jaws-keymap.json).</summary>
+    Jaws,
+    /// <summary>The laptop layout with the common JAWS laptop keys on top.</summary>
+    JawsLaptop
+}
+
+/// <summary>What a <see cref="KeyboardLayout"/> is built from.</summary>
+public static class KeyboardLayouts
+{
+    /// <summary>Whether the layout leaves out the numeric keypad (the laptop layout and its JAWS variant).</summary>
+    public static bool IsLaptop(this KeyboardLayout layout) => layout is KeyboardLayout.Laptop or KeyboardLayout.JawsLaptop;
+
+    /// <summary>Whether the layout has the JAWS keys on top.</summary>
+    public static bool IsJaws(this KeyboardLayout layout) => layout is KeyboardLayout.Jaws or KeyboardLayout.JawsLaptop;
 }
 
 /// <summary>Whether other applications' audio is lowered while Vox speaks.</summary>

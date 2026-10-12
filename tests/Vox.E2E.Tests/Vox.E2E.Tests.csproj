@@ -32,7 +32,7 @@
   <!-- Vox resolves its keymaps, default settings and earcons relative to the running assembly -->
   <Target Name="CopyVoxAssets" AfterTargets="Build">
     <MakeDir Directories="$(OutputPath)assets\config" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-settings.json;$(MSBuildProjectDirectory)\..\..\assets\config\default-keymap.json;$(MSBuildProjectDirectory)\..\..\assets\config\laptop-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-settings.json;$(MSBuildProjectDirectory)\..\..\assets\config\default-keymap.json;$(MSBuildProjectDirectory)\..\..\assets\config\laptop-keymap.json;$(MSBuildProjectDirectory)\..\..\assets\config\jaws-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
     <MakeDir Directories="$(OutputPath)assets\sounds" />
     <Copy SourceFiles="@(SoundAssets)" DestinationFolder="$(OutputPath)assets\sounds\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>

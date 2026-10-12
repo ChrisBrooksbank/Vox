@@ -53,3 +53,29 @@ The JAWS key (Insert, or Caps Lock on a laptop) becomes Vox's screen reader key.
 assignments are brought over, never what a script does: scripts with no Vox command, other
 applications' `.jkm` files, braille and touch keys and keys with the Windows key are listed as
 skipped. A dictionary word with `*` at its start or end ("*ing") matches the rest of the word.
+
+## The JAWS keyboard layout
+
+Settings, Keyboard (or step 4 of the welcome wizard: 3 and 4) offers two more keyboard layouts,
+JAWS desktop (`Jaws`) and JAWS laptop (`JawsLaptop`): Vox's desktop or laptop layout with the
+common JAWS keys from `assets/config/jaws-keymap.json` on top, a JAWS key winning over Vox's on
+the same key. Keys JAWS and Vox already share (say all, say line, title, focus, window, font,
+time, links list, find, top and bottom of the page, keyboard help and most quick navigation
+letters) stay as they are; the layouts add:
+
+| Keys | Command |
+| --- | --- |
+| Insert+Z | Browse mode on or off (the virtual cursor) |
+| Insert+F6, Insert+F5, Insert+Ctrl+Semicolon | Elements list (headings, form fields, landmarks are tabs in it) |
+| Insert+J | Vox menu (the JAWS window) |
+| Insert+V | Settings (quick settings) |
+| Insert+F4 | Quit Vox (pressed twice) |
+| Numpad 5, Insert+Numpad 5 (desktop); Insert+Comma, Insert+K, Insert+I (laptop) | Say character, word; line on the laptop |
+| R, Semicolon (browse mode) | Next landmark (region); with Shift, previous |
+| A (browse mode) | Next radio button; with Shift, previous |
+
+Vox commands whose key a JAWS key takes move: report the navigator object to Insert+Shift+O,
+review the current word to Insert+Ctrl+Numpad 5 (desktop), and the link's address to
+Insert+Shift+K (laptop). Every command keeps a key. The keyboard reference, input help
+(Insert+1) and the practice lessons follow the layout in use; the user guide's
+`keyboard-jaws.html` lists every command's keys in the two JAWS layouts.

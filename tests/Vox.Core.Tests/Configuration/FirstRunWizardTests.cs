@@ -412,6 +412,30 @@ public class FirstRunWizardTests : IDisposable
         Assert.Equal(expected, monitor.CurrentValue.ModifierKey);
     }
 
+    [Theory]
+    [InlineData(0x33, KeyboardLayout.Jaws, ModifierKey.Insert)]          // 3: JAWS desktop
+    [InlineData(0x34, KeyboardLayout.JawsLaptop, ModifierKey.CapsLock)]  // 4: JAWS laptop, Caps Lock like JAWS's
+    public async Task RunAsync_SelectJawsLayout_SavesIt(int layoutKey, KeyboardLayout expectedLayout, ModifierKey expectedModifier)
+    {
+        var (wizard, hook, _, monitor, _) = CreateWizard(
+            new VoxSettings { FirstRunCompleted = false });
+
+        var wizardTask = wizard.RunAsync();
+
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Welcome
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Rate
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Voice
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Verbosity
+        await PressAsync(wizard, wizardTask, hook, layoutKey);
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Modifier: keep
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Tutorial
+
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(expectedLayout, monitor.CurrentValue.KeyboardLayout);
+        Assert.Equal(expectedModifier, monitor.CurrentValue.ModifierKey);
+    }
+
     // -------------------------------------------------------------------------
     // Cancellation
     // -------------------------------------------------------------------------

@@ -43,6 +43,7 @@
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-settings.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\default-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\laptop-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\jaws-keymap.json" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
     <!-- The key that signs Vox's add-on catalogue, when this build has one (docs/addons.md) -->
     <Copy Condition="Exists('$(MSBuildProjectDirectory)\..\..\assets\config\addon-key.pem')" SourceFiles="$(MSBuildProjectDirectory)\..\..\assets\config\addon-key.pem" DestinationFolder="$(OutputPath)assets\config" SkipUnchangedFiles="true" />
     <!-- The key that signs Vox's update feed, when this build has one (docs/updates.md); without it Vox never checks -->

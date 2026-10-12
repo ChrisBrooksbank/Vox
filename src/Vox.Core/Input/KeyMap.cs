@@ -31,6 +31,10 @@ internal sealed class KeyMapFile
 {
     [JsonPropertyName("bindings")]
     public List<KeyBindingEntry> Bindings { get; set; } = [];
+
+    /// <summary>The JAWS layout's bindings for its laptop variant only, applied after <see cref="Bindings"/>.</summary>
+    [JsonPropertyName("laptopBindings")]
+    public List<KeyBindingEntry>? LaptopBindings { get; set; }
 }
 
 /// <summary>
@@ -89,7 +93,7 @@ public sealed class KeyMap
 
     /// <summary>The built-in keymap for <paramref name="layout"/>.</summary>
     public static KeyMap LoadBuiltIn(KeyboardLayout layout, out IReadOnlyList<string> warnings) =>
-        Compose(ReadResource(DesktopFileName), layout == KeyboardLayout.Laptop ? ReadResource(LaptopFileName) : null, out warnings);
+        Build(LayoutEntries(layout, ReadResource), out warnings);
 
     /// <summary>File name of the desktop layout (the base of every layout).</summary>
     public const string DesktopFileName = "default-keymap.json";
@@ -98,11 +102,19 @@ public sealed class KeyMap
     public const string LaptopFileName = "laptop-keymap.json";
 
     /// <summary>
+    /// File name of the JAWS layout's bindings, overlaid on the desktop or laptop layout: its
+    /// "bindings" in both variants (keypad keys only on the desktop), then its "laptopBindings"
+    /// in the laptop variant.
+    /// </summary>
+    public const string JawsFileName = "jaws-keymap.json";
+
+    /// <summary>
     /// Loads <paramref name="layout"/> from the keymap files in <paramref name="configDirectory"/>,
     /// falling back to the built-in keymap of that layout (and reporting why through
     /// <paramref name="error"/>) if a file is missing or invalid. The desktop layout is
     /// <see cref="DesktopFileName"/>; the laptop layout is that without its keypad bindings, plus
-    /// <see cref="LaptopFileName"/>, whose bindings replace any on the same key.
+    /// <see cref="LaptopFileName"/>, whose bindings replace any on the same key; the JAWS layouts
+    /// are those with <see cref="JawsFileName"/> on top.
     /// </summary>
     public static KeyMap LoadLayout(string configDirectory, KeyboardLayout layout, out Exception? error,
         out IReadOnlyList<string> warnings) =>
@@ -132,24 +144,20 @@ public sealed class KeyMap
             }
         }
 
-        string desktop;
-        string? laptop;
+        error = null;
         try
         {
-            desktop = File.ReadAllText(Path.Combine(configDirectory, DesktopFileName));
-            laptop = layout == KeyboardLayout.Laptop ? File.ReadAllText(Path.Combine(configDirectory, LaptopFileName)) : null;
-            error = null;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            error = ex;
-            desktop = ReadResource(DesktopFileName);
-            laptop = layout == KeyboardLayout.Laptop ? ReadResource(LaptopFileName) : null;
-        }
-
-        try
-        {
-            var map = Compose(desktop, laptop, user, out var composeWarnings);
+            List<KeyBindingEntry> entries;
+            try
+            {
+                entries = LayoutEntries(layout, name => File.ReadAllText(Path.Combine(configDirectory, name)));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                error = ex;
+                entries = LayoutEntries(layout, ReadResource);
+            }
+            var map = Compose(entries, user, out var composeWarnings);
             warnings = [.. composeWarnings, .. userWarnings];
             return map;
         }
@@ -160,6 +168,26 @@ public sealed class KeyMap
             warnings = [.. builtInWarnings, .. userWarnings];
             return map;
         }
+    }
+
+    /// <summary>
+    /// The entries of <paramref name="layout"/> in the order they apply (a later one replaces an
+    /// earlier one on the same key), each keymap file read through <paramref name="read"/>.
+    /// </summary>
+    private static List<KeyBindingEntry> LayoutEntries(KeyboardLayout layout, Func<string, string> read)
+    {
+        bool laptop = layout.IsLaptop();
+        var entries = Parse(read(DesktopFileName)).Bindings.AsEnumerable();
+        if (laptop)
+            entries = entries.Where(e => !NumpadKeys.IsKeypadBindingCode(e.VkCode)).Concat(Parse(read(LaptopFileName)).Bindings);
+        if (layout.IsJaws())
+        {
+            var jaws = Parse(read(JawsFileName));
+            entries = laptop
+                ? entries.Concat(jaws.Bindings.Where(e => !NumpadKeys.IsKeypadBindingCode(e.VkCode))).Concat(jaws.LaptopBindings ?? [])
+                : entries.Concat(jaws.Bindings);
+        }
+        return entries.ToList();
     }
 
     /// <summary>The user's own key bindings, layered over the layout: %APPDATA%\Vox\keymap.json.</summary>
@@ -173,25 +201,21 @@ public sealed class KeyMap
 
     /// <summary>
     /// The bindings of <paramref name="layout"/> as its files list them (the laptop layout: the
-    /// desktop's off the keypad, then the laptop's), from <paramref name="configDirectory"/> or
-    /// else the built-in ones. Entries with unknown modifiers are left out.
+    /// desktop's off the keypad, then the laptop's; the JAWS layouts then the JAWS file's), from
+    /// <paramref name="configDirectory"/> or else the built-in ones. Entries with unknown modifiers
+    /// are left out.
     /// </summary>
     public static IReadOnlyList<KeyBinding> LayoutBindings(string configDirectory, KeyboardLayout layout)
     {
-        string desktop, laptop;
+        List<KeyBindingEntry> entries;
         try
         {
-            desktop = File.ReadAllText(Path.Combine(configDirectory, DesktopFileName));
-            laptop = File.ReadAllText(Path.Combine(configDirectory, LaptopFileName));
+            entries = LayoutEntries(layout, name => File.ReadAllText(Path.Combine(configDirectory, name)));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            desktop = ReadResource(DesktopFileName);
-            laptop = ReadResource(LaptopFileName);
+            entries = LayoutEntries(layout, ReadResource);
         }
-        var entries = Parse(desktop).Bindings.AsEnumerable();
-        if (layout == KeyboardLayout.Laptop)
-            entries = entries.Where(e => !NumpadKeys.IsKeypadBindingCode(e.VkCode)).Concat(Parse(laptop).Bindings);
         return ToBindings(entries);
     }
 
@@ -248,24 +272,13 @@ public sealed class KeyMap
     }
 
     /// <summary>
-    /// The desktop bindings, or for the laptop layout those off the keypad plus the laptop's own;
-    /// then the user's, which replace (or with "None" remove) any on the same key.
+    /// The layout's entries, then the user's, which replace (or with "None" remove) any on the same key.
     /// </summary>
-    private static KeyMap Compose(string desktopJson, string? laptopJson, out IReadOnlyList<string> warnings) =>
-        Compose(desktopJson, laptopJson, null, out warnings);
-
-    private static KeyMap Compose(string desktopJson, string? laptopJson, List<KeyBindingEntry>? user, out IReadOnlyList<string> warnings)
+    private static KeyMap Compose(List<KeyBindingEntry> layout, List<KeyBindingEntry>? user, out IReadOnlyList<string> warnings)
     {
-        var entries = Parse(desktopJson).Bindings.AsEnumerable();
-        if (laptopJson is not null)
-        {
-            entries = entries.Where(e => !NumpadKeys.IsKeypadBindingCode(e.VkCode))
-                .Concat(Parse(laptopJson).Bindings);
-        }
         if (user is null)
-            return Build(entries, out warnings);
+            return Build(layout, out warnings);
 
-        var layout = entries.ToList();
         var layoutMap = Build(layout, out _);
         var map = Build(layout.Concat(user), out var buildWarnings);
         warnings = [.. buildWarnings, .. UserConflicts(layoutMap, user, map)];
@@ -370,7 +383,8 @@ public sealed class KeyMap
             ?? throw new InvalidOperationException("Failed to deserialize keymap JSON.");
         // A hand-edited file may hold null entries or null values ("mode": null): read them as left out
         file.Bindings = (file.Bindings ?? []).Where(entry => entry is not null).ToList();
-        foreach (var entry in file.Bindings)
+        file.LaptopBindings = file.LaptopBindings?.Where(entry => entry is not null).ToList();
+        foreach (var entry in file.Bindings.Concat(file.LaptopBindings ?? []))
         {
             entry.Modifiers ??= "None";
             entry.Mode ??= "Any";

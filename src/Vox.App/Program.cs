@@ -8,7 +8,10 @@ using Vox.Core.Lifecycle;
 // Build step: write the user guide's keyboard reference from the keymaps beside Vox, and exit
 if (args is ["--keyboard-reference", var referencePath])
 {
-    File.WriteAllText(referencePath, KeyboardReference.Html(Path.Combine(AppContext.BaseDirectory, "assets", "config")));
+    var configDirectory = Path.Combine(AppContext.BaseDirectory, "assets", "config");
+    File.WriteAllText(referencePath, KeyboardReference.Html(configDirectory));
+    File.WriteAllText(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(referencePath))!, KeyboardReference.JawsFileName),
+        KeyboardReference.JawsHtml(configDirectory));
     return VoxExitCodes.Normal;
 }
 

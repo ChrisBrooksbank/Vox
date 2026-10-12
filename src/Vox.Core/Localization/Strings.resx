@@ -1511,6 +1511,20 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="KeyboardReference.NoKeys" xml:space="preserve">
     <value>(none; see the Vox menu)</value>
   </data>
+  <data name="KeyboardReference.JawsTitle" xml:space="preserve">
+    <value>Vox keyboard reference: JAWS layouts</value>
+  </data>
+  <data name="KeyboardReference.JawsIntro" xml:space="preserve">
+    <value>Every Vox command and its keys in the JAWS desktop and laptop layouts, which add the common JAWS keys to Vox's own. "Insert" is the Vox key: Caps Lock instead if you chose it.
+Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. &lt;a href="index.html"&gt;Back to the user guide&lt;/a&gt;.</value>
+    <comment>HTML: keep the links</comment>
+  </data>
+  <data name="KeyboardReference.JawsDesktop" xml:space="preserve">
+    <value>JAWS desktop</value>
+  </data>
+  <data name="KeyboardReference.JawsLaptop" xml:space="preserve">
+    <value>JAWS laptop</value>
+  </data>
   <data name="Wizard.Skipped" xml:space="preserve">
     <value>Setup skipped. You can run it again at any time with {0}.</value>
     <comment>{0}: the key that runs setup (Wizard.RerunKey)</comment>
@@ -1567,7 +1581,7 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
     <comment>{0}: an Enum.VerbosityLevel string</comment>
   </data>
   <data name="Wizard.LayoutPrompt" xml:space="preserve">
-    <value>Step 4 of 6: Keyboard layout. Press 1 for Desktop, which uses the numeric keypad, for keyboards that have one. Press 2 for Laptop, for keyboards without a numeric keypad; it uses Caps Lock as the modifier key. Press Enter to keep {0}.</value>
+    <value>Step 4 of 6: Keyboard layout. Press 1 for Desktop, which uses the numeric keypad, for keyboards that have one. Press 2 for Laptop, for keyboards without a numeric keypad; it uses Caps Lock as the modifier key. If you know JAWS, press 3 for JAWS desktop or 4 for JAWS laptop: the same, with the common JAWS keys. Press Enter to keep {0}.</value>
     <comment>{0}: an Enum.KeyboardLayout string</comment>
   </data>
   <data name="Wizard.LayoutSet" xml:space="preserve">
@@ -1603,6 +1617,12 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   </data>
   <data name="Enum.KeyboardLayout.Laptop" xml:space="preserve">
     <value>Laptop</value>
+  </data>
+  <data name="Enum.KeyboardLayout.Jaws" xml:space="preserve">
+    <value>JAWS desktop</value>
+  </data>
+  <data name="Enum.KeyboardLayout.JawsLaptop" xml:space="preserve">
+    <value>JAWS laptop</value>
   </data>
   <data name="Enum.ModifierKey.Insert" xml:space="preserve">
     <value>Insert</value>
@@ -2097,6 +2117,12 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   </data>
   <data name="Choice.KeyboardLayout.Laptop" xml:space="preserve">
     <value>Laptop</value>
+  </data>
+  <data name="Choice.KeyboardLayout.Jaws" xml:space="preserve">
+    <value>JAWS desktop</value>
+  </data>
+  <data name="Choice.KeyboardLayout.JawsLaptop" xml:space="preserve">
+    <value>JAWS laptop</value>
   </data>
   <data name="Choice.TypingEchoMode.None" xml:space="preserve">
     <value>Off</value>

@@ -290,7 +290,7 @@ public sealed class JawsSettingsImporter
         var file = ParseIni(text);
         report.AddMalformed(fileName, file.Malformed);
         var keys = new List<ImportedKey>();
-        string ownLayout = layout == KeyboardLayout.Laptop ? "laptop keys" : "desktop keys";
+        string ownLayout = layout.IsLaptop() ? "laptop keys" : "desktop keys";
         foreach (var section in file.Root.Sections.Values)
         {
             string name = section.Name.Trim().ToLowerInvariant();
