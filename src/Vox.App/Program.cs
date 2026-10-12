@@ -8,7 +8,10 @@ using Vox.Core.Lifecycle;
 // Build step: write the user guide's keyboard reference from the keymaps beside Vox, and exit
 if (args is ["--keyboard-reference", var referencePath])
 {
-    File.WriteAllText(referencePath, KeyboardReference.Html(Path.Combine(AppContext.BaseDirectory, "assets", "config")));
+    var configDirectory = Path.Combine(AppContext.BaseDirectory, "assets", "config");
+    File.WriteAllText(referencePath, KeyboardReference.Html(configDirectory));
+    File.WriteAllText(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(referencePath))!, KeyboardReference.JawsFileName),
+        KeyboardReference.JawsHtml(configDirectory));
     return VoxExitCodes.Normal;
 }
 
@@ -59,6 +62,10 @@ if (args is ["--remote-relay", .. var relayRest])
     await relay.RunAsync(relayStop.Token);
     return VoxExitCodes.Normal;
 }
+
+// Unattended import of NVDA's or JAWS's settings for deployment (docs/switching.md)
+if (args is ["--import-settings", var importSource, .. var importRest])
+    return SettingsImportTool.Run(importSource, importRest, policy);
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()

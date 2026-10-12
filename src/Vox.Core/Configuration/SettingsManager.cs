@@ -313,6 +313,12 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
                     SaveNormal(ProfileSettings.Merge(_normal, [forNormal]));
                 effective = Compose(_normal);
             }
+            else if (_profiles is { HasSiteSettings: true })
+            {
+                // The site's own settings stay the site's: only what changed is the normal configuration's
+                SaveNormal(ProfileSettings.Merge(_normal, [ProfileSettings.Diff(_current, settings)]));
+                effective = Compose(_normal);
+            }
             else
             {
                 SaveNormal(settings);

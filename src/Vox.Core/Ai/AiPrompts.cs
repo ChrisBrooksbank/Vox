@@ -11,6 +11,12 @@ public static class AiPrompts
     /// <summary>The most page text sent for a summary (characters); longer pages are cut, and the model is told.</summary>
     public const int MaxContextLength = 200_000;
 
+    /// <summary>The question asked of a picture for an automatic label (<see cref="Labels.AutomaticLabeler"/>).</summary>
+    public const string LabelQuestion =
+        "This is a button, link or picture on a web page that has no text label. Give it a short label, as a " +
+        "screen reader would read it: what it does if it is a control (\"Search\", \"Close\", \"Next slide\"), " +
+        "else what it shows. A few words only, no full sentence, no full stop.";
+
     /// <summary>The system instructions for <paramref name="request"/>.</summary>
     public static string Instructions(AiRequest request)
     {
@@ -34,6 +40,12 @@ public static class AiPrompts
                 common + " You are given the text of a web page. Summarise it in at most five short sentences: what " +
                 "the page is, its main points, and anything the reader is asked to do. Then, on a new line, say " +
                 "where the main content starts, quoting the first words of that part exactly.",
+            AiTask.AskPage =>
+                common + " You are given the text of a web page, one line per line, each starting with its number in " +
+                "brackets, such as [12]. Answer the person's question from the page's text only; if the page doesn't " +
+                "say, say so. Be brief, and don't mention the line numbers in your answer. When the answer is at one " +
+                "place on the page the person may want to go to (a heading, link, button, field or passage), end " +
+                "with one more line, exactly \"GO TO: [n]\", n being that line's number.",
             _ => common,
         };
     }
@@ -47,7 +59,7 @@ public static class AiPrompts
             var context = request.Context.Length > MaxContextLength
                 ? request.Context[..MaxContextLength] + "\n[The rest of the text was left out: it is too long.]"
                 : request.Context;
-            var heading = request.Task == AiTask.SummarizePage ? "Page text:" : "Controls and text of the window:";
+            var heading = request.Task is AiTask.SummarizePage or AiTask.AskPage ? "Page text:" : "Controls and text of the window:";
             parts.Add($"{heading}\n{context}");
         }
         if (!string.IsNullOrWhiteSpace(request.Question))

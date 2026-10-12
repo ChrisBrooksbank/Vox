@@ -6,12 +6,16 @@ namespace Vox.Core.AddOns;
 
 /// <summary>
 /// An add-on's manifest (addon.json, at the root of its package): who made it, its version, the
-/// add-on API range it works with, the assembly Vox loads, and the SHA-256 of every file in the
-/// package, so the package's signature (addon.sig, over addon.json's bytes) covers all of them.
+/// add-on API range it works with, the assembly Vox loads (or, for a label pack, its labels file),
+/// and the SHA-256 of every file in the package, so the package's signature (addon.sig, over
+/// addon.json's bytes) covers all of them.
 /// </summary>
 public sealed partial record AddOnManifest
 {
     public const string FileName = "addon.json";
+
+    /// <summary>The <see cref="Type"/> of a label pack: custom labels for web sites, no code (<see cref="Labels.LabelPack"/>).</summary>
+    public const string LabelPackType = "labels";
 
     /// <summary>Lower case letters, digits, '.', '-' and '_' ("com.example.notepadplusplus"); its folder's name.</summary>
     [JsonPropertyName("id")] public string Id { get; init; } = string.Empty;
@@ -24,7 +28,9 @@ public sealed partial record AddOnManifest
     [JsonPropertyName("minApiVersion")] public string MinApiVersion { get; init; } = string.Empty;
     /// <summary>The newest add-on API it was tested with; null: <see cref="MinApiVersion"/>. Only its major version matters.</summary>
     [JsonPropertyName("maxApiVersion")] public string? MaxApiVersion { get; init; }
-    /// <summary>The assembly with the <c>Vox.Sdk.IAddOn</c> class, at the package's root.</summary>
+    /// <summary>What the add-on is: null (or "code") for an assembly, <see cref="LabelPackType"/> for a label pack.</summary>
+    [JsonPropertyName("type")] public string? Type { get; init; }
+    /// <summary>The assembly with the <c>Vox.Sdk.IAddOn</c> class, at the package's root (none for a label pack).</summary>
     [JsonPropertyName("entryAssembly")] public string EntryAssembly { get; init; } = string.Empty;
     /// <summary>A page about the add-on (https), if any.</summary>
     [JsonPropertyName("url")] public string? Url { get; init; }
@@ -32,6 +38,8 @@ public sealed partial record AddOnManifest
     [JsonPropertyName("files")] public Dictionary<string, string> Files { get; init; } = new(StringComparer.Ordinal);
 
     [JsonIgnore] public Version ParsedVersion => System.Version.Parse(Version);
+    /// <summary>A label pack: its <see cref="Labels.LabelPack.FileName"/> holds custom labels; nothing is loaded as code.</summary>
+    [JsonIgnore] public bool IsLabelPack => string.Equals(Type, LabelPackType, StringComparison.Ordinal);
     [JsonIgnore] public Version MinApi => System.Version.Parse(MinApiVersion);
     [JsonIgnore] public Version MaxApi => System.Version.Parse(MaxApiVersion ?? MinApiVersion);
 
@@ -90,7 +98,14 @@ public sealed partial record AddOnManifest
                     problems.Add($"The file '{path}' has no SHA-256.");
             }
         }
-        if (string.IsNullOrEmpty(EntryAssembly) || EntryAssembly.Contains('/') || EntryAssembly.Contains('\\')
+        if (Type is not null && Type != "code" && !IsLabelPack)
+            problems.Add($"The type '{Type}' isn't known (\"code\" or \"{LabelPackType}\").");
+        else if (IsLabelPack)
+        {
+            if (Files is not null && !Files.ContainsKey(Labels.LabelPack.FileName))
+                problems.Add($"A label pack must have {Labels.LabelPack.FileName}.");
+        }
+        else if (string.IsNullOrEmpty(EntryAssembly) || EntryAssembly.Contains('/') || EntryAssembly.Contains('\\')
             || !EntryAssembly.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
             problems.Add($"entryAssembly '{EntryAssembly}' must be a .dll at the package's root.");
         else if (Files is not null && !Files.ContainsKey(EntryAssembly))

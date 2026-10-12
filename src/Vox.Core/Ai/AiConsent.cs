@@ -32,14 +32,24 @@ public enum AiRefusal
     PrivateApp,
     /// <summary>The <c>AiCloudConsent</c> setting is Never.</summary>
     CloudNever,
+    /// <summary>The web site is on the private list (<c>AiPrivateSites</c>).</summary>
+    PrivateSite,
+    /// <summary>
+    /// Asked in the background (automatic labels): only a describer on this computer, or the
+    /// cloud when <c>AiCloudConsent</c> is Allow; nobody is asked.
+    /// </summary>
+    NotInBackground,
     /// <summary>The person said no when asked.</summary>
     Declined,
     /// <summary>No describer is set up.</summary>
     NotSetUp,
 }
 
-/// <summary>What a request would send, for the rules that never send: is it a password field, and whose window is it.</summary>
-public sealed record AiTarget(bool IsPassword = false, string? ProcessName = null)
+/// <summary>
+/// What a request would send, for the rules that never send: is it a password field, whose window
+/// is it, and which web site's page (an address, or null when it is no page).
+/// </summary>
+public sealed record AiTarget(bool IsPassword = false, string? ProcessName = null, string? Site = null)
 {
     public static readonly AiTarget None = new();
 }
@@ -99,6 +109,8 @@ public sealed class AiConsent(RunPolicy policy, IOptionsMonitor<VoxSettings> set
         if (target.ProcessName is { Length: > 0 } process
             && current.AiPrivateApps.Any(app => SameApp(app, process)))
             return AiConsentResult.Refused(AiRefusal.PrivateApp);
+        if (IsPrivateSite(target.Site, current.AiPrivateSites))
+            return AiConsentResult.Refused(AiRefusal.PrivateSite);
 
         return current.AiCloudConsent switch
         {
@@ -106,6 +118,54 @@ public sealed class AiConsent(RunPolicy policy, IOptionsMonitor<VoxSettings> set
             AiConsentMode.Never => AiConsentResult.Refused(AiRefusal.CloudNever),
             _ => _agreed ? AiConsentResult.Allowed : AiConsentResult.Ask,
         };
+    }
+
+    /// <summary>
+    /// Whether <paramref name="target"/> may be sent to a cloud describer by something nobody asked
+    /// for (automatic labels): only when <c>AiCloudConsent</c> is Allow, never on a yes given for
+    /// the session, and with every rule of <see cref="ForCloud"/>. Never "ask".
+    /// </summary>
+    public AiConsentResult ForBackground(AiTarget target)
+    {
+        var cloud = ForCloud(target);
+        if (cloud.Decision == AiConsentDecision.Refused)
+            return cloud;
+        return settings.CurrentValue.AiCloudConsent == AiConsentMode.Allow
+            ? AiConsentResult.Allowed
+            : AiConsentResult.Refused(AiRefusal.NotInBackground);
+    }
+
+    /// <summary>
+    /// Whether the page at <paramref name="address"/> is on one of the <paramref name="sites"/>
+    /// ("example.com" covers "mail.example.com"; "https://example.com/x" is read as its host).
+    /// </summary>
+    public static bool IsPrivateSite(string? address, IEnumerable<string> sites)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+            return false;
+        var host = HostOf(address);
+        if (host is null)
+            return false;
+        foreach (var listed in sites)
+        {
+            var name = HostOf(listed);
+            if (name is { Length: > 0 }
+                && (host == name || host.EndsWith("." + name, StringComparison.Ordinal)))
+                return true;
+        }
+        return false;
+    }
+
+    private static string? HostOf(string text)
+    {
+        var trimmed = text.Trim();
+        if (trimmed.Length == 0)
+            return null;
+        // An address, or a bare host name ("example.com", "example.com/path")
+        if ((Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.Host))
+            || Uri.TryCreate("https://" + trimmed, UriKind.Absolute, out uri))
+            return uri.Host.TrimEnd('.').ToLowerInvariant();
+        return null;
     }
 
     /// <summary>What to say when nothing was described for <paramref name="reason"/>.</summary>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vox for NVDA users</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<main>
+<h1>Vox for NVDA users</h1>
+<p>Vox follows NVDA's conventions, so most of your keys and habits work unchanged. This page lists what is the same, what has another name and what is different. <a href="index.html">Back to the user guide</a>.</p>
+
+<h2 id="start">Starting out</h2>
+<ul>
+  <li><strong>Bring your settings.</strong> The first time Vox starts it offers to bring over your NVDA voice, rate, pitch, volume, punctuation, capitals, typing echo, keyboard layout, braille settings, your own input gestures and your speech dictionaries; later, choose Import settings from NVDA or JAWS in the Vox menu. Vox shows what it brought over and what it could not before anything changes.</li>
+  <li><strong>The NVDA key is the Vox key</strong>: <kbd>Insert</kbd> or <kbd>Caps Lock</kbd>, pressed twice quickly for its own function.</li>
+  <li><strong>The same layouts.</strong> Vox's desktop and laptop keyboard layouts are NVDA's; choose one in Settings, Keyboard (<kbd>Insert+Ctrl+G</kbd>). The <a href="keyboard.html">keyboard reference</a> lists every command.</li>
+</ul>
+
+<h2 id="concepts">Ideas you know</h2>
+<table>
+<caption>NVDA ideas and their Vox counterparts</caption>
+<tr><th scope="col">In NVDA</th><th scope="col">In Vox</th></tr>
+<tr><th scope="row">Browse mode and focus mode</th><td>The same, with the same keys and sounds; Vox also starts web applications such as mail and chat in focus mode.</td></tr>
+<tr><th scope="row">Review cursor and object navigation</th><td>The same, on the numeric keypad (or <kbd>Insert</kbd> with the arrow keys on a laptop); review modes are the navigator object, the focused text and the screen.</td></tr>
+<tr><th scope="row">NVDA menu</th><td>The Vox menu, <kbd>Insert+N</kbd>, also on the Vox icon in the notification area.</td></tr>
+<tr><th scope="row">Settings, configuration profiles, input gestures</th><td>The same: <kbd>Insert+Ctrl+G</kbd>, <kbd>Insert+Ctrl+P</kbd>, and Input gestures in the Vox menu.</td></tr>
+<tr><th scope="row">Speech dictionaries</th><td>Vox's pronunciation dictionaries: one for every voice and one per voice, imported from NVDA's.</td></tr>
+<tr><th scope="row">Add-ons and the add-on store</th><td>Vox has its own add-ons and store (Vox menu). NVDA add-ons do not run in Vox; most popular ones' features are built in (Office, Teams, Zoom, OCR, image descriptions, remote access).</td></tr>
+<tr><th scope="row">NVDA Remote</th><td>Remote access, in the Vox menu; <kbd>Insert+F11</kbd> switches control.</td></tr>
+<tr><th scope="row">Speech viewer, sleep mode, input help</th><td>The same: the speech viewer is in the Vox menu (<kbd>Insert+Shift+V</kbd>), sleep mode <kbd>Insert+Shift+S</kbd>, input help <kbd>Insert+1</kbd>.</td></tr>
+<tr><th scope="row">Speech mode (<kbd>NVDA+S</kbd>)</th><td><kbd>Insert+S</kbd> pauses all speech until pressed again; there are no beeps mode.</td></tr>
+<tr><th scope="row">Python console, developer scratchpad</th><td>None: Vox add-ons are .NET assemblies built against the Vox SDK.</td></tr>
+</table>
+
+<h2 id="keys">Keys</h2>
+<p>The NVDA desktop keys and their Vox desktop keys. Keys marked "browse mode" work on web pages. <kbd>Ctrl</kbd> stops speech in both.</p>
+<table>
+<caption>NVDA keys and Vox keys</caption>
+<tr><th scope="col">NVDA</th><th scope="col">What it does</th><th scope="col">Vox</th></tr>
+<tr data-command="ToggleMode"><th scope="row"><kbd>NVDA+Space</kbd></th><td>Browse mode or focus mode</td><td data-layout="Desktop"><kbd>Insert+Space</kbd></td></tr>
+<tr data-command="SayAll"><th scope="row"><kbd>NVDA+Down Arrow</kbd></th><td>Say all</td><td data-layout="Desktop"><kbd>Insert+Down Arrow</kbd></td></tr>
+<tr data-command="ReadCurrentLine"><th scope="row"><kbd>NVDA+Up Arrow</kbd></th><td>Current line</td><td data-layout="Desktop"><kbd>Insert+Up Arrow</kbd></td></tr>
+<tr data-command="ReadSelection"><th scope="row"><kbd>NVDA+Shift+Up Arrow</kbd></th><td>Selected text</td><td data-layout="Desktop"><kbd>Insert+Shift+Up Arrow</kbd></td></tr>
+<tr data-command="ElementsList"><th scope="row"><kbd>NVDA+F7</kbd></th><td>Elements list</td><td data-layout="Desktop"><kbd>Insert+F7</kbd></td></tr>
+<tr data-command="SayTitle"><th scope="row"><kbd>NVDA+T</kbd></th><td>Window title</td><td data-layout="Desktop"><kbd>Insert+T</kbd></td></tr>
+<tr data-command="SayFocus"><th scope="row"><kbd>NVDA+Tab</kbd></th><td>Focused object</td><td data-layout="Desktop"><kbd>Insert+Tab</kbd></td></tr>
+<tr data-command="ReadWindow"><th scope="row"><kbd>NVDA+B</kbd></th><td>Read the window</td><td data-layout="Desktop"><kbd>Insert+B</kbd></td></tr>
+<tr data-command="SayStatusBar"><th scope="row"><kbd>NVDA+End</kbd></th><td>Status bar</td><td data-layout="Desktop"><kbd>Insert+End</kbd></td></tr>
+<tr data-command="SayTime"><th scope="row"><kbd>NVDA+F12</kbd></th><td>Time</td><td data-layout="Desktop"><kbd>Insert+F12</kbd></td></tr>
+<tr data-command="ReadFormatting"><th scope="row"><kbd>NVDA+F</kbd></th><td>Formatting</td><td data-layout="Desktop"><kbd>Insert+F</kbd></td></tr>
+<tr data-command="SayLinkUrl"><th scope="row"><kbd>NVDA+K</kbd></th><td>Link destination</td><td data-layout="Desktop"><kbd>Insert+K</kbd></td></tr>
+<tr data-command="OpenVoxMenu"><th scope="row"><kbd>NVDA+N</kbd></th><td>NVDA menu (Vox menu)</td><td data-layout="Desktop"><kbd>Insert+N</kbd></td></tr>
+<tr data-command="OpenSettings"><th scope="row"><kbd>NVDA+Ctrl+G</kbd></th><td>Settings</td><td data-layout="Desktop"><kbd>Insert+Ctrl+G</kbd></td></tr>
+<tr data-command="OpenProfiles"><th scope="row"><kbd>NVDA+Ctrl+P</kbd></th><td>Configuration profiles</td><td data-layout="Desktop"><kbd>Insert+Ctrl+P</kbd></td></tr>
+<tr data-command="ToggleInputHelp"><th scope="row"><kbd>NVDA+1</kbd></th><td>Input help</td><td data-layout="Desktop"><kbd>Insert+1</kbd></td></tr>
+<tr data-command="ToggleSleepMode"><th scope="row"><kbd>NVDA+Shift+S</kbd></th><td>Sleep mode</td><td data-layout="Desktop"><kbd>Insert+Shift+S</kbd></td></tr>
+<tr data-command="SettingsRingNext"><th scope="row"><kbd>NVDA+Ctrl+Right Arrow</kbd></th><td>Synth settings ring</td><td data-layout="Desktop"><kbd>Insert+Ctrl+Right Arrow</kbd></td></tr>
+<tr data-command="Find"><th scope="row"><kbd>NVDA+Ctrl+F</kbd></th><td>Find</td><td data-layout="Desktop"><kbd>Insert+Ctrl+F</kbd></td></tr>
+<tr data-command="FindNext"><th scope="row"><kbd>NVDA+F3</kbd></th><td>Find next</td><td data-layout="Desktop"><kbd>Insert+F3</kbd></td></tr>
+<tr data-command="MarkStart"><th scope="row"><kbd>NVDA+F9</kbd>, <kbd>NVDA+F10</kbd></th><td>Mark and select or copy from the mark</td><td data-layout="Desktop"><kbd>Insert+F9</kbd></td></tr>
+<tr data-command="RecognizeNavigator"><th scope="row"><kbd>NVDA+R</kbd></th><td>Recognise text (OCR)</td><td data-layout="Desktop"><kbd>Insert+R</kbd></td></tr>
+<tr data-command="NavigatorParent"><th scope="row"><kbd>NVDA+Numpad 8</kbd></th><td>Object navigation (with Numpad 2, 4, 6)</td><td data-layout="Desktop"><kbd>Insert+Numpad 8</kbd></td></tr>
+<tr data-command="ReviewCurrentLine"><th scope="row"><kbd>Numpad 8</kbd></th><td>Review cursor (Numpad 1 to 9)</td><td data-layout="Desktop"><kbd>Numpad 8</kbd></td></tr>
+<tr data-command="DeveloperInfo"><th scope="row"><kbd>NVDA+F1</kbd></th><td>Developer information</td><td data-layout="Desktop"><kbd>Insert+F1</kbd></td></tr>
+<tr data-command="Quit"><th scope="row"><kbd>NVDA+Q</kbd></th><td>Quit (press twice in Vox)</td><td data-layout="Desktop"><kbd>Insert+Q</kbd></td></tr>
+<tr data-command="InteractWithMath"><th scope="row"><kbd>NVDA+Alt+M</kbd></th><td>Explore math</td><td data-layout="Desktop"><kbd>Insert+Alt+M</kbd></td></tr>
+</table>
+<p>Quick navigation letters in browse mode are NVDA's: <kbd>H</kbd>, <kbd>1</kbd> to <kbd>6</kbd>, <kbd>K</kbd>, <kbd>D</kbd>, <kbd>F</kbd>, <kbd>B</kbd>, <kbd>E</kbd>, <kbd>C</kbd>, <kbd>X</kbd>, <kbd>R</kbd>, <kbd>T</kbd>, <kbd>L</kbd>, <kbd>I</kbd>, <kbd>G</kbd>, <kbd>Q</kbd>, <kbd>M</kbd>, <kbd>S</kbd>, <kbd>O</kbd>, <kbd>N</kbd>, <kbd>P</kbd>, <kbd>U</kbd>, <kbd>V</kbd>, <kbd>J</kbd>, <kbd>Comma</kbd>, with <kbd>Shift</kbd> for the previous one; table navigation is <kbd>Ctrl+Alt+Arrow keys</kbd>.</p>
+
+<h2 id="more">What Vox adds</h2>
+<ul>
+  <li><kbd>Insert+Shift+D</kbd> presses the Reject or Close button of a cookie banner or dialog over the page.</li>
+  <li><kbd>Insert+Shift+I</kbd> summarises the page; <kbd>Insert+Ctrl+I</kbd> has AI summarise it, and <kbd>Insert+Ctrl+M</kbd> moves to the main content.</li>
+  <li><kbd>Insert+G</kbd> describes a picture; <kbd>Insert+Alt+G</kbd> asks a question about the window in front.</li>
+  <li>If you also know JAWS, the JAWS keyboard layouts add its keys: see <a href="jaws.html">Vox for JAWS users</a>.</li>
+</ul>
+</main>
+</body>
+</html>

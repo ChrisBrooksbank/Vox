@@ -21,6 +21,7 @@
   <li><a href="#forms">Forms and focus mode</a></li>
   <li><a href="#tables">Tables</a></li>
   <li><a href="#find">Find, select and copy</a></li>
+  <li><a href="#labels">Naming unlabelled buttons and graphics</a></li>
   <li><a href="#desktop">Applications and documents</a></li>
   <li><a href="#review">Reviewing the screen</a></li>
   <li><a href="#ocr">Reading text in pictures</a></li>
@@ -35,17 +36,23 @@
   <li><a href="#remote">Remote access</a></li>
   <li><a href="#trouble">When something goes wrong</a></li>
   <li><a href="keyboard.html">Keyboard reference</a></li>
+  <li><a href="nvda.html">Vox for NVDA users</a></li>
+  <li><a href="jaws.html">Vox for JAWS users</a></li>
 </ul>
 </nav>
 
 <h2 id="start">Getting started</h2>
 <p>When Vox starts for the first time, a short welcome wizard asks how fast to speak, how much detail you want and which key to use as the Vox key. Run it again at any time from the Vox menu (<kbd>Insert+N</kbd>), or with <kbd>Insert+Ctrl+S</kbd>.</p>
+<p>If you used NVDA or JAWS on this computer, the wizard offers to bring over your speech settings, your own keys and your dictionaries first, and shows a report of what it brought over and what it could not. Import settings from NVDA or JAWS in the Vox menu does the same at any time, showing the report before anything is changed. Vox keeps a copy of each of its own files it replaces.</p>
+<p>Trying Vox while NVDA or Narrator is running? Press 1 when the wizard offers trial mode (or start Vox with <code>--trial</code>): the other screen reader stops so the two don't talk at once, and <kbd>Insert+Ctrl+F4</kbd>, or Quit and go back to my screen reader in the Vox menu, starts it again and quits Vox.</p>
+<p>Coming from another screen reader? <a href="nvda.html">Vox for NVDA users</a> and <a href="jaws.html">Vox for JAWS users</a> map the keys and ideas you know to Vox's.</p>
 <p>To start Vox, press <kbd>Ctrl+Alt+V</kbd> (the installer sets up this key). To start it every time you sign in, check Start Vox when I sign in on the General page of the settings (<kbd>Insert+Ctrl+G</kbd>).</p>
 <p>To quit Vox, press <kbd>Insert+Q</kbd> twice, or choose Exit Vox in the Vox menu. <kbd>Ctrl</kbd> stops speech at any time.</p>
 
 <h2 id="vox-key">The Vox key</h2>
 <p>Most Vox commands are pressed with the Vox key held down: <kbd>Insert</kbd>, or <kbd>Caps Lock</kbd> if you chose it. Keys pressed with the Vox key are always Vox's: they never reach the application. To use the Vox key's own function (turn Caps Lock on, for example), press it twice quickly.</p>
 <p>On a laptop without a numeric keypad, choose the laptop keyboard layout in Settings, Keyboard.</p>
+<p>If you know JAWS, choose the JAWS desktop or JAWS laptop layout instead: they add the common JAWS keys, such as <kbd>Insert+Z</kbd> to turn browse mode off and on, <kbd>Insert+F6</kbd> and <kbd>Insert+F5</kbd> for the lists of headings and form fields, and <kbd>R</kbd> for the next region. The <a href="keyboard-jaws.html">JAWS keyboard reference</a> lists their keys.</p>
 
 <h2 id="help">Learning the keys</h2>
 <ul>
@@ -72,6 +79,9 @@
 <h2 id="find">Find, select and copy</h2>
 <p><kbd>Insert+Ctrl+F</kbd> finds text on the page; <kbd>Insert+F3</kbd> finds the next match. In browse mode, <kbd>Shift</kbd> with the arrow keys selects text and <kbd>Ctrl+C</kbd> copies it.</p>
 
+<h2 id="labels">Naming unlabelled buttons and graphics</h2>
+<p>Some pages have buttons, links or graphics with no name, or a file name such as "ic_send.svg". Move to one in browse mode (or Tab to it) and press <kbd>Insert+Ctrl+Tab</kbd>: type the name you want, and Vox uses it on that site from then on, in browse mode and when the element gets focus. Press <kbd>Insert+Ctrl+Tab</kbd> again to change it. <b>Custom labels</b> in the Vox menu lists your labels to change or delete them. Labels are kept on your computer, per site.</p>
+
 <h2 id="desktop">Applications and documents</h2>
 <p>In applications Vox says what has focus as you move with <kbd>Tab</kbd> and the arrow keys, reads text as you type and move the caret, and reports progress bars. <kbd>Insert+Tab</kbd> says what has focus, <kbd>Insert+T</kbd> the window title, <kbd>Insert+End</kbd> the status bar, <kbd>Insert+F12</kbd> the time.</p>
 
@@ -82,8 +92,8 @@
 <p><kbd>Insert+R</kbd> recognises the text of the navigator object (while browsing, the graphic at the cursor, or else the page as shown, such as a scanned PDF) and reads it; <kbd>Insert+Ctrl+R</kbd> recognises the whole window. The review keys then read the recognised text again, and <kbd>Insert+Ctrl+Enter</kbd> clicks the word the review cursor is on. Text is recognised on your computer by Windows; nothing is sent anywhere. Windows needs the optical character recognition feature of your language (Settings, Time and language, Language and region).</p>
 
 <h2 id="ai">Describing pictures and summarising pages (AI)</h2>
-<p><kbd>Insert+G</kbd> describes the navigator object (while browsing, the graphic at the cursor, or else the page as shown); <kbd>Insert+Alt+G</kbd> asks a question about the window in front, such as "how do I attach a file?". In browse mode <kbd>Insert+Ctrl+I</kbd> summarises the page and <kbd>Insert+Ctrl+M</kbd> moves to where its main content starts (press again for the next suggestion). Answers are spoken and can be read again with the review keys. Press the same key again, or <kbd>Ctrl</kbd>, to cancel.</p>
-<p>These need an AI model: one on your computer (Ollama), or Claude with your own API key (Vox menu, Set AI provider key). Nothing is sent off your computer without your say-so: Vox asks the first time in each session (AI settings page), and never sends password fields, the windows of password managers, or anything from the sign-in screens. Without AI, the page summary comes from the page's headings and text. When a page has a CAPTCHA, Vox says so and how to get past it accessibly (an audio challenge or accessibility option); it never solves CAPTCHAs.</p>
+<p><kbd>Insert+G</kbd> describes the navigator object (while browsing, the graphic at the cursor, or else the page as shown); <kbd>Insert+Alt+G</kbd> asks a question about the window in front, such as "how do I attach a file?". <kbd>Insert+Alt+Q</kbd> asks a question about the page you are on and offers to take you to what the answer names. In browse mode <kbd>Insert+Ctrl+I</kbd> summarises the page and <kbd>Insert+Ctrl+M</kbd> moves to where its main content starts (press again for the next suggestion). Answers are spoken and can be read again with the review keys. Press the same key again, or <kbd>Ctrl</kbd>, to cancel.</p>
+<p>These need an AI model: one on your computer (Ollama), or Claude with your own API key (Vox menu, Set AI provider key). Nothing is sent off your computer without your say-so: Vox asks the first time in each session (AI settings page), and never sends password fields, the windows of password managers, or anything from the sign-in screens. Without AI, the page summary comes from the page's headings and text. With a model set up, pictures and icon-only buttons with no name are described in the background after a page loads and remembered as labels for the site (AI settings page, Describe unlabelled graphics and buttons automatically); your own labels always win. When a page has a CAPTCHA, Vox says so and how to get past it accessibly (an audio challenge or accessibility option); it never solves CAPTCHAs.</p>
 
 <h2 id="speech">Speech</h2>
 <p><kbd>Ctrl</kbd> stops speech. <kbd>Insert+Ctrl+Left</kbd> and <kbd>Right</kbd> pick a voice setting (voice, rate, pitch, volume, punctuation, synthesizer), <kbd>Insert+Ctrl+Up</kbd> and <kbd>Down</kbd> change it. <kbd>Insert+S</kbd> pauses all speech until pressed again. <kbd>Insert+Shift+F11</kbd> says again what Vox said a moment ago.</p>
@@ -102,6 +112,8 @@
 <h2 id="profiles">Configuration profiles</h2>
 <p>A profile is a set of settings used instead of your usual ones in an application, during Say All, or when you choose it: a faster voice in Outlook, more punctuation in Visual Studio Code, a slower rate for reading whole pages. <kbd>Insert+Ctrl+P</kbd> (or the Vox menu) opens the profiles: make one, then tick <q>Use in</q> the application that was in front, or <q>Use during Say All</q>, or press Activate to use it now. While a profile is in use, the settings you change go into it, so your usual settings stay as they were. Vox says the profile's name when it starts being used (an option on the General page of Settings).</p>
 
+<p>A web site can have settings of its own: while browsing it, choose <b>Settings for this site</b> in the Vox menu to set the mode its pages start in, how much detail Vox gives, screen layout, and whether cookie banners are rejected as soon as they appear. Leave any of them as usual to keep your normal setting.</p>
+
 <h2 id="sleep">Sleep mode</h2>
 <p>Some applications speak for themselves. <kbd>Insert+Shift+S</kbd> puts Vox to sleep for the application in front: Vox says nothing and passes every key to it, until you press <kbd>Insert+Shift+S</kbd> there again.</p>
 
@@ -116,7 +128,7 @@
 <h2 id="trouble">When something goes wrong</h2>
 <ul>
   <li>If an application stops responding, Vox says so and keeps working everywhere else.</li>
-  <li>If Vox itself stops, it restarts on its own. If an add-on is the trouble, Restart with add-ons disabled (Vox menu) starts Vox without any.</li>
+  <li>If Vox itself stops, it restarts on its own; if it keeps stopping, Narrator (or the screen reader you were trying Vox in place of) is started instead, and Vox says why the next time it starts. If an add-on is the trouble, Restart with add-ons disabled (Vox menu) starts Vox without any.</li>
   <li><kbd>Insert+F1</kbd> says details of the focused control (useful in bug reports); the speech viewer in the Vox menu shows everything Vox says.</li>
   <li>Logs are in <code>%LOCALAPPDATA%\Vox\logs</code> (in a portable copy, the <code>userConfig\logs</code> folder beside Vox).</li>
 </ul>

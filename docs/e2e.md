@@ -86,6 +86,20 @@ after each cycle into a CSV (`VOX_SOAK_REPORT`, default `%TEMP%\soak.csv`). It f
 three warm-up cycles, the median of the last quarter of samples is more than half again the first
 quarter's and more than 100 MB (memory) or 500 (handles) higher, or when a cycle fails.
 
+## Performance run
+
+`PerformanceTests` (in `Performance/`, needs `VOX_E2E=1`) opens every corpus page in Edge, the
+10,000-row `large-table.html` included, and records the time from opening the page to Vox saying
+its title, then the latency from each key press (the page's scenario keys and some reading keys)
+to the speech engine receiving what Vox says. It writes the figures to `VOX_PERF_REPORT` (default
+`%TEMP%\vox-performance.json`) and fails when the keypress p95 or a page's time to first speech is
+worse than `Performance/baseline.json` beyond its margins (25% and 30 ms for keys, 25% and 300 ms
+for pages: a figure must exceed both). Figures without a baseline are only reported.
+`VOX_PERF_UPDATE_BASELINE=1` writes the run's figures into the baseline (commit it after a run on
+the reference machine). The Performance workflow (`.github/workflows/performance.yml`, weekly and
+by hand) runs it; the gate's own logic is unit-tested in every CI run. Method and figures:
+[Performance](performance.md).
+
 ## Interactive runner
 
 To watch and hear one scenario, run the test project as a program:

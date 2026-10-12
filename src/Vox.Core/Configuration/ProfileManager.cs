@@ -5,7 +5,8 @@ namespace Vox.Core.Configuration;
 /// <summary>
 /// Which configuration profiles are active, and the settings they make. Layered in this order,
 /// a later one winning: the normal configuration, the foreground application's profile, the
-/// triggered profile (Say All), the profile chosen by hand. Changes made while a profile is active
+/// settings of the web site being browsed (<see cref="SiteSettings"/>), the triggered profile
+/// (Say All), the profile chosen by hand. Changes made while a profile is active
 /// go to the top one (<see cref="EditTarget"/>), as in NVDA, except settings that only make sense
 /// once (<see cref="GlobalSettings"/>). Thread-safe: the foreground application is set on the
 /// pipeline thread, Say All from its reading task, the rest from the profiles dialog.
@@ -20,22 +21,25 @@ public sealed class ProfileManager
         // What may leave the computer is decided once, never by whichever profile is active
         nameof(VoxSettings.AiCloudProvider), nameof(VoxSettings.AiModel), nameof(VoxSettings.AiEndpoint),
         nameof(VoxSettings.AiCloudConsent), nameof(VoxSettings.AiPrivateApps), nameof(VoxSettings.AiLocalModel),
-        nameof(VoxSettings.AiLocalEndpoint),
+        nameof(VoxSettings.AiLocalEndpoint), nameof(VoxSettings.AiPrivateSites),
         // Where add-ons come from and how remote access connects are about the computer, not a profile
         nameof(VoxSettings.AddOnCatalogueUrl), nameof(VoxSettings.RemotePort), nameof(VoxSettings.RemoteUseRelay),
         nameof(VoxSettings.RemoteRelay), nameof(VoxSettings.RemoteAddress),
     };
 
     private readonly ProfileStore _store;
+    private readonly SiteSettingsStore? _sites;
+    private string? _site;
     private readonly object _lock = new();
     private List<ConfigurationProfile> _profiles;
     private string? _app;
     private bool _sayAll;
     private string? _manual;
 
-    public ProfileManager(ProfileStore store)
+    public ProfileManager(ProfileStore store, SiteSettingsStore? sites = null)
     {
         _store = store;
+        _sites = sites;
         _profiles = [.. store.LoadAll()];
     }
 
@@ -71,12 +75,75 @@ public sealed class ProfileManager
     /// <summary>The profile changes go to: the top active one; null for the normal configuration.</summary>
     public ConfigurationProfile? EditTarget => Active.LastOrDefault();
 
-    /// <summary>The settings <paramref name="normal"/> becomes with the active profiles laid over it.</summary>
-    public VoxSettings Apply(VoxSettings normal)
+    /// <summary>The settings <paramref name="normal"/> becomes with the active profiles (and the site's settings) laid over it.</summary>
+    /// <param name="includeSite">False: without the site's settings (what they are laid over).</param>
+    public VoxSettings Apply(VoxSettings normal, bool includeSite = true)
     {
-        var active = Active;
-        return active.Count == 0 ? normal : ProfileSettings.Merge(normal, active.Select(p => p.Settings));
+        List<JsonObject> layers;
+        lock (_lock)
+        {
+            var active = ActiveLocked();
+            layers = active.Select(p => p.Settings).ToList();
+            if (includeSite && SiteLayerLocked() is { Count: > 0 } site)
+            {
+                // Above the application's profile, below Say All's and the hand-chosen one
+                var app = _profiles.FirstOrDefault(p => p.IsForApp(_app));
+                bool appFirst = active.Count > 0 && ReferenceEquals(active[0], app)
+                    && !(_manual is not null && ReferenceEquals(Find(_manual), app));
+                layers.Insert(appFirst ? 1 : 0, site);
+            }
+        }
+        return layers.Count == 0 ? normal : ProfileSettings.Merge(normal, layers);
     }
+
+    /// <summary>Whether sites' settings can be kept here (not in secure mode).</summary>
+    public bool SitesAvailable => _sites?.IsAvailable == true;
+
+    /// <summary>The web site being browsed ("https://example.com"), or null.</summary>
+    public string? Site
+    {
+        get { lock (_lock) return _site; }
+    }
+
+    /// <summary>Whether the site being browsed has settings of its own, laid over the others now.</summary>
+    public bool HasSiteSettings
+    {
+        get { lock (_lock) return SiteLayerLocked() is { Count: > 0 }; }
+    }
+
+    /// <summary>
+    /// The web site being browsed changed (its "https://host", or null when no page is). The
+    /// settings change only when the two sites' settings differ.
+    /// </summary>
+    public void SetSite(string? site)
+    {
+        bool changed;
+        lock (_lock)
+        {
+            if (string.Equals(site, _site, StringComparison.OrdinalIgnoreCase))
+                return;
+            var before = SiteLayerLocked();
+            _site = site;
+            changed = !JsonNode.DeepEquals(before, SiteLayerLocked());
+        }
+        if (changed)
+            Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>A copy of <paramref name="site"/>'s settings (empty when it has none).</summary>
+    public JsonObject SiteSettingsFor(string site) => _sites?.For(site) ?? new JsonObject();
+
+    /// <summary>Keeps <paramref name="settings"/> for <paramref name="site"/> (none: its usual settings); false when they could not be saved.</summary>
+    public bool SetSiteSettings(string site, JsonObject settings)
+    {
+        if (_sites?.Set(site, settings) != true)
+            return false;
+        if (string.Equals(site, Site, StringComparison.OrdinalIgnoreCase))
+            Changed?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    private JsonObject? SiteLayerLocked() => _site is null || _sites is null ? null : _sites.For(_site) is { Count: > 0 } layer ? layer : null;
 
     /// <summary>The foreground application changed (its process name, or null).</summary>
     public void SetForegroundApp(string? processName) =>

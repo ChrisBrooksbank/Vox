@@ -1,5 +1,8 @@
 # Deploying Vox in an organization
 
+For the decision and the order of the steps (cost comparison, deployment checklist, conformance,
+support), start with [Vox for organisations](organisations.md).
+
 ## Silent install
 
 ```
@@ -14,7 +17,7 @@ The MSI installs per machine to `Program Files\Vox` (needed for UI access, [Sign
 | `DESKTOPSHORTCUT` | 1 | 0: no desktop shortcut |
 | `INSTALLSERVICE` | 1 | 0: no secure-screen service (Vox won't read sign-in, lock and UAC screens) |
 | `UPDATECHANNEL` | | `Stable`, `Beta` or `Off` |
-| `KEYBOARDLAYOUT` | | `Desktop` or `Laptop` |
+| `KEYBOARDLAYOUT` | | `Desktop`, `Laptop`, `Jaws` or `JawsLaptop` |
 | `MODIFIERKEY` | | `Insert` or `CapsLock` |
 | `VERBOSITY` | | `Beginner`, `Intermediate` or `Advanced` |
 | `SPEECHRATE` | | words per minute |
@@ -59,6 +62,13 @@ Any other setting can be enforced by a value named after it under
 `AddOnCatalogueUrl` = the address (or file path) of its signed `catalogue.json`, with its public
 key deployed as `assets\config\addon-key.pem` beside Vox ([Add-ons](addons.md)). An enforced setting can't be changed in the settings dialog, by a
 configuration profile, or by editing `settings.json`.
+
+## Bringing over NVDA and JAWS settings
+
+`Vox.App --import-settings nvda|jaws [--user-profile <path>]` brings a user's NVDA or JAWS speech
+settings, keys and dictionaries over into Vox without asking (for example in a sign-in script, or
+for each profile folder with `--user-profile`), keeping a copy of each Vox file it replaces and
+printing only what was imported. See [Bringing your settings from NVDA or JAWS](switching.md).
 
 ## Roaming and local data
 

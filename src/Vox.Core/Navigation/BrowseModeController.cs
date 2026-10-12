@@ -960,6 +960,8 @@ public sealed class BrowseModeController
         _documentFocusedRuntimeId = null;
         _focusOutsideDocument = false;
         _cursorFollowedFocusTo = null;
+        // The site's own settings apply from its page's first announcements
+        UpdateSite();
 
         if (document is null)
         {
@@ -1019,8 +1021,15 @@ public sealed class BrowseModeController
         AnnounceOverlay(document);
         AnnounceCaptcha(document);
 
-        // A web application (an editor, VS Code, Teams) is used through its own keys
-        if (fresh && DocumentModes.Initial(document, processName, _settings.CurrentValue.AppDefaultModes) == InteractionMode.Focus)
+        // A web application (an editor, VS Code, Teams) is used through its own keys; a site can
+        // say which mode its pages start in
+        var startMode = _settings.CurrentValue.WebStartMode switch
+        {
+            WebStartMode.Browse => InteractionMode.Browse,
+            WebStartMode.Focus => InteractionMode.Focus,
+            _ => DocumentModes.Initial(document, processName, _settings.CurrentValue.AppDefaultModes),
+        };
+        if (fresh && startMode == InteractionMode.Focus)
             _navigationManager.SwitchTo(InteractionMode.Focus, "web application", announce: false);
     }
 
@@ -1228,8 +1237,29 @@ public sealed class BrowseModeController
     // Helpers
     // -------------------------------------------------------------------------
 
+    /// <summary>
+    /// The web site whose page is being browsed ("https://example.com"; null when none, or the
+    /// focus is outside the page). Pipeline thread.
+    /// </summary>
+    public string? CurrentSite { get; private set; }
+
+    /// <summary>Raised when <see cref="CurrentSite"/> changes (for its site settings), on the pipeline thread.</summary>
+    public event EventHandler<string?>? SiteChanged;
+
+    private void UpdateSite()
+    {
+        var site = _quickNavHandler.CurrentDocument is { } document && !_focusOutsideDocument
+            ? Labels.CustomLabelSites.SiteOf(document.Root.Value)
+            : null;
+        if (string.Equals(site, CurrentSite, StringComparison.OrdinalIgnoreCase))
+            return;
+        CurrentSite = site;
+        SiteChanged?.Invoke(this, site);
+    }
+
     private void UpdateDocumentActive()
     {
+        UpdateSite();
         bool active = _quickNavHandler.CurrentDocument is not null && !_modalOpen && !_focusOutsideDocument;
         if (active == _documentActive)
             return;
@@ -1408,6 +1438,14 @@ public sealed class BrowseModeController
             return;
         }
         _announcedOverlay = id;
+        // Rejected straight away when asked for (a site setting, mostly); a dialog never is
+        if (_settings.CurrentValue.AutoDismissOverlays && overlay!.Kind == OverlayDetector.CookieBanner && overlay.DismissButton is { } button)
+        {
+            _speechQueue.Enqueue(new Utterance(
+                VoxStrings.Format("Overlay.AutoDismissed", OverlayDetector.KindName(overlay.Kind), button.Name.Trim()), SpeechPriority.Normal));
+            _ = ActivateAsync(button);
+            return;
+        }
         _speechQueue.Enqueue(new Utterance(OverlayDetector.Announcement(overlay!, DismissOverlayKey), SpeechPriority.Normal));
     }
 
@@ -1462,6 +1500,35 @@ public sealed class BrowseModeController
     /// <summary>The page being browsed (for a summary), or null when not browsing. Pipeline thread.</summary>
     public VBufferDocument? BrowsedDocument() =>
         _documentActive && _navigationManager.CurrentMode == InteractionMode.Browse ? _quickNavHandler.CurrentDocument : null;
+
+    /// <summary>The page that has focus (in browse or focus mode), or null when none does. Pipeline thread.</summary>
+    public VBufferDocument? ActiveDocument() => _documentActive ? _quickNavHandler.CurrentDocument : null;
+
+    /// <summary>
+    /// Moves the browse cursor to <paramref name="node"/> (of this or an earlier copy of the page,
+    /// found again by its runtime id), in browse mode, and reads its line; false, with the error cue, when the page
+    /// no longer has it. Pipeline thread.
+    /// </summary>
+    public bool GoToElement(VBufferNode node)
+    {
+        var document = _quickNavHandler.CurrentDocument;
+        var found = document?.FindByRuntimeId(node.UIARuntimeId);
+        if (document is null || _cursor is null || found is null || !document.InScope(found))
+        {
+            _audioCuePlayer.Play("error");
+            Speak(VoxStrings.Get("Browse.ElementGone"));
+            return false;
+        }
+        StopSayAll();
+        _selection.Clear();
+        // The browse cursor is where reading goes on from
+        if (_navigationManager.CurrentMode != InteractionMode.Browse)
+            _navigationManager.SwitchTo(InteractionMode.Browse, "moved to an answer", announce: false);
+        MoveTo(found);
+        ApplyCursorSettings(_cursor);
+        SpeakContent(LineText(_cursor.ReadCurrentLine()));
+        return true;
+    }
 
     /// <summary>
     /// The key a command is on in the keymap in use, as people read it ("Insert+R"), or null when
@@ -1778,6 +1845,31 @@ public sealed class BrowseModeController
     /// </summary>
     public string? ErrorMessageFor(IReadOnlyList<int[]> runtimeIds) =>
         _quickNavHandler.CurrentDocument?.ErrorMessageOf(runtimeIds);
+
+    /// <summary>
+    /// The custom label of the element with <paramref name="runtimeId"/> in the page's buffer
+    /// (for its focus announcement), or null. Pipeline thread.
+    /// </summary>
+    public string? CustomLabelFor(int[] runtimeId) =>
+        _quickNavHandler.CurrentDocument?.FindByRuntimeId(runtimeId) is { CustomLabel.Length: > 0 } node ? node.CustomLabel : null;
+
+    /// <summary>The address of the page in the buffer (its document element's value), or null. Pipeline thread.</summary>
+    public string? CurrentAddress => _quickNavHandler.CurrentDocument?.Root.Value;
+
+    /// <summary>
+    /// What a custom label would name: on a web page, the link, control or graphic at the browse
+    /// cursor, or in focus mode the focused one; null when there is none. Pipeline thread.
+    /// </summary>
+    public (VBufferNode Node, VBufferDocument Document)? LabelTarget()
+    {
+        var document = _quickNavHandler.CurrentDocument;
+        if (!_documentActive || document is null)
+            return null;
+        var node = _navigationManager.CurrentMode == InteractionMode.Browse
+            ? _cursor?.CurrentNode
+            : _lastFocusedRuntimeId is { } focused ? document.FindByRuntimeId(focused) : null;
+        return Labels.CustomLabelTargets.Around(node) is { } target ? (target, document) : null;
+    }
 
     /// <summary>
     /// The role of the link, button or heading whose text starts exactly at the cursor, if any

@@ -10,8 +10,9 @@ setting it has:
 
 1. the normal configuration (`settings.json`);
 2. the foreground application's profile (the first whose `apps` has its process name);
-3. the triggered profile: the one marked `sayAll`, while Say All is reading;
-4. the profile activated by hand (Insert+Ctrl+P, Activate).
+3. the settings of the web site being browsed, if it has any (Settings for this site, below);
+4. the triggered profile: the one marked `sayAll`, while Say All is reading;
+5. the profile activated by hand (Insert+Ctrl+P, Activate).
 
 A profile only holds the settings it changes; everything else comes from the layers below it.
 
@@ -25,6 +26,17 @@ logon, the update channel, whether profile switches are announced, and the first
 When the application or a hand choice changes the top profile, Vox says "Profile Excel" or
 "Normal configuration" (General page: *Say the configuration profile when it changes*). Say All
 switching its profile on and off is never announced, so it doesn't talk over the reading.
+
+## Settings for a web site
+
+While a page is browsed, **Settings for this site** in the Vox menu sets, for its site (scheme and
+host, such as `https://mail.example.com`), the mode its pages start in (browse mode, focus mode,
+or browse mode with focus mode for web applications), verbosity, screen layout, and whether a
+cookie banner's Reject or Close button is pressed as soon as one is found (a dialog's never is).
+Each can be left *as usual*. They apply while the site's page has focus, over the browser's
+profile, and are kept in `%APPDATA%\Vox\sites.json`. Changes made in the settings dialog while
+on such a site go to the profile or normal configuration as usual, never to the site's settings.
+None on secure screens.
 
 ## Files
 

@@ -40,7 +40,9 @@ public sealed class TutorialLessonsTests : IDisposable
     [Theory]
     [InlineData(KeyboardLayout.Desktop)]
     [InlineData(KeyboardLayout.Laptop)]
-    public void EveryLessonStepHasAKey_InBothLayouts(KeyboardLayout layout)
+    [InlineData(KeyboardLayout.Jaws)]
+    [InlineData(KeyboardLayout.JawsLaptop)]
+    public void EveryLessonStepHasAKey_InEveryLayout(KeyboardLayout layout)
     {
         var keys = new GestureEditor(KeyMap.LayoutBindings(ConfigDirectory, layout));
 

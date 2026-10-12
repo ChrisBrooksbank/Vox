@@ -10,6 +10,8 @@ namespace Vox.Core.Speech;
 /// </summary>
 public sealed class PronunciationRule : ITextRule, IDisposable
 {
+    /// <summary>The user's dictionaries folder in Vox's user data folder.</summary>
+    public const string FolderName = "dictionaries";
     public const string UserFileName = "user.json";
     public const string VoicesFolderName = "voices";
 

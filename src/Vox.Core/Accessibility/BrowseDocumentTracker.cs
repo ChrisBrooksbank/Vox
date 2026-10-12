@@ -20,7 +20,7 @@ namespace Vox.Core.Accessibility;
 ///
 /// All UIA work runs on <see cref="UIAThread"/>; the COM document element never leaves it.
 /// </summary>
-public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
+public sealed class BrowseDocumentTracker : IBrowseDocumentActions, Labels.IVisibleBoundsSource, IDisposable
 {
     private const int UIA_DocumentControlTypeId = 50030;
     private const int MaxAncestorDepth = 64;
@@ -36,6 +36,8 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     private readonly int _ownProcessId = Environment.ProcessId;
     private readonly IOptionsMonitor<VoxSettings>? _settings;
     private readonly IMouseInput? _mouse;
+
+    private readonly Labels.ICustomLabels? _labels;
 
     // STA-thread state
     private IUIAutomationElement? _documentRoot;
@@ -56,9 +58,11 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         IEventSink eventSink,
         ILogger<BrowseDocumentTracker> logger,
         IOptionsMonitor<VoxSettings>? settings = null,
-        IMouseInput? mouse = null)
+        IMouseInput? mouse = null,
+        Labels.ICustomLabels? labels = null)
     {
         _settings = settings;
+        _labels = labels;
         _mouse = mouse;
         _uiaThread = uiaThread;
         _uiaProvider = uiaProvider;
@@ -207,7 +211,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         {
             var cached = _uiaProvider.WithDocumentCaptureTimeout(() => document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
             var snapshot = UIAElementSnapshot.Capture(cached);
-            buffer = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true }.Build(snapshot);
+            buffer = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true, Labels = _labels }.Build(snapshot);
             RememberWholeCapture(snapshot);
         }
         catch (Exception ex)
@@ -555,6 +559,35 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
 
     private static readonly TimeSpan ScrollSettleTime = TimeSpan.FromMilliseconds(250);
 
+    /// <summary>
+    /// Where each of <paramref name="nodes"/> is on the screen as the page is shown now (nothing is
+    /// scrolled), or null for one that can't be found, is scrolled out of view or has no location.
+    /// For automatic labels, which must not move the page under the user.
+    /// </summary>
+    public async Task<IReadOnlyList<Ocr.ScreenRect?>> VisibleBoundsAsync(IReadOnlyList<VBufferNode> nodes)
+    {
+        return await _uiaThread.RunAsync<IReadOnlyList<Ocr.ScreenRect?>>(() =>
+        {
+            var bounds = new Ocr.ScreenRect?[nodes.Count];
+            var root = _documentRoot;
+            if (root is null) return bounds;
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                try
+                {
+                    var found = FindInDocument(root, nodes[i].UIARuntimeId, _uiaProvider.CacheRequest);
+                    if (found is not null && found.CurrentIsOffscreen == 0)
+                        bounds[i] = UIANavigatorObject.BoundsOf(found);
+                }
+                catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
+                {
+                    _logger.LogDebug(ex, "Could not find where an element is shown");
+                }
+            }
+            return bounds;
+        }, UIAThread.DocumentTimeout).ConfigureAwait(false); // searches the whole document
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -622,7 +655,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
                 return;
 
             var root = UIAElementSnapshot.Capture(document.BuildUpdatedCache(elementOnly));
-            var partial = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true }
+            var partial = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true, Labels = _labels }
                 .Build(UIAElementSnapshot.WithParts(root, parts));
             _logger.LogDebug("Partial buffer posted: {Nodes} nodes", partial.AllNodes.Count);
             _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, partial, focusedId, ProcessNameOf(document), IsPartial: true));

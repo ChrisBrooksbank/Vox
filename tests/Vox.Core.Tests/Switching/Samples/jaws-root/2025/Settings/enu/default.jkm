@@ -1,0 +1,14 @@
+; User key assignments
+[Common Keys]
+Insert+Control+T=SayTime
+JAWSKey+W=SayWindowTitle
+Insert+Windows+A=SayAll
+Insert+Shift+Q=MyCustomScript
+Insert+F99=SayLine
+[Desktop Keys]
+Insert+NumPad5=SayWord
+[Laptop Keys]
+CapsLock+K=SayWord
+[Braille Keys]
+LeftWiz=SayAll
+broken line without equals

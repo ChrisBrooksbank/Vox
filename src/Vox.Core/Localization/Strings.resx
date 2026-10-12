@@ -1511,6 +1511,20 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="KeyboardReference.NoKeys" xml:space="preserve">
     <value>(none; see the Vox menu)</value>
   </data>
+  <data name="KeyboardReference.JawsTitle" xml:space="preserve">
+    <value>Vox keyboard reference: JAWS layouts</value>
+  </data>
+  <data name="KeyboardReference.JawsIntro" xml:space="preserve">
+    <value>Every Vox command and its keys in the JAWS desktop and laptop layouts, which add the common JAWS keys to Vox's own. "Insert" is the Vox key: Caps Lock instead if you chose it.
+Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. &lt;a href="jaws.html"&gt;Vox for JAWS users&lt;/a&gt;; &lt;a href="index.html"&gt;back to the user guide&lt;/a&gt;.</value>
+    <comment>HTML: keep the links</comment>
+  </data>
+  <data name="KeyboardReference.JawsDesktop" xml:space="preserve">
+    <value>JAWS desktop</value>
+  </data>
+  <data name="KeyboardReference.JawsLaptop" xml:space="preserve">
+    <value>JAWS laptop</value>
+  </data>
   <data name="Wizard.Skipped" xml:space="preserve">
     <value>Setup skipped. You can run it again at any time with {0}.</value>
     <comment>{0}: the key that runs setup (Wizard.RerunKey)</comment>
@@ -1567,7 +1581,7 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
     <comment>{0}: an Enum.VerbosityLevel string</comment>
   </data>
   <data name="Wizard.LayoutPrompt" xml:space="preserve">
-    <value>Step 4 of 6: Keyboard layout. Press 1 for Desktop, which uses the numeric keypad, for keyboards that have one. Press 2 for Laptop, for keyboards without a numeric keypad; it uses Caps Lock as the modifier key. Press Enter to keep {0}.</value>
+    <value>Step 4 of 6: Keyboard layout. Press 1 for Desktop, which uses the numeric keypad, for keyboards that have one. Press 2 for Laptop, for keyboards without a numeric keypad; it uses Caps Lock as the modifier key. If you know JAWS, press 3 for JAWS desktop or 4 for JAWS laptop: the same, with the common JAWS keys. Press Enter to keep {0}.</value>
     <comment>{0}: an Enum.KeyboardLayout string</comment>
   </data>
   <data name="Wizard.LayoutSet" xml:space="preserve">
@@ -1603,6 +1617,12 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   </data>
   <data name="Enum.KeyboardLayout.Laptop" xml:space="preserve">
     <value>Laptop</value>
+  </data>
+  <data name="Enum.KeyboardLayout.Jaws" xml:space="preserve">
+    <value>JAWS desktop</value>
+  </data>
+  <data name="Enum.KeyboardLayout.JawsLaptop" xml:space="preserve">
+    <value>JAWS laptop</value>
   </data>
   <data name="Enum.ModifierKey.Insert" xml:space="preserve">
     <value>Insert</value>
@@ -1840,6 +1860,12 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Setting.ExpandAbbreviations" xml:space="preserve">
     <value>Say what &amp;abbreviations stand for</value>
   </data>
+  <data name="Setting.WebStartMode" xml:space="preserve">
+    <value>&amp;Pages start in</value>
+  </data>
+  <data name="Setting.AutoDismissOverlays" xml:space="preserve">
+    <value>&amp;Reject cookie banners automatically</value>
+  </data>
   <data name="Setting.SpellingErrors" xml:space="preserve">
     <value>&amp;Spelling errors</value>
   </data>
@@ -2044,6 +2070,15 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Choice.VerbosityLevel.Advanced" xml:space="preserve">
     <value>Advanced</value>
   </data>
+  <data name="Choice.WebStartMode.Automatic" xml:space="preserve">
+    <value>Browse mode, focus mode for web applications</value>
+  </data>
+  <data name="Choice.WebStartMode.Browse" xml:space="preserve">
+    <value>Browse mode</value>
+  </data>
+  <data name="Choice.WebStartMode.Focus" xml:space="preserve">
+    <value>Focus mode</value>
+  </data>
   <data name="Choice.ProgressReporting.Every10Percent" xml:space="preserve">
     <value>Say every 10 percent</value>
   </data>
@@ -2097,6 +2132,12 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   </data>
   <data name="Choice.KeyboardLayout.Laptop" xml:space="preserve">
     <value>Laptop</value>
+  </data>
+  <data name="Choice.KeyboardLayout.Jaws" xml:space="preserve">
+    <value>JAWS desktop</value>
+  </data>
+  <data name="Choice.KeyboardLayout.JawsLaptop" xml:space="preserve">
+    <value>JAWS laptop</value>
   </data>
   <data name="Choice.TypingEchoMode.None" xml:space="preserve">
     <value>Off</value>
@@ -2665,6 +2706,28 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Command.SummarizePage.Description" xml:space="preserve">
     <value>Summarizes the page being browsed (with AI when it is set up and allowed, else from the page's headings and text), says the summary and puts the review cursor in it.</value>
   </data>
+  <data name="Command.AskPage.Name" xml:space="preserve">
+    <value>Ask the page</value>
+  </data>
+  <data name="Command.AskPage.Description" xml:space="preserve">
+    <value>Asks a question about the page you are on, answered from its text with AI (on this computer first, the cloud with your consent); when the answer is at a place on the page, offers to move there.</value>
+  </data>
+  <data name="Ai.Consent.AskPage" xml:space="preserve">
+    <value>Send the text of this page and your question to {0}? It leaves this computer. You can change this in the AI settings.</value>
+  </data>
+  <data name="Ai.AskPage.Title" xml:space="preserve">
+    <value>Ask the page</value>
+  </data>
+  <data name="Ai.AskPage.Label" xml:space="preserve">
+    <value>&amp;Question about this page:</value>
+  </data>
+  <data name="Ai.AskPage.GoTitle" xml:space="preserve">
+    <value>Ask the page</value>
+  </data>
+  <data name="Ai.AskPage.Go" xml:space="preserve">
+    <value>Move to "{0}"?</value>
+    <comment>The line of the page the answer is at</comment>
+  </data>
   <data name="Command.MoveToMainContent.Name" xml:space="preserve">
     <value>Move to main content</value>
   </data>
@@ -2688,6 +2751,9 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   </data>
   <data name="Setting.AnnounceCaptchas" xml:space="preserve">
     <value>Announce CAPTCHAs and their accessible alternatives</value>
+  </data>
+  <data name="Setting.AutomaticLabels" xml:space="preserve">
+    <value>Describe unlabelled graphics and buttons automatically</value>
   </data>
   <data name="Choice.AiCloudProvider.None" xml:space="preserve">
     <value>None (this computer only)</value>
@@ -2769,6 +2835,12 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   </data>
   <data name="Ai.Refusal.CloudNever" xml:space="preserve">
     <value>Sending to the cloud is turned off in the AI settings</value>
+  </data>
+  <data name="Ai.Refusal.PrivateSite" xml:space="preserve">
+    <value>This web site is private: its pages are never sent</value>
+  </data>
+  <data name="Ai.Refusal.NotInBackground" xml:space="preserve">
+    <value>Only AI on this computer is used without asking; allow sending to the cloud in the AI settings for more</value>
   </data>
   <data name="Ai.Refusal.Declined" xml:space="preserve">
     <value>Nothing was sent</value>
@@ -3347,6 +3419,18 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Watchdog.CouldNotRestart" xml:space="preserve">
     <value>Vox has stopped working and could not be restarted.</value>
     <comment>Said by the watchdog when Vox keeps crashing.</comment>
+  </data>
+  <data name="Watchdog.StartingFallback" xml:space="preserve">
+    <value>Vox has stopped working and could not be restarted. Starting {0}.</value>
+    <comment>Said by the watchdog when Vox keeps crashing; {0} NVDA or Narrator</comment>
+  </data>
+  <data name="Watchdog.FallbackNotice" xml:space="preserve">
+    <value>Last time Vox stopped working {0} times in a row, so {1} was started in its place. If it happens again, try Restart with add-ons disabled in the Vox menu, and send the log to support.</value>
+    <comment>Said when Vox next starts; {0} the number of crashes, {1} NVDA or Narrator</comment>
+  </data>
+  <data name="Watchdog.FallbackFailedNotice" xml:space="preserve">
+    <value>Last time Vox stopped working {0} times in a row, and {1} could not be started in its place. If it happens again, try Restart with add-ons disabled in the Vox menu, and send the log to support.</value>
+    <comment>Said when Vox next starts; {0} the number of crashes, {1} NVDA or Narrator</comment>
   </data>
   <data name="CommandSearch.SearchFor" xml:space="preserve">
     <value>Search for</value>
@@ -4402,6 +4486,10 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
     <value>{0} has no reject or close button</value>
     <comment>{0}: the overlay kind (Cookie banner or Dialog)</comment>
   </data>
+  <data name="Overlay.AutoDismissed" xml:space="preserve">
+    <value>{0} rejected: pressed {1}</value>
+    <comment>{0}: the overlay kind ("Cookie banner"); {1}: the button's name</comment>
+  </data>
   <data name="Find.NotFound" xml:space="preserve">
     <value>{0} not found</value>
     <comment>{0}: the text searched for</comment>
@@ -4969,5 +5057,294 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Text.TerminalLines" xml:space="preserve">
     <value>{0} lines of output. {1}</value>
     <comment>{0}: the number of new lines; {1}: the last line</comment>
+  </data>
+  <data name="Command.ImportSettings.Name" xml:space="preserve">
+    <value>Import settings from NVDA or JAWS</value>
+  </data>
+  <data name="Command.ImportSettings.Description" xml:space="preserve">
+    <value>Brings over your speech settings, keys and dictionaries from NVDA or JAWS, after showing what will change.</value>
+  </data>
+  <data name="VoxMenu.ImportSettings" xml:space="preserve">
+    <value>I&amp;mport settings from NVDA or JAWS...</value>
+  </data>
+  <data name="Command.LabelElement.Name" xml:space="preserve">
+    <value>Label this element</value>
+  </data>
+  <data name="Command.LabelElement.Description" xml:space="preserve">
+    <value>Gives the link, button, field or graphic at the browse cursor (or the focused one) a name of your own, used every time you visit the site.</value>
+  </data>
+  <data name="Command.ManageLabels.Name" xml:space="preserve">
+    <value>Custom labels</value>
+  </data>
+  <data name="Command.ManageLabels.Description" xml:space="preserve">
+    <value>Opens your custom labels to change or delete them.</value>
+  </data>
+  <data name="VoxMenu.ManageLabels" xml:space="preserve">
+    <value>Custom la&amp;bels...</value>
+  </data>
+  <data name="Labels.NotHere" xml:space="preserve">
+    <value>Custom labels are not available here</value>
+  </data>
+  <data name="Labels.NothingToLabel" xml:space="preserve">
+    <value>Nothing to label here. Move to a link, button, field or graphic on a web page.</value>
+  </data>
+  <data name="Labels.NotOnThisPage" xml:space="preserve">
+    <value>Labels can only be given on web sites</value>
+  </data>
+  <data name="Labels.PromptTitle" xml:space="preserve">
+    <value>Custom label</value>
+  </data>
+  <data name="Labels.Prompt" xml:space="preserve">
+    <value>&amp;Label for {0}:</value>
+    <comment>{0}: the element's role and current name ("button img_23.png")</comment>
+  </data>
+  <data name="Labels.Saved" xml:space="preserve">
+    <value>Labelled {0}</value>
+    <comment>{0}: the new label</comment>
+  </data>
+  <data name="Labels.NotSaved" xml:space="preserve">
+    <value>The labels could not be saved</value>
+  </data>
+  <data name="Labels.Entry" xml:space="preserve">
+    <value>{0}, {1}</value>
+    <comment>{0}: the label; {1}: its site ("example.com/mail")</comment>
+  </data>
+  <data name="Labels.EntryDescribed" xml:space="preserve">
+    <value>{0} (described)</value>
+    <comment>A label that came from an automatic description</comment>
+  </data>
+  <data name="Labels.Dialog.Title" xml:space="preserve">
+    <value>Custom labels</value>
+  </data>
+  <data name="Labels.Dialog.List" xml:space="preserve">
+    <value>&amp;Labels:</value>
+  </data>
+  <data name="Labels.Dialog.Label" xml:space="preserve">
+    <value>&amp;Text:</value>
+  </data>
+  <data name="Labels.Dialog.Change" xml:space="preserve">
+    <value>&amp;Change label</value>
+  </data>
+  <data name="Labels.Dialog.Delete" xml:space="preserve">
+    <value>&amp;Delete</value>
+  </data>
+  <data name="Labels.Dialog.Export" xml:space="preserve">
+    <value>E&amp;xport site's labels...</value>
+  </data>
+  <data name="Labels.Dialog.Import" xml:space="preserve">
+    <value>&amp;Import label pack...</value>
+  </data>
+  <data name="Labels.Dialog.Filter" xml:space="preserve">
+    <value>Vox label packs (*{0})|*{0}|All files (*.*)|*.*</value>
+    <comment>A file dialog filter; {0}: the extension (".voxlabels")</comment>
+  </data>
+  <data name="Labels.Dialog.NothingToExport" xml:space="preserve">
+    <value>Select a label of the site to export first.</value>
+  </data>
+  <data name="Labels.Dialog.Exported" xml:space="preserve">
+    <value>{0} labels for {1} exported.</value>
+  </data>
+  <data name="Labels.Dialog.Imported" xml:space="preserve">
+    <value>{0} labels imported for {1}. Choose OK to keep them.</value>
+  </data>
+  <data name="Labels.Dialog.Failed" xml:space="preserve">
+    <value>That didn't work: {0}</value>
+  </data>
+  <data name="Store.Details.LabelPack" xml:space="preserve">
+    <value>Label pack: custom labels for web sites</value>
+  </data>
+  <data name="Command.OpenSiteSettings.Name" xml:space="preserve">
+    <value>Settings for this site</value>
+  </data>
+  <data name="Command.OpenSiteSettings.Description" xml:space="preserve">
+    <value>Sets, for the web site being browsed, the mode its pages start in, verbosity, screen layout and whether cookie banners are rejected automatically.</value>
+  </data>
+  <data name="VoxMenu.OpenSiteSettings" xml:space="preserve">
+    <value>Settings for t&amp;his site...</value>
+  </data>
+  <data name="SiteSettings.NotHere" xml:space="preserve">
+    <value>Site settings are not available here</value>
+  </data>
+  <data name="SiteSettings.NoSite" xml:space="preserve">
+    <value>Open a web page first: site settings are for the site being browsed</value>
+  </data>
+  <data name="SiteSettings.Title" xml:space="preserve">
+    <value>Settings for {0}</value>
+    <comment>{0}: the site ("example.com")</comment>
+  </data>
+  <data name="SiteSettings.Saved" xml:space="preserve">
+    <value>Settings for {0} saved</value>
+    <comment>{0}: the site ("example.com")</comment>
+  </data>
+  <data name="SiteSettings.Cleared" xml:space="preserve">
+    <value>{0} uses your usual settings</value>
+    <comment>{0}: the site ("example.com")</comment>
+  </data>
+  <data name="SiteSettings.NotSaved" xml:space="preserve">
+    <value>The site settings could not be saved</value>
+  </data>
+  <data name="SiteSettings.Usual" xml:space="preserve">
+    <value>As usual ({0})</value>
+    <comment>The choice that sets nothing for the site; {0}: what the usual setting is now</comment>
+  </data>
+  <data name="SiteSettings.On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="SiteSettings.Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Import.Source.Nvda" xml:space="preserve">
+    <value>NVDA</value>
+  </data>
+  <data name="Import.Source.Jaws" xml:space="preserve">
+    <value>JAWS</value>
+  </data>
+  <data name="Import.Title" xml:space="preserve">
+    <value>Settings from {0}</value>
+    <comment>{0}: NVDA or JAWS</comment>
+  </data>
+  <data name="Import.Preview" xml:space="preserve">
+    <value>Nothing has been changed yet. Choose Import to bring over what is listed here; Vox keeps a copy of every file of its own it replaces.</value>
+  </data>
+  <data name="Import.Applied" xml:space="preserve">
+    <value>These settings have been brought over.</value>
+  </data>
+  <data name="Import.Summary" xml:space="preserve">
+    <value>{0} brought over, {1} not brought over.</value>
+    <comment>{0}: number of items imported; {1}: number skipped</comment>
+  </data>
+  <data name="Import.ImportedHeading" xml:space="preserve">
+    <value>Brought over:</value>
+  </data>
+  <data name="Import.ImportedChanged" xml:space="preserve">
+    <value>{0}: {1}, was {2}. From {3}</value>
+    <comment>{0}: Vox setting or file; {1}: new value; {2}: Vox's value before; {3}: where it came from</comment>
+  </data>
+  <data name="Import.ImportedNew" xml:space="preserve">
+    <value>{0}: {1}. From {2}</value>
+    <comment>{0}: Vox setting or file; {1}: new value; {2}: where it came from</comment>
+  </data>
+  <data name="Import.ImportedSame" xml:space="preserve">
+    <value>{0}: {1}, as it was already. From {2}</value>
+    <comment>{0}: Vox setting or file; {1}: value; {2}: where it came from</comment>
+  </data>
+  <data name="Import.NoValue" xml:space="preserve">
+    <value>nothing</value>
+  </data>
+  <data name="Import.SkippedHeading" xml:space="preserve">
+    <value>Not brought over:</value>
+  </data>
+  <data name="Import.SkippedItem" xml:space="preserve">
+    <value>{0}: {1}. {2}</value>
+    <comment>{0}: where it is in the other screen reader's files; {1}: its value; {2}: why it was skipped</comment>
+  </data>
+  <data name="Import.SkippedItemDetail" xml:space="preserve">
+    <value>{0}: {1}. {2} ({3})</value>
+    <comment>{0}: where; {1}: value; {2}: why; {3}: more detail</comment>
+  </data>
+  <data name="Import.Reason.NoCounterpart" xml:space="preserve">
+    <value>Vox has nothing like it</value>
+  </data>
+  <data name="Import.Reason.NotInstalled" xml:space="preserve">
+    <value>not installed for Vox</value>
+  </data>
+  <data name="Import.Reason.InvalidValue" xml:space="preserve">
+    <value>not understood</value>
+  </data>
+  <data name="Import.Reason.Malformed" xml:space="preserve">
+    <value>the line could not be read</value>
+  </data>
+  <data name="Import.Reason.Unsupported" xml:space="preserve">
+    <value>Vox does this its own way</value>
+  </data>
+  <data name="Import.Reason.Unreadable" xml:space="preserve">
+    <value>could not be read</value>
+  </data>
+  <data name="Import.FilesHeading" xml:space="preserve">
+    <value>Files read:</value>
+  </data>
+  <data name="Import.BackupsHeading" xml:space="preserve">
+    <value>Copies of Vox's files kept before they were replaced:</value>
+  </data>
+  <data name="Import.NoneFound" xml:space="preserve">
+    <value>No NVDA or JAWS settings were found on this computer.</value>
+  </data>
+  <data name="Import.NotHere" xml:space="preserve">
+    <value>Settings can't be imported here.</value>
+  </data>
+  <data name="Import.Done" xml:space="preserve">
+    <value>Settings from {0} brought over: {1} changes.</value>
+    <comment>{0}: NVDA or JAWS; {1}: number of changes</comment>
+  </data>
+  <data name="Import.NothingChanged" xml:space="preserve">
+    <value>Vox already has everything it could bring over from {0}.</value>
+    <comment>{0}: NVDA or JAWS</comment>
+  </data>
+  <data name="Import.Failed" xml:space="preserve">
+    <value>The settings could not be imported: {0}</value>
+    <comment>{0}: the error</comment>
+  </data>
+  <data name="Import.Dialog.Title" xml:space="preserve">
+    <value>Import settings</value>
+  </data>
+  <data name="Import.Dialog.Source" xml:space="preserve">
+    <value>&amp;From:</value>
+  </data>
+  <data name="Import.Dialog.Report" xml:space="preserve">
+    <value>What will be brought over</value>
+  </data>
+  <data name="Import.Dialog.ReportApplied" xml:space="preserve">
+    <value>What was brought over</value>
+  </data>
+  <data name="Import.Dialog.Import" xml:space="preserve">
+    <value>&amp;Import</value>
+  </data>
+  <data name="Wizard.ImportOffer" xml:space="preserve">
+    <value>Settings from {0} were found on this computer. Press 1 to bring them over: speech, keys and dictionaries. Press Enter to set up Vox yourself.</value>
+    <comment>{0}: NVDA or JAWS</comment>
+  </data>
+  <data name="Wizard.ImportOfferBoth" xml:space="preserve">
+    <value>Settings from NVDA and JAWS were found on this computer. Press 1 to bring over NVDA's, or 2 for JAWS's: speech, keys and dictionaries. Press Enter to set up Vox yourself.</value>
+  </data>
+  <data name="Wizard.ImportDone" xml:space="preserve">
+    <value>{0} settings brought over, {1} not. The full report opens when setup ends. Now check the speech.</value>
+    <comment>{0}: number imported; {1}: number skipped</comment>
+  </data>
+  <data name="Wizard.ImportFailed" xml:space="preserve">
+    <value>Those settings could not be brought over. Continuing with setup.</value>
+  </data>
+  <data name="VoxMenu.ReturnToScreenReader" xml:space="preserve">
+    <value>&amp;Quit and go back to my screen reader</value>
+    <comment>Trial mode: quits Vox and starts NVDA or Narrator again</comment>
+  </data>
+  <data name="Command.ReturnToScreenReader.Name" xml:space="preserve">
+    <value>Go back to my screen reader</value>
+  </data>
+  <data name="Command.ReturnToScreenReader.Description" xml:space="preserve">
+    <value>In trial mode, quits Vox and starts the screen reader it stepped in for (NVDA, or Narrator) again.</value>
+  </data>
+  <data name="Trial.Began" xml:space="preserve">
+    <value>Trial mode. {0} has been stopped while you try Vox. {1} quits Vox and starts {0} again.</value>
+    <comment>{0} the other screen reader (NVDA, Narrator), {1} the return key</comment>
+  </data>
+  <data name="Trial.BeganAlone" xml:space="preserve">
+    <value>Trial mode. {0} quits Vox and starts {1}.</value>
+    <comment>{0} the return key, {1} Narrator</comment>
+  </data>
+  <data name="Trial.NotHere" xml:space="preserve">
+    <value>Trial mode is not available here</value>
+  </data>
+  <data name="Trial.NotInTrial" xml:space="preserve">
+    <value>Vox is not in trial mode</value>
+  </data>
+  <data name="Trial.Returning" xml:space="preserve">
+    <value>Going back to {0}</value>
+  </data>
+  <data name="Trial.CouldNotStart" xml:space="preserve">
+    <value>Could not start {0}; Vox keeps running</value>
+  </data>
+  <data name="Wizard.TrialOffer" xml:space="preserve">
+    <value>{0} is running. To try Vox safely, press 1: {0} stops now, and {1} quits Vox and starts {0} again. Or press Enter to go on with both running.</value>
+    <comment>{0} NVDA or Narrator, {1} the return key</comment>
   </data>
 </root>

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Vox.Core.Input;
 using Vox.Core.Localization;
 using Vox.Core.Speech;
+using Vox.Core.Switching;
 
 namespace Vox.Core.Configuration;
 
@@ -12,6 +13,7 @@ namespace Vox.Core.Configuration;
 ///
 /// Steps:
 ///   1. Welcome — Enter to continue, Escape to skip
+///      (then, when NVDA or JAWS settings are found: 1 or 2 brings them over, Enter goes on)
 ///   2. Speech rate — Up/Down to adjust live, speaks test sentence
 ///   3. Voice selection — Up/Down to cycle voices
 ///   4. Verbosity — 1=Beginner, 2=Intermediate, 3=Advanced
@@ -40,6 +42,11 @@ public sealed class FirstRunWizard
     private readonly Func<GestureEditor>? _lessonKeys;
     // While a practice lesson waits for a key, every key is the lesson's
     private volatile bool _swallowAllKeys;
+    // Offers to bring over NVDA's or JAWS's settings (none: not offered, e.g. on secure screens)
+    private readonly ISettingsImportOffer? _importOffer;
+    private ImportReport? _importReport;
+    // Offers trial mode when NVDA or Narrator is running (none: not offered)
+    private readonly Trial.ITrialOffer? _trialOffer;
 
     /// <summary>
     /// Whether the wizard is waiting for a key now. Keys pressed while it isn't are not its own
@@ -53,9 +60,13 @@ public sealed class FirstRunWizard
         SettingsMonitor settingsMonitor,
         IKeyboardHook keyboardHook,
         ILogger<FirstRunWizard> logger,
-        Func<GestureEditor>? lessonKeys = null)
+        Func<GestureEditor>? lessonKeys = null,
+        ISettingsImportOffer? importOffer = null,
+        Trial.ITrialOffer? trialOffer = null)
     {
+        _trialOffer = trialOffer;
         _lessonKeys = lessonKeys;
+        _importOffer = importOffer;
         _speechEngine = speechEngine;
         _settingsManager = settingsManager;
         _settingsMonitor = settingsMonitor;
@@ -95,6 +106,12 @@ public sealed class FirstRunWizard
 
             // From here on Escape leaves the wizard, keeping what was chosen so far
             _exitOnEscape = true;
+
+            // Another screen reader talking over the wizard: offer to stop it for a trial first
+            await RunTrialStepAsync(cancellationToken);
+
+            // NVDA's or JAWS's settings, when found: the steps after it start from them
+            settings = await RunImportStepAsync(settings, cancellationToken);
 
             // Step 2: Speech rate
             settings = await RunSpeechRateStepAsync(settings, cancellationToken);
@@ -147,6 +164,9 @@ public sealed class FirstRunWizard
             Volatile.Write(ref _keyWaiter, null);
             _keyboardHook.SuppressionFilter = previousFilter;
             _keyboardHook.KeyPressed -= OnKeyPressed;
+            // The import's full report, to read once the wizard has let go of the keyboard
+            if (Interlocked.Exchange(ref _importReport, null) is { } report)
+                _importOffer?.ShowReport(report);
         }
     }
 
@@ -207,6 +227,105 @@ public sealed class FirstRunWizard
             // 0: the engine doesn't say
             return max <= 0 ? DefaultMaxRateWpm : Math.Clamp(max, MinRateWpm, ISpeechEngine.MaxSupportedWpm);
         }
+    }
+
+    private async Task RunTrialStepAsync(CancellationToken cancellationToken)
+    {
+        if (_trialOffer is null)
+            return;
+        Trial.RunningScreenReader? running;
+        try
+        {
+            running = await Task.Run(_trialOffer.FindRunning, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Could not look for other screen readers");
+            return;
+        }
+        if (running is null)
+            return;
+
+        var key = await PromptAsync(VoxStrings.Format("Wizard.TrialOffer", Trial.TrialMode.Name(running.Kind), _trialOffer.ReturnKey),
+            cancellationToken);
+        while (true)
+        {
+            if (key.VkCode == VirtualKeys.Return)
+                return;
+            if (key.VkCode is VirtualKeys.D1 or VirtualKeys.NumPad1)
+                break;
+            key = await WaitForKeyDownAsync(cancellationToken);
+        }
+        string said;
+        try
+        {
+            said = await Task.Run(_trialOffer.Begin, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Trial mode could not begin");
+            said = VoxStrings.Get("Trial.NotHere");
+        }
+        await SpeakAsync(said, cancellationToken);
+    }
+
+    private async Task<VoxSettings> RunImportStepAsync(VoxSettings settings, CancellationToken cancellationToken)
+    {
+        if (_importOffer is null)
+            return settings;
+        IReadOnlyList<ImportSource> sources;
+        try
+        {
+            sources = _importOffer.FindSources();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not look for other screen readers' settings");
+            return settings;
+        }
+        if (sources.Count == 0)
+            return settings;
+
+        var prompt = sources.Count == 1
+            ? VoxStrings.Format("Wizard.ImportOffer", ImportReportText.SourceName(sources[0]))
+            : VoxStrings.Get("Wizard.ImportOfferBoth");
+        var key = await PromptAsync(prompt, cancellationToken);
+        ImportSource source;
+        while (true)
+        {
+            if (key.VkCode == VirtualKeys.Return)
+                return settings;
+            if (key.VkCode is VirtualKeys.D1 or VirtualKeys.NumPad1)
+            {
+                source = sources[0];
+                break;
+            }
+            if (key.VkCode is VirtualKeys.D2 or VirtualKeys.NumPad2 && sources.Count > 1)
+            {
+                source = sources[1];
+                break;
+            }
+            key = await WaitForKeyDownAsync(cancellationToken);
+        }
+
+        ImportReport? report;
+        try
+        {
+            report = await Task.Run(() => _importOffer.Import(source), cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Import of {Source} settings failed", source);
+            report = null;
+        }
+        if (report is null)
+        {
+            await SpeakAsync(VoxStrings.Get("Wizard.ImportFailed"), cancellationToken);
+            return settings;
+        }
+        _importReport = report;
+        await SpeakAsync(VoxStrings.Format("Wizard.ImportDone", report.Imported.Count, report.Skipped.Count), cancellationToken);
+        return _settingsMonitor.CurrentValue;
     }
 
     private async Task<VoxSettings> RunSpeechRateStepAsync(VoxSettings settings, CancellationToken cancellationToken)
@@ -332,6 +451,16 @@ public sealed class FirstRunWizard
                 settings = settings with { KeyboardLayout = KeyboardLayout.Laptop, ModifierKey = ModifierKey.CapsLock };
                 break;
             }
+            if (key.VkCode == VirtualKeys.D3 || key.VkCode == VirtualKeys.NumPad3)
+            {
+                settings = settings with { KeyboardLayout = KeyboardLayout.Jaws };
+                break;
+            }
+            if (key.VkCode == VirtualKeys.D4 || key.VkCode == VirtualKeys.NumPad4)
+            {
+                settings = settings with { KeyboardLayout = KeyboardLayout.JawsLaptop, ModifierKey = ModifierKey.CapsLock };
+                break;
+            }
         }
 
         _settingsMonitor.UpdateSettings(settings);
@@ -369,7 +498,7 @@ public sealed class FirstRunWizard
     private async Task RunTutorialStepAsync(VoxSettings settings, CancellationToken cancellationToken)
     {
         var modifier = InputHelp.ScreenReaderKeyName(settings.ModifierKey);
-        var sayAllKey = settings.KeyboardLayout == KeyboardLayout.Laptop ? "A" : VoxStrings.Get("Key.DownArrow");
+        var sayAllKey = settings.KeyboardLayout.IsLaptop() ? "A" : VoxStrings.Get("Key.DownArrow");
         var key = await PromptAsync(VoxStrings.Format("Wizard.TutorialPrompt", modifier, sayAllKey), cancellationToken);
 
         while (key.VkCode != VirtualKeys.Return)
@@ -512,8 +641,8 @@ public sealed class FirstRunWizard
 
     private static bool IsWizardKey(KeyEvent e) => e.VkCode is
         VirtualKeys.Return or VirtualKeys.Escape or VirtualKeys.Up or VirtualKeys.Down or
-        VirtualKeys.D1 or VirtualKeys.D2 or VirtualKeys.D3 or
-        VirtualKeys.NumPad1 or VirtualKeys.NumPad2 or VirtualKeys.NumPad3;
+        VirtualKeys.D1 or VirtualKeys.D2 or VirtualKeys.D3 or VirtualKeys.D4 or
+        VirtualKeys.NumPad1 or VirtualKeys.NumPad2 or VirtualKeys.NumPad3 or VirtualKeys.NumPad4;
 
     private async Task<KeyEvent> WaitForKeyDownAsync(CancellationToken cancellationToken)
     {
@@ -592,9 +721,11 @@ internal static class VirtualKeys
     public const int D1 = 0x31;
     public const int D2 = 0x32;
     public const int D3 = 0x33;
+    public const int D4 = 0x34;
     public const int D9 = 0x39;
     public const int NumPad1 = 0x61;
     public const int NumPad2 = 0x62;
     public const int NumPad3 = 0x63;
+    public const int NumPad4 = 0x64;
     public const int NumPad9 = 0x69;
 }

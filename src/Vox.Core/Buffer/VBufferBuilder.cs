@@ -1,3 +1,4 @@
+using Vox.Core.Labels;
 using System.Text;
 
 namespace Vox.Core.Buffer;
@@ -101,6 +102,9 @@ public interface IVBufferElement
     /// <summary>The UIA Value pattern's IsReadOnly (false for text fields and contenteditable), or null without one.</summary>
     bool? IsValueReadOnly => null;
 
+    /// <summary>UIA AutomationId (an HTML element's id), or empty: the stable part of a custom label's signature.</summary>
+    string AutomationId => string.Empty;
+
     /// <summary>Returns child elements in order.</summary>
     IReadOnlyList<IVBufferElement> GetChildren();
 }
@@ -149,9 +153,18 @@ public sealed class VBufferBuilder
     /// <returns>A fully-populated <see cref="VBufferDocument"/>.</returns>
     public VBufferDocument Build(IVBufferElement root)
     {
-        var (allNodes, flatText) = BuildSubtree(root, screenLayout: ScreenLayout);
-        return new VBufferDocument(flatText, allNodes[0], allNodes) { ScreenLayout = ScreenLayout };
+        // The document element's value is the page's address
+        var labels = Labels?.LabelsFor(root.Value);
+        var (allNodes, flatText) = BuildSubtree(root, screenLayout: ScreenLayout,
+            labels: labels is null ? null : new LabelScope(labels, [], string.Empty));
+        return new VBufferDocument(flatText, allNodes[0], allNodes) { ScreenLayout = ScreenLayout, Labels = labels };
     }
+
+    /// <summary>
+    /// The user's custom labels: an element with one is named by it, with nothing of its own
+    /// content in the buffer. Null: none.
+    /// </summary>
+    public ICustomLabels? Labels { get; init; }
 
     /// <summary>
     /// Screen layout (the default): links and other inline text stay on their paragraph's line,
@@ -165,7 +178,9 @@ public sealed class VBufferBuilder
     /// Shared with <see cref="IncrementalUpdater"/>.
     /// </summary>
     /// <param name="inheritedLanguage">The language the subtree's root inherits (its old parent's, when splicing).</param>
-    internal static (List<VBufferNode> Nodes, string FlatText) BuildSubtree(IVBufferElement root, string inheritedLanguage = "", bool screenLayout = true)
+    /// <param name="labels">The custom labels to apply, with the subtree's surroundings; null for none.</param>
+    internal static (List<VBufferNode> Nodes, string FlatText) BuildSubtree(IVBufferElement root, string inheritedLanguage = "", bool screenLayout = true,
+        LabelScope? labels = null)
     {
         var allNodes = new List<VBufferNode>(64);
         var flatText = new StringBuilder(256);
@@ -205,7 +220,11 @@ public sealed class VBufferBuilder
             try
             {
                 children = frame.Element.GetChildren();
-                node = CreateNode(frame.Element, frame.Parent, nextId, inheritedLanguage);
+                // A labelled element is named by its label, which stands for its whole content
+                var label = labels?.LabelFor(frame.Element, frame.Parent, flatText);
+                if (label is not null)
+                    children = [];
+                node = CreateNode(frame.Element, frame.Parent, nextId, inheritedLanguage, label);
             }
             catch (Exception) when (frame.Parent is not null)
             {
@@ -305,7 +324,7 @@ public sealed class VBufferBuilder
         VBufferNode? Node,
         int TextStart);
 
-    private static VBufferNode CreateNode(IVBufferElement element, VBufferNode? parent, int id, string inheritedLanguage = "")
+    private static VBufferNode CreateNode(IVBufferElement element, VBufferNode? parent, int id, string inheritedLanguage = "", string? customLabel = null)
     {
         var ariaRole = element.AriaRole;
         var ariaProps = element.AriaProperties;
@@ -339,7 +358,9 @@ public sealed class VBufferBuilder
         {
             Id = id,
             UIARuntimeId = element.RuntimeId,
-            Name = element.Name,
+            Name = customLabel ?? element.Name,
+            CustomLabel = customLabel ?? string.Empty,
+            AutomationId = element.AutomationId ?? string.Empty,
             ControlType = element.ControlType,
             AriaRole = ariaRole,
             HeadingLevel = headingLevel,
@@ -423,11 +444,11 @@ public sealed class VBufferBuilder
     {
         // Only leaf-like elements contribute text (not container elements like Document/Group/Pane)
         // We include text from: Text, Heading (via ariaRole), Link, Button, Edit, Image (alt text), etc.
-        if (IsContainerControlType(element.ControlType)) return;
+        if (IsContainerControlType(element.ControlType) && node.CustomLabel.Length == 0) return;
 
         // A form field reads as its label followed by its value ("Search hello"): Chromium's
-        // inputs have no text child holding what was typed or selected
-        var text = element.Name ?? string.Empty;
+        // inputs have no text child holding what was typed or selected. A custom label is the name.
+        var text = node.Name ?? string.Empty;
         var value = FormControls.BufferValue(node);
         if (value is not null)
             text = string.IsNullOrEmpty(text) ? value : $"{text} {value}";

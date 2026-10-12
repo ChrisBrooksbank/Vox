@@ -12,8 +12,14 @@ public sealed class VBufferNode
     /// <summary>UIA runtime ID for matching back to live UIA elements.</summary>
     public int[] UIARuntimeId { get; init; } = [];
 
-    /// <summary>Accessible name of the element.</summary>
+    /// <summary>Accessible name of the element (its custom label, when it has one).</summary>
     public string Name { get; init; } = string.Empty;
+
+    /// <summary>The user's custom label for it (see <see cref="Labels.ElementSignature"/>), or empty.</summary>
+    public string CustomLabel { get; init; } = string.Empty;
+
+    /// <summary>UIA AutomationId (an HTML element's id), or empty.</summary>
+    public string AutomationId { get; init; } = string.Empty;
 
     /// <summary>UIA ControlType name (e.g. "Heading", "Link", "Edit", "Document").</summary>
     public string ControlType { get; init; } = string.Empty;
@@ -168,6 +174,8 @@ public sealed class VBufferNode
         Id = id,
         UIARuntimeId = UIARuntimeId,
         Name = Name,
+        CustomLabel = CustomLabel,
+        AutomationId = AutomationId,
         ControlType = ControlType,
         AriaRole = AriaRole,
         HeadingLevel = HeadingLevel,

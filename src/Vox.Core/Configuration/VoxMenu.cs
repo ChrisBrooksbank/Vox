@@ -17,12 +17,15 @@ public static class VoxMenu
         Item(NavigationCommand.OpenSettings),
         Item(NavigationCommand.OpenInputGestures),
         Item(NavigationCommand.OpenProfiles),
+        Item(NavigationCommand.OpenSiteSettings),
         Item(NavigationCommand.OpenCommandSearch),
         Item(NavigationCommand.ToggleSpeechViewer),
         Item(NavigationCommand.TogglePauseSpeech),
         Item(NavigationCommand.OpenUserGuide),
         Item(NavigationCommand.RunTutorial),
         Item(NavigationCommand.CreatePortableCopy),
+        Item(NavigationCommand.ImportSettings),
+        Item(NavigationCommand.ManageLabels),
         Item(NavigationCommand.SetAiKey),
         Item(NavigationCommand.ManageAddOns),
         Item(NavigationCommand.GetAddOns),
@@ -30,8 +33,12 @@ public static class VoxMenu
         Item(NavigationCommand.CheckForUpdates),
         Item(NavigationCommand.RunSetup),
         Item(NavigationCommand.RestartWithoutAddOns),
+        .. (TrialActive ? [Item(NavigationCommand.ReturnToScreenReader)] : Array.Empty<VoxMenuItem>()),
         Item(NavigationCommand.ExitVox),
     ];
+
+    /// <summary>A trial is in progress: the menu offers to go back to the other screen reader (set by the host).</summary>
+    public static bool TrialActive { get; set; }
 
     /// <summary>Vox started in safe mode: the restart entry turns add-ons back on (set at startup).</summary>
     public static bool SafeMode { get; set; }

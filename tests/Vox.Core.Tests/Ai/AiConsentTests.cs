@@ -99,4 +99,35 @@ public class AiConsentTests
         foreach (var failure in Enum.GetValues<AiFailure>())
             Assert.False(string.IsNullOrWhiteSpace(AiAssistant.Explain(new AiAnswer(null, "Claude", Failure: failure))), failure.ToString());
     }
+
+    [Theory]
+    [InlineData("https://bank.example.com/login", true)]
+    [InlineData("https://www.bank.example.com/", true)]
+    [InlineData("https://notbank.example.com/", false)]
+    [InlineData("https://example.org/", false)]
+    [InlineData(null, false)]
+    public void PrivateSites_AreNeverSent(string? address, bool isPrivate)
+    {
+        _settings = new VoxSettings { AiCloudConsent = AiConsentMode.Allow, AiPrivateSites = ["bank.example.com", "https://intranet.example.net"] };
+
+        var result = Consent().ForCloud(new AiTarget(Site: address));
+
+        Assert.Equal(isPrivate ? AiConsentResult.Refused(AiRefusal.PrivateSite) : AiConsentResult.Allowed, result);
+        Assert.True(AiConsent.IsPrivateSite("http://intranet.example.net/wiki", _settings.AiPrivateSites));
+    }
+
+    [Fact]
+    public void Background_UsesTheCloud_OnlyWhenAllowed_NeverOnASessionYes()
+    {
+        var consent = Consent();
+        consent.AgreeForSession();
+        Assert.Equal(AiConsentResult.Refused(AiRefusal.NotInBackground), consent.ForBackground(AiTarget.None));
+
+        _settings = new VoxSettings { AiCloudConsent = AiConsentMode.Allow };
+        Assert.Equal(AiConsentResult.Allowed, Consent().ForBackground(AiTarget.None));
+        Assert.Equal(AiConsentResult.Refused(AiRefusal.PasswordField), Consent().ForBackground(new AiTarget(IsPassword: true)));
+
+        _settings = new VoxSettings { AiCloudConsent = AiConsentMode.Never };
+        Assert.Equal(AiConsentResult.Refused(AiRefusal.CloudNever), Consent().ForBackground(AiTarget.None));
+    }
 }

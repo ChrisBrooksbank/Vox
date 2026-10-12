@@ -304,5 +304,27 @@ public enum NavigationCommand
     /// <summary>While connected to another computer: switches between sending keys to it and using this one.</summary>
     ToggleRemoteControl,
     /// <summary>Ends the remote session.</summary>
-    DisconnectRemote
+    DisconnectRemote,
+
+    // Switching from other screen readers
+    /// <summary>Brings over NVDA's or JAWS's settings, keys and dictionaries after showing what will change.</summary>
+    ImportSettings,
+
+    // Custom labels
+    /// <summary>Gives the link, control or graphic at the browse cursor (or the focused one) a label of your own, kept for its site.</summary>
+    LabelElement,
+    /// <summary>Opens the custom labels dialog: change or delete labels.</summary>
+    ManageLabels,
+
+    // Per-site settings
+    /// <summary>Opens the settings of the web site being browsed (start mode, verbosity, screen layout, cookie banners).</summary>
+    OpenSiteSettings,
+
+    // AI that fixes pages
+    /// <summary>Asks a question about the page being browsed, answered from its text; offers to move to what the answer names.</summary>
+    AskPage,
+
+    // Safe trial
+    /// <summary>Trial mode: quits Vox and starts the screen reader it stepped in for (NVDA, or Narrator) again.</summary>
+    ReturnToScreenReader
 }

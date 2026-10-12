@@ -10,6 +10,7 @@ Vox can describe pictures, answer questions about what is on the screen and summ
 | Insert+Alt+G | Ask a question about the window in front ("how do I attach a file?"). |
 | Insert+Ctrl+I | Summarise the page being browsed (browse mode). |
 | Insert+Ctrl+M | Move to where the page's main content starts; press again for the next suggestion (browse mode). |
+| Insert+Alt+Q | Ask the page: a question about the page you are on ("when is it open on Sundays?"), answered from its text; when the answer is at a place on the page, Vox offers to move there. |
 
 Vox says "Describing image", "Thinking" or "Summarizing" and plays the progress sound every couple of seconds until the answer comes. Pressing the same key again cancels ("Cancelled"), and so does Ctrl (stop speech). The answer is spoken and put under the review cursor, like recognised text ([Text recognition (OCR)](ocr.md)): the review keys read it again line by line, word by word or character by character, and a braille display shows it. The review cursor goes back to what it was reviewing when focus, the caret, the review mode or the browse cursor moves.
 
@@ -52,12 +53,25 @@ Whatever the settings say:
 
 - **Password fields**: Insert+G on a password field, or a question while the focus is in one, sends nothing ("Password fields are never sent").
 - **Private applications**: windows of the applications in `AiPrivateApps` (process names; KeePass, KeePassXC, 1Password and Bitwarden by default) are never sent to the cloud.
+- **Private sites**: pages of the web sites in `AiPrivateSites` (host names in `settings.json`, such as `"bank.example.com"`; a name covers its subdomains; none by default) are never sent to the cloud: no summary, question or automatic label.
 - **The sign-in, lock and UAC screens**: no AI at all, local or cloud.
 - **Organization policy**: `DisableAI` turns every AI feature off; `DisableNetwork` leaves only a model on this computer ([Deploying Vox in an organization](enterprise.md)).
 
-Only the area being described is captured, when you press the key. Pictures, questions and answers stay in memory; they are never written to disk or the log.
+Only the area being described is captured, when you press the key (or, for automatic labels, the unlabelled element on the screen). Pictures, questions and answers stay in memory; they are never written to disk or the log.
 
 AI settings are the same in every configuration profile: a profile can't turn cloud sending on.
+
+## Automatic labels
+
+After a web page has loaded, Vox describes its unlabelled graphics and its buttons and links with nothing but an icon in them (no name, or a file name such as `ic_send.svg`) in the background, and keeps each description as a custom label marked "described" for the site ([custom labels](switching.md#custom-labels)): the page is read again with the new names, and the next visit uses them at once. Your own label for an element always wins, and renaming a described label in the custom labels dialog makes it yours.
+
+- Only elements on the screen are described (the page is never scrolled for it), at most 8 for a page and 20 a minute; the same picture on the same site is described once.
+- The model on this computer is used. Claude is used only when **Send to the cloud** is Allow (never on a yes for this session, and nobody is asked) and the site is not private.
+- Settings, AI, **Describe unlabelled graphics and buttons automatically** turns it off (`AutomaticLabels`). Never on the secure screens, with `DisableAI`, or without a describer set up.
+
+## Ask the page
+
+Insert+Alt+Q, on a web page in browse or focus mode, asks for a question and answers it from the page's text, with the model on this computer, else Claude (with consent, and never for a private site). The page is sent with each line, and each link, control, heading and graphic in it, numbered; the model may end its answer by naming one of those numbers. When it does, and the page has that number, Vox asks "Move to ...?" after the answer: Yes moves the browse cursor there (in browse mode) and reads the line; a number the page doesn't have is ignored, and an element gone from the page meanwhile is said to be gone. While a modal dialog is open only the dialog is sent. The questions asked this session are offered again in the prompt.
 
 ## Page summaries and main content
 

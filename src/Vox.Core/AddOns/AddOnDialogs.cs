@@ -295,6 +295,8 @@ public sealed class AddOnStoreDialog : VoxDialog
             return;
         }
         var lines = new List<string> { VoxStrings.Format("AddOns.Details.Title", item.Entry.Name, item.Entry.Version), VoxStrings.Format("AddOns.Details.Author", item.Entry.Author) };
+        if (item.Entry.IsLabelPack)
+            lines.Add(VoxStrings.Get("Store.Details.LabelPack"));
         if (item.Installed is { } installed)
             lines.Add(VoxStrings.Format("Store.Details.Installed", installed));
         if (item.Incompatible is { } reason)

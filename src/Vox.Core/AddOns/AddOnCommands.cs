@@ -175,6 +175,8 @@ public sealed class AddOnCommands : IAddOnActions
         if (addOn.Problem is { } problem)
             text.AppendLine(problem);
         text.AppendLine(TrustText(addOn.Trust, addOn.Publisher));
+        if (m.IsLabelPack)
+            text.AppendLine(VoxStrings.Get("Store.Details.LabelPack"));
         if (!string.IsNullOrWhiteSpace(m.Description))
             text.AppendLine(m.Description);
         if (m.Url is { } url)

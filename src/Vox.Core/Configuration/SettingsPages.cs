@@ -69,7 +69,7 @@ public static class SettingsPages
         nameof(VoxSettings.FirstRunCompleted), nameof(VoxSettings.SchemaVersion),
         // Free text, edited in settings.json (docs/ai.md); the key is set from the Vox menu
         nameof(VoxSettings.AiModel), nameof(VoxSettings.AiEndpoint), nameof(VoxSettings.AiPrivateApps),
-        nameof(VoxSettings.AiLocalModel), nameof(VoxSettings.AiLocalEndpoint),
+        nameof(VoxSettings.AiPrivateSites), nameof(VoxSettings.AiLocalModel), nameof(VoxSettings.AiLocalEndpoint),
         // The store's catalogue is set in settings.json or by policy (docs/addons.md); remote
         // access remembers what its own dialog was given (docs/remote.md)
         nameof(VoxSettings.AddOnCatalogueUrl), nameof(VoxSettings.RemotePort), nameof(VoxSettings.RemoteUseRelay),
@@ -172,6 +172,8 @@ public static class SettingsPages
         new NumberField(L("Setting.MaxLineLength"), 0, 1000, 10, s => s.MaxLineLength, (s, v) => s with { MaxLineLength = v }),
         new ToggleField(L("Setting.AnnounceVisitedLinks"), s => s.AnnounceVisitedLinks, (s, v) => s with { AnnounceVisitedLinks = v }),
         new ToggleField(L("Setting.ExpandAbbreviations"), s => s.ExpandAbbreviations, (s, v) => s with { ExpandAbbreviations = v }),
+        Choice(L("Setting.WebStartMode"), s => s.WebStartMode, (s, v) => s with { WebStartMode = v }),
+        new ToggleField(L("Setting.AutoDismissOverlays"), s => s.AutoDismissOverlays, (s, v) => s with { AutoDismissOverlays = v }),
     ]);
 
     public static SettingsPage DocumentFormatting() => new(L("SettingsPage.DocumentFormatting"),
@@ -221,6 +223,7 @@ public static class SettingsPages
     [
         Choice(L("Setting.AiCloudProvider"), s => s.AiCloudProvider, (s, v) => s with { AiCloudProvider = v }),
         Choice(L("Setting.AiCloudConsent"), s => s.AiCloudConsent, (s, v) => s with { AiCloudConsent = v }),
+        new ToggleField(L("Setting.AutomaticLabels"), s => s.AutomaticLabels, (s, v) => s with { AutomaticLabels = v }),
         new ToggleField(L("Setting.AnnounceCaptchas"), s => s.AnnounceCaptchas, (s, v) => s with { AnnounceCaptchas = v }),
     ]);
 

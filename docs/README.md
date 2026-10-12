@@ -4,7 +4,8 @@ Each guide is a plain page with headings, so a screen reader's heading keys move
 The guides are grouped by who they are for. To install Vox, start with [Installing Vox](install.md).
 
 The **user guide** is installed with Vox: open the Vox menu (Insert+N) and choose User guide. It
-comes with a keyboard reference that lists every command and its keys. Its source is in
+comes with a keyboard reference that lists every command and its keys, and pages for people
+coming from [NVDA](guide/nvda.html) and [JAWS](guide/jaws.html). Its source is in
 [guide/](guide/index.html).
 
 ## Using Vox
@@ -43,6 +44,8 @@ comes with a keyboard reference that lists every command and its keys. Its sourc
 
 ## For organisations
 
+- [Vox for organisations](organisations.md): comparing the cost, a deployment checklist,
+  conformance and security material, and how support works.
 - [Deploying Vox in an organization](enterprise.md): silent install, machine defaults, Group
   Policy, and turning off the network, add-ons or AI.
 - [Updates](updates.md): how updates are checked, signed and installed.
@@ -57,6 +60,8 @@ comes with a keyboard reference that lists every command and its keys. Its sourc
 - [Translating Vox](translating.md): string resources, symbol names and checking a translation.
 - [End-to-end tests](e2e.md): Vox against Edge, Notepad, Explorer and Settings.
 - [Benchmarks](benchmarks.md): measuring how quickly Vox responds.
+- [Performance](performance.md): keypress-to-speech latency and time to first speech, the CI
+  regression gate, and how to measure NVDA and JAWS the same way.
 - [Security review](security.md): reporting problems privately, and the checklist every release
   is reviewed against.
 - [Static review rounds](reviews/README.md): the bug-fix plans from earlier code reviews, kept

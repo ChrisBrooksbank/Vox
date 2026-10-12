@@ -67,6 +67,11 @@ public sealed class ScreenReaderService : IHostedService
     private readonly AddOnCommands _addOnCommands;
     private readonly RemoteAccessSession _remoteSession;
     private readonly RemoteCommands _remoteCommands;
+    private readonly Vox.Core.Switching.SettingsImportCommands _importCommands;
+    private readonly Vox.Core.Labels.CustomLabelCommands _labelCommands;
+    private readonly SiteSettingsCommands _siteSettingsCommands;
+    private readonly Vox.Core.Labels.AutomaticLabeler? _automaticLabels;
+    private readonly Vox.Core.Trial.TrialMode? _trial;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -153,13 +158,23 @@ public sealed class ScreenReaderService : IHostedService
         AddOnCommands addOnCommands,
         RemoteAccessSession remoteSession,
         RemoteCommands remoteCommands,
+        Vox.Core.Switching.SettingsImportCommands importCommands,
+        Vox.Core.Labels.CustomLabelCommands labelCommands,
+        SiteSettingsCommands siteSettingsCommands,
         RunPolicy? runPolicy = null,
-        RemoteSessionMonitor? remoteSessions = null)
+        RemoteSessionMonitor? remoteSessions = null,
+        Vox.Core.Labels.AutomaticLabeler? automaticLabels = null,
+        Vox.Core.Trial.TrialMode? trial = null)
     {
+        _trial = trial;
+        _automaticLabels = automaticLabels;
         _addOns = addOns;
         _addOnCommands = addOnCommands;
         _remoteSession = remoteSession;
         _remoteCommands = remoteCommands;
+        _importCommands = importCommands;
+        _labelCommands = labelCommands;
+        _siteSettingsCommands = siteSettingsCommands;
         _remoteSessions = remoteSessions;
         _profiles = profiles;
         _profileCommands = profileCommands;
@@ -223,6 +238,19 @@ public sealed class ScreenReaderService : IHostedService
         // Install the low-level keyboard hook (needed before wizard for key input)
         bool hookInstalled = TryInstallKeyboardHook();
 
+        // Trial mode (--trial): the other screen reader stops before Vox starts talking
+        if (_trial is not null)
+        {
+            _trial.ReturnKeyName = () => KeyNameFor(NavigationCommand.ReturnToScreenReader);
+            _trial.ActiveChanged += OnTrialActiveChanged;
+            if (_runPolicy.StartTrial && _trial.IsAvailable)
+            {
+                var said = await Task.Run(_trial.Begin, cancellationToken);
+                _speechQueue.Enqueue(new Utterance(said, SpeechPriority.High));
+            }
+            VoxMenu.TrialActive = _trial.IsActive;
+        }
+
         // Run the first-run wizard before subscribing to UIA events: focus announcements are
         // Interrupt speech and would cut off the wizard's prompts
         if (hookInstalled && _runPolicy.AllowSetupWizard && !_settings.CurrentValue.FirstRunCompleted)
@@ -262,6 +290,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
         _eventPipeline.FocusContextProvider = FocusContext;
         _eventPipeline.ErrorMessageProvider = _browseModeController.ErrorMessageFor;
+        _eventPipeline.CustomLabelProvider = _browseModeController.CustomLabelFor;
         // The foreground application's module, then the add-ons' global plug-ins, may drop events,
         // change focus announcements and see every event once handled
         _eventPipeline.EventFilter = e => _appModules.ShouldProcess(e) && _addOns.ShouldProcess(e);
@@ -274,6 +303,8 @@ public sealed class ScreenReaderService : IHostedService
         _appModules.ForegroundAppChanged += OnForegroundAppChanged;
         _sayAllController.ReadingChanged += OnSayAllReadingChanged;
         _profiles.Switched += OnProfileSwitched;
+        // ... and the web site being browsed has its own settings over them
+        _browseModeController.SiteChanged += OnSiteChanged;
         // In browse mode the review cursor reviews the virtual buffer
         _review.BrowseTether = _browseModeController.ReviewTether;
         // While browsing, text recognition reads the graphic at the cursor or the page
@@ -281,6 +312,10 @@ public sealed class ScreenReaderService : IHostedService
         // ... and so does describing; the summary reads the page being browsed
         _ai.BrowseTarget = _browseModeController.RecognitionTarget;
         _ai.BrowseDocument = _browseModeController.BrowsedDocument;
+        // Ask the page: any page with focus; moving to the answer happens on the pipeline thread
+        _ai.PageDocument = _browseModeController.ActiveDocument;
+        _ai.GoToElement = node => _eventPipeline.Post(new PipelineWorkEvent(DateTimeOffset.UtcNow,
+            () => _browseModeController.GoToElement(node)));
         _ai.MainContentKey = () => KeyNameFor(NavigationCommand.MoveToMainContent);
         _browseModeController.KeyNameFor = KeyNameFor;
 
@@ -327,6 +362,10 @@ public sealed class ScreenReaderService : IHostedService
         VoxMenu.SafeMode = _runPolicy.SafeMode;
         if (_runPolicy.SafeMode && !_runPolicy.IsSecure)
             _speechQueue.Enqueue(new Utterance(VoxStrings.Get("AddOns.SafeModeStartup"), SpeechPriority.Normal));
+        // Vox.Watchdog started another screen reader after repeated crashes: say why, once
+        if (_runPolicy.AllowUserProfileAccess
+            && FallbackNotice.TakeMessage(Path.Combine(VoxPaths.UserData, FallbackNotice.FileName)) is { } fallbackMessage)
+            _speechQueue.Enqueue(new Utterance(fallbackMessage, SpeechPriority.Normal));
 
         // Said once: in a remote session the keys and audio go through the remote-desktop client
         if (_remoteSessions is not null)
@@ -406,6 +445,10 @@ public sealed class ScreenReaderService : IHostedService
         _appModules.ForegroundAppChanged -= OnForegroundAppChanged;
         _sayAllController.ReadingChanged -= OnSayAllReadingChanged;
         _profiles.Switched -= OnProfileSwitched;
+        _browseModeController.SiteChanged -= OnSiteChanged;
+        _automaticLabels?.Cancel();
+        if (_trial is not null)
+            _trial.ActiveChanged -= OnTrialActiveChanged;
         _appModules.Stop();
         // A remote session ends (keys held on this computer are released), then add-ons close
         _remoteSession.Dispose();
@@ -415,6 +458,8 @@ public sealed class ScreenReaderService : IHostedService
         _ocr.BrowseTarget = null;
         _ai.BrowseTarget = null;
         _ai.BrowseDocument = null;
+        _ai.PageDocument = null;
+        _ai.GoToElement = null;
         _ai.MainContentKey = null;
         _ai.Cancel();
         _browseModeController.KeyNameFor = null;
@@ -624,7 +669,9 @@ public sealed class ScreenReaderService : IHostedService
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
             && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
             && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command)
-            && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command))
+            && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command)
+            && !_importCommands.TryHandle(e.Command) && !_labelCommands.TryHandle(e.Command)
+            && !_siteSettingsCommands.TryHandle(e.Command) && !(_trial?.TryHandle(e.Command) ?? false))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -715,6 +762,10 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnSayAllReadingChanged(object? sender, bool reading) => _profiles.SetSayAll(reading);
 
+    private void OnSiteChanged(object? sender, string? site) => _profiles.SetSite(site);
+
+    private void OnTrialActiveChanged(object? sender, bool active) => VoxMenu.TrialActive = active;
+
     private void OnProfileSwitched(object? sender, string? profile)
     {
         if (_settings.CurrentValue.AnnounceProfileSwitches)
@@ -757,8 +808,13 @@ public sealed class ScreenReaderService : IHostedService
     private void OnStructureChangedProcessed(object? sender, StructureChangedEvent e) =>
         _documentTracker.OnStructureChanged(e.RuntimeId);
 
-    private void OnDocumentChangedProcessed(object? sender, DocumentChangedEvent e) =>
+    private void OnDocumentChangedProcessed(object? sender, DocumentChangedEvent e)
+    {
         _browseModeController.HandleDocumentChanged(e);
+        // Unlabelled graphics and icon buttons are described in the background once the whole page is there
+        if (!e.IsPartial && e.Document is { } document && _automaticLabels is { } labels)
+            TrackBackground(labels.OnDocumentLoaded(document));
+    }
 
     private void OnSubtreeChangedProcessed(object? sender, SubtreeChangedEvent e) =>
         _browseModeController.HandleSubtreeChanged(e);

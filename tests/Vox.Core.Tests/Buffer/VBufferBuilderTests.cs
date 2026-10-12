@@ -26,6 +26,8 @@ internal sealed class MockElement : IVBufferElement
     public bool? IsValueReadOnly { get; set; }
     public string Description { get; set; } = string.Empty;
     public int ColumnSpan { get; set; } = 1;
+    public string Value { get; set; } = string.Empty;
+    public string AutomationId { get; set; } = string.Empty;
 
     private readonly List<IVBufferElement> _children = new();
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;

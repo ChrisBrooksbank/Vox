@@ -20,6 +20,7 @@ using Vox.Core.Configuration;
 using Vox.Core.Diagnostics;
 using Vox.Core.Enterprise;
 using Vox.Core.Input;
+using Vox.Core.Labels;
 using Vox.Core.Lifecycle;
 using Vox.Core.Localization;
 using Vox.Core.MathSpeech;
@@ -28,6 +29,7 @@ using Vox.Core.Ocr;
 using Vox.Core.Pipeline;
 using Vox.Core.Remote;
 using Vox.Core.Speech;
+using Vox.Core.Switching;
 using Vox.Core.Text;
 using Vox.Core.Updates;
 
@@ -61,9 +63,10 @@ public static class ServiceRegistration
         services.AddSingleton<ProfileManager>(sp =>
         {
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
-            var profiles = new ProfileManager(new ProfileStore(
-                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? ProfileStore.DefaultDirectory : null,
-                sp.GetRequiredService<ILogger<ProfileStore>>()));
+            bool keep = policy.AllowSettingsWrites && policy.AllowUserProfileAccess;
+            var profiles = new ProfileManager(
+                new ProfileStore(keep ? ProfileStore.DefaultDirectory : null, sp.GetRequiredService<ILogger<ProfileStore>>()),
+                new SiteSettingsStore(keep ? Path.Combine(VoxPaths.UserData, SiteSettingsStore.FileName) : null, sp.GetRequiredService<ILogger<SiteSettingsStore>>()));
             sp.GetRequiredService<SettingsMonitor>().AttachProfiles(profiles);
             return profiles;
         });
@@ -80,6 +83,16 @@ public static class ServiceRegistration
                 sp.GetRequiredService<SpeechQueue>(),
                 sp.GetRequiredService<ILogger<ProfileCommands>>());
         });
+        // Settings for the web site being browsed, laid over the application's profile
+        services.AddSingleton<ISiteSettingsPresenter, SiteSettingsPresenter>();
+        services.AddSingleton<SiteSettingsCommands>(sp => new SiteSettingsCommands(
+            sp.GetRequiredService<ProfileManager>(),
+            sp.GetRequiredService<ISiteSettingsPresenter>(),
+            sp.GetRequiredService<SettingsMonitor>(),
+            sp.GetRequiredService<BrowseModeController>(),
+            sp.GetRequiredService<IEventSink>(),
+            sp.GetRequiredService<ILogger<SiteSettingsCommands>>(),
+            sp.GetRequiredService<SpeechQueue>()));
         services.AddSingleton<IOptionsMonitor<VoxSettings>>(sp => sp.GetRequiredService<SettingsMonitor>());
 
         // Strings: every IStringLocalizer<T> reads Localization/Strings.resx in the Language setting
@@ -133,7 +146,7 @@ public static class ServiceRegistration
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
             // Secure screens never read the user's profile
             var directory = policy.AllowUserProfileAccess
-                ? Path.Combine(VoxPaths.UserData, "dictionaries")
+                ? Path.Combine(VoxPaths.UserData, PronunciationRule.FolderName)
                 : null;
             var engine = sp.GetRequiredService<ISpeechEngine>();
             var rule = new PronunciationRule(PronunciationRule.LoadBuiltInDefault(), directory, () => engine.CurrentVoice,
@@ -314,7 +327,26 @@ public static class ServiceRegistration
                 // The practice lessons teach the keys in use: the layout's and the user's own
                 () => new GestureEditor(
                     KeyMap.LayoutBindings(Path.Combine(AppContext.BaseDirectory, "assets", "config"), settings.CurrentValue.KeyboardLayout),
-                    KeyMap.ReadUserBindings(policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null)));
+                    KeyMap.ReadUserBindings(policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null)),
+                // NVDA's or JAWS's settings are offered when found (never on secure screens)
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? sp.GetRequiredService<SettingsImportCommands>() : null,
+                // ... and trial mode when NVDA or Narrator is running
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? sp.GetRequiredService<Vox.Core.Trial.TrialMode>() : null);
+        });
+        // Trial mode: NVDA or Narrator stopped while Vox is tried, back with one key; none on secure screens
+        services.AddSingleton<Vox.Core.Trial.IScreenReaderControl>(sp =>
+            new Vox.Core.Trial.WindowsScreenReaderControl(sp.GetRequiredService<ILogger<Vox.Core.Trial.WindowsScreenReaderControl>>()));
+        services.AddSingleton<Vox.Core.Trial.TrialMode>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var lifetime = sp.GetRequiredService<IHostApplicationLifetime>();
+            return new Vox.Core.Trial.TrialMode(
+                sp.GetRequiredService<Vox.Core.Trial.IScreenReaderControl>(),
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? Path.Combine(VoxPaths.UserData, Vox.Core.Trial.TrialRecord.FileName) : null,
+                policy,
+                lifetime.StopApplication,
+                sp.GetRequiredService<ILogger<Vox.Core.Trial.TrialMode>>(),
+                sp.GetRequiredService<SpeechQueue>());
         });
 
         // Navigation
@@ -402,7 +434,8 @@ public static class ServiceRegistration
             sp.GetRequiredService<SpeechQueue>(),
             sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
             sp.GetRequiredService<ILogger<AiCommands>>(),
-            sp.GetRequiredService<SettingsMonitor>().UpdateSettings));
+            sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+            confirm: sp.GetRequiredService<IConfirmPresenter>()));
         // Updates: only with the release key shipped beside Vox, and never on secure screens
         services.AddSingleton<UpdateChecker>(sp =>
         {
@@ -432,6 +465,68 @@ public static class ServiceRegistration
                 lifetime.StopApplication,
                 policy.AllowSettingsWrites ? Path.Combine(VoxPaths.UserData, "update-check.txt") : null,
                 sp.GetRequiredService<ILogger<UpdateCommands>>());
+        });
+        // Custom labels for web pages' elements, kept per site; none on secure screens
+        services.AddSingleton<CustomLabelStore>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            return new CustomLabelStore(
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? Path.Combine(VoxPaths.UserData, CustomLabelStore.FileName) : null,
+                sp.GetRequiredService<ILogger<CustomLabelStore>>());
+        });
+        services.AddSingleton<ICustomLabels>(sp => sp.GetRequiredService<CustomLabelStore>());
+        services.AddSingleton<ICustomLabelsPresenter, CustomLabelsPresenter>();
+        services.AddSingleton<CustomLabelCommands>(sp =>
+        {
+            var tracker = sp.GetRequiredService<BrowseDocumentTracker>();
+            return new CustomLabelCommands(
+                sp.GetRequiredService<CustomLabelStore>(),
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<ITextPrompt>(),
+                sp.GetRequiredService<ICustomLabelsPresenter>(),
+                sp.GetRequiredService<EventPipeline>(),
+                () => tracker.RequestRecapture(null),
+                sp.GetRequiredService<ILogger<CustomLabelCommands>>(),
+                sp.GetRequiredService<SpeechQueue>());
+        });
+        // Automatic labels: unlabelled graphics and icon buttons described in the background
+        services.AddSingleton<AutomaticLabeler>(sp =>
+        {
+            var tracker = sp.GetRequiredService<BrowseDocumentTracker>();
+            return new AutomaticLabeler(
+                sp.GetRequiredService<AiAssistant>(),
+                sp.GetRequiredService<IScreenCapture>(),
+                tracker,
+                sp.GetRequiredService<IAiContextSource>(),
+                sp.GetRequiredService<CustomLabelStore>(),
+                sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+                () => tracker.RequestRecapture(null),
+                sp.GetRequiredService<ILogger<AutomaticLabeler>>());
+        });
+        // Settings from NVDA and JAWS (Vox menu, first-run wizard); none on secure screens
+        services.AddSingleton<ISettingsImportPresenter, SettingsImportPresenter>();
+        services.AddSingleton<SettingsImportCommands>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();
+            var keyMapLogger = sp.GetRequiredService<ILogger<KeyMap>>();
+            var speech = sp.GetRequiredService<SpeechEngineRegistry>();
+            var configDirectory = Path.Combine(AppContext.BaseDirectory, "assets", "config");
+            var import = policy.AllowSettingsWrites && policy.AllowUserProfileAccess
+                ? new SettingsImport(ImportLocations.ForCurrentUser(policy.SettingsPath), speech.VoicesOf,
+                    layout => KeyMap.LayoutBindings(configDirectory, layout))
+                : null;
+            return new SettingsImportCommands(
+                import,
+                sp.GetRequiredService<ISettingsImportPresenter>(),
+                settings,
+                sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+                () => dispatcher.SetKeyMap(LoadKeyMap(settings.CurrentValue.KeyboardLayout, keyMapLogger, policy)),
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<EventPipeline>(),
+                sp.GetRequiredService<ILogger<SettingsImportCommands>>(),
+                sp.GetRequiredService<SpeechQueue>());
         });
         services.AddSingleton<SettingsCommands>(sp =>
         {
@@ -544,6 +639,16 @@ public static class ServiceRegistration
                     SpeechEngines = sp.GetRequiredService<SpeechEngineRegistry>(),
                     SelectedSpeechEngine = () => settings.CurrentValue.SpeechEngine,
                     Braille = sp.GetRequiredService<BrailleDisplayManager>(),
+                    // A label pack's labels apply to the page being browsed at once
+                    SetLabelPack = (id, labels) =>
+                    {
+                        var store = sp.GetRequiredService<CustomLabelStore>();
+                        if (labels is null)
+                            store.RemovePack(id);
+                        else
+                            store.SetPack(id, labels);
+                        sp.GetRequiredService<BrowseDocumentTracker>().RequestRecapture(null);
+                    },
                 },
                 loggers.CreateLogger,
                 sp.GetRequiredService<ILogger<AddOnManager>>());

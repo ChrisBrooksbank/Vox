@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Large table</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Large table</h1>
+<p>A data table of 10,000 rows and 4 columns, built when the page loads (the same every time), for the time to first speech and keypress latency on a very large page.</p>
+<main>
+<table id="orders">
+<caption>Orders</caption>
+<thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Items</th><th scope="col">Total</th></tr></thead>
+<tbody id="rows"></tbody>
+</table>
+<p>End of the orders.</p>
+</main>
+<script>
+const names = ['Ada', 'Ben', 'Chloe', 'Dev', 'Esme', 'Femi', 'Gus', 'Hana', 'Ivo', 'Jun'];
+const rows = [];
+for (let r = 1; r <= 10000; r++) {
+  const items = (r * 7) % 9 + 1;
+  const total = ((r * 37) % 9000 + 100) / 10;
+  rows.push(`<tr><th scope="row">${r}</th><td>${names[r % names.length]} ${r}</td><td>${items}</td><td>${total.toFixed(2)}</td></tr>`);
+}
+document.getElementById('rows').innerHTML = rows.join('');
+</script>
+</body>
+</html>

@@ -44,10 +44,12 @@ public sealed class AiAssistant(
     /// <summary>
     /// Answers <paramref name="request"/>. <paramref name="target"/> is what it shows, for the rules
     /// that never send. <paramref name="asking"/> is told when the person is being asked (true)
-    /// and when they have answered (false). Never throws but for cancellation.
+    /// and when they have answered (false). A <paramref name="background"/> request (nobody asked
+    /// for it: automatic labels) goes to the cloud only when consent is "allow"
+    /// (<see cref="AiConsent.ForBackground"/>), and never asks. Never throws but for cancellation.
     /// </summary>
     public async Task<AiAnswer> AskAsync(AiRequest request, AiTarget target, CancellationToken cancellationToken = default,
-        Action<bool>? asking = null)
+        Action<bool>? asking = null, bool background = false)
     {
         var allowed = consent.ForLocal();
         if (allowed.Decision == AiConsentDecision.Refused)
@@ -60,7 +62,7 @@ public sealed class AiAssistant(
         bool ask = false;
         if (!describer.IsLocal)
         {
-            var decision = consent.ForCloud(target);
+            var decision = background ? consent.ForBackground(target) : consent.ForCloud(target);
             if (decision.Decision == AiConsentDecision.Refused)
                 return new AiAnswer(null, describer.Name, Refusal: decision.Reason);
             ask = decision.Decision == AiConsentDecision.Ask;
@@ -115,6 +117,7 @@ public sealed class AiAssistant(
         {
             AiTask.DescribeImage => "Ai.Consent.DescribeImage",
             AiTask.ExplainScreen => "Ai.Consent.ExplainScreen",
+            AiTask.AskPage => "Ai.Consent.AskPage",
             _ => "Ai.Consent.SummarizePage",
         }, describer.Name);
 }

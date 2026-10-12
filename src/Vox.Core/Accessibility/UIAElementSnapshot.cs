@@ -43,6 +43,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
     public IReadOnlyList<int> AnnotationTypes { get; init; } = [];
     public bool IsInvokable { get; init; }
     public bool? IsValueReadOnly { get; init; }
+    public string AutomationId { get; init; } = string.Empty;
 
     public IReadOnlyList<IVBufferElement> GetChildren() => _children;
 
@@ -140,6 +141,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
             AnnotationTypes = ReadCachedIntArray(element, UIAProvider.UIA_AnnotationTypesPropertyId),
             IsInvokable = ReadCachedBool(element, UIAProvider.UIA_IsInvokePatternAvailablePropertyId) == true,
             IsValueReadOnly = ReadCachedBool(element, UIAProvider.UIA_ValueIsReadOnlyPropertyId),
+            AutomationId = ReadCachedString(element, UIAProvider.UIA_AutomationIdPropertyId) ?? string.Empty,
         };
     }
 

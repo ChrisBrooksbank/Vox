@@ -95,7 +95,7 @@ public static class CommandCatalog
             NavigationCommand.ActivateElement, NavigationCommand.ToggleMode, NavigationCommand.ExitFocusMode,
             NavigationCommand.ElementsList, NavigationCommand.PageSummary, NavigationCommand.SayLinkUrl,
             NavigationCommand.DismissOverlay, NavigationCommand.InteractWithMath, NavigationCommand.SummarizePage,
-            NavigationCommand.MoveToMainContent);
+            NavigationCommand.MoveToMainContent, NavigationCommand.LabelElement, NavigationCommand.AskPage);
         Add(CommandCategory.Tables,
             NavigationCommand.TableNextColumn, NavigationCommand.TablePrevColumn, NavigationCommand.TableNextRow,
             NavigationCommand.TablePrevRow, NavigationCommand.TableFirstCell, NavigationCommand.TableLastCell,
@@ -139,7 +139,9 @@ public static class CommandCatalog
             NavigationCommand.OpenInputGestures, NavigationCommand.OpenSettings, NavigationCommand.ToggleInputHelp,
             NavigationCommand.RunSetup, NavigationCommand.Quit, NavigationCommand.OpenProfiles, NavigationCommand.SetAiKey,
             NavigationCommand.ManageAddOns, NavigationCommand.GetAddOns, NavigationCommand.RestartWithoutAddOns,
-            NavigationCommand.RemoteAccess, NavigationCommand.ToggleRemoteControl, NavigationCommand.DisconnectRemote);
+            NavigationCommand.RemoteAccess, NavigationCommand.ToggleRemoteControl, NavigationCommand.DisconnectRemote,
+            NavigationCommand.ImportSettings, NavigationCommand.ManageLabels, NavigationCommand.OpenSiteSettings,
+            NavigationCommand.ReturnToScreenReader);
         // Application modules: only while their application is in the foreground
         Add(CommandCategory.Applications,
             NavigationCommand.ExcelReadFormula, NavigationCommand.ExcelReadComment, NavigationCommand.ExcelSetColumnTitles,

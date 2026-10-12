@@ -266,6 +266,22 @@ public class EventPipelineTests : IDisposable
     }
 
     [Fact]
+    public async Task FocusOnALabelledElement_SaysItsCustomLabel()
+    {
+        _pipeline.CustomLabelProvider = id => id is [7] ? "Send" : null;
+
+        _pipeline.Post(new FocusChangedEvent(DateTimeOffset.UtcNow, "ic_send.svg", "Button", RuntimeId: [7]));
+        _pipeline.Post(new FocusChangedEvent(DateTimeOffset.UtcNow.AddSeconds(1), "Archive", "Button", RuntimeId: [8]));
+
+        await Task.Delay(300);
+        lock (_spokenUtterances)
+        {
+            Assert.DoesNotContain(_spokenUtterances, u => u.Text.Contains("ic_send"));
+            Assert.Contains(_spokenUtterances, u => u.Text == "Archive, button");
+        }
+    }
+
+    [Fact]
     public async Task FocusOnEditField_AnnouncementIsNotCutOffByAutomaticModeSwitch()
     {
         // What the controller does inside FocusChangedProcessed: switch mode automatically

@@ -1,0 +1,7 @@
+; JAWS configuration
+[Options]
+Rate=62
+Punctuation=2
+TypingEcho=2
+[Braille]
+GradeTwoMode=1

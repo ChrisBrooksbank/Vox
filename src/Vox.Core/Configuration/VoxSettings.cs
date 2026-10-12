@@ -9,6 +9,15 @@ public enum VerbosityLevel
     Advanced
 }
 
+/// <summary>The mode a newly loaded web page starts in.</summary>
+public enum WebStartMode
+{
+    /// <summary>Focus mode for web applications (and <see cref="VoxSettings.AppDefaultModes"/>), else Browse mode.</summary>
+    Automatic,
+    Browse,
+    Focus
+}
+
 public enum TypingEchoMode
 {
     None,
@@ -70,7 +79,21 @@ public enum KeyboardLayout
     /// <summary>NVDA's desktop layout: review and object navigation on the numeric keypad.</summary>
     Desktop,
     /// <summary>NVDA's laptop layout: no numeric keypad, meant for CapsLock as the screen reader key.</summary>
-    Laptop
+    Laptop,
+    /// <summary>The desktop layout with the common JAWS keys on top (jaws-keymap.json).</summary>
+    Jaws,
+    /// <summary>The laptop layout with the common JAWS laptop keys on top.</summary>
+    JawsLaptop
+}
+
+/// <summary>What a <see cref="KeyboardLayout"/> is built from.</summary>
+public static class KeyboardLayouts
+{
+    /// <summary>Whether the layout leaves out the numeric keypad (the laptop layout and its JAWS variant).</summary>
+    public static bool IsLaptop(this KeyboardLayout layout) => layout is KeyboardLayout.Laptop or KeyboardLayout.JawsLaptop;
+
+    /// <summary>Whether the layout has the JAWS keys on top.</summary>
+    public static bool IsJaws(this KeyboardLayout layout) => layout is KeyboardLayout.Jaws or KeyboardLayout.JawsLaptop;
 }
 
 /// <summary>Whether other applications' audio is lowered while Vox speaks.</summary>
@@ -215,6 +238,10 @@ public record VoxSettings
     /// (true), or puts every element on a line of its own (false).
     /// </summary>
     public bool ScreenLayout { get; init; } = true;
+    /// <summary>The mode a newly loaded web page starts in (mostly set for a site, see <see cref="SiteSettings"/>).</summary>
+    public WebStartMode WebStartMode { get; init; } = WebStartMode.Automatic;
+    /// <summary>Press a cookie banner's Reject or Close button as soon as the page shows one (never a dialog's).</summary>
+    public bool AutoDismissOverlays { get; init; }
     public ModifierKey ModifierKey { get; init; } = ModifierKey.Insert;
     /// <summary>Desktop (numeric keypad) or laptop key bindings.</summary>
     public KeyboardLayout KeyboardLayout { get; init; } = KeyboardLayout.Desktop;
@@ -270,6 +297,17 @@ public record VoxSettings
     /// fields and the secure screens never are, whatever is listed.
     /// </summary>
     public List<string> AiPrivateApps { get; init; } = ["KeePass", "KeePassXC", "1Password", "Bitwarden"];
+    /// <summary>
+    /// Web sites (host names, "bank.example.com"; a name covers its subdomains) whose pages are
+    /// never sent to the cloud provider: not for a summary, a question or an automatic label.
+    /// </summary>
+    public List<string> AiPrivateSites { get; init; } = [];
+    /// <summary>
+    /// After a page loads, describe its unlabelled graphics and icon-only buttons in the background
+    /// and keep the descriptions as custom labels (the describer on this computer; the cloud
+    /// provider only when <see cref="AiCloudConsent"/> is Allow).
+    /// </summary>
+    public bool AutomaticLabels { get; init; } = true;
     /// <summary>A vision model on this computer (served by Ollama), used before the cloud provider; null: none.</summary>
     public string? AiLocalModel { get; init; }
     /// <summary>Where the local model is served; only an address on this computer is ever used.</summary>

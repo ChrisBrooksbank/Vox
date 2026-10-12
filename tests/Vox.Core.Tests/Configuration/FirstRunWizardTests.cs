@@ -3,6 +3,7 @@ using Moq;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Speech;
+using Vox.Core.Switching;
 using Xunit;
 
 namespace Vox.Core.Tests.Configuration;
@@ -72,7 +73,7 @@ public class FirstRunWizardTests : IDisposable
     }
 
     private static (FirstRunWizard wizard, FakeKeyboardHook hook, Mock<ISpeechEngine> engine, SettingsMonitor monitor, SettingsManager manager)
-        CreateWizard(VoxSettings? initialSettings = null)
+        CreateWizard(VoxSettings? initialSettings = null, ISettingsImportOffer? importOffer = null)
     {
         var engineMock = new Mock<ISpeechEngine>();
         var spokenTexts = new List<string>();
@@ -118,7 +119,8 @@ public class FirstRunWizardTests : IDisposable
             manager,
             monitor,
             hook,
-            NullLogger<FirstRunWizard>.Instance);
+            NullLogger<FirstRunWizard>.Instance,
+            importOffer: importOffer);
 
         return (wizard, hook, engineMock, monitor, manager);
     }
@@ -410,6 +412,30 @@ public class FirstRunWizardTests : IDisposable
         Assert.Equal(expected, monitor.CurrentValue.ModifierKey);
     }
 
+    [Theory]
+    [InlineData(0x33, KeyboardLayout.Jaws, ModifierKey.Insert)]          // 3: JAWS desktop
+    [InlineData(0x34, KeyboardLayout.JawsLaptop, ModifierKey.CapsLock)]  // 4: JAWS laptop, Caps Lock like JAWS's
+    public async Task RunAsync_SelectJawsLayout_SavesIt(int layoutKey, KeyboardLayout expectedLayout, ModifierKey expectedModifier)
+    {
+        var (wizard, hook, _, monitor, _) = CreateWizard(
+            new VoxSettings { FirstRunCompleted = false });
+
+        var wizardTask = wizard.RunAsync();
+
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Welcome
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Rate
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Voice
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Verbosity
+        await PressAsync(wizard, wizardTask, hook, layoutKey);
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Modifier: keep
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Tutorial
+
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(expectedLayout, monitor.CurrentValue.KeyboardLayout);
+        Assert.Equal(expectedModifier, monitor.CurrentValue.ModifierKey);
+    }
+
     // -------------------------------------------------------------------------
     // Cancellation
     // -------------------------------------------------------------------------
@@ -618,5 +644,129 @@ public class FirstRunWizardTests : IDisposable
             Assert.Equal(200, rates[^1]);
         }
         Assert.Equal(200, monitor.CurrentValue.SpeechRateWpm);
+    }
+
+    // -------------------------------------------------------------------------
+    // Bringing over NVDA's or JAWS's settings
+    // -------------------------------------------------------------------------
+
+    private sealed class FakeImportOffer(SettingsMonitor monitor, params ImportSource[] sources) : ISettingsImportOffer
+    {
+        public List<ImportSource> Imported { get; } = new();
+        public List<ImportReport> Shown { get; } = new();
+
+        public IReadOnlyList<ImportSource> FindSources() => sources;
+
+        public ImportReport? Import(ImportSource source)
+        {
+            Imported.Add(source);
+            monitor.UpdateSettings(monitor.CurrentValue with { SpeechRateWpm = 300 });
+            var report = new ImportReport(source);
+            report.AddImported("rate", nameof(VoxSettings.SpeechRateWpm), 300, 180);
+            return report;
+        }
+
+        public void ShowReport(ImportReport report) => Shown.Add(report);
+    }
+
+    [Fact]
+    public async Task RunAsync_SettingsFound_TwoBringsOverJaws_AndTheReportOpensAtTheEnd()
+    {
+        var (wizard, hook, engine, monitor, manager) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var offer = new FakeImportOffer(monitor, ImportSource.Nvda, ImportSource.Jaws);
+        wizard = new FirstRunWizard(engine.Object, manager, monitor, hook, NullLogger<FirstRunWizard>.Instance, importOffer: offer);
+
+        var wizardTask = wizard.RunAsync();
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Enter: begin
+        await PressAsync(wizard, wizardTask, hook, 0x32); // 2: JAWS
+        await WaitUntilWaitingAsync(wizard, wizardTask);
+        Assert.Equal([ImportSource.Jaws], offer.Imported);
+        Assert.Equal(300, monitor.CurrentValue.SpeechRateWpm);
+        Assert.Empty(offer.Shown);
+
+        for (int i = 0; i < 10 && !wizardTask.IsCompleted; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // The rate step started from the imported rate and Enter kept it
+        Assert.Equal(300, monitor.CurrentValue.SpeechRateWpm);
+        Assert.Single(offer.Shown);
+    }
+
+    [Fact]
+    public async Task RunAsync_SettingsFound_EnterSetsUpVoxWithoutImporting()
+    {
+        var (wizard, hook, engine, monitor, manager) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var offer = new FakeImportOffer(monitor, ImportSource.Nvda);
+        wizard = new FirstRunWizard(engine.Object, manager, monitor, hook, NullLogger<FirstRunWizard>.Instance, importOffer: offer);
+
+        var wizardTask = wizard.RunAsync();
+        for (int i = 0; i < 12 && !wizardTask.IsCompleted; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Empty(offer.Imported);
+        Assert.Empty(offer.Shown);
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+    }
+
+    // -------------------------------------------------------------------------
+    // Trial mode
+    // -------------------------------------------------------------------------
+
+    private sealed class FakeTrialOffer(Vox.Core.Trial.RunningScreenReader? running) : Vox.Core.Trial.ITrialOffer
+    {
+        public int Begun { get; private set; }
+        public Vox.Core.Trial.RunningScreenReader? FindRunning() => Begun > 0 ? null : running;
+        public string Begin()
+        {
+            Begun++;
+            return "Trial mode.";
+        }
+        public string ReturnKey => "Insert+Ctrl+F4";
+    }
+
+    [Fact]
+    public async Task RunAsync_AnotherScreenReaderRunning_OneBeginsTheTrial()
+    {
+        var (wizard, hook, engine, monitor, manager) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var offer = new FakeTrialOffer(new Vox.Core.Trial.RunningScreenReader(Vox.Core.Trial.OtherScreenReader.Nvda));
+        var spoken = new List<string>();
+        engine.Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Callback<Utterance, CancellationToken>((u, _) => { lock (spoken) spoken.Add(u.Text); })
+            .Returns(Task.CompletedTask);
+        wizard = new FirstRunWizard(engine.Object, manager, monitor, hook, NullLogger<FirstRunWizard>.Instance, trialOffer: offer);
+
+        var wizardTask = wizard.RunAsync();
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Enter: begin
+        await PressAsync(wizard, wizardTask, hook, 0x31); // 1: trial
+        await WaitUntilWaitingAsync(wizard, wizardTask);
+        Assert.Equal(1, offer.Begun);
+        lock (spoken)
+        {
+            Assert.Contains(spoken, t => t.StartsWith("NVDA is running") && t.Contains("Insert+Ctrl+F4"));
+            Assert.Contains("Trial mode.", spoken);
+        }
+
+        for (int i = 0; i < 10 && !wizardTask.IsCompleted; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+    }
+
+    [Fact]
+    public async Task RunAsync_AnotherScreenReaderRunning_EnterGoesOnWithoutATrial()
+    {
+        var (wizard, hook, engine, monitor, manager) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var offer = new FakeTrialOffer(new Vox.Core.Trial.RunningScreenReader(Vox.Core.Trial.OtherScreenReader.Narrator));
+        wizard = new FirstRunWizard(engine.Object, manager, monitor, hook, NullLogger<FirstRunWizard>.Instance, trialOffer: offer);
+
+        var wizardTask = wizard.RunAsync();
+        for (int i = 0; i < 12 && !wizardTask.IsCompleted; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(0, offer.Begun);
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
     }
 }
