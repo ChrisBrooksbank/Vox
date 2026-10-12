@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.AppModules.Meetings;
 using Vox.Core.Buffer;
+using Vox.Core.Localization;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Pipeline;
@@ -133,9 +134,10 @@ public sealed class TeamsModule : MeetingAppModule
             return base.TryHandle(command);
         // 1 is the latest message
         var messages = TeamsMessages.Messages(_document());
-        var text = messages.Count == 0 ? "No messages here"
+        var text = messages.Count == 0 ? VoxStrings.Get("Teams.NoMessages")
             : index < messages.Count ? messages[messages.Count - 1 - index]
-            : $"Only {messages.Count} {(messages.Count == 1 ? "message" : "messages")}";
+            : messages.Count == 1 ? VoxStrings.Get("Teams.OnlyOneMessage")
+            : VoxStrings.Format("Teams.OnlyMessages", messages.Count);
         Speech.Enqueue(new Utterance(text, SpeechPriority.Interrupt));
         return true;
     }

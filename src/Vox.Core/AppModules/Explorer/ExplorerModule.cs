@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
 using Vox.Core.Configuration;
+using Vox.Core.Localization;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -25,12 +26,12 @@ public static class DetailsRowFormatter
             if (value.Length == 0)
                 continue;
             var header = Clean(cells[i].Header);
-            parts.Add(i == 0 || !sayHeaders || header.Length == 0 ? value : $"{header}: {value}");
+            parts.Add(i == 0 || !sayHeaders || header.Length == 0 ? value : VoxStrings.Format("Explorer.HeaderValue", header, value));
         }
         if (parts.Count == 0)
             return null;
         if (position > 0 && count > 0)
-            parts.Add($"{position} of {count}");
+            parts.Add(VoxStrings.Format("Announce.Position", position, count));
         return string.Join(", ", parts);
     }
 
@@ -64,7 +65,7 @@ public sealed class ExplorerModule : AppModule
     }
 
     public override string Id => "explorer";
-    public override string Name => "File Explorer";
+    public override string Name => VoxStrings.Get("Explorer.Name");
     public override IReadOnlyCollection<string> ProcessNames { get; } = ["explorer"];
 
     public override void OnActivated(AppActivation activation)

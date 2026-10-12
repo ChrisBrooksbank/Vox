@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.AppModules.Word;
 
 /// <summary>Composes what is said for Word: quick navigation, tracked changes and comments, the location and table cells.</summary>
@@ -6,66 +8,65 @@ public static class WordAnnouncer
     /// <summary>"heading", "table" ... as said in "No next heading".</summary>
     public static string KindName(WordElementKind kind) => kind switch
     {
-        WordElementKind.Heading => "heading",
-        WordElementKind.Table => "table",
-        WordElementKind.List => "list",
-        WordElementKind.Comment => "comment",
-        WordElementKind.Revision => "tracked change",
-        _ => "spelling error",
+        WordElementKind.Heading => VoxStrings.Get("Word.Kind.Heading"),
+        WordElementKind.Table => VoxStrings.Get("ControlType.Table"),
+        WordElementKind.List => VoxStrings.Get("ControlType.List"),
+        WordElementKind.Comment => VoxStrings.Get("Word.Kind.Comment"),
+        WordElementKind.Revision => VoxStrings.Get("Word.Kind.Revision"),
+        _ => VoxStrings.Get("Word.Kind.SpellingError"),
     };
 
     /// <summary>What there is none of in that direction: "No next heading".</summary>
     public static string NotFound(WordElementKind kind, bool forward) =>
-        $"No {(forward ? "next" : "previous")} {KindName(kind)}";
+        forward ? VoxStrings.Format("Word.NoNext", KindName(kind)) : VoxStrings.Format("Word.NoPrevious", KindName(kind));
 
     /// <summary>The element quick navigation moved to.</summary>
     public static string Element(WordElement element) => element.Kind switch
     {
-        WordElementKind.Heading => Join(Text(element.Text), element.Level > 0 ? $"heading level {element.Level}" : "heading"),
-        WordElementKind.Table => Join($"table with {Count(element.Rows, "row")}, {Count(element.Columns, "column")}", Text(element.Text)),
-        WordElementKind.List => Join($"list with {Count(element.Items, "item")}", Text(element.Text)),
+        WordElementKind.Heading => Join(Text(element.Text), element.Level > 0 ? VoxStrings.Format("Announce.HeadingLevel", element.Level) : VoxStrings.Get("Word.Kind.Heading")),
+        WordElementKind.Table => Join(VoxStrings.Format("Word.TableWith", Rows(element.Rows), Columns(element.Columns)), Text(element.Text)),
+        WordElementKind.List => Join(VoxStrings.Format("Word.ListWith", element.Items == 1 ? VoxStrings.Get("AppModule.OneItem") : VoxStrings.Format("AppModule.Items", element.Items)), Text(element.Text)),
         WordElementKind.Comment when element.Comment is { } comment => Comment(comment),
         WordElementKind.Revision when element.Revision is { } revision => Revision(revision),
-        WordElementKind.SpellingError => Join(Text(element.Text), "misspelled"),
+        WordElementKind.SpellingError => Join(Text(element.Text), VoxStrings.Get("Word.Misspelled")),
         _ => Text(element.Text),
     };
 
     /// <summary>"Comment by Ann: check this figure".</summary>
     public static string Comment(WordComment comment) =>
-        $"Comment by {Author(comment.Author)}: {Text(comment.Text)}";
+        VoxStrings.Format("Word.CommentBy", Author(comment.Author), Text(comment.Text));
 
     /// <summary>"Insertion by Bob: new text", "Deletion by Bob: old text", "Formatting change by Bob".</summary>
     public static string Revision(WordRevision revision)
     {
         var what = RevisionTypeName(revision.Type);
-        var text = string.IsNullOrWhiteSpace(revision.Text) || revision.Type is not (1 or 2)
-            ? string.Empty
-            : $": {revision.Text.Trim()}";
-        return $"{what} by {Author(revision.Author)}{text}";
+        return string.IsNullOrWhiteSpace(revision.Text) || revision.Type is not (1 or 2)
+            ? VoxStrings.Format("Word.RevisionBy", what, Author(revision.Author))
+            : VoxStrings.Format("Word.RevisionByWithText", what, Author(revision.Author), revision.Text.Trim());
     }
 
     /// <summary>A name for Word's WdRevisionType.</summary>
     public static string RevisionTypeName(int type) => type switch
     {
-        1 => "Insertion",
-        2 => "Deletion",
-        3 => "Property change",
-        4 => "Paragraph number change",
-        5 => "Field display change",
-        6 => "Reconciled change",
-        7 => "Conflict",
-        8 => "Style change",
-        9 => "Replaced",
-        10 => "Paragraph property change",
-        11 => "Table property change",
-        12 => "Section property change",
-        13 => "Style definition change",
-        14 => "Moved from",
-        15 => "Moved to",
-        16 => "Cell inserted",
-        17 => "Cell deleted",
-        18 => "Cells merged",
-        _ => "Change",
+        1 => VoxStrings.Get("Word.Revision.Insertion"),
+        2 => VoxStrings.Get("Word.Revision.Deletion"),
+        3 => VoxStrings.Get("Word.Revision.PropertyChange"),
+        4 => VoxStrings.Get("Word.Revision.ParagraphNumberChange"),
+        5 => VoxStrings.Get("Word.Revision.FieldDisplayChange"),
+        6 => VoxStrings.Get("Word.Revision.ReconciledChange"),
+        7 => VoxStrings.Get("Word.Revision.Conflict"),
+        8 => VoxStrings.Get("Word.Revision.StyleChange"),
+        9 => VoxStrings.Get("Word.Revision.Replaced"),
+        10 => VoxStrings.Get("Word.Revision.ParagraphPropertyChange"),
+        11 => VoxStrings.Get("Word.Revision.TablePropertyChange"),
+        12 => VoxStrings.Get("Word.Revision.SectionPropertyChange"),
+        13 => VoxStrings.Get("Word.Revision.StyleDefinitionChange"),
+        14 => VoxStrings.Get("Word.Revision.MovedFrom"),
+        15 => VoxStrings.Get("Word.Revision.MovedTo"),
+        16 => VoxStrings.Get("Word.Revision.CellInserted"),
+        17 => VoxStrings.Get("Word.Revision.CellDeleted"),
+        18 => VoxStrings.Get("Word.Revision.CellsMerged"),
+        _ => VoxStrings.Get("Word.Revision.Change"),
     };
 
     /// <summary>
@@ -85,14 +86,14 @@ public static class WordAnnouncer
     {
         var parts = new List<string>();
         if (location.Page > 0)
-            parts.Add(location.Pages > 0 ? $"Page {location.Page} of {location.Pages}" : $"Page {location.Page}");
+            parts.Add(location.Pages > 0 ? VoxStrings.Format("Word.PageOf", location.Page, location.Pages) : VoxStrings.Format("Word.Page", location.Page));
         if (location.Section > 0)
-            parts.Add($"section {location.Section}");
+            parts.Add(VoxStrings.Format("Word.Section", location.Section));
         if (location.Line > 0)
-            parts.Add($"line {location.Line}");
+            parts.Add(VoxStrings.Format("Word.Line", location.Line));
         if (location.Column > 0)
-            parts.Add($"column {location.Column}");
-        return parts.Count == 0 ? "Location not available" : string.Join(", ", parts);
+            parts.Add(VoxStrings.Format("Word.Column", location.Column));
+        return parts.Count == 0 ? VoxStrings.Get("Word.LocationUnavailable") : string.Join(", ", parts);
     }
 
     /// <summary>
@@ -109,29 +110,31 @@ public static class WordAnnouncer
         if (!string.IsNullOrWhiteSpace(header))
             parts.Add(header.Trim());
         parts.Add(Text(cell.Text));
-        parts.Add($"row {cell.Row}, column {cell.Column}");
+        parts.Add(VoxStrings.Format("Word.RowColumn", cell.Row, cell.Column));
         return string.Join(", ", parts);
     }
 
     /// <summary>Said when there is no cell that way.</summary>
     public static string TableEdge(WordTableMove move) => move switch
     {
-        WordTableMove.Left => "Start of row",
-        WordTableMove.Right => "End of row",
-        WordTableMove.Up => "Top of column",
-        _ => "Bottom of column",
+        WordTableMove.Left => VoxStrings.Get("Word.StartOfRow"),
+        WordTableMove.Right => VoxStrings.Get("Word.EndOfRow"),
+        WordTableMove.Up => VoxStrings.Get("Word.TopOfColumn"),
+        _ => VoxStrings.Get("Word.BottomOfColumn"),
     };
 
     private static string Text(string text)
     {
         // Word ends paragraphs and cells with \r and \a
         var trimmed = text.Replace('\a', ' ').Replace('\r', ' ').Replace('\v', ' ').Trim();
-        return trimmed.Length == 0 ? "blank" : trimmed;
+        return trimmed.Length == 0 ? VoxStrings.Get("AppModule.Blank") : trimmed;
     }
 
-    private static string Author(string author) => string.IsNullOrWhiteSpace(author) ? "unknown author" : author.Trim();
+    private static string Author(string author) => string.IsNullOrWhiteSpace(author) ? VoxStrings.Get("Word.UnknownAuthor") : author.Trim();
 
-    private static string Count(int n, string singular) => n == 1 ? $"1 {singular}" : $"{n} {singular}s";
+    private static string Rows(int n) => n == 1 ? VoxStrings.Get("AppModule.OneRow") : VoxStrings.Format("AppModule.Rows", n);
+
+    private static string Columns(int n) => n == 1 ? VoxStrings.Get("AppModule.OneColumn") : VoxStrings.Format("AppModule.Columns", n);
 
     private static string Join(params string[] parts) => string.Join(", ", parts.Where(p => p.Length > 0));
 }

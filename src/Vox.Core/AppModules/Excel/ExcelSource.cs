@@ -1,4 +1,5 @@
 using Vox.Core.AppModules.Office;
+using Vox.Core.Localization;
 
 namespace Vox.Core.AppModules.Excel;
 
@@ -103,7 +104,7 @@ public sealed class ExcelObjectModelSource : IExcelSource
         dynamic collection = chart.SeriesCollection();
         int count = (int)collection.Count;
         for (int i = 1; i <= count; i++)
-            series.Add(Try(() => (string)collection.Item(i).Name) ?? $"Series {i}");
+            series.Add(Try(() => (string)collection.Item(i).Name) ?? VoxStrings.Format("Excel.SeriesNumber", i));
         return new ExcelChart(title, ExcelAnnouncer.ChartTypeName((int)chart.ChartType), series);
     }
 

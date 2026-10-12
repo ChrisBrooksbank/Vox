@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -141,17 +142,17 @@ public sealed class OutlookModule : AppModule
         {
             Run(async () => await _source.CurrentMessageAsync(window).ConfigureAwait(false) is { } message
                 ? OutlookFormatter.Header(message, field)
-                : "No message");
+                : VoxStrings.Get("Outlook.NoMessage"));
             return true;
         }
         if (AnswerCommands.TryGetValue(command, out var answer))
         {
             if (!_confirmations[answer].Press())
             {
-                Say($"Press again to {AnswerVerb(answer)} and send the answer", SpeechPriority.Interrupt);
+                Say(AnswerConfirmation(answer), SpeechPriority.Interrupt);
                 return true;
             }
-            Run(async () => await _source.AnswerMeetingAsync(window, answer).ConfigureAwait(false) ?? "Outlook didn't answer");
+            Run(async () => await _source.AnswerMeetingAsync(window, answer).ConfigureAwait(false) ?? VoxStrings.Get("Outlook.NoAnswer"));
             return true;
         }
         switch (command)
@@ -159,33 +160,33 @@ public sealed class OutlookModule : AppModule
             case NavigationCommand.OutlookMeetingStatus:
                 Run(async () => await _source.CurrentMessageAsync(window).ConfigureAwait(false) is { } message
                     ? OutlookFormatter.Meeting(message)
-                    : "No message");
+                    : VoxStrings.Get("Outlook.NoMessage"));
                 return true;
             case NavigationCommand.OutlookToday:
             {
                 var today = _now().Date;
                 Run(async () => await _source.AppointmentsAsync(today, today.AddDays(1)).ConfigureAwait(false) is { } appointments
-                    ? OutlookFormatter.Calendar(appointments, "today", multipleDays: false)
-                    : "The calendar isn't available");
+                    ? OutlookFormatter.Calendar(appointments, VoxStrings.Get("Outlook.PeriodToday"), multipleDays: false)
+                    : VoxStrings.Get("Outlook.CalendarUnavailable"));
                 return true;
             }
             case NavigationCommand.OutlookThisWeek:
             {
                 var today = _now().Date;
                 Run(async () => await _source.AppointmentsAsync(today, today.AddDays(7)).ConfigureAwait(false) is { } appointments
-                    ? OutlookFormatter.Calendar(appointments, "in the next 7 days", multipleDays: true)
-                    : "The calendar isn't available");
+                    ? OutlookFormatter.Calendar(appointments, VoxStrings.Get("Outlook.PeriodWeek"), multipleDays: true)
+                    : VoxStrings.Get("Outlook.CalendarUnavailable"));
                 return true;
             }
         }
         return false;
     }
 
-    private static string AnswerVerb(OutlookMeetingAnswer answer) => answer switch
+    private static string AnswerConfirmation(OutlookMeetingAnswer answer) => answer switch
     {
-        OutlookMeetingAnswer.Accept => "accept",
-        OutlookMeetingAnswer.Tentative => "tentatively accept",
-        _ => "decline",
+        OutlookMeetingAnswer.Accept => VoxStrings.Get("Outlook.ConfirmAccept"),
+        OutlookMeetingAnswer.Tentative => VoxStrings.Get("Outlook.ConfirmTentative"),
+        _ => VoxStrings.Get("Outlook.ConfirmDecline"),
     };
 
     private void Run(Func<Task<string>> work) => _ = Task.Run(async () =>

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Vox.Core.Localization;
 
 namespace Vox.Core.AppModules.Outlook;
 
@@ -25,7 +26,7 @@ public static class OutlookFormatter
             var value = column switch
             {
                 OutlookColumn.From => message.From,
-                OutlookColumn.Subject => string.IsNullOrWhiteSpace(message.Subject) ? "no subject" : message.Subject,
+                OutlookColumn.Subject => string.IsNullOrWhiteSpace(message.Subject) ? VoxStrings.Get("Outlook.NoSubject") : message.Subject,
                 OutlookColumn.Received => message.Received is { } received ? When(received, now) : null,
                 OutlookColumn.Size => message.Size > 0 ? Size(message.Size) : null,
                 OutlookColumn.Categories => message.Categories,
@@ -47,25 +48,25 @@ public static class OutlookFormatter
         switch (message.Kind)
         {
             case OutlookItemKind.MeetingRequest:
-                status.Add($"meeting request, {ResponseName(message.MeetingResponse)}");
+                status.Add(VoxStrings.Format("Outlook.MeetingRequestStatus", ResponseName(message.MeetingResponse)));
                 break;
             case OutlookItemKind.MeetingResponse:
-                status.Add("meeting response");
+                status.Add(VoxStrings.Get("Outlook.MeetingResponse"));
                 break;
             case OutlookItemKind.MeetingCancellation:
-                status.Add("meeting cancelled");
+                status.Add(VoxStrings.Get("Outlook.MeetingCancelled"));
                 break;
         }
         if (message.Unread)
-            status.Add("unread");
+            status.Add(VoxStrings.Get("Outlook.Unread"));
         if (message.Flagged)
-            status.Add("flagged");
+            status.Add(VoxStrings.Get("Outlook.Flagged"));
         if (message.Attachments > 0)
-            status.Add(message.Attachments == 1 ? "has attachment" : $"{message.Attachments} attachments");
+            status.Add(message.Attachments == 1 ? VoxStrings.Get("Outlook.HasAttachment") : VoxStrings.Format("Outlook.Attachments", message.Attachments));
         if (message.Importance == 2)
-            status.Add("high importance");
+            status.Add(VoxStrings.Get("Outlook.HighImportance"));
         else if (message.Importance == 0)
-            status.Add("low importance");
+            status.Add(VoxStrings.Get("Outlook.LowImportance"));
         return status;
     }
 
@@ -77,7 +78,7 @@ public static class OutlookFormatter
         if (time.Date == now.Date)
             return clock;
         if (time.Date == now.Date.AddDays(-1))
-            return $"yesterday {clock}";
+            return VoxStrings.Format("Outlook.Yesterday", clock);
         if (time.Date > now.Date.AddDays(-7) && time.Date < now.Date)
             return $"{time.ToString("dddd", culture)} {clock}";
         return time.ToString("d MMMM yyyy", culture);
@@ -90,9 +91,9 @@ public static class OutlookFormatter
     /// <summary>"24 KB", "1.5 MB".</summary>
     public static string Size(long bytes) => bytes switch
     {
-        < 1024 => $"{bytes} bytes",
-        < 1024 * 1024 => $"{Math.Max(1, bytes / 1024)} KB",
-        _ => $"{bytes / (1024.0 * 1024.0):0.#} MB",
+        < 1024 => VoxStrings.Format("Outlook.SizeBytes", bytes),
+        < 1024 * 1024 => VoxStrings.Format("Outlook.SizeKilobytes", Math.Max(1, bytes / 1024)),
+        _ => VoxStrings.Format("Outlook.SizeMegabytes", bytes / (1024.0 * 1024.0)),
     };
 
     /// <summary>A header field as the header commands say it: "From: John Smith".</summary>
@@ -107,16 +108,35 @@ public static class OutlookFormatter
             OutlookHeaderField.Date => message.Received is { } received ? FullDate(received) : null,
             _ => message.AttachmentNames is { Count: > 0 } names ? string.Join(", ", names) : null,
         };
-        var name = field == OutlookHeaderField.Date ? "Date" : field.ToString();
-        return string.IsNullOrWhiteSpace(value) ? $"No {name.ToLowerInvariant()}" : $"{name}: {value.Trim()}";
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return field switch
+            {
+                OutlookHeaderField.From => VoxStrings.Get("Outlook.NoFrom"),
+                OutlookHeaderField.To => VoxStrings.Get("Outlook.NoTo"),
+                OutlookHeaderField.Cc => VoxStrings.Get("Outlook.NoCc"),
+                OutlookHeaderField.Subject => VoxStrings.Get("Outlook.NoSubjectHeader"),
+                OutlookHeaderField.Date => VoxStrings.Get("Outlook.NoDate"),
+                _ => VoxStrings.Get("Outlook.NoAttachments"),
+            };
+        }
+        return field switch
+        {
+            OutlookHeaderField.From => VoxStrings.Format("Outlook.HeaderFrom", value.Trim()),
+            OutlookHeaderField.To => VoxStrings.Format("Outlook.HeaderTo", value.Trim()),
+            OutlookHeaderField.Cc => VoxStrings.Format("Outlook.HeaderCc", value.Trim()),
+            OutlookHeaderField.Subject => VoxStrings.Format("Outlook.HeaderSubject", value.Trim()),
+            OutlookHeaderField.Date => VoxStrings.Format("Outlook.HeaderDate", value.Trim()),
+            _ => VoxStrings.Format("Outlook.HeaderAttachments", value.Trim()),
+        };
     }
 
     /// <summary>A meeting request's state: when, where and the user's answer so far.</summary>
     public static string Meeting(OutlookMessage message)
     {
         if (message.Kind != OutlookItemKind.MeetingRequest)
-            return "Not a meeting request";
-        var parts = new List<string> { $"Meeting {message.Subject}".Trim() };
+            return VoxStrings.Get("Outlook.NotMeetingRequest");
+        var parts = new List<string> { VoxStrings.Format("Outlook.Meeting", message.Subject).Trim() };
         if (message.MeetingStart is { } start)
             parts.Add(FullDate(start));
         if (!string.IsNullOrWhiteSpace(message.MeetingLocation))
@@ -128,19 +148,19 @@ public static class OutlookFormatter
     /// <summary>A name for Outlook's OlResponseStatus.</summary>
     public static string ResponseName(int responseStatus) => responseStatus switch
     {
-        1 => "you organized it",
-        2 => "tentatively accepted",
-        3 => "accepted",
-        4 => "declined",
-        _ => "not answered",
+        1 => VoxStrings.Get("Outlook.Response.Organizer"),
+        2 => VoxStrings.Get("Outlook.Response.Tentative"),
+        3 => VoxStrings.Get("Outlook.Response.Accepted"),
+        4 => VoxStrings.Get("Outlook.Response.Declined"),
+        _ => VoxStrings.Get("Outlook.Response.None"),
     };
 
     /// <summary>What is said when an answer has been sent.</summary>
     public static string Answered(OutlookMeetingAnswer answer) => answer switch
     {
-        OutlookMeetingAnswer.Accept => "Accepted",
-        OutlookMeetingAnswer.Tentative => "Tentatively accepted",
-        _ => "Declined",
+        OutlookMeetingAnswer.Accept => VoxStrings.Get("Outlook.Answered.Accept"),
+        OutlookMeetingAnswer.Tentative => VoxStrings.Get("Outlook.Answered.Tentative"),
+        _ => VoxStrings.Get("Outlook.Answered.Decline"),
     };
 
     /// <summary>
@@ -150,9 +170,9 @@ public static class OutlookFormatter
     public static string Calendar(IReadOnlyList<OutlookAppointment> appointments, string period, bool multipleDays)
     {
         if (appointments.Count == 0)
-            return $"No appointments {period}";
+            return VoxStrings.Format("Outlook.NoAppointments", period);
         var culture = CultureInfo.CurrentCulture;
-        var parts = new List<string> { appointments.Count == 1 ? $"1 appointment {period}" : $"{appointments.Count} appointments {period}" };
+        var parts = new List<string> { appointments.Count == 1 ? VoxStrings.Format("Outlook.OneAppointment", period) : VoxStrings.Format("Outlook.Appointments", appointments.Count, period) };
         DateTime? day = null;
         foreach (var appointment in appointments.OrderBy(a => a.Start))
         {
@@ -163,13 +183,13 @@ public static class OutlookFormatter
                 items.Add(appointment.Start.ToString("dddd d MMMM", culture));
             }
             items.Add(appointment.AllDay
-                ? "all day"
-                : $"{appointment.Start.ToString("t", culture)} to {appointment.End.ToString("t", culture)}");
-            items.Add(string.IsNullOrWhiteSpace(appointment.Subject) ? "no subject" : appointment.Subject.Trim());
+                ? VoxStrings.Get("Outlook.AllDay")
+                : VoxStrings.Format("Outlook.TimeRange", appointment.Start.ToString("t", culture), appointment.End.ToString("t", culture)));
+            items.Add(string.IsNullOrWhiteSpace(appointment.Subject) ? VoxStrings.Get("Outlook.NoSubject") : appointment.Subject.Trim());
             if (!string.IsNullOrWhiteSpace(appointment.Location))
                 items.Add(appointment.Location.Trim());
             if (!string.IsNullOrWhiteSpace(appointment.Organizer))
-                items.Add($"organized by {appointment.Organizer.Trim()}");
+                items.Add(VoxStrings.Format("Outlook.OrganizedBy", appointment.Organizer.Trim()));
             parts.Add(string.Join(", ", items));
         }
         return string.Join(". ", parts);

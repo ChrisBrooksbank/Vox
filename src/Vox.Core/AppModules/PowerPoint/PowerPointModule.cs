@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -117,10 +118,10 @@ public sealed class PowerPointModule : AppModule
                     if (await _source.CurrentSlideAsync(window).ConfigureAwait(false) is not { } slide)
                         return Unavailable;
                     if (slide.Shapes.Count == 0)
-                        return "No shapes on this slide";
+                        return VoxStrings.Get("PowerPoint.NoShapes");
                     int index = forward ? from + 1 : from - 1;
                     if (index < 1 || index > slide.Shapes.Count)
-                        return forward ? "No next shape" : "No previous shape";
+                        return forward ? VoxStrings.Get("PowerPoint.NoNextShape") : VoxStrings.Get("PowerPoint.NoPreviousShape");
                     await _source.SelectShapeAsync(window, index).ConfigureAwait(false);
                     _events.Post(new PipelineWorkEvent(DateTimeOffset.UtcNow, () => _shapeIndex = index));
                     return PowerPointFormatter.Shape(slide.Shapes[index - 1], index, slide.Shapes.Count);
@@ -142,7 +143,7 @@ public sealed class PowerPointModule : AppModule
         }
     }
 
-    private const string Unavailable = "Not available while PowerPoint is busy";
+    private static string Unavailable => VoxStrings.Get("PowerPoint.Unavailable");
 
     private void Run(Func<Task<string>> work) => _ = Task.Run(async () =>
     {

@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.AppModules.Excel;
 
 /// <summary>A1-style cell addresses: column letters to numbers and back.</summary>
@@ -38,5 +40,5 @@ public static class ExcelAddress
     /// A range address as said: "A1:C5" → "A1 to C5"; Excel's absolute marks ("$A$1") are left out.
     /// </summary>
     public static string Speakable(string address) =>
-        address.Replace("$", string.Empty).Replace(":", " to ").Replace(",", ", ");
+        address.Replace("$", string.Empty).Replace(":", VoxStrings.Get("Excel.RangeTo")).Replace(",", ", ");
 }
