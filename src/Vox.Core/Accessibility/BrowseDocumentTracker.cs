@@ -37,6 +37,8 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
     private readonly IOptionsMonitor<VoxSettings>? _settings;
     private readonly IMouseInput? _mouse;
 
+    private readonly Labels.ICustomLabels? _labels;
+
     // STA-thread state
     private IUIAutomationElement? _documentRoot;
     private int[]? _documentRuntimeId;
@@ -56,9 +58,11 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         IEventSink eventSink,
         ILogger<BrowseDocumentTracker> logger,
         IOptionsMonitor<VoxSettings>? settings = null,
-        IMouseInput? mouse = null)
+        IMouseInput? mouse = null,
+        Labels.ICustomLabels? labels = null)
     {
         _settings = settings;
+        _labels = labels;
         _mouse = mouse;
         _uiaThread = uiaThread;
         _uiaProvider = uiaProvider;
@@ -207,7 +211,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
         {
             var cached = _uiaProvider.WithDocumentCaptureTimeout(() => document.BuildUpdatedCache(_uiaProvider.SubtreeCacheRequest));
             var snapshot = UIAElementSnapshot.Capture(cached);
-            buffer = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true }.Build(snapshot);
+            buffer = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true, Labels = _labels }.Build(snapshot);
             RememberWholeCapture(snapshot);
         }
         catch (Exception ex)
@@ -622,7 +626,7 @@ public sealed class BrowseDocumentTracker : IBrowseDocumentActions, IDisposable
                 return;
 
             var root = UIAElementSnapshot.Capture(document.BuildUpdatedCache(elementOnly));
-            var partial = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true }
+            var partial = new VBufferBuilder { ScreenLayout = _settings?.CurrentValue.ScreenLayout ?? true, Labels = _labels }
                 .Build(UIAElementSnapshot.WithParts(root, parts));
             _logger.LogDebug("Partial buffer posted: {Nodes} nodes", partial.AllNodes.Count);
             _eventSink.Post(new DocumentChangedEvent(DateTimeOffset.UtcNow, partial, focusedId, ProcessNameOf(document), IsPartial: true));

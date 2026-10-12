@@ -68,6 +68,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly RemoteAccessSession _remoteSession;
     private readonly RemoteCommands _remoteCommands;
     private readonly Vox.Core.Switching.SettingsImportCommands _importCommands;
+    private readonly Vox.Core.Labels.CustomLabelCommands _labelCommands;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -155,6 +156,7 @@ public sealed class ScreenReaderService : IHostedService
         RemoteAccessSession remoteSession,
         RemoteCommands remoteCommands,
         Vox.Core.Switching.SettingsImportCommands importCommands,
+        Vox.Core.Labels.CustomLabelCommands labelCommands,
         RunPolicy? runPolicy = null,
         RemoteSessionMonitor? remoteSessions = null)
     {
@@ -163,6 +165,7 @@ public sealed class ScreenReaderService : IHostedService
         _remoteSession = remoteSession;
         _remoteCommands = remoteCommands;
         _importCommands = importCommands;
+        _labelCommands = labelCommands;
         _remoteSessions = remoteSessions;
         _profiles = profiles;
         _profileCommands = profileCommands;
@@ -265,6 +268,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
         _eventPipeline.FocusContextProvider = FocusContext;
         _eventPipeline.ErrorMessageProvider = _browseModeController.ErrorMessageFor;
+        _eventPipeline.CustomLabelProvider = _browseModeController.CustomLabelFor;
         // The foreground application's module, then the add-ons' global plug-ins, may drop events,
         // change focus announcements and see every event once handled
         _eventPipeline.EventFilter = e => _appModules.ShouldProcess(e) && _addOns.ShouldProcess(e);
@@ -628,7 +632,7 @@ public sealed class ScreenReaderService : IHostedService
             && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
             && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command)
             && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command)
-            && !_importCommands.TryHandle(e.Command))
+            && !_importCommands.TryHandle(e.Command) && !_labelCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 

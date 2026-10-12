@@ -102,7 +102,8 @@ public sealed class IncrementalUpdater
 
         if (newSubtreeRoot is not null)
         {
-            (newSubtreeNodes, newSubtreeText) = VBufferBuilder.BuildSubtree(newSubtreeRoot, oldSubtreeRoot.Parent?.Language ?? string.Empty, document.ScreenLayout);
+            (newSubtreeNodes, newSubtreeText) = VBufferBuilder.BuildSubtree(newSubtreeRoot, oldSubtreeRoot.Parent?.Language ?? string.Empty, document.ScreenLayout,
+                LabelScopeAt(document, oldSubtreeRoot));
         }
         else
         {
@@ -185,13 +186,26 @@ public sealed class IncrementalUpdater
         }
 
         return new IncrementalUpdateResult(
-            new VBufferDocument(newFlatText.ToString(), allNewNodes[0], allNewNodes) { ScreenLayout = document.ScreenLayout },
+            new VBufferDocument(newFlatText.ToString(), allNewNodes[0], allNewNodes) { ScreenLayout = document.ScreenLayout, Labels = document.Labels },
             recaptureRuntimeId, oldTextStart, oldTextEnd, textDelta);
     }
 
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// The document's custom labels for a subtree re-captured in place of <paramref name="oldRoot"/>:
+    /// its ancestors and the text before it are the old ones', as in a whole build.
+    /// </summary>
+    private static Labels.LabelScope? LabelScopeAt(VBufferDocument document, VBufferNode oldRoot)
+    {
+        if (document.Labels is not { } labels)
+            return null;
+        int start = Math.Clamp(oldRoot.TextRange.Start, 0, document.FlatText.Length);
+        int from = Math.Max(0, start - Labels.ElementSignature.NearbyWindow);
+        return new Labels.LabelScope(labels, Labels.ElementSignature.AncestorKeys(oldRoot.Parent, []), document.FlatText[from..start]);
+    }
 
     /// <summary>Collects all nodes in the subtree rooted at <paramref name="node"/> in pre-order.</summary>
     /// <summary>

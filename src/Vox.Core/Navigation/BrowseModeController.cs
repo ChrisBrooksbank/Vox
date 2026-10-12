@@ -1780,6 +1780,31 @@ public sealed class BrowseModeController
         _quickNavHandler.CurrentDocument?.ErrorMessageOf(runtimeIds);
 
     /// <summary>
+    /// The custom label of the element with <paramref name="runtimeId"/> in the page's buffer
+    /// (for its focus announcement), or null. Pipeline thread.
+    /// </summary>
+    public string? CustomLabelFor(int[] runtimeId) =>
+        _quickNavHandler.CurrentDocument?.FindByRuntimeId(runtimeId) is { CustomLabel.Length: > 0 } node ? node.CustomLabel : null;
+
+    /// <summary>The address of the page in the buffer (its document element's value), or null. Pipeline thread.</summary>
+    public string? CurrentAddress => _quickNavHandler.CurrentDocument?.Root.Value;
+
+    /// <summary>
+    /// What a custom label would name: on a web page, the link, control or graphic at the browse
+    /// cursor, or in focus mode the focused one; null when there is none. Pipeline thread.
+    /// </summary>
+    public (VBufferNode Node, VBufferDocument Document)? LabelTarget()
+    {
+        var document = _quickNavHandler.CurrentDocument;
+        if (!_documentActive || document is null)
+            return null;
+        var node = _navigationManager.CurrentMode == InteractionMode.Browse
+            ? _cursor?.CurrentNode
+            : _lastFocusedRuntimeId is { } focused ? document.FindByRuntimeId(focused) : null;
+        return Labels.CustomLabelTargets.Around(node) is { } target ? (target, document) : null;
+    }
+
+    /// <summary>
     /// The role of the link, button or heading whose text starts exactly at the cursor, if any
     /// (so it is spoken when the cursor enters it, not on every move inside it).
     /// </summary>

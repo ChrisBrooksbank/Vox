@@ -5005,6 +5005,70 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="VoxMenu.ImportSettings" xml:space="preserve">
     <value>I&amp;mport settings from NVDA or JAWS...</value>
   </data>
+  <data name="Command.LabelElement.Name" xml:space="preserve">
+    <value>Label this element</value>
+  </data>
+  <data name="Command.LabelElement.Description" xml:space="preserve">
+    <value>Gives the link, button, field or graphic at the browse cursor (or the focused one) a name of your own, used every time you visit the site.</value>
+  </data>
+  <data name="Command.ManageLabels.Name" xml:space="preserve">
+    <value>Custom labels</value>
+  </data>
+  <data name="Command.ManageLabels.Description" xml:space="preserve">
+    <value>Opens your custom labels to change or delete them.</value>
+  </data>
+  <data name="VoxMenu.ManageLabels" xml:space="preserve">
+    <value>Custom la&amp;bels...</value>
+  </data>
+  <data name="Labels.NotHere" xml:space="preserve">
+    <value>Custom labels are not available here</value>
+  </data>
+  <data name="Labels.NothingToLabel" xml:space="preserve">
+    <value>Nothing to label here. Move to a link, button, field or graphic on a web page.</value>
+  </data>
+  <data name="Labels.NotOnThisPage" xml:space="preserve">
+    <value>Labels can only be given on web sites</value>
+  </data>
+  <data name="Labels.PromptTitle" xml:space="preserve">
+    <value>Custom label</value>
+  </data>
+  <data name="Labels.Prompt" xml:space="preserve">
+    <value>&amp;Label for {0}:</value>
+    <comment>{0}: the element's role and current name ("button img_23.png")</comment>
+  </data>
+  <data name="Labels.Saved" xml:space="preserve">
+    <value>Labelled {0}</value>
+    <comment>{0}: the new label</comment>
+  </data>
+  <data name="Labels.NotSaved" xml:space="preserve">
+    <value>The labels could not be saved</value>
+  </data>
+  <data name="Labels.None" xml:space="preserve">
+    <value>No custom labels yet. Press the label key on a link, button or graphic to give it one.</value>
+  </data>
+  <data name="Labels.Entry" xml:space="preserve">
+    <value>{0}, {1}</value>
+    <comment>{0}: the label; {1}: its site ("example.com/mail")</comment>
+  </data>
+  <data name="Labels.EntryDescribed" xml:space="preserve">
+    <value>{0} (described)</value>
+    <comment>A label that came from an automatic description</comment>
+  </data>
+  <data name="Labels.Dialog.Title" xml:space="preserve">
+    <value>Custom labels</value>
+  </data>
+  <data name="Labels.Dialog.List" xml:space="preserve">
+    <value>&amp;Labels:</value>
+  </data>
+  <data name="Labels.Dialog.Label" xml:space="preserve">
+    <value>&amp;Text:</value>
+  </data>
+  <data name="Labels.Dialog.Change" xml:space="preserve">
+    <value>&amp;Change label</value>
+  </data>
+  <data name="Labels.Dialog.Delete" xml:space="preserve">
+    <value>&amp;Delete</value>
+  </data>
   <data name="Import.Source.Nvda" xml:space="preserve">
     <value>NVDA</value>
   </data>

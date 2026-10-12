@@ -79,3 +79,20 @@ review the current word to Insert+Ctrl+Numpad 5 (desktop), and the link's addres
 Insert+Shift+K (laptop). Every command keeps a key. The keyboard reference, input help
 (Insert+1) and the practice lessons follow the layout in use; the user guide's
 `keyboard-jaws.html` lists every command's keys in the two JAWS layouts.
+
+## Custom labels
+
+A button, link or graphic with no name (or a file name) can be given one: Insert+Ctrl+Tab on it
+in browse mode, or while it has focus, asks for the label (as JAWS's Ctrl+Insert+Tab does). The
+label is kept in `%APPDATA%\Vox\labels.json` for the site (scheme and host, such as
+`https://mail.example.com`; a label can also be limited to a path prefix such as `/mail`), and
+used from then on in browse mode, by quick navigation and the elements list, and when the element
+gets focus; the element's own content (the icon's file name) is left out. Custom labels in the Vox
+menu changes or deletes them. None on secure screens.
+
+An element is found again by its signature: its automation id (the HTML `id`) when it has one,
+else its role, the roles of its nearest meaningful ancestors (plain `div`s and `span`s left out)
+and the last three words of text before it. So a label survives reloads, updates of other parts
+of the page and the element itself being redrawn, but not a page redesign that changes the
+element's surroundings (label it again then). A label given with another label just before it
+depends on that one's text, as the text before it is part of its signature.

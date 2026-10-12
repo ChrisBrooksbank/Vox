@@ -308,5 +308,11 @@ public enum NavigationCommand
 
     // Switching from other screen readers
     /// <summary>Brings over NVDA's or JAWS's settings, keys and dictionaries after showing what will change.</summary>
-    ImportSettings
+    ImportSettings,
+
+    // Custom labels
+    /// <summary>Gives the link, control or graphic at the browse cursor (or the focused one) a label of your own, kept for its site.</summary>
+    LabelElement,
+    /// <summary>Opens the custom labels dialog: change or delete labels.</summary>
+    ManageLabels
 }

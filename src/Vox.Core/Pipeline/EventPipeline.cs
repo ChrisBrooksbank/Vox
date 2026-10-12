@@ -100,6 +100,12 @@ public sealed class EventPipeline : IEventSink, IDisposable
     public Func<IReadOnlyList<int[]>, string?>? ErrorMessageProvider { get; set; }
 
     /// <summary>
+    /// The user's custom label for a focused element, by its runtime ID (in the page's buffer),
+    /// said as its name. Called on the pipeline thread; null finds nothing.
+    /// </summary>
+    public Func<int[], string?>? CustomLabelProvider { get; set; }
+
+    /// <summary>
     /// Asked first for every event; false drops it unhandled (the foreground application's module
     /// leaving something to the application). Called on the pipeline thread; null keeps everything.
     /// </summary>
@@ -397,6 +403,8 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
         // Nothing to say (e.g. an unnamed group): don't send an empty Interrupt that would
         // silently cut off whatever is being spoken
+        if (focus.RuntimeId is { Length: > 0 } labelled && CustomLabelProvider?.Invoke(labelled) is { Length: > 0 } label)
+            focus = focus with { ElementName = label };
         if (focus.ErrorMessageIds is { Count: > 0 } errorIds && string.IsNullOrEmpty(focus.ErrorMessage)
             && ErrorMessageProvider?.Invoke(errorIds) is { Length: > 0 } errorMessage)
             focus = focus with { ErrorMessage = errorMessage };

@@ -34,6 +34,7 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_IsRequiredForFormPropertyId = 30025;
     internal const int UIA_LegacyIAccessibleStatePropertyId = 30100;
     internal const int UIA_AcceleratorKeyPropertyId = 30006;
+    internal const int UIA_AutomationIdPropertyId = 30011;
     internal const int UIA_AccessKeyPropertyId = 30007;
     internal const int UIA_PositionInSetPropertyId = 30152;
     internal const int UIA_SizeOfSetPropertyId = 30153;
@@ -180,6 +181,8 @@ public sealed class UIAProvider : IDisposable
         request.AddProperty(UIA_AnnotationTypesPropertyId);
         // Chromium offers Invoke on elements with a click handler (to say "clickable")
         request.AddProperty(UIA_IsInvokePatternAvailablePropertyId);
+        // An HTML element's id: the stable part of a custom label's signature
+        request.AddProperty(UIA_AutomationIdPropertyId);
         AddStateProperties(request);
         request.TreeScope = TreeScope.TreeScope_Subtree;
         request.TreeFilter = automation.ControlViewCondition;

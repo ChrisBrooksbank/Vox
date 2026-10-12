@@ -84,6 +84,9 @@ public sealed class VBufferDocument
     /// <summary>Whether it was built with screen layout (see <see cref="VBufferBuilder.ScreenLayout"/>); updates keep it.</summary>
     public bool ScreenLayout { get; init; } = true;
 
+    /// <summary>The custom labels it was built with (see <see cref="VBufferBuilder.Labels"/>); updates keep them. Null: none.</summary>
+    public Labels.SiteLabels? Labels { get; init; }
+
     public VBufferDocument(
         string flatText,
         VBufferNode root,

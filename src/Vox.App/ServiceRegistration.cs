@@ -20,6 +20,7 @@ using Vox.Core.Configuration;
 using Vox.Core.Diagnostics;
 using Vox.Core.Enterprise;
 using Vox.Core.Input;
+using Vox.Core.Labels;
 using Vox.Core.Lifecycle;
 using Vox.Core.Localization;
 using Vox.Core.MathSpeech;
@@ -435,6 +436,29 @@ public static class ServiceRegistration
                 lifetime.StopApplication,
                 policy.AllowSettingsWrites ? Path.Combine(VoxPaths.UserData, "update-check.txt") : null,
                 sp.GetRequiredService<ILogger<UpdateCommands>>());
+        });
+        // Custom labels for web pages' elements, kept per site; none on secure screens
+        services.AddSingleton<CustomLabelStore>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            return new CustomLabelStore(
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? Path.Combine(VoxPaths.UserData, CustomLabelStore.FileName) : null,
+                sp.GetRequiredService<ILogger<CustomLabelStore>>());
+        });
+        services.AddSingleton<ICustomLabels>(sp => sp.GetRequiredService<CustomLabelStore>());
+        services.AddSingleton<ICustomLabelsPresenter, CustomLabelsPresenter>();
+        services.AddSingleton<CustomLabelCommands>(sp =>
+        {
+            var tracker = sp.GetRequiredService<BrowseDocumentTracker>();
+            return new CustomLabelCommands(
+                sp.GetRequiredService<CustomLabelStore>(),
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<ITextPrompt>(),
+                sp.GetRequiredService<ICustomLabelsPresenter>(),
+                sp.GetRequiredService<EventPipeline>(),
+                () => tracker.RequestRecapture(null),
+                sp.GetRequiredService<ILogger<CustomLabelCommands>>(),
+                sp.GetRequiredService<SpeechQueue>());
         });
         // Settings from NVDA and JAWS (Vox menu, first-run wizard); none on secure screens
         services.AddSingleton<ISettingsImportPresenter, SettingsImportPresenter>();
