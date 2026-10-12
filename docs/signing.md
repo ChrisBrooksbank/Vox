@@ -39,4 +39,26 @@ Vox is applying for free open-source signing from the [SignPath Foundation](http
 the certificate belongs to SignPath Foundation (shown as the publisher), the private key stays
 with SignPath, and every release is approved by hand in SignPath before it is signed. The README's
 "Code signing policy" section and the [privacy policy](privacy.md) are part of that agreement; keep
-the team roles there up to date.
+the team roles there up to date. Every Vox assembly says its product is "Vox" (`src/Directory.Build.props`)
+and the Release workflow gives them all the release's version, as SignPath requires.
+
+The Release workflow signs through SignPath when it has the token and the organization ID, and
+there is no `VOX_SIGNING_CERTIFICATE` (which wins). It builds Vox.App with `-p:VoxUiAccess=true`
+(the UI-access manifest without signing in the build), sends Vox's own exes and `Vox.*.dll` (never
+third-party libraries) to be signed, builds the MSI from the signed files, then sends the MSI. Each
+request waits up to 30 minutes for your approval in SignPath.
+
+Once SignPath has accepted the project:
+
+1. In SignPath, add the predefined **GitHub.com** trusted build system to the organization and link
+   it to the project.
+2. Create two artifact configurations in the project, named `programs` and `installer`, from
+   [.signpath/artifact-configurations](../.signpath/artifact-configurations).
+3. Create a CI user with submitter rights on the signing policy and an API token for it.
+4. In GitHub, Settings, Secrets and variables, Actions:
+   - Secret `SIGNPATH_API_TOKEN`: the token.
+   - Variable `SIGNPATH_ORGANIZATION_ID`: the organization ID (a GUID, on the organization's
+     settings page).
+   - Variable `SIGNPATH_PROJECT_SLUG` if the project's slug isn't `Vox`, and
+     `SIGNPATH_SIGNING_POLICY_SLUG` if the policy's isn't `release-signing`.
+5. Run the Release workflow and approve the two signing requests in SignPath when they appear.

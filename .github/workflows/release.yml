@@ -2,7 +2,8 @@ name: Release
 
 # Builds the Vox installer (Vox.msi) and a portable zip on demand: publishes Vox.App, Vox.Watchdog
 # and Vox.Service self-contained into one folder, signs them and the MSI when a certificate is
-# configured (UI access needs a signed Vox in Program Files; docs/signing.md), and builds the MSI
+# configured, or through SignPath when its token and IDs are (UI access needs a signed Vox in
+# Program Files; docs/signing.md), and builds the MSI
 # from them (docs/installer.md). With "Publish a GitHub release" it also makes a release (a
 # pre-release unless told otherwise) with both files, so they download without a GitHub account.
 on:
@@ -23,6 +24,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   installer:
@@ -33,6 +35,8 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: true
       PUBLISH_DIR: ${{ github.workspace }}\publish\Vox
       HAS_CERTIFICATE: ${{ secrets.VOX_SIGNING_CERTIFICATE != '' }}
+      # SignPath (docs/signing.md): the API token is a secret, the IDs are repository variables
+      HAS_SIGNPATH: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +55,12 @@ jobs:
           "SIGNTOOL=$($signtool.FullName)" >> $env:GITHUB_ENV
           # The UI-access manifest is embedded only in signed builds
           "VOX_SIGNING_ARGS=-p:VoxSigningCertificate=$env:RUNNER_TEMP\vox.pfx -p:VoxSignTool=$($signtool.FullName)" >> $env:GITHUB_ENV
+
+      # SignPath signs after the build, so the build itself only asks for UI access
+      - name: Prepare SignPath signing
+        if: env.HAS_SIGNPATH == 'true' && env.HAS_CERTIFICATE != 'true'
+        shell: pwsh
+        run: '"VOX_SIGNING_ARGS=-p:VoxUiAccess=true" >> $env:GITHUB_ENV'
 
       - name: Publish Vox
         shell: pwsh
@@ -84,6 +94,41 @@ jobs:
           & $env:SIGNTOOL sign /f "$env:RUNNER_TEMP\vox.pfx" /p $env:SIGNING_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 @files
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # Only Vox's own files go to SignPath; the signed ones replace them before the MSI is built
+      - name: Collect the programs for SignPath
+        if: env.HAS_SIGNPATH == 'true' && env.HAS_CERTIFICATE != 'true'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force signpath\programs | Out-Null
+          Copy-Item "$env:PUBLISH_DIR\Vox.*.exe", "$env:PUBLISH_DIR\Vox.*.dll" signpath\programs
+
+      - name: Upload the programs for SignPath
+        id: unsigned-programs
+        if: env.HAS_SIGNPATH == 'true' && env.HAS_CERTIFICATE != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-programs
+          path: signpath/programs/*
+
+      - name: Sign the programs with SignPath
+        if: env.HAS_SIGNPATH == 'true' && env.HAS_CERTIFICATE != 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'Vox' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: programs
+          github-artifact-id: ${{ steps.unsigned-programs.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 1800
+          output-artifact-directory: signpath/signed-programs
+
+      - name: Put the signed programs in place
+        if: env.HAS_SIGNPATH == 'true' && env.HAS_CERTIFICATE != 'true'
+        shell: pwsh
+        run: Copy-Item signpath\signed-programs\* $env:PUBLISH_DIR -Force
+
       - name: Build the installer
         run: dotnet build installer/Vox.Installer -c Release -p:PublishDir="${{ env.PUBLISH_DIR }}" -p:VoxVersion=${{ inputs.version }} -o installer-out
 
@@ -95,6 +140,28 @@ jobs:
         run: |
           & $env:SIGNTOOL sign /f "$env:RUNNER_TEMP\vox.pfx" /p $env:SIGNING_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 (Get-ChildItem installer-out\*.msi).FullName
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload the installer for SignPath
+        id: unsigned-installer
+        if: env.HAS_SIGNPATH == 'true' && env.HAS_CERTIFICATE != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-installer
+          path: installer-out/Vox.msi
+
+      - name: Sign the installer with SignPath
+        if: env.HAS_SIGNPATH == 'true' && env.HAS_CERTIFICATE != 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'Vox' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.unsigned-installer.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 1800
+          output-artifact-directory: installer-out
 
       # The portable copy: the same files with an empty userConfig folder, so it keeps its settings
       # beside itself (VoxPaths) and runs from any folder or USB stick without installing

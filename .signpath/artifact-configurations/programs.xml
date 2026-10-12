@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration "programs": Vox's own exes and libraries, before the MSI is built
+     (docs/signing.md). Third-party libraries are never sent for signing. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file-set>
+      <include path="Vox.App.exe" />
+      <include path="Vox.Watchdog.exe" />
+      <include path="Vox.Service.exe" />
+      <include path="Vox.*.dll" min-matches="1" max-matches="unbounded" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+  </zip-file>
+</artifact-configuration>
