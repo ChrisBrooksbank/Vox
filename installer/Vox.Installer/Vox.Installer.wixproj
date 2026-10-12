@@ -9,6 +9,9 @@
     <!-- Vox is published for win-x64 into Program Files (64-bit): a 32-bit package fails ICE80 and
          would write HKLM\Software\Vox under WOW6432Node, where the 64-bit Vox doesn't look -->
     <InstallerPlatform>x64</InstallerPlatform>
+    <!-- ICE38/43/57 assume the shortcut folders are per-user; the package is per-machine, so they are
+         the All Users folders and the shortcut components' HKLM key paths are right -->
+    <SuppressIces>ICE38;ICE43;ICE57</SuppressIces>
     <VoxVersion Condition="'$(VoxVersion)' == ''">0.1.0</VoxVersion>
     <DefineConstants>PublishDir=$(PublishDir);VoxVersion=$(VoxVersion)</DefineConstants>
     <SuppressValidation Condition="'$(OS)' != 'Windows_NT'">true</SuppressValidation>
