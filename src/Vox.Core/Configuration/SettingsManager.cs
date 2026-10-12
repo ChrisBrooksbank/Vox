@@ -11,7 +11,7 @@ namespace Vox.Core.Configuration;
 /// </summary>
 public sealed class SettingsManager
 {
-    public static readonly string DefaultUserSettingsPath = Path.Combine(
+    public static string DefaultUserSettingsPath => Path.Combine(
         Lifecycle.VoxPaths.UserData, "settings.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -49,6 +49,13 @@ public sealed class SettingsManager
     public bool ReadOnly { get; init; }
 
     /// <summary>
+    /// The computer's default settings (<see cref="Enterprise.MachineSettings"/>), laid between the
+    /// built-in defaults and the user's file: what a new user starts with, and what a user's file
+    /// doesn't say. Null: none.
+    /// </summary>
+    public JsonObject? MachineDefaults { get; init; }
+
+    /// <summary>
     /// Loads settings from the user settings file, falling back to defaults if not found or invalid.
     /// </summary>
     public VoxSettings Load()
@@ -83,7 +90,8 @@ public sealed class SettingsManager
             // a newer one is read as far as this version understands it, and never overwritten
             int version = SettingsMigrations.Migrate(document);
             _fileIsNewer = version > VoxSettings.CurrentSchemaVersion;
-            var loaded = document.Deserialize<VoxSettings>(JsonOptions);
+            var loaded = (MachineDefaults is null ? document : Enterprise.SettingValues.Overlay(MachineDefaults, document))
+                .Deserialize<VoxSettings>(JsonOptions);
             if (loaded is null)
                 return false;
 
@@ -167,6 +175,24 @@ public sealed class SettingsManager
 
     private VoxSettings LoadDefaults()
     {
+        if (MachineDefaults is not null)
+        {
+            try
+            {
+                var builtIn = File.Exists(_defaultSettingsPath) ? JsonNode.Parse(File.ReadAllText(_defaultSettingsPath)) as JsonObject : null;
+                var settings = Enterprise.SettingValues.Overlay(builtIn, MachineDefaults).Deserialize<VoxSettings>(JsonOptions);
+                if (settings is not null)
+                {
+                    _logger.LogInformation("Loaded default settings with the computer's defaults");
+                    return settings;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+            {
+                _logger.LogWarning(ex, "Failed to apply the computer's default settings");
+            }
+        }
+
         if (File.Exists(_defaultSettingsPath))
         {
             try
@@ -209,16 +235,23 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
     // Track last programmatic save time to suppress the resulting file watcher event
     private long _lastProgrammaticSaveTick;
 
-    public SettingsMonitor(SettingsManager manager, ILogger<SettingsMonitor> logger)
+    // The organization's policies: laid over every settings value this monitor gives out
+    private readonly Enterprise.PolicySettings _policy;
+
+    public SettingsMonitor(SettingsManager manager, ILogger<SettingsMonitor> logger, Enterprise.PolicySettings? policy = null)
     {
         _manager = manager;
         _logger = logger;
+        _policy = policy ?? Enterprise.PolicySettings.None;
         _normal = _manager.Load();
-        _current = _normal;
+        _current = _policy.Apply(_normal);
         StartWatching();
     }
 
-    /// <summary>The effective settings: the normal configuration with the active profiles laid over it.</summary>
+    /// <summary>The organization's policies, which these settings always follow.</summary>
+    public Enterprise.PolicySettings Policy => _policy;
+
+    /// <summary>The effective settings: the normal configuration with the active profiles, then the policies, laid over it.</summary>
     public VoxSettings CurrentValue => _current;
 
     /// <summary>The normal configuration, without profiles.</summary>
@@ -240,13 +273,16 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
         VoxSettings settings;
         lock (_updateLock)
         {
-            settings = _profiles?.Apply(_normal) ?? _normal;
+            settings = Compose(_normal);
             if (settings == _current)
                 return;
             _current = settings;
         }
         Notify(settings);
     }
+
+    /// <summary>The effective settings for <paramref name="normal"/>: the active profiles, then the policies, over it.</summary>
+    private VoxSettings Compose(VoxSettings normal) => _policy.Apply(_profiles?.Apply(normal) ?? normal);
 
     private void Notify(VoxSettings settings)
     {
@@ -265,6 +301,8 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
     /// </summary>
     public void UpdateSettings(VoxSettings settings)
     {
+        // A setting the policy sets can't be changed, whoever changes it
+        settings = _policy.Restrain(_current, settings);
         VoxSettings effective;
         lock (_updateLock)
         {
@@ -273,12 +311,12 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
                 var forNormal = profiles.RecordChanges(ProfileSettings.Diff(_current, settings));
                 if (forNormal.Count > 0)
                     SaveNormal(ProfileSettings.Merge(_normal, [forNormal]));
-                effective = profiles.Apply(_normal);
+                effective = Compose(_normal);
             }
             else
             {
                 SaveNormal(settings);
-                effective = _profiles?.Apply(_normal) ?? _normal;
+                effective = Compose(_normal);
             }
             _current = effective;
         }
@@ -346,8 +384,8 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
             VoxSettings effective;
             lock (_updateLock)
             {
-                _normal = reloaded;
-                effective = _profiles?.Apply(reloaded) ?? reloaded;
+                _normal = _policy.Restrain(_normal, reloaded);
+                effective = Compose(_normal);
                 _current = effective;
             }
             _logger.LogInformation("Settings reloaded from file change");

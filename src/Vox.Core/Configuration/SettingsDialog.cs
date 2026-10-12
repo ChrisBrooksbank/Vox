@@ -98,7 +98,7 @@ public sealed class SettingsDialog : VoxDialog
         foreach (var field in page.Fields)
         {
             var control = BuildControl(field);
-            if (field is ToggleField)
+            if (field is ToggleField && !field.Locked)
             {
                 grid.Controls.Add(control, 1, row);
             }
@@ -117,6 +117,14 @@ public sealed class SettingsDialog : VoxDialog
     private Control BuildControl(SettingField field)
     {
         var name = field.Label.Replace("&", string.Empty);
+        if (field.Locked)
+        {
+            // Set by the organization: read-only, but still reached with Tab and read like the rest
+            return new TextBox
+            {
+                ReadOnly = true, Text = SettingsPages.ValueText(field, _current), AccessibleName = name, Width = 260, TabStop = true,
+            };
+        }
         switch (field)
         {
             case ToggleField toggle:

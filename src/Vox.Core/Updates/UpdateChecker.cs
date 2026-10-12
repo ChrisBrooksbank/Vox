@@ -25,7 +25,8 @@ public sealed class UpdateChecker(
     string? publicKeyPem,
     Uri feedUrl,
     Version currentVersion,
-    ILogger<UpdateChecker> logger) : IDisposable
+    ILogger<UpdateChecker> logger,
+    Lifecycle.RunPolicy? policy = null) : IDisposable
 {
     /// <summary>The signed feed of every release (feed.json.sig beside it).</summary>
     public static readonly Uri DefaultFeedUrl = new("https://raw.githubusercontent.com/ChrisBrooksbank/Vox/master/updates/feed.json");
@@ -33,7 +34,12 @@ public sealed class UpdateChecker(
     /// <summary>The release found by the last check, if newer than this Vox.</summary>
     public UpdateRelease? Available { get; private set; }
 
-    public bool IsEnabled => publicKeyPem is not null && channel() != UpdateChannel.Off;
+    /// <summary>
+    /// Checks only with the release key, the channel not Off and the network allowed (no
+    /// DisableNetwork policy, not a secure screen); <paramref name="http"/> refuses too when it
+    /// comes from <see cref="Enterprise.NetworkGate.CreateHttpClient"/>.
+    /// </summary>
+    public bool IsEnabled => publicKeyPem is not null && channel() != UpdateChannel.Off && (policy?.AllowNetwork ?? true);
 
     public async Task<UpdateCheckResult> CheckAsync(CancellationToken cancellationToken = default)
     {
@@ -76,6 +82,8 @@ public sealed class UpdateChecker(
     /// </remarks>
     public async Task<bool> InstallAsync(UpdateRelease release, Action<string> startInstaller, CancellationToken cancellationToken = default)
     {
+        if (policy is { AllowNetwork: false })
+            throw new Enterprise.NetworkDisabledException(Uri.TryCreate(release.Url, UriKind.Absolute, out var uri) ? uri.Host : null);
         var folder = Directory.CreateTempSubdirectory("Vox-update-");
         var path = Path.Combine(folder.FullName, $"Vox-{release.Version}.msi");
         FileStream? held = null;

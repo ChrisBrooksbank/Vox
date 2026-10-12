@@ -1,5 +1,6 @@
 using Serilog;
 using Vox.App;
+using Vox.Core.Enterprise;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
 
@@ -12,6 +13,13 @@ if (args is ["--keyboard-reference", var referencePath])
 
 // --secure: the instance Vox.Service starts on the sign-in, lock and UAC screens
 var policy = RunPolicy.FromArgs(args);
+
+// The organization's Group Policy (Software\Policies\Vox; the secure screens read only the
+// computer's): it can switch the network, add-ons and AI off, and keep settings on this computer
+var organizationPolicy = PolicySettings.Read(new Win32RegistryReader(), includeUser: !policy.IsSecure);
+policy = organizationPolicy.Restrict(policy);
+if (organizationPolicy.SettingsLocation == SettingsLocation.Local)
+    VoxPaths.KeepUserDataLocal(true);
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -37,6 +45,9 @@ HookSafetyNet? safetyNet = null;
 try
 {
     Log.Information("Vox Screen Reader starting");
+    Log.Information(organizationPolicy.Describe());
+    foreach (var problem in organizationPolicy.Problems)
+        Log.Warning("Policy: {Problem}", problem);
     Log.Information(UIAccess.Describe(UIAccess.IsGranted()));
 
     if (!policy.IsSecure)
@@ -78,6 +89,7 @@ async Task RunScreenReaderAsync(CancellationToken stop)
         .ConfigureServices((context, services) =>
         {
             services.AddSingleton(policy);
+            services.AddSingleton(organizationPolicy);
             ServiceRegistration.RegisterServices(context, services);
         })
         .Build();

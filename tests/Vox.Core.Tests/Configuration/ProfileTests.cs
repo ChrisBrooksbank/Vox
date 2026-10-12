@@ -278,6 +278,37 @@ public class SettingsMonitorProfileTests : IDisposable
     }
 }
 
+public class ProfilePolicyTests : IDisposable
+{
+    private readonly string _directory = Path.Combine(Path.GetTempPath(), "VoxProfilePolicy_" + Guid.NewGuid().ToString("N"));
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_directory))
+            Directory.Delete(_directory, recursive: true);
+    }
+
+    [Fact]
+    public void APolicy_WinsOverAnActiveProfile()
+    {
+        var policy = Vox.Core.Enterprise.PolicySettings.Read(new FakeRegistry().Set(
+            Vox.Core.Enterprise.RegistryRoot.LocalMachine, Vox.Core.Enterprise.PolicySettings.SettingsKey, "SpeechRateWpm", 180));
+        var manager = new SettingsManager(NullLogger<SettingsManager>.Instance, Path.Combine(_directory, "defaults.json"), Path.Combine(_directory, "settings.json"));
+        using var monitor = new SettingsMonitor(manager, NullLogger<SettingsMonitor>.Instance, policy);
+        var store = new ProfileStore(Path.Combine(_directory, "profiles"));
+        store.Save(new ConfigurationProfile("Fast", new JsonObject { ["SpeechRateWpm"] = 400, ["PunctuationLevel"] = "All" }, ["EXCEL"]));
+        var profiles = new ProfileManager(store);
+        monitor.AttachProfiles(profiles);
+
+        profiles.SetForegroundApp("EXCEL");
+
+        Assert.Equal(180, monitor.CurrentValue.SpeechRateWpm);
+        Assert.Equal(PunctuationLevel.All, monitor.CurrentValue.PunctuationLevel);
+        monitor.UpdateSettings(monitor.CurrentValue with { SpeechRateWpm = 300 });
+        Assert.Equal(180, monitor.CurrentValue.SpeechRateWpm);
+    }
+}
+
 public class SayAllReadingChangedTests
 {
     private sealed class OneLine : ISayAllSource

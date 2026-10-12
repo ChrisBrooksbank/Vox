@@ -4,7 +4,11 @@ using Vox.Core.Speech;
 namespace Vox.Core.Configuration;
 
 /// <summary>One setting on a page of the settings dialog: how it is labelled, read and changed.</summary>
-public abstract record SettingField(string Label);
+public abstract record SettingField(string Label)
+{
+    /// <summary>Set by the organization's policy: shown, but can't be changed (<see cref="SettingsPages.WithPolicy"/>).</summary>
+    public bool Locked { get; init; }
+}
 
 /// <summary>An on/off setting (a check box).</summary>
 public sealed record ToggleField(string Label, Func<VoxSettings, bool> Get, Func<VoxSettings, bool, VoxSettings> Set)
@@ -241,6 +245,65 @@ public static class SettingsPages
         fields.Add(new ToggleField("Read other &languages with a voice for them", s => s.AutoLanguageSwitching, (s, v) => s with { AutoLanguageSwitching = v }));
         return new SettingsPage("Speech", fields);
     }
+
+    /// <summary>What a locked field's label ends with.</summary>
+    public const string LockedSuffix = " (set by your organization)";
+
+    /// <summary>
+    /// <paramref name="pages"/> with every field that would change a setting the organization's
+    /// policy locks marked <see cref="SettingField.Locked"/>: labelled "(set by your organization)",
+    /// and its <c>Set</c> changes nothing.
+    /// </summary>
+    public static IReadOnlyList<SettingsPage> WithPolicy(IReadOnlyList<SettingsPage> pages, Enterprise.PolicySettings policy, VoxSettings settings)
+    {
+        if (policy.LockedSettings.Count == 0)
+            return pages;
+        return pages.Select(page => page with
+        {
+            Fields = page.Fields.Select(field =>
+                policy.LockAllSettings || ChangesOf(field, settings).Any(policy.IsLocked) ? Lock(field) : field).ToList(),
+        }).ToList();
+    }
+
+    private static SettingField Lock(SettingField field) => field switch
+    {
+        ToggleField toggle => toggle with { Label = toggle.Label + LockedSuffix, Locked = true, Set = (s, _) => s },
+        NumberField number => number with { Label = number.Label + LockedSuffix, Locked = true, Set = (s, _) => s },
+        ChoiceField choice => choice with { Label = choice.Label + LockedSuffix, Locked = true, Set = (s, _) => s },
+        _ => field with { Label = field.Label + LockedSuffix, Locked = true },
+    };
+
+    /// <summary>The settings (by name) <paramref name="field"/> can change, found by trying its other values.</summary>
+    public static IReadOnlySet<string> ChangesOf(SettingField field, VoxSettings settings)
+    {
+        IEnumerable<VoxSettings> tries = field switch
+        {
+            ToggleField toggle => [toggle.Set(settings, !toggle.Get(settings))],
+            NumberField number => [number.Set(settings, number.Min), number.Set(settings, number.Max)],
+            ChoiceField choice => choice.Choices.Select(c => choice.Set(settings, c.Value)),
+            _ => [],
+        };
+        var properties = typeof(VoxSettings).GetProperties().Where(p => p.CanWrite).ToList();
+        var changed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var tried in tries)
+        {
+            foreach (var property in properties)
+            {
+                if (!Equals(property.GetValue(settings), property.GetValue(tried)))
+                    changed.Add(property.Name);
+            }
+        }
+        return changed;
+    }
+
+    /// <summary>How a field's value reads as text ("On", "200", "Releases"), for a locked field.</summary>
+    public static string ValueText(SettingField field, VoxSettings settings) => field switch
+    {
+        ToggleField toggle => toggle.Get(settings) ? "On" : "Off",
+        NumberField number => number.Get(settings).ToString(System.Globalization.CultureInfo.CurrentCulture),
+        ChoiceField choice => choice.Choices.Count > 0 ? choice.Choices[choice.IndexOf(settings)].Text : string.Empty,
+        _ => string.Empty,
+    };
 
     /// <summary>A choice of every value of an enum setting, named readably ("WhileSpeaking": "While speaking").</summary>
     public static ChoiceField Choice<T>(string label, Func<VoxSettings, T> get, Func<VoxSettings, T, VoxSettings> set,
