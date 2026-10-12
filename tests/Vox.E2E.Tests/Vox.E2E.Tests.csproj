@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- InteractiveRunner.Main: dotnet run, project tests/Vox.E2E.Tests, arguments: run SCENARIO step -->
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
@@ -17,6 +19,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vox.Core\Vox.Core.csproj" />
     <ProjectReference Include="..\..\src\Vox.App\Vox.App.csproj" />
+    <!-- Built first, run from its own output folder by the fault-injection scenarios (FaultApp) -->
+    <ProjectReference Include="..\Vox.FaultTestApp\Vox.FaultTestApp.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <!-- The same recording engine the unit tests use -->

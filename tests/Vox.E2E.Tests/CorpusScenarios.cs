@@ -32,4 +32,34 @@ public static class CorpusScenarios
     ];
 
     public static Scenario Find(string name) => All.Single(s => s.Name == name);
+
+    /// <summary>How long a corpus page may take to load (its title said).</summary>
+    public static readonly TimeSpan PageLoad = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Opens the scenario's page in <paramref name="browser"/>, waits for its title, and presses its
+    /// keys, each once Vox has gone quiet after the last. What was said from the first key on stays
+    /// in <c>context.Speech</c>, for the transcript. Returns the browser, still open (closing it
+    /// moves the focus, which Vox would talk about), for the caller to close after checking.
+    /// </summary>
+    public static async Task<BrowserSession> RunAsync(ScenarioContext context, Scenario scenario, Browser browser)
+    {
+        var session = BrowserSession.Open(scenario.Page, browser);
+        try
+        {
+            await context.ExpectAsync(t => t.Contains(scenario.Title), $"the title \"{scenario.Title}\"", PageLoad);
+            context.Target = await session.WindowAsync(TimeSpan.FromSeconds(5));
+            await context.QuietAsync();
+            context.Mark();
+
+            foreach (var key in scenario.Keys)
+                await context.PressAsync(key);
+            return session;
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
+    }
 }

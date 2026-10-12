@@ -23,20 +23,53 @@ public static class KeyInjector
         inputs.Add(KeyInput(key, up: true));
         foreach (var modifier in modifiers.Reverse())
             inputs.Add(KeyInput(modifier, up: true));
-        if (SendInput((uint)inputs.Count, [.. inputs], Marshal.SizeOf<Input>()) != inputs.Count)
-            throw new InvalidOperationException("SendInput was blocked (is the desktop locked, or a window of higher integrity in front?)");
+        Send([.. inputs]);
     }
 
     /// <summary>Presses a letter or digit key ('H', '1').</summary>
     public static void Press(char key, params ushort[] modifiers) => Press((ushort)char.ToUpperInvariant(key), modifiers);
 
-    private static Input KeyInput(ushort key, bool up) => new()
+    /// <summary>
+    /// The marker Vox puts on keys it injects itself (KeyboardHook.VoxInjectedMarker): its hook lets
+    /// them through without tracking them, so a key-up sent with it is one the hook never sees, as
+    /// when the secure desktop takes a key-up away.
+    /// </summary>
+    public const nuint UnseenByVox = 0x566F78;
+
+    /// <summary>Holds <paramref name="key"/> down without letting it go.</summary>
+    public static void KeyDown(ushort key, nuint extraInfo = 0) => Send([KeyInput(key, up: false, extraInfo)]);
+
+    /// <summary>Lets <paramref name="key"/> go (with <see cref="UnseenByVox"/>, behind the hook's back).</summary>
+    public static void KeyUp(ushort key, nuint extraInfo = 0) => Send([KeyInput(key, up: true, extraInfo)]);
+
+    /// <summary>Types <paramref name="text"/> as Unicode characters (VK_PACKET), whatever the keyboard layout.</summary>
+    public static void Type(string text)
+    {
+        var inputs = new List<Input>();
+        foreach (var c in text)
+        {
+            inputs.Add(new Input { Type = 1, Keyboard = new KeyboardInput { ScanCode = c, Flags = KeyEventUnicode } });
+            inputs.Add(new Input { Type = 1, Keyboard = new KeyboardInput { ScanCode = c, Flags = KeyEventUnicode | KeyEventUp } });
+        }
+        Send([.. inputs]);
+    }
+
+    private const uint KeyEventExtended = 0x0001, KeyEventUp = 0x0002, KeyEventUnicode = 0x0004;
+
+    private static void Send(Input[] inputs)
+    {
+        if (SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Input>()) != inputs.Length)
+            throw new InvalidOperationException("SendInput was blocked (is the desktop locked, or a window of higher integrity in front?)");
+    }
+
+    private static Input KeyInput(ushort key, bool up, nuint extraInfo = 0) => new()
     {
         Type = 1, // INPUT_KEYBOARD
         Keyboard = new KeyboardInput
         {
             VirtualKey = key,
-            Flags = (up ? 0x0002u : 0) | (ExtendedKeys.Contains(key) ? 0x0001u : 0),
+            Flags = (up ? KeyEventUp : 0) | (ExtendedKeys.Contains(key) ? KeyEventExtended : 0),
+            ExtraInfo = (IntPtr)extraInfo,
         },
     };
 
