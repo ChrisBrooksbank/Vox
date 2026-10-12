@@ -16,16 +16,16 @@ Make inaccessible content usable: local OCR of windows, objects and images; imag
 - [x] `IOcrEngine` and `WindowsOcrEngine` (`Windows.Media.Ocr`, local); language from settings
 - [x] Screen capture helper for the foreground window, navigator object bounds or image element bounds (not available in secure mode)
 - [x] OCR result as a reviewable `ITextDocument` with word positions; routing/click on a recognised word; Insert+R recognises the navigator object
-- [ ] `IImageDescriber` with `LocalImageDescriber` (Windows AI APIs where present) and `CloudImageDescriber` (user-configured provider and API key, e.g. the Claude API)
-- [ ] Consent: first cloud use per session asks; setting to always ask / allow / never; never send password fields, secure-desktop content, or windows from apps on a private list
-- [ ] Insert+G describes the image or object under the cursor; result cached by image hash; "Describing image…" progress cue; cancellable
-- [ ] Screen explanation: question prompt ("how do I…") answered from the UIA tree plus a screenshot, answer shown as a reviewable buffer
-- [ ] CAPTCHA helper: detect common CAPTCHA widgets, announce them and point to audio alternatives or accessibility bypass options; don't attempt to solve them
-- [ ] Page summary and "jump to main content" suggestions from the buffer text (local first, cloud with consent)
+- [x] `IImageDescriber` with `LocalImageDescriber` (a vision model on this computer, through Ollama; Windows AI APIs need package identity, `docs/ai.md`) and `CloudImageDescriber` (user-configured provider and API key, e.g. the Claude API)
+- [x] Consent: first cloud use per session asks; setting to always ask / allow / never; never send password fields, secure-desktop content, or windows from apps on a private list
+- [x] Insert+G describes the image or object under the cursor; result cached by image hash; "Describing image…" progress cue; cancellable
+- [x] Screen explanation: question prompt ("how do I…") answered from the UIA tree plus a screenshot, answer shown as a reviewable buffer
+- [x] CAPTCHA helper: detect common CAPTCHA widgets, announce them and point to audio alternatives or accessibility bypass options; don't attempt to solve them
+- [x] Page summary and "jump to main content" suggestions from the buffer text (local first, cloud with consent)
 
 ## Acceptance Criteria
 
-- [ ] Unit tests with fake OCR/describer: result buffer, routing positions, consent rules (password field never sent, secure mode blocked), caching, cancellation
+- [x] Unit tests with fake OCR/describer: result buffer, routing positions, consent rules (password field never sent, secure mode blocked), caching, cancellation
 - [ ] Manual: read an image of text, an untagged PDF and an inaccessible app toolbar; describe photos on a news site
 
 ## Out of Scope
