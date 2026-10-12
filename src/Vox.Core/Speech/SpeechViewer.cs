@@ -1,4 +1,5 @@
 using System.Windows.Forms;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Speech;
 
@@ -75,7 +76,7 @@ public sealed class SpeechViewer : IDisposable
         public ViewerForm(SpeechHistory history)
         {
             _history = history;
-            Text = "Vox speech viewer";
+            Text = VoxStrings.Get("SpeechViewer.Title");
             TopMost = true;
             ShowInTaskbar = false;
             Width = 500;

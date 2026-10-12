@@ -1,6 +1,7 @@
 using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Speech;
 
@@ -53,7 +54,7 @@ public sealed class SpeechHistoryCommands
             entries = entries.Skip(entries.Count - ReviewDepth).ToList();
         if (entries.Count == 0)
         {
-            Say("No speech history");
+            Say(VoxStrings.Get("SpeechHistory.Empty"));
             return;
         }
 
@@ -65,7 +66,7 @@ public sealed class SpeechHistoryCommands
             {
                 // Pressed twice: copy what was just said, without moving
                 entry = entries[shown];
-                Say(_clipboard.SetText(entry) ? "Copied" : "Could not copy");
+                Say(_clipboard.SetText(entry) ? VoxStrings.Get("SpeechHistory.Copied") : VoxStrings.Get("SpeechHistory.CopyFailed"));
                 return;
             }
 

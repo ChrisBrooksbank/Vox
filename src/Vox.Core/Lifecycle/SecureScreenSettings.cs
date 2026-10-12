@@ -1,4 +1,5 @@
 using Vox.Core.Configuration;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Lifecycle;
 
@@ -13,11 +14,11 @@ public static class SecureScreenSettings
     public static string Copy(SettingsManager manager, VoxSettings settings, RunPolicy policy, string? targetPath = null)
     {
         if (policy.IsSecure)
-            return "Not available on this screen";
+            return VoxStrings.Get("Ocr.NotOnThisScreen");
         // The secure screens never run the setup wizard, whatever the user's state
         var shared = settings with { FirstRunCompleted = true };
         return manager.SaveTo(targetPath ?? RunPolicy.SecureSettingsPath, shared)
-            ? "Settings copied to the sign-in screens"
-            : "Could not copy settings to the sign-in screens";
+            ? VoxStrings.Get("SecureScreen.SettingsCopied")
+            : VoxStrings.Get("SecureScreen.SettingsNotCopied");
     }
 }

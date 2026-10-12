@@ -1,5 +1,6 @@
 using System.Windows.Forms;
 using Vox.Core.Navigation;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Configuration;
 
@@ -54,8 +55,8 @@ public sealed class PortableCopyDialog : VoxDialog
 
     public PortableCopyDialog()
     {
-        Text = "Create portable copy";
-        AccessibleName = "Create portable copy";
+        Text = VoxStrings.Get("Command.CreatePortableCopy.Name");
+        AccessibleName = VoxStrings.Get("Command.CreatePortableCopy.Name");
         AccessibleRole = AccessibleRole.Dialog;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -63,23 +64,23 @@ public sealed class PortableCopyDialog : VoxDialog
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-        _folder = new TextBox { AccessibleName = "Folder for the portable copy", Width = 360 };
-        var browse = new Button { Text = "&Browse...", AutoSize = true };
+        _folder = new TextBox { AccessibleName = VoxStrings.Get("PortableCopy.Folder"), Width = 360 };
+        var browse = new Button { Text = VoxStrings.Get("PortableCopy.Browse"), AutoSize = true };
         browse.Click += (_, _) =>
         {
-            using var picker = new FolderBrowserDialog { Description = "Folder for the portable copy", UseDescriptionForTitle = true };
+            using var picker = new FolderBrowserDialog { Description = VoxStrings.Get("PortableCopy.Folder"), UseDescriptionForTitle = true };
             if (picker.ShowDialog(this) == DialogResult.OK)
                 _folder.Text = Path.Combine(picker.SelectedPath, "Vox");
         };
-        _settings = new CheckBox { Text = "Copy my &settings, keys and dictionaries", AutoSize = true, Checked = true };
-        _components = new CheckBox { Text = "Copy optional &components (eSpeak NG, MathCAT)", AutoSize = true, Checked = true };
+        _settings = new CheckBox { Text = VoxStrings.Get("PortableCopy.CopySettings"), AutoSize = true, Checked = true };
+        _components = new CheckBox { Text = VoxStrings.Get("PortableCopy.CopyComponents"), AutoSize = true, Checked = true };
 
-        var create = new Button { Text = "C&reate", AutoSize = true };
+        var create = new Button { Text = VoxStrings.Get("PortableCopy.Create"), AutoSize = true };
         create.Click += (_, _) =>
         {
             if (string.IsNullOrWhiteSpace(_folder.Text))
             {
-                MessageBox.Show(this, "Type or choose a folder first.", "Create portable copy", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, VoxStrings.Get("PortableCopy.NoFolder"), VoxStrings.Get("Command.CreatePortableCopy.Name"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 _folder.Focus();
                 return;
             }
@@ -87,10 +88,10 @@ public sealed class PortableCopyDialog : VoxDialog
             DialogResult = DialogResult.OK;
             Close();
         };
-        var cancel = new Button { Text = "Cancel", AutoSize = true, DialogResult = DialogResult.Cancel };
+        var cancel = new Button { Text = VoxStrings.Get("Dialog.Cancel"), AutoSize = true, DialogResult = DialogResult.Cancel };
 
         var row = new FlowLayoutPanel { AutoSize = true };
-        row.Controls.Add(new Label { Text = "&Folder:", AutoSize = true, Anchor = AnchorStyles.Left });
+        row.Controls.Add(new Label { Text = VoxStrings.Get("PortableCopy.FolderLabel"), AutoSize = true, Anchor = AnchorStyles.Left });
         row.Controls.Add(_folder);
         row.Controls.Add(browse);
         var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Fill };

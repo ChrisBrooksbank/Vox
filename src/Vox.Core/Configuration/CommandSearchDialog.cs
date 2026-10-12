@@ -1,6 +1,7 @@
 using System.Windows.Forms;
 using Vox.Core.Input;
 using Vox.Core.Navigation;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Configuration;
 
@@ -54,8 +55,8 @@ public sealed class CommandSearchDialog : VoxDialog
     public CommandSearchDialog(Func<string, IReadOnlyList<CommandMatch>> search)
     {
         _search = search;
-        Text = "Command search";
-        AccessibleName = "Command search";
+        Text = VoxStrings.Get("Command.OpenCommandSearch.Name");
+        AccessibleName = VoxStrings.Get("Command.OpenCommandSearch.Name");
         AccessibleRole = AccessibleRole.Dialog;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -63,8 +64,8 @@ public sealed class CommandSearchDialog : VoxDialog
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-        _query = new TextBox { AccessibleName = "Search for", Width = 420 };
-        _results = new ListBox { AccessibleName = "Commands", Width = 420, Height = 300 };
+        _query = new TextBox { AccessibleName = VoxStrings.Get("CommandSearch.SearchFor"), Width = 420 };
+        _results = new ListBox { AccessibleName = VoxStrings.Get("CommandSearch.Commands"), Width = 420, Height = 300 };
         _query.TextChanged += (_, _) => ShowResults();
         _query.KeyDown += (_, e) =>
         {
@@ -77,11 +78,11 @@ public sealed class CommandSearchDialog : VoxDialog
             }
         };
 
-        var close = new Button { Text = "Close", AutoSize = true, DialogResult = DialogResult.Cancel };
+        var close = new Button { Text = VoxStrings.Get("Dialog.Close"), AutoSize = true, DialogResult = DialogResult.Cancel };
         var layout = new TableLayoutPanel { AutoSize = true, ColumnCount = 1, Padding = new Padding(8) };
-        layout.Controls.Add(new Label { Text = "&Search for:", AutoSize = true });
+        layout.Controls.Add(new Label { Text = VoxStrings.Get("CommandSearch.SearchForLabel"), AutoSize = true });
         layout.Controls.Add(_query);
-        layout.Controls.Add(new Label { Text = "&Commands:", AutoSize = true });
+        layout.Controls.Add(new Label { Text = VoxStrings.Get("CommandSearch.CommandsLabel"), AutoSize = true });
         layout.Controls.Add(_results);
         layout.Controls.Add(close);
         Controls.Add(layout);
@@ -97,6 +98,6 @@ public sealed class CommandSearchDialog : VoxDialog
             _results.Items.Add(match.ToString());
         _results.EndUpdate();
         // Said by the screen reader as the list's description when focus moves to it
-        _results.AccessibleDescription = $"{_results.Items.Count} found";
+        _results.AccessibleDescription = VoxStrings.Format("CommandSearch.Found", _results.Items.Count);
     }
 }

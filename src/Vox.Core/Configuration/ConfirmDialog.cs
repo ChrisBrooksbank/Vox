@@ -1,5 +1,6 @@
 using System.Windows.Forms;
 using Vox.Core.Navigation;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Configuration;
 
@@ -52,8 +53,8 @@ public sealed class ConfirmDialog : VoxDialog
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-        var yes = new Button { Text = "&Yes", AutoSize = true, DialogResult = DialogResult.Yes };
-        var no = new Button { Text = "&No", AutoSize = true, DialogResult = DialogResult.No };
+        var yes = new Button { Text = VoxStrings.Get("Confirm.Yes"), AutoSize = true, DialogResult = DialogResult.Yes };
+        var no = new Button { Text = VoxStrings.Get("Confirm.No"), AutoSize = true, DialogResult = DialogResult.No };
         var buttons = new FlowLayoutPanel { AutoSize = true };
         buttons.Controls.Add(yes);
         buttons.Controls.Add(no);

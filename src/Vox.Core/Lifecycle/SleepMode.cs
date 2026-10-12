@@ -3,6 +3,7 @@ using Vox.Core.Accessibility;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Speech;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Lifecycle;
 
@@ -67,7 +68,7 @@ public sealed class SleepMode
         var name = ForegroundProcess();
         if (name is null)
         {
-            Say("Not available");
+            Say(VoxStrings.Get("Sleep.NotAvailable"));
             return;
         }
         var settings = _settings.CurrentValue;
@@ -76,12 +77,12 @@ public sealed class SleepMode
         {
             _updateSettings(settings with { SleepApps = apps.Where(a => !string.Equals(a, name, StringComparison.OrdinalIgnoreCase)).ToList() });
             IsAsleepNow();
-            Say("Sleep mode off");
+            Say(VoxStrings.Get("Sleep.Off"));
         }
         else
         {
             // Said before the application goes to sleep, which mutes Vox
-            Say("Sleep mode on");
+            Say(VoxStrings.Get("Sleep.On"));
             _updateSettings(settings with { SleepApps = [.. apps, name] });
             IsAsleepNow();
         }

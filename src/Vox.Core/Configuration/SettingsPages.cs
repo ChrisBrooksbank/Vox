@@ -260,8 +260,8 @@ public static class SettingsPages
         return new SettingsPage(L("SettingsPage.Speech"), fields);
     }
 
-    /// <summary>What a locked field's label ends with.</summary>
-    public const string LockedSuffix = " (set by your organization)";
+    /// <summary>A locked field's label: <paramref name="label"/> followed by "(set by your organization)".</summary>
+    public static string LockedLabel(string label) => VoxStrings.Format("Settings.Locked", label);
 
     /// <summary>
     /// <paramref name="pages"/> with every field that would change a setting the organization's
@@ -281,10 +281,10 @@ public static class SettingsPages
 
     private static SettingField Lock(SettingField field) => field switch
     {
-        ToggleField toggle => toggle with { Label = toggle.Label + LockedSuffix, Locked = true, Set = (s, _) => s },
-        NumberField number => number with { Label = number.Label + LockedSuffix, Locked = true, Set = (s, _) => s },
-        ChoiceField choice => choice with { Label = choice.Label + LockedSuffix, Locked = true, Set = (s, _) => s },
-        _ => field with { Label = field.Label + LockedSuffix, Locked = true },
+        ToggleField toggle => toggle with { Label = LockedLabel(toggle.Label), Locked = true, Set = (s, _) => s },
+        NumberField number => number with { Label = LockedLabel(number.Label), Locked = true, Set = (s, _) => s },
+        ChoiceField choice => choice with { Label = LockedLabel(choice.Label), Locked = true, Set = (s, _) => s },
+        _ => field with { Label = LockedLabel(field.Label), Locked = true },
     };
 
     /// <summary>The settings (by name) <paramref name="field"/> can change, found by trying its other values.</summary>
@@ -313,7 +313,7 @@ public static class SettingsPages
     /// <summary>How a field's value reads as text ("On", "200", "Releases"), for a locked field.</summary>
     public static string ValueText(SettingField field, VoxSettings settings) => field switch
     {
-        ToggleField toggle => toggle.Get(settings) ? "On" : "Off",
+        ToggleField toggle => toggle.Get(settings) ? VoxStrings.Get("Settings.On") : VoxStrings.Get("Settings.Off"),
         NumberField number => number.Get(settings).ToString(System.Globalization.CultureInfo.CurrentCulture),
         ChoiceField choice => choice.Choices.Count > 0 ? choice.Choices[choice.IndexOf(settings)].Text : string.Empty,
         _ => string.Empty,

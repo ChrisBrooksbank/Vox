@@ -1,5 +1,6 @@
 using System.Windows.Forms;
 using Vox.Core.Navigation;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Configuration;
 
@@ -57,8 +58,8 @@ public sealed class SettingsDialog : VoxDialog
         _session = new SettingsEditSession(settings, apply);
         _current = _session.Opening;
 
-        Text = "Vox settings";
-        AccessibleName = "Vox settings";
+        Text = VoxStrings.Get("Settings.Title");
+        AccessibleName = VoxStrings.Get("Settings.Title");
         AccessibleRole = AccessibleRole.Dialog;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -66,12 +67,12 @@ public sealed class SettingsDialog : VoxDialog
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-        var tabs = new TabControl { AccessibleName = "Categories", Width = 520, Height = 380 };
+        var tabs = new TabControl { AccessibleName = VoxStrings.Get("Settings.Categories"), Width = 520, Height = 380 };
         foreach (var page in pages)
             tabs.TabPages.Add(BuildPage(page));
 
-        var ok = new Button { Text = "OK", AutoSize = true, DialogResult = DialogResult.OK };
-        var cancel = new Button { Text = "Cancel", AutoSize = true, DialogResult = DialogResult.Cancel };
+        var ok = new Button { Text = VoxStrings.Get("Dialog.OK"), AutoSize = true, DialogResult = DialogResult.OK };
+        var cancel = new Button { Text = VoxStrings.Get("Dialog.Cancel"), AutoSize = true, DialogResult = DialogResult.Cancel };
         var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Fill };
         buttons.Controls.Add(cancel);
         buttons.Controls.Add(ok);

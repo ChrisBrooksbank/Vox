@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Vox.Core.Input;
 using Vox.Core.Speech;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Configuration;
 
@@ -179,26 +180,26 @@ public sealed class SettingsRing
     private string EngineId(string? id) =>
         _engines.FirstOrDefault(e => string.Equals(e.Id, id, StringComparison.OrdinalIgnoreCase))?.Id ?? _engines[0].Id;
 
-    private string Describe(Setting setting, VoxSettings settings) => $"{Name(setting)} {Value(setting, settings)}";
+    private string Describe(Setting setting, VoxSettings settings) => VoxStrings.Format("SettingsRing.Setting", Name(setting), Value(setting, settings));
 
     private static string Name(Setting setting) => setting switch
     {
-        Setting.Voice => "Voice",
-        Setting.Rate => "Rate",
-        Setting.Pitch => "Pitch",
-        Setting.Volume => "Volume",
-        Setting.Punctuation => "Punctuation",
-        Setting.Engine => "Synthesizer",
+        Setting.Voice => VoxStrings.Get("SettingsRing.Voice"),
+        Setting.Rate => VoxStrings.Get("SettingsRing.Rate"),
+        Setting.Pitch => VoxStrings.Get("SettingsRing.Pitch"),
+        Setting.Volume => VoxStrings.Get("SettingsRing.Volume"),
+        Setting.Punctuation => VoxStrings.Get("SettingsRing.Punctuation"),
+        Setting.Engine => VoxStrings.Get("SettingsRing.Synthesizer"),
         _ => setting.ToString(),
     };
 
     private string Value(Setting setting, VoxSettings settings) => setting switch
     {
-        Setting.Voice => settings.VoiceName ?? _engine.CurrentVoice ?? "default",
+        Setting.Voice => settings.VoiceName ?? _engine.CurrentVoice ?? VoxStrings.Get("SettingsRing.DefaultVoice"),
         Setting.Rate => settings.SpeechRateWpm.ToString(System.Globalization.CultureInfo.InvariantCulture),
         Setting.Pitch => settings.SpeechPitch.ToString(System.Globalization.CultureInfo.InvariantCulture),
         Setting.Volume => settings.SpeechVolume.ToString(System.Globalization.CultureInfo.InvariantCulture),
-        Setting.Punctuation => settings.PunctuationLevel.ToString().ToLowerInvariant(),
+        Setting.Punctuation => SettingsPages.ChoiceName(settings.PunctuationLevel).ToLower(VoxStrings.EffectiveCulture),
         Setting.Engine => _engines[IndexOfEngine(settings.SpeechEngine)].DisplayName,
         _ => string.Empty,
     };

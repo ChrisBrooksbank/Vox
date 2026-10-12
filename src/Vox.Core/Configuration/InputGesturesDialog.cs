@@ -1,6 +1,7 @@
 using System.Windows.Forms;
 using Vox.Core.Input;
 using Vox.Core.Navigation;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Configuration;
 
@@ -68,16 +69,16 @@ public sealed class InputGesturesDialog : VoxDialog
     private readonly Button _add;
     private readonly Button _remove;
 
-    private static readonly (string Text, string Mode)[] Places =
-        [("Everywhere", "Any"), ("Browse mode", "Browse"), ("Focus mode", "Focus")];
+    private static (string Text, string Mode)[] Places =>
+        [(VoxStrings.Get("Gesture.Place.Everywhere"), "Any"), (VoxStrings.Get("Gesture.Place.BrowseMode"), "Browse"), (VoxStrings.Get("Gesture.Place.FocusMode"), "Focus")];
 
     public InputGesturesDialog(GestureEditor editor, GestureDialogServices services)
     {
         _editor = editor;
         _services = services;
 
-        Text = "Input gestures";
-        AccessibleName = "Input gestures";
+        Text = VoxStrings.Get("Command.OpenInputGestures.Name");
+        AccessibleName = VoxStrings.Get("Command.OpenInputGestures.Name");
         AccessibleRole = AccessibleRole.Dialog;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -85,26 +86,26 @@ public sealed class InputGesturesDialog : VoxDialog
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-        _tree = new TreeView { AccessibleName = "Commands", Width = 560, Height = 380, HideSelection = false };
+        _tree = new TreeView { AccessibleName = VoxStrings.Get("CommandSearch.Commands"), Width = 560, Height = 380, HideSelection = false };
         _tree.AfterSelect += (_, _) => UpdateButtons();
 
-        _where = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, AccessibleName = "New key works", Width = 160 };
+        _where = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, AccessibleName = VoxStrings.Get("Gesture.NewKeyWorks"), Width = 160 };
         foreach (var (text, _) in Places)
             _where.Items.Add(text);
         _where.SelectedIndex = 0;
 
-        _add = new Button { Text = "&Add key", AutoSize = true };
+        _add = new Button { Text = VoxStrings.Get("Gesture.AddKey"), AutoSize = true };
         _add.Click += (_, _) => AddKey();
-        _remove = new Button { Text = "&Remove key", AutoSize = true };
+        _remove = new Button { Text = VoxStrings.Get("Gesture.RemoveKey"), AutoSize = true };
         _remove.Click += (_, _) => RemoveKey();
-        var reset = new Button { Text = "Reset all to &standard keys", AutoSize = true };
+        var reset = new Button { Text = VoxStrings.Get("Gesture.ResetAll"), AutoSize = true };
         reset.Click += (_, _) => ResetAll();
 
-        var ok = new Button { Text = "OK", AutoSize = true, DialogResult = DialogResult.OK };
-        var cancel = new Button { Text = "Cancel", AutoSize = true, DialogResult = DialogResult.Cancel };
+        var ok = new Button { Text = VoxStrings.Get("Dialog.OK"), AutoSize = true, DialogResult = DialogResult.OK };
+        var cancel = new Button { Text = VoxStrings.Get("Dialog.Cancel"), AutoSize = true, DialogResult = DialogResult.Cancel };
 
         var actions = new FlowLayoutPanel { AutoSize = true };
-        actions.Controls.Add(new Label { Text = "New key &works:", AutoSize = true, Anchor = AnchorStyles.Left });
+        actions.Controls.Add(new Label { Text = VoxStrings.Get("Gesture.NewKeyWorksLabel"), AutoSize = true, Anchor = AnchorStyles.Left });
         actions.Controls.Add(_where);
         actions.Controls.Add(_add);
         actions.Controls.Add(_remove);
@@ -135,8 +136,8 @@ public sealed class InputGesturesDialog : VoxDialog
             foreach (var info in category)
             {
                 var gestures = _editor.GesturesFor(info.Command);
-                var keys = gestures.Count == 0 ? "no key" : string.Join(", ", gestures.Select(g => g.Describe(_services.ScreenReaderKey)));
-                var commandNode = categoryNode.Nodes.Add($"{info.Name}: {keys}");
+                var keys = gestures.Count == 0 ? VoxStrings.Get("AddOns.Details.NoKey") : string.Join(", ", gestures.Select(g => g.Describe(_services.ScreenReaderKey)));
+                var commandNode = categoryNode.Nodes.Add(VoxStrings.Format("Gesture.CommandKeys", info.Name, keys));
                 commandNode.Tag = info.Command;
                 commandNode.ToolTipText = info.Description;
                 foreach (var gesture in gestures)
@@ -169,7 +170,7 @@ public sealed class InputGesturesDialog : VoxDialog
             return;
         var mode = Places[Math.Max(0, _where.SelectedIndex)].Mode;
         _add.Enabled = false;
-        _services.Say($"Press the new keys for {CommandCatalog.Describe(command).Name}, or Escape to cancel");
+        _services.Say(VoxStrings.Format("Gesture.PressNewKeys", CommandCatalog.Describe(command).Name));
         _services.CaptureKey((modifiers, vk, keypad) => BeginInvoke(() => KeyPressed(command, mode, modifiers, vk, keypad)));
     }
 
@@ -178,12 +179,12 @@ public sealed class InputGesturesDialog : VoxDialog
         UpdateButtons();
         if (vk == 0x1B && modifiers == KeyModifiers.None)
         {
-            _services.Say("Cancelled");
+            _services.Say(VoxStrings.Get("Ai.Cancelled"));
             return;
         }
         if (Gesture.FromKey(modifiers, vk, keypad, mode) is not { } gesture)
         {
-            _services.Say("Number pad digits type numbers and can't be used. Turn Num Lock off to use the number pad keys.");
+            _services.Say(VoxStrings.Get("Gesture.NumpadDigits"));
             return;
         }
         var conflicts = _editor.ConflictsWith(gesture, command);
@@ -191,13 +192,13 @@ public sealed class InputGesturesDialog : VoxDialog
         {
             var names = string.Join(", ", conflicts.Select(c => CommandCatalog.Describe(c).Name));
             var answer = MessageBox.Show(this,
-                $"{gesture.Describe(_services.ScreenReaderKey)} is already {names}. Use it for {CommandCatalog.Describe(command).Name} instead?",
-                "Key in use", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                VoxStrings.Format("Gesture.KeyInUseQuestion", gesture.Describe(_services.ScreenReaderKey), names, CommandCatalog.Describe(command).Name),
+                VoxStrings.Get("Gesture.KeyInUse"), MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (answer != DialogResult.Yes)
                 return;
         }
         _editor.Add(command, gesture);
-        _services.Say($"{gesture.Describe(_services.ScreenReaderKey)} added");
+        _services.Say(VoxStrings.Format("Gesture.KeyAdded", gesture.Describe(_services.ScreenReaderKey)));
         Fill(command);
     }
 
@@ -206,13 +207,13 @@ public sealed class InputGesturesDialog : VoxDialog
         if (_tree.SelectedNode?.Tag is not Gesture gesture || SelectedCommand is not { } command)
             return;
         _editor.Remove(command, gesture);
-        _services.Say($"{gesture.Describe(_services.ScreenReaderKey)} removed");
+        _services.Say(VoxStrings.Format("Gesture.KeyRemoved", gesture.Describe(_services.ScreenReaderKey)));
         Fill(command);
     }
 
     private void ResetAll()
     {
-        var answer = MessageBox.Show(this, "Put every key back as standard, removing all your own?", "Reset keys",
+        var answer = MessageBox.Show(this, VoxStrings.Get("Gesture.ResetAllQuestion"), VoxStrings.Get("Gesture.ResetKeys"),
             MessageBoxButtons.YesNo, MessageBoxIcon.Question);
         if (answer != DialogResult.Yes)
             return;

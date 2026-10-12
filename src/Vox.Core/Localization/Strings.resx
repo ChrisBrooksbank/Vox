@@ -3348,4 +3348,328 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
     <value>Vox has stopped working and could not be restarted.</value>
     <comment>Said by the watchdog when Vox keeps crashing.</comment>
   </data>
+  <data name="CommandSearch.SearchFor" xml:space="preserve">
+    <value>Search for</value>
+  </data>
+  <data name="CommandSearch.Commands" xml:space="preserve">
+    <value>Commands</value>
+  </data>
+  <data name="CommandSearch.SearchForLabel" xml:space="preserve">
+    <value>&amp;Search for:</value>
+  </data>
+  <data name="CommandSearch.CommandsLabel" xml:space="preserve">
+    <value>&amp;Commands:</value>
+  </data>
+  <data name="CommandSearch.Found" xml:space="preserve">
+    <value>{0} found</value>
+    <comment>{0}: the number of commands found</comment>
+  </data>
+  <data name="Confirm.Yes" xml:space="preserve">
+    <value>&amp;Yes</value>
+  </data>
+  <data name="Confirm.No" xml:space="preserve">
+    <value>&amp;No</value>
+  </data>
+  <data name="Gesture.Place.Everywhere" xml:space="preserve">
+    <value>Everywhere</value>
+  </data>
+  <data name="Gesture.Place.BrowseMode" xml:space="preserve">
+    <value>Browse mode</value>
+  </data>
+  <data name="Gesture.Place.FocusMode" xml:space="preserve">
+    <value>Focus mode</value>
+  </data>
+  <data name="Gesture.NewKeyWorks" xml:space="preserve">
+    <value>New key works</value>
+  </data>
+  <data name="Gesture.AddKey" xml:space="preserve">
+    <value>&amp;Add key</value>
+  </data>
+  <data name="Gesture.RemoveKey" xml:space="preserve">
+    <value>&amp;Remove key</value>
+  </data>
+  <data name="Gesture.ResetAll" xml:space="preserve">
+    <value>Reset all to &amp;standard keys</value>
+  </data>
+  <data name="Gesture.NewKeyWorksLabel" xml:space="preserve">
+    <value>New key &amp;works:</value>
+  </data>
+  <data name="Gesture.CommandKeys" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0}: the command name; {1}: its keys, or "no key"</comment>
+  </data>
+  <data name="Gesture.PressNewKeys" xml:space="preserve">
+    <value>Press the new keys for {0}, or Escape to cancel</value>
+    <comment>{0}: the command name</comment>
+  </data>
+  <data name="Gesture.NumpadDigits" xml:space="preserve">
+    <value>Number pad digits type numbers and can't be used. Turn Num Lock off to use the number pad keys.</value>
+  </data>
+  <data name="Gesture.KeyInUseQuestion" xml:space="preserve">
+    <value>{0} is already {1}. Use it for {2} instead?</value>
+    <comment>{0}: the key; {1}: the commands it is bound to now; {2}: the command being given the key</comment>
+  </data>
+  <data name="Gesture.KeyInUse" xml:space="preserve">
+    <value>Key in use</value>
+  </data>
+  <data name="Gesture.KeyAdded" xml:space="preserve">
+    <value>{0} added</value>
+    <comment>{0}: the key</comment>
+  </data>
+  <data name="Gesture.KeyRemoved" xml:space="preserve">
+    <value>{0} removed</value>
+    <comment>{0}: the key</comment>
+  </data>
+  <data name="Gesture.ResetAllQuestion" xml:space="preserve">
+    <value>Put every key back as standard, removing all your own?</value>
+  </data>
+  <data name="Gesture.ResetKeys" xml:space="preserve">
+    <value>Reset keys</value>
+  </data>
+  <data name="PortableCopy.Folder" xml:space="preserve">
+    <value>Folder for the portable copy</value>
+  </data>
+  <data name="PortableCopy.Browse" xml:space="preserve">
+    <value>&amp;Browse...</value>
+  </data>
+  <data name="PortableCopy.CopySettings" xml:space="preserve">
+    <value>Copy my &amp;settings, keys and dictionaries</value>
+  </data>
+  <data name="PortableCopy.CopyComponents" xml:space="preserve">
+    <value>Copy optional &amp;components (eSpeak NG, MathCAT)</value>
+  </data>
+  <data name="PortableCopy.Create" xml:space="preserve">
+    <value>C&amp;reate</value>
+  </data>
+  <data name="PortableCopy.NoFolder" xml:space="preserve">
+    <value>Type or choose a folder first.</value>
+  </data>
+  <data name="PortableCopy.FolderLabel" xml:space="preserve">
+    <value>&amp;Folder:</value>
+  </data>
+  <data name="Profiles.NotAvailable" xml:space="preserve">
+    <value>Profiles aren't available here</value>
+  </data>
+  <data name="Profiles.NormalConfiguration" xml:space="preserve">
+    <value>Normal configuration</value>
+  </data>
+  <data name="Profiles.Profile" xml:space="preserve">
+    <value>Profile {0}</value>
+    <comment>{0}: the profile name</comment>
+  </data>
+  <data name="Profiles.List" xml:space="preserve">
+    <value>Profiles</value>
+  </data>
+  <data name="Profiles.Name" xml:space="preserve">
+    <value>Profile name</value>
+  </data>
+  <data name="Profiles.New" xml:space="preserve">
+    <value>&amp;New</value>
+  </data>
+  <data name="Profiles.Rename" xml:space="preserve">
+    <value>&amp;Rename</value>
+  </data>
+  <data name="Profiles.Delete" xml:space="preserve">
+    <value>&amp;Delete</value>
+  </data>
+  <data name="Profiles.NameTaken" xml:space="preserve">
+    <value>Type a name no other profile has.</value>
+  </data>
+  <data name="Profiles.RenameFailed" xml:space="preserve">
+    <value>Choose a profile and type a new name no other profile has.</value>
+  </data>
+  <data name="Profiles.DeleteQuestion" xml:space="preserve">
+    <value>Delete the profile {0}?</value>
+    <comment>{0}: the profile name</comment>
+  </data>
+  <data name="Profiles.Activate" xml:space="preserve">
+    <value>&amp;Activate</value>
+  </data>
+  <data name="Profiles.UseInThisApp" xml:space="preserve">
+    <value>Use in this application</value>
+  </data>
+  <data name="Profiles.UseInApp" xml:space="preserve">
+    <value>Use in {0}</value>
+    <comment>{0}: the application (process) name</comment>
+  </data>
+  <data name="Profiles.UseDuringSayAll" xml:space="preserve">
+    <value>Use during &amp;Say All</value>
+  </data>
+  <data name="Profiles.NameLabel" xml:space="preserve">
+    <value>&amp;Name:</value>
+  </data>
+  <data name="Profiles.ListLabel" xml:space="preserve">
+    <value>&amp;Profiles:</value>
+  </data>
+  <data name="Profiles.NormalConfigurationActive" xml:space="preserve">
+    <value>Normal configuration, active</value>
+  </data>
+  <data name="Profiles.MarkActive" xml:space="preserve">
+    <value>active</value>
+  </data>
+  <data name="Profiles.MarkManual" xml:space="preserve">
+    <value>chosen by hand</value>
+  </data>
+  <data name="Profiles.Deactivate" xml:space="preserve">
+    <value>De&amp;activate</value>
+  </data>
+  <data name="PortableCopy.NotHere" xml:space="preserve">
+    <value>A portable copy can't be made here</value>
+  </data>
+  <data name="CommandSearch.NotHere" xml:space="preserve">
+    <value>Command search isn't available here</value>
+  </data>
+  <data name="Gesture.NotHere" xml:space="preserve">
+    <value>Keys can't be changed here</value>
+  </data>
+  <data name="PortableCopy.Creating" xml:space="preserve">
+    <value>Creating the portable copy</value>
+  </data>
+  <data name="PortableCopy.Created" xml:space="preserve">
+    <value>Portable copy created in {0}</value>
+    <comment>{0}: the folder</comment>
+  </data>
+  <data name="PortableCopy.Failed" xml:space="preserve">
+    <value>The portable copy could not be created: {0}</value>
+    <comment>{0}: the reason (a system error message)</comment>
+  </data>
+  <data name="Gesture.KeysSaved" xml:space="preserve">
+    <value>Keys saved</value>
+  </data>
+  <data name="Gesture.KeysNotSaved" xml:space="preserve">
+    <value>Keys could not be saved</value>
+  </data>
+  <data name="Settings.Title" xml:space="preserve">
+    <value>Vox settings</value>
+  </data>
+  <data name="Settings.Categories" xml:space="preserve">
+    <value>Categories</value>
+  </data>
+  <data name="Settings.On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Settings.Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="SettingsRing.Setting" xml:space="preserve">
+    <value>{0} {1}</value>
+    <comment>{0}: the setting name; {1}: its value</comment>
+  </data>
+  <data name="SettingsRing.Voice" xml:space="preserve">
+    <value>Voice</value>
+  </data>
+  <data name="SettingsRing.Rate" xml:space="preserve">
+    <value>Rate</value>
+  </data>
+  <data name="SettingsRing.Pitch" xml:space="preserve">
+    <value>Pitch</value>
+  </data>
+  <data name="SettingsRing.Volume" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="SettingsRing.Punctuation" xml:space="preserve">
+    <value>Punctuation</value>
+  </data>
+  <data name="SettingsRing.Synthesizer" xml:space="preserve">
+    <value>Synthesizer</value>
+  </data>
+  <data name="SettingsRing.DefaultVoice" xml:space="preserve">
+    <value>default</value>
+  </data>
+  <data name="RemoteSession.RemoteDesktop" xml:space="preserve">
+    <value>Remote Desktop</value>
+  </data>
+  <data name="RemoteSession.Other" xml:space="preserve">
+    <value>remote connection</value>
+  </data>
+  <data name="RemoteSession.ThisComputer" xml:space="preserve">
+    <value>this computer</value>
+  </data>
+  <data name="RemoteSession.Announcement" xml:space="preserve">
+    <value>Remote session: {0}</value>
+    <comment>{0}: the kind of remote session ("Remote Desktop", "Citrix", "remote connection")</comment>
+  </data>
+  <data name="SecureScreen.SettingsCopied" xml:space="preserve">
+    <value>Settings copied to the sign-in screens</value>
+  </data>
+  <data name="SecureScreen.SettingsNotCopied" xml:space="preserve">
+    <value>Could not copy settings to the sign-in screens</value>
+  </data>
+  <data name="Sleep.NotAvailable" xml:space="preserve">
+    <value>Not available</value>
+  </data>
+  <data name="Sleep.Off" xml:space="preserve">
+    <value>Sleep mode off</value>
+  </data>
+  <data name="Sleep.On" xml:space="preserve">
+    <value>Sleep mode on</value>
+  </data>
+  <data name="Update.Available" xml:space="preserve">
+    <value>Vox {0} is available.</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Update.UpToDate" xml:space="preserve">
+    <value>Vox is up to date.</value>
+  </data>
+  <data name="Update.CheckFailed" xml:space="preserve">
+    <value>Couldn't check for updates.</value>
+  </data>
+  <data name="Update.ChecksOff" xml:space="preserve">
+    <value>Checking for updates is off.</value>
+  </data>
+  <data name="Update.Checking" xml:space="preserve">
+    <value>Checking for updates</value>
+  </data>
+  <data name="Update.AvailableCloseDialog" xml:space="preserve">
+    <value>Vox {0} is available. Close the open Vox dialog and check again to install it.</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Update.AvailableTitle" xml:space="preserve">
+    <value>Update available</value>
+  </data>
+  <data name="Update.InstallQuestion" xml:space="preserve">
+    <value>Vox {0} is available. Download and install it now? Vox will close while it installs.</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Update.Downloading" xml:space="preserve">
+    <value>Downloading Vox {0}</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Update.DownloadFailed" xml:space="preserve">
+    <value>The update couldn't be downloaded.</value>
+  </data>
+  <data name="Update.DownloadDamaged" xml:space="preserve">
+    <value>The download was damaged or altered, so it wasn't installed.</value>
+  </data>
+  <data name="Update.InstallerStarting" xml:space="preserve">
+    <value>The installer is starting. Vox will close now.</value>
+  </data>
+  <data name="Update.AvailableDaily" xml:space="preserve">
+    <value>Vox {0} is available. Choose Check for updates in the Vox menu to install it.</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Capitals.Cap" xml:space="preserve">
+    <value>cap {0}</value>
+    <comment>{0}: a letter or word with a capital letter</comment>
+  </data>
+  <data name="Capitals.AllCaps" xml:space="preserve">
+    <value>all caps {0}</value>
+    <comment>{0}: a word in capital letters</comment>
+  </data>
+  <data name="SpeechHistory.Empty" xml:space="preserve">
+    <value>No speech history</value>
+  </data>
+  <data name="SpeechHistory.Copied" xml:space="preserve">
+    <value>Copied</value>
+  </data>
+  <data name="SpeechHistory.CopyFailed" xml:space="preserve">
+    <value>Could not copy</value>
+  </data>
+  <data name="SpeechViewer.Title" xml:space="preserve">
+    <value>Vox speech viewer</value>
+  </data>
+  <data name="Settings.Locked" xml:space="preserve">
+    <value>{0} (set by your organization)</value>
+    <comment>{0}: the label of a setting the organization's policy locks</comment>
+  </data>
 </root>
