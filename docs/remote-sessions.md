@@ -26,7 +26,7 @@ remote session it:
 - **Two screen readers:** a local screen reader also hears the keys first. Put it to sleep for the
   remote desktop client (Vox: Insert+Shift+S) or use its remote-access add-on.
 - **UI Automation** works inside the session as at the computer; providers are slower when the
-  host is busy, and Vox's timeouts (`docs/` robustness) report "not responding" rather than hang.
+  host is busy, and Vox's UIA timeouts report "not responding" rather than hang.
 - **Braille:** a USB HID braille display can be redirected by RDP's USB redirection or Citrix's
   generic USB; BRLTTY can run on the host. Local displays aren't otherwise seen.
 - **Secure screens:** the remote sign-in screen is the client's, not read by the remote Vox.
