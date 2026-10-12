@@ -276,8 +276,8 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [ ] Document the translator workflow and add the first translations (es, fr, de, pt, zh, ja, ar, hi) (spec: product-settings-help-install.md)
 - [x] Add silent-install MSI properties, ADMX policy templates, roaming settings option, network-off guarantee (spec: product-settings-help-install.md)
 - [x] Detect RDP/Citrix sessions, document limits, and test UIA over RDP (spec: product-settings-help-install.md)
-- [ ] Add desktop E2E scenarios for Notepad, Explorer and Settings (interactive runner) (spec: quality-engineering.md)
-- [ ] Add fault-injection E2E runs (hung provider, browser crash, sleep/resume, session switch) and a 4-hour soak test checking memory and handles (spec: quality-engineering.md)
+- [x] Add desktop E2E scenarios for Notepad, Explorer and Settings (interactive runner) (spec: quality-engineering.md)
+- [x] Add fault-injection E2E runs (hung provider, browser crash, sleep/resume, session switch) and a 4-hour soak test checking memory and handles (spec: quality-engineering.md)
 
 ### Milestone E — "Better than"
 
