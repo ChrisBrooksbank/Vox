@@ -25,6 +25,10 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
 
     // dwExtraInfo on keys Vox injects itself, so the hook lets them through untouched
     private const nuint VoxInjectedMarker = 0x566F78; // "Vox"
+    // HookHealth's probe: an unassigned key the hook swallows, so no application sees it
+    private const nuint VoxProbeMarker = 0x566F7850; // "VoxP"
+    private const ushort VK_PROBE = 0xE8;
+    private const uint WM_APP_REINSTALL = 0x8000 + 0x56;
     private const uint INPUT_KEYBOARD = 1;
     private const uint KEYEVENTF_KEYUP = 0x0002;
 
@@ -120,6 +124,16 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
     private const uint WM_QUIT = 0x0012;
 
     [StructLayout(LayoutKind.Sequential)]
+    private struct LASTINPUTINFO
+    {
+        public uint cbSize;
+        public uint dwTime;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
+    [StructLayout(LayoutKind.Sequential)]
     private struct MSG
     {
         public nint hwnd;
@@ -148,6 +162,10 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
     private Thread? _hookThread;
     private uint _hookThreadId;
     private CancellationTokenSource _cts = new();
+    private HookHealth _health = new(Environment.TickCount64);
+    private System.Threading.Timer? _healthTimer;
+    // The hook sees nothing on the lock screen, so it isn't probed there
+    private volatile bool _sessionLocked;
 
     public event EventHandler<KeyEvent>? KeyPressed;
 
@@ -242,6 +260,8 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         {
             try { Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitch; }
             catch (Exception ex) { _logger.LogDebug(ex, "Session switch notifications unavailable"); }
+            _health = new HookHealth(Environment.TickCount64);
+            _healthTimer = new System.Threading.Timer(_ => CheckHealth(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
 
         if (_hookHandle == nint.Zero)
@@ -293,6 +313,11 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                 _logger.LogError("GetMessage failed in keyboard hook pump. Win32 error: {Error}", error);
                 break;
             }
+            if (msg.hwnd == nint.Zero && msg.message == WM_APP_REINSTALL)
+            {
+                Reinstall(hMod);
+                continue;
+            }
             TranslateMessage(ref msg);
             DispatchMessage(ref msg);
         }
@@ -305,10 +330,66 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         }
     }
 
+    /// <summary>
+    /// Installs the hook again (on the hook thread): the new one first, so no key goes unseen in
+    /// between, then the old one is removed (Windows may have done that already).
+    /// </summary>
+    private void Reinstall(nint hMod)
+    {
+        var replacement = SetWindowsHookEx(WH_KEYBOARD_LL, _hookCallback!, hMod, 0);
+        if (replacement == nint.Zero)
+        {
+            _logger.LogError("Could not reinstall the keyboard hook. Win32 error: {Error}", Marshal.GetLastWin32Error());
+            return;
+        }
+        var old = _hookHandle;
+        _hookHandle = replacement;
+        UnhookWindowsHookEx(old);
+        _logger.LogWarning("The keyboard hook stopped receiving keys (Windows removes a slow hook); reinstalled");
+    }
+
+    /// <summary>Every second: probe the hook when there was input it didn't see, reinstall it when the probe goes unseen.</summary>
+    private void CheckHealth()
+    {
+        try
+        {
+            if (_sessionLocked)
+                return;
+            var info = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
+            if (!GetLastInputInfo(ref info))
+                return;
+            long now = Environment.TickCount64;
+            // dwTime is GetTickCount's 32 bits: put it on the 64-bit clock
+            long lastInput = now - unchecked((uint)Environment.TickCount - info.dwTime);
+            switch (_health.Check(now, lastInput))
+            {
+                case HookHealthAction.Probe:
+                    var inputs = new[]
+                    {
+                        new INPUT { type = INPUT_KEYBOARD, u = new InputUnion { ki = new KEYBDINPUT { wVk = VK_PROBE, dwExtraInfo = VoxProbeMarker } } },
+                        new INPUT { type = INPUT_KEYBOARD, u = new InputUnion { ki = new KEYBDINPUT { wVk = VK_PROBE, dwFlags = KEYEVENTF_KEYUP, dwExtraInfo = VoxProbeMarker } } },
+                    };
+                    SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+                    break;
+                case HookHealthAction.Reinstall:
+                    if (_hookThreadId != 0)
+                        PostThreadMessage(_hookThreadId, WM_APP_REINSTALL, nint.Zero, nint.Zero);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Keyboard hook health check failed");
+        }
+    }
+
     public void Uninstall()
     {
         if (_hookHandle == nint.Zero)
             return;
+
+        _healthTimer?.Dispose();
+        _healthTimer = null;
 
         try { Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitch; }
         catch { /* not subscribed */ }
@@ -339,6 +420,7 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
     {
         if (nCode >= 0)
         {
+            _health.KeySeen(Environment.TickCount64);
             var msg = (int)wParam;
             bool isKeyDown = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
             bool isKeyUp = msg == WM_KEYUP || msg == WM_SYSKEYUP;
@@ -351,6 +433,9 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
                 // Keys Vox injected itself (e.g. turning Caps Lock off) go straight through
                 if (kbStruct.dwExtraInfo == VoxInjectedMarker)
                     return CallNextHookEx(_hookHandle, nCode, wParam, lParam);
+                // The health probe has done its job by arriving
+                if (kbStruct.dwExtraInfo == VoxProbeMarker)
+                    return 1;
 
                 if (_resetRequested)
                 {
@@ -447,8 +532,17 @@ public sealed class KeyboardHook : IKeyboardHook, IDisposable
         }
     }
 
-    private void OnSessionSwitch(object? sender, Microsoft.Win32.SessionSwitchEventArgs e) =>
+    private void OnSessionSwitch(object? sender, Microsoft.Win32.SessionSwitchEventArgs e)
+    {
         _resetRequested = true;
+        if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock)
+            _sessionLocked = true;
+        else if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock)
+        {
+            _sessionLocked = false;
+            _health.KeySeen(Environment.TickCount64);
+        }
+    }
 
     private void ConsumeEvents(Channel<KeyEvent> channel, CancellationToken token)
     {

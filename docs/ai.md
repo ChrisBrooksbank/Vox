@@ -43,7 +43,7 @@ Settings (Insert+Ctrl+G, AI page):
 - **Send to the cloud AI provider**: *Ask first, once per session* (default), *Always, without asking*, or *Never*.
 - **Announce CAPTCHAs and their accessible alternatives**: on by default.
 
-In `settings.json` only: `AiModel` (default `claude-opus-5-5`), `AiEndpoint` (default `https://api.anthropic.com`; for a proxy or gateway), `AiPrivateApps` (see below). To forget the key, delete `ai-key.dat` from Vox's settings folder, or set the provider to None.
+In `settings.json` only: `AiModel` (default `claude-opus-5-5`), `AiEndpoint` (default `https://api.anthropic.com`; for a proxy or gateway; it must be `https:`, or `http:` only to this computer — any other address is never used, so the key and screenshots never cross the network in the clear), `AiPrivateApps` (see below). To forget the key, delete `ai-key.dat` from Vox's settings folder, or set the provider to None.
 
 Requests use low effort for quick answers and, on the Claude API, opt in to Anthropic's server-side fallback (`fallbacks: "default"`), so a request one model declines can be answered by the model Anthropic recommends. A declined request is reported as "Claude declined to answer".
 

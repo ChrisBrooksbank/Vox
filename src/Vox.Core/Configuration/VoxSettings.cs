@@ -288,7 +288,7 @@ public record VoxSettings
     public Ai.AiCloudProvider AiCloudProvider { get; init; } = Ai.AiCloudProvider.None;
     /// <summary>The cloud provider's model; null: its default (Claude: claude-opus-5-5).</summary>
     public string? AiModel { get; init; }
-    /// <summary>The cloud provider's address; null: its own (Claude: https://api.anthropic.com).</summary>
+    /// <summary>The cloud provider's address; null: its own (Claude: https://api.anthropic.com). HTTPS only, except to this computer.</summary>
     public string? AiEndpoint { get; init; }
     /// <summary>Whether things may be sent to the cloud provider: ask once per session, allow, or never.</summary>
     public Ai.AiConsentMode AiCloudConsent { get; init; } = Ai.AiConsentMode.Ask;

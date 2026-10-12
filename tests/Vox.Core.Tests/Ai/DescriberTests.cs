@@ -76,6 +76,33 @@ public class CloudImageDescriberTests
     }
 
     [Theory]
+    [InlineData("http://claude.example.com", false)]
+    [InlineData("http://192.0.2.1:8080", false)]
+    [InlineData("ftp://claude.example.com", false)]
+    [InlineData("not a url", false)]
+    [InlineData("https://claude.example.com", true)]
+    [InlineData("http://localhost:8080", true)]
+    [InlineData("http://127.0.0.1:8080/", true)]
+    public void ACustomEndpoint_MustBeHttps_ExceptToThisComputer(string endpoint, bool used)
+    {
+        _settings = _settings with { AiEndpoint = endpoint };
+
+        Assert.Equal(used, Describer().IsAvailable);
+        Assert.Equal(used, Describer().Endpoint is not null);
+    }
+
+    [Fact]
+    public async Task APlainHttpEndpoint_IsNeverSentTheKey()
+    {
+        _settings = _settings with { AiEndpoint = "http://claude.example.com" };
+
+        var failed = await Assert.ThrowsAsync<AiException>(() => Describer().DescribeAsync(new AiRequest(AiTask.SummarizePage, Context: "Page text")));
+
+        Assert.Equal(AiFailure.NotSetUp, failed.Failure);
+        Assert.Empty(_http.Requests);
+    }
+
+    [Theory]
     [InlineData(HttpStatusCode.Unauthorized, AiFailure.KeyRejected)]
     [InlineData(HttpStatusCode.TooManyRequests, AiFailure.Busy)]
     [InlineData((HttpStatusCode)529, AiFailure.Busy)]

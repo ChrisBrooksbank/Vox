@@ -64,6 +64,115 @@ public class NetworkGateTests
         Assert.Equal(0, wire.Requests);
     }
 
+    /// <summary>Answers each address from <see cref="Redirects"/> with a redirect, anything else with 200.</summary>
+    private sealed class Redirector : HttpMessageHandler
+    {
+        public Dictionary<string, string> Redirects { get; } = new();
+        public List<HttpRequestMessage> Requests { get; } = new();
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests.Add(request);
+            if (!Redirects.TryGetValue(request.RequestUri!.AbsoluteUri, out var to))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("done") });
+            var response = new HttpResponseMessage(HttpStatusCode.Found);
+            response.Headers.Location = new Uri(to, UriKind.RelativeOrAbsolute);
+            return Task.FromResult(response);
+        }
+    }
+
+    [Fact]
+    public async Task Redirects_AreFollowed_ByTheGate()
+    {
+        var wire = new Redirector();
+        wire.Redirects["https://example.com/feed.json"] = "https://cdn.example.com/feed.json";
+        wire.Redirects["https://cdn.example.com/feed.json"] = "/v2/feed.json";
+        using var http = NetworkGate.CreateHttpClient(RunPolicy.Normal, TimeSpan.FromSeconds(5), wire);
+
+        Assert.Equal("done", await http.GetStringAsync("https://example.com/feed.json"));
+        Assert.Equal(["https://example.com/feed.json", "https://cdn.example.com/feed.json", "https://cdn.example.com/v2/feed.json"],
+            wire.Requests.Select(r => r.RequestUri!.AbsoluteUri));
+    }
+
+    [Fact]
+    public async Task ARedirect_OffThisComputer_IsRefused_WhileTheNetworkIsOff()
+    {
+        var wire = new Redirector();
+        wire.Redirects["http://localhost:8080/catalogue.json"] = "https://example.com/catalogue.json";
+        using var http = NetworkGate.CreateHttpClient(NetworkOff, TimeSpan.FromSeconds(5), wire);
+
+        await Assert.ThrowsAsync<NetworkDisabledException>(() => http.GetStringAsync("http://localhost:8080/catalogue.json"));
+        Assert.Single(wire.Requests);
+    }
+
+    [Fact]
+    public async Task ARedirect_FromHttpsToHttp_IsRefused()
+    {
+        var wire = new Redirector();
+        wire.Redirects["https://example.com/Vox.msi"] = "http://example.com/Vox.msi";
+        using var http = NetworkGate.CreateHttpClient(RunPolicy.Normal, TimeSpan.FromSeconds(5), wire);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => http.GetStringAsync("https://example.com/Vox.msi"));
+        Assert.Single(wire.Requests);
+    }
+
+    [Fact]
+    public async Task EndlessRedirects_Fail()
+    {
+        var wire = new Redirector();
+        wire.Redirects["https://example.com/a"] = "https://example.com/b";
+        wire.Redirects["https://example.com/b"] = "https://example.com/a";
+        using var http = NetworkGate.CreateHttpClient(RunPolicy.Normal, TimeSpan.FromSeconds(5), wire);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => http.GetStringAsync("https://example.com/a"));
+        Assert.Equal(NetworkGate.MaxRedirects + 1, wire.Requests.Count);
+    }
+
+    [Fact]
+    public async Task APostsRedirect_IsNotFollowed_SoItsBodyAndKeyGoNowhereElse()
+    {
+        var wire = new Redirector();
+        wire.Redirects["https://api.example.com/v1/messages"] = "https://elsewhere.example.com/collect";
+        using var http = NetworkGate.CreateHttpClient(RunPolicy.Normal, TimeSpan.FromSeconds(5), wire);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.example.com/v1/messages") { Content = new StringContent("{}") };
+        request.Headers.Add("x-api-key", "secret");
+
+        using var response = await http.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.Single(wire.Requests);
+    }
+
+    [Fact]
+    public async Task ARedirect_CarriesNoHeaders_ButAccept()
+    {
+        var wire = new Redirector();
+        wire.Redirects["https://example.com/feed.json"] = "https://other.example.com/feed.json";
+        using var http = NetworkGate.CreateHttpClient(RunPolicy.Normal, TimeSpan.FromSeconds(5), wire);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "https://example.com/feed.json");
+        request.Headers.Add("x-api-key", "secret");
+        request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+        using var response = await http.SendAsync(request);
+
+        var hop = wire.Requests[1];
+        Assert.False(hop.Headers.Contains("x-api-key"));
+        Assert.Equal("application/json", Assert.Single(hop.Headers.Accept).MediaType);
+    }
+
+    [Theory]
+    [InlineData(@"\\files.example.com\share\catalogue.json", false)]
+    [InlineData("file://files.example.com/share/catalogue.json", false)]
+    [InlineData(@"C:\Vox\catalogue.json", true)]
+    [InlineData("file:///C:/Vox/catalogue.json", true)]
+    public void AFileOnAnotherComputer_IsTheNetwork(string address, bool readable)
+    {
+        var file = new Uri(address);
+
+        Assert.Equal(readable, NetworkGate.MayRead(NetworkOff, file));
+        Assert.True(NetworkGate.MayRead(RunPolicy.Normal, file));
+    }
+
     [Theory]
     [InlineData("127.0.0.1", true)]
     [InlineData("127.0.0.53", true)]

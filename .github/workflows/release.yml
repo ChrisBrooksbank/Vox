@@ -84,6 +84,23 @@ jobs:
           dotnet build-guide\Vox.App.dll --keyboard-reference "$env:PUBLISH_DIR\docs\guide\keyboard.html"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # Vox finds its assets beside itself; keymaps fall back to embedded copies but the update and
+      # add-on keys don't, so a release without them would silently never check (docs/security.md, weakness 6)
+      - name: Check the published folder has Vox's assets
+        shell: pwsh
+        run: |
+          $required = 'assets\config\default-settings.json', 'assets\config\default-keymap.json',
+            'assets\config\laptop-keymap.json', 'assets\config\jaws-keymap.json',
+            'assets\sounds\default\manifest.json', 'docs\guide\index.html', 'docs\guide\keyboard.html'
+          foreach ($key in 'update-key.pem', 'addon-key.pem') {
+            if (Test-Path "assets\config\$key") { $required += "assets\config\$key" }
+          }
+          $missing = $required | Where-Object { -not (Test-Path (Join-Path $env:PUBLISH_DIR $_)) }
+          if ($missing) {
+            $missing | ForEach-Object { Write-Host "::error::The published folder lacks $_" }
+            exit 1
+          }
+
       - name: Sign the published programs
         if: env.HAS_CERTIFICATE == 'true'
         shell: pwsh

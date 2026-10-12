@@ -149,6 +149,27 @@ public class AddOnStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ACatalogueOnAnotherComputer_IsTheNetwork()
+    {
+        var unc = new Uri(@"\\files.example.com\share\catalogue.json");
+        var networkOff = RunPolicy.Normal with { NetworkOffByPolicy = true };
+
+        Assert.True(unc.IsFile && unc.IsUnc);
+        Assert.Equal(StoreAvailability.NetworkOff, Store(new FakeServer(), networkOff, unc).Availability);
+        await Assert.ThrowsAsync<AddOnStoreException>(() => Store(new FakeServer(), networkOff, unc).FetchAsync());
+        Assert.Equal(StoreAvailability.Available, Store(new FakeServer(), RunPolicy.Normal, unc).Availability);
+    }
+
+    [Fact]
+    public async Task APackageOnAnotherComputer_IsNotCopied_WhileTheNetworkIsOff()
+    {
+        var store = Store(new FakeServer(), RunPolicy.Normal with { NetworkOffByPolicy = true }, new Uri(_files.PathOf("catalogue.json")));
+        var entry = new CatalogueEntry("com.example.a", "Example", "1.0.0", "Example", "1.0", "file://files.example.com/share/a.voxaddon", new string('a', 64));
+
+        await Assert.ThrowsAsync<AddOnStoreException>(() => store.DownloadAsync(entry));
+    }
+
+    [Fact]
     public async Task ALocalCatalogue_ListsPackagesBesideIt_AndOneInstallsThroughTheManager()
     {
         var package = _files.Package();
