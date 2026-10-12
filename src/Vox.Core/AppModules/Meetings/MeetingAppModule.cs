@@ -1,5 +1,6 @@
 using Vox.Core.Accessibility;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -85,7 +86,7 @@ public abstract class MeetingAppModule : AppModule
                     return;
                 if (names is null)
                 {
-                    Speech.Enqueue(new Utterance("The call's controls can't be read", SpeechPriority.Interrupt));
+                    Speech.Enqueue(new Utterance(VoxStrings.Get("Meeting.ControlsUnreadable"), SpeechPriority.Interrupt));
                     return;
                 }
                 var state = MeetingControls.FromButtons(names);

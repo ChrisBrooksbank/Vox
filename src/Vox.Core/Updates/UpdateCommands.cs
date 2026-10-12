@@ -4,6 +4,7 @@ using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Updates;
 
@@ -39,7 +40,7 @@ public sealed class UpdateCommands(
 
     private async Task CheckNowAsync()
     {
-        Say("Checking for updates");
+        Say(VoxStrings.Get("Update.Checking"));
         var result = await checker.CheckAsync().ConfigureAwait(false);
         RememberCheck();
         if (result != UpdateCheckResult.Available)
@@ -58,7 +59,7 @@ public sealed class UpdateCommands(
         if (!browse.BeginOwnDialog())
         {
             // Another of Vox's dialogs is open: say what was found rather than nothing
-            Say($"Vox {release.Version} is available. Close the open Vox dialog and check again to install it.");
+            Say(VoxStrings.Format("Update.AvailableCloseDialog", release.Version));
             return;
         }
         _ = AskAndInstallAsync(release);
@@ -69,8 +70,8 @@ public sealed class UpdateCommands(
         bool install = false;
         try
         {
-            install = await confirm.AskAsync("Update available",
-                $"Vox {release.Version} is available. Download and install it now? Vox will close while it installs.").ConfigureAwait(false);
+            install = await confirm.AskAsync(VoxStrings.Get("Update.AvailableTitle"),
+                VoxStrings.Format("Update.InstallQuestion", release.Version)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -83,7 +84,7 @@ public sealed class UpdateCommands(
 
     private async Task InstallAsync(UpdateRelease release)
     {
-        Say($"Downloading Vox {release.Version}");
+        Say(VoxStrings.Format("Update.Downloading", release.Version));
         bool started;
         try
         {
@@ -92,12 +93,12 @@ public sealed class UpdateCommands(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Update download failed");
-            Say("The update couldn't be downloaded.");
+            Say(VoxStrings.Get("Update.DownloadFailed"));
             return;
         }
         if (!started)
         {
-            Say("The download was damaged or altered, so it wasn't installed.");
+            Say(VoxStrings.Get("Update.DownloadDamaged"));
             return;
         }
 
@@ -105,7 +106,7 @@ public sealed class UpdateCommands(
         // (focus moving to the installer interrupts it; paused speech or sleep mode drops it)
         try
         {
-            await speech.EnqueueAndWaitAsync(new Utterance("The installer is starting. Vox will close now.", SpeechPriority.Interrupt))
+            await speech.EnqueueAndWaitAsync(new Utterance(VoxStrings.Get("Update.InstallerStarting"), SpeechPriority.Interrupt))
                 .WaitAsync(GoodbyeTimeout).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is TimeoutException or OperationCanceledException)
@@ -122,7 +123,7 @@ public sealed class UpdateCommands(
         var result = await checker.CheckAsync(cancellationToken).ConfigureAwait(false);
         RememberCheck();
         if (result == UpdateCheckResult.Available)
-            speech.Enqueue(new Utterance($"Vox {checker.Available!.Version} is available. Choose Check for updates in the Vox menu to install it.", SpeechPriority.Low));
+            speech.Enqueue(new Utterance(VoxStrings.Format("Update.AvailableDaily", checker.Available!.Version), SpeechPriority.Low));
     }
 
     /// <summary>Whether a day has passed since the last check (the time is kept in <c>lastCheckFile</c>).</summary>

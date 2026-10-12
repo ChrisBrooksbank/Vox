@@ -1,5 +1,6 @@
 using System.Text;
 using Vox.Core.Configuration;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Speech;
 
@@ -44,7 +45,7 @@ public sealed class CapitalsRule : ITextRule
     private static Utterance Indicate(Utterance utterance, string text, CapitalIndication indication, bool allCaps) => indication switch
     {
         CapitalIndication.Pitch => utterance with { PitchOffset = utterance.PitchOffset + PitchRaise },
-        CapitalIndication.SayCap => utterance with { Text = (allCaps ? "all caps " : "cap ") + text },
+        CapitalIndication.SayCap => utterance with { Text = allCaps ? VoxStrings.Format("Capitals.AllCaps", text) : VoxStrings.Format("Capitals.Cap", text) },
         CapitalIndication.Beep => utterance with { SoundCue = Utterance.CapitalCue },
         _ => utterance,
     };
@@ -73,9 +74,8 @@ public sealed class CapitalsRule : ITextRule
             while (i < text.Length && !char.IsWhiteSpace(text[i]))
                 i++;
             var word = text[start..i];
-            if (HasCapital(word))
-                result.Append(IsAllCaps(word) ? "all caps " : "cap ");
-            result.Append(word);
+            result.Append(!HasCapital(word) ? word
+                : IsAllCaps(word) ? VoxStrings.Format("Capitals.AllCaps", word) : VoxStrings.Format("Capitals.Cap", word));
         }
         return result.ToString();
     }

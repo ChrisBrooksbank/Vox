@@ -1,5 +1,6 @@
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Text;
 
@@ -150,7 +151,7 @@ public sealed class TextCaretTracker
     {
         string old = before.Text.TrimEnd('\r', '\n'), now = after.Text.TrimEnd('\r', '\n');
         if (now.Length > old.Length)
-            return "line break"; // the line was joined with its neighbour
+            return VoxStrings.Get("Text.LineBreak"); // the line was joined with its neighbour
 
         int prefix = 0;
         int maxPrefix = Math.Min(old.Length, now.Length);
@@ -163,7 +164,7 @@ public sealed class TextCaretTracker
 
         var removed = old.Substring(prefix, old.Length - prefix - suffix);
         if (removed.Length == 0)
-            return old == now && before.CaretInLine == 0 && after.CaretInLine == 0 ? null : "line break";
+            return old == now && before.CaretInLine == 0 && after.CaretInLine == 0 ? null : VoxStrings.Get("Text.LineBreak");
         return removed.Length <= 2 ? TextSpeech.ForCharacter(removed) : TextSpeech.ForUnit(removed, TextUnit.Word);
     }
 
@@ -211,8 +212,8 @@ public sealed class TextCaretTracker
         var text = caret.ExpandToEnclosingUnit(key.Unit).GetText(MaxSpokenLength);
         var speech = TextSpeech.ForUnit(text, key.Unit);
         if (key.Unit == TextUnit.Line && ReportIndentation(text) is { } indentation)
-            speech = $"{indentation}, {speech}";
-        return CheckSpelling(caret) ? $"misspelled, {speech}" : speech;
+            speech = VoxStrings.Format("Text.IndentedLine", indentation, speech);
+        return CheckSpelling(caret) ? VoxStrings.Format("Text.MisspelledText", speech) : speech;
     }
 
     /// <summary>
@@ -259,12 +260,12 @@ public sealed class TextCaretTracker
             }
         }
         if (columns == 0)
-            return (0, "no indent");
+            return (0, VoxStrings.Get("Text.NoIndent"));
         var parts = new List<string>();
         if (tabs > 0)
-            parts.Add(tabs == 1 ? "1 tab" : $"{tabs} tabs");
+            parts.Add(tabs == 1 ? VoxStrings.Get("Text.OneTab") : VoxStrings.Format("Text.Tabs", tabs));
         if (spaces > 0)
-            parts.Add(spaces == 1 ? "1 space" : $"{spaces} spaces");
+            parts.Add(spaces == 1 ? VoxStrings.Get("Text.OneSpace") : VoxStrings.Format("Text.Spaces", spaces));
         return (columns, string.Join(" ", parts));
     }
 
@@ -322,34 +323,34 @@ public sealed class TextCaretTracker
             bool coversAll = !current.IsDegenerate
                 && current.CompareEndpoints(TextEndpoint.Start, all, TextEndpoint.Start) <= 0
                 && current.CompareEndpoints(TextEndpoint.End, all, TextEndpoint.End) >= 0;
-            return coversAll ? "all selected" : null;
+            return coversAll ? VoxStrings.Get("Text.AllSelected") : null;
         }
 
         // Nothing known before: everything selected now is new
         if (previous is null || previous.IsDegenerate)
-            return current.IsDegenerate ? null : Phrase("selected", current);
+            return current.IsDegenerate ? null : Phrase(selected: true, current);
 
         if (current.IsDegenerate)
-            return Phrase("unselected", previous);
+            return Phrase(selected: false, previous);
 
         // The selection jumped to the other side of its anchor (or elsewhere): say what is selected now
         bool disjoint = current.CompareEndpoints(TextEndpoint.Start, previous, TextEndpoint.End) >= 0
             || current.CompareEndpoints(TextEndpoint.End, previous, TextEndpoint.Start) <= 0;
         if (disjoint)
-            return Phrase("selected", current);
+            return Phrase(selected: true, current);
 
         var parts = new List<string>(2);
         int startDelta = current.CompareEndpoints(TextEndpoint.Start, previous, TextEndpoint.Start);
         if (startDelta < 0)
-            parts.Add(Phrase("selected", Between(current, current, TextEndpoint.Start, previous, TextEndpoint.Start)));
+            parts.Add(Phrase(selected: true, Between(current, current, TextEndpoint.Start, previous, TextEndpoint.Start)));
         else if (startDelta > 0)
-            parts.Add(Phrase("unselected", Between(previous, previous, TextEndpoint.Start, current, TextEndpoint.Start)));
+            parts.Add(Phrase(selected: false, Between(previous, previous, TextEndpoint.Start, current, TextEndpoint.Start)));
 
         int endDelta = current.CompareEndpoints(TextEndpoint.End, previous, TextEndpoint.End);
         if (endDelta > 0)
-            parts.Add(Phrase("selected", Between(current, previous, TextEndpoint.End, current, TextEndpoint.End)));
+            parts.Add(Phrase(selected: true, Between(current, previous, TextEndpoint.End, current, TextEndpoint.End)));
         else if (endDelta < 0)
-            parts.Add(Phrase("unselected", Between(previous, current, TextEndpoint.End, previous, TextEndpoint.End)));
+            parts.Add(Phrase(selected: false, Between(previous, current, TextEndpoint.End, previous, TextEndpoint.End)));
 
         return parts.Count == 0 ? null : string.Join(", ", parts);
     }
@@ -358,11 +359,11 @@ public sealed class TextCaretTracker
     private static ITextRange Between(ITextRange source, ITextRange from, TextEndpoint fromEndpoint, ITextRange to, TextEndpoint toEndpoint) =>
         source.WithEndpoint(TextEndpoint.Start, from, fromEndpoint).WithEndpoint(TextEndpoint.End, to, toEndpoint);
 
-    private static string Phrase(string verb, ITextRange range)
+    private static string Phrase(bool selected, ITextRange range)
     {
         var text = range.GetText(MaxSpokenLength);
         var spoken = text.Length <= 2 ? TextSpeech.ForCharacter(text) : TextSpeech.ForUnit(text, TextUnit.Word);
-        return $"{verb} {spoken}";
+        return selected ? VoxStrings.Format("Text.Selected", spoken) : VoxStrings.Format("Text.Unselected", spoken);
     }
 
     /// <summary>Longest text read for one caret move (a huge paragraph is cut short).</summary>

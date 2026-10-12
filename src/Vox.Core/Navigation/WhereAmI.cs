@@ -1,5 +1,6 @@
 using System.Globalization;
 using Vox.Core.Buffer;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -24,11 +25,12 @@ public static class WhereAmI
     public static string BatteryText(PowerInfo power)
     {
         if (!power.HasBattery)
-            return power.PluggedIn ? "No battery, plugged in" : "No battery";
+            return power.PluggedIn ? VoxStrings.Get("WhereAmI.NoBatteryPluggedIn") : VoxStrings.Get("WhereAmI.NoBattery");
         var parts = new List<string>(2);
         if (power.Percent is { } percent)
-            parts.Add($"{percent} percent");
-        parts.Add(power.Charging ? "charging" : power.PluggedIn ? "plugged in" : "on battery");
+            parts.Add(VoxStrings.Format("WhereAmI.BatteryPercent", percent));
+        parts.Add(power.Charging ? VoxStrings.Get("WhereAmI.Charging")
+            : power.PluggedIn ? VoxStrings.Get("WhereAmI.PluggedIn") : VoxStrings.Get("WhereAmI.OnBattery"));
         return string.Join(", ", parts);
     }
 
@@ -42,7 +44,7 @@ public static class WhereAmI
         Collect(statusBar, texts, withRoles: false);
         if (texts.Count == 0 && !string.IsNullOrWhiteSpace(statusBar.Name))
             texts.Add(statusBar.Name.Trim());
-        return texts.Count == 0 ? "Status bar is empty" : string.Join(", ", texts);
+        return texts.Count == 0 ? VoxStrings.Get("WhereAmI.StatusBarEmpty") : string.Join(", ", texts);
     }
 
     /// <summary>The window's contents in reading order: text, and controls with their roles.</summary>

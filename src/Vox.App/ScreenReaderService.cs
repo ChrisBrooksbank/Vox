@@ -320,8 +320,8 @@ public sealed class ScreenReaderService : IHostedService
         // Announce startup
         _speechQueue.Enqueue(new Utterance(
             hookInstalled
-                ? "Vox screen reader ready"
-                : "Vox screen reader ready, but keyboard commands are unavailable. Try running Vox as administrator.",
+                ? VoxStrings.Get("App.Ready")
+                : VoxStrings.Get("App.ReadyWithoutKeyboard"),
             SpeechPriority.Normal));
 
         VoxMenu.SafeMode = _runPolicy.SafeMode;
@@ -350,7 +350,7 @@ public sealed class ScreenReaderService : IHostedService
     {
         ApplySettings(_settings.CurrentValue);
         if (!_runPolicy.IsSecure)
-            _speechQueue.Enqueue(new Utterance(session.Announcement ?? "Local session", SpeechPriority.Normal));
+            _speechQueue.Enqueue(new Utterance(session.Announcement ?? VoxStrings.Get("App.LocalSession"), SpeechPriority.Normal));
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -579,12 +579,12 @@ public sealed class ScreenReaderService : IHostedService
                 if (_speechPaused)
                 {
                     _speechPaused = false;
-                    _speechQueue.Enqueue(new Utterance("Speech on", SpeechPriority.Interrupt));
+                    _speechQueue.Enqueue(new Utterance(VoxStrings.Get("App.SpeechOn"), SpeechPriority.Interrupt));
                 }
                 else
                 {
                     // Said before speech stops
-                    _speechQueue.Enqueue(new Utterance("Speech paused", SpeechPriority.Interrupt));
+                    _speechQueue.Enqueue(new Utterance(VoxStrings.Get("App.SpeechPaused"), SpeechPriority.Interrupt));
                     _speechPaused = true;
                 }
                 return;
@@ -599,13 +599,13 @@ public sealed class ScreenReaderService : IHostedService
                 if (_runPolicy.AllowSetupWizard)
                     _ = RunWizardAsync(lessonsOnly: true);
                 else
-                    _speechQueue.Enqueue(new Utterance("Not available on this screen", SpeechPriority.Interrupt));
+                    _speechQueue.Enqueue(new Utterance(VoxStrings.Get("Ocr.NotOnThisScreen"), SpeechPriority.Interrupt));
                 return;
         }
         if (e.Command == NavigationCommand.ToggleInputHelp)
         {
             // The dispatcher has switched already, as the key was handled
-            var state = _keyInputDispatcher.IsInputHelpOn ? "Input help on" : "Input help off";
+            var state = _keyInputDispatcher.IsInputHelpOn ? VoxStrings.Get("App.InputHelpOn") : VoxStrings.Get("App.InputHelpOff");
             _speechQueue.Enqueue(new Utterance(state, SpeechPriority.Interrupt));
             return;
         }
@@ -791,7 +791,7 @@ public sealed class ScreenReaderService : IHostedService
         var guide = Path.Combine(AppContext.BaseDirectory, "docs", "guide", "index.html");
         if (_runPolicy.IsSecure || !File.Exists(guide))
         {
-            _speechQueue.Enqueue(new Utterance(_runPolicy.IsSecure ? "The user guide isn't available here" : "The user guide isn't installed", SpeechPriority.Interrupt));
+            _speechQueue.Enqueue(new Utterance(_runPolicy.IsSecure ? VoxStrings.Get("App.GuideNotAvailableHere") : VoxStrings.Get("App.GuideNotInstalled"), SpeechPriority.Interrupt));
             return;
         }
         try
@@ -801,7 +801,7 @@ public sealed class ScreenReaderService : IHostedService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Could not open the user guide");
-            _speechQueue.Enqueue(new Utterance("Could not open the user guide", SpeechPriority.Interrupt));
+            _speechQueue.Enqueue(new Utterance(VoxStrings.Get("App.GuideOpenFailed"), SpeechPriority.Interrupt));
         }
     }
 
@@ -832,7 +832,7 @@ public sealed class ScreenReaderService : IHostedService
         try
         {
             // Say goodbye (briefly) before the speech engine is stopped
-            await _speechQueue.EnqueueAndWaitAsync(new Utterance("Vox exiting", SpeechPriority.Interrupt))
+            await _speechQueue.EnqueueAndWaitAsync(new Utterance(VoxStrings.Get("App.Exiting"), SpeechPriority.Interrupt))
                 .WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is TimeoutException or OperationCanceledException)
@@ -845,7 +845,7 @@ public sealed class ScreenReaderService : IHostedService
     {
         if (!_runPolicy.AllowSetupWizard)
         {
-            _speechQueue.Enqueue(new Utterance("Not available on this screen", SpeechPriority.Interrupt));
+            _speechQueue.Enqueue(new Utterance(VoxStrings.Get("Ocr.NotOnThisScreen"), SpeechPriority.Interrupt));
             return;
         }
         _ = RunWizardAsync(lessonsOnly: false);

@@ -203,7 +203,7 @@ public sealed class BrowseModeController
             return;
         cursor.MoveTo(offset);
         _quickNavHandler.CurrentNode = cursor.CurrentNode ?? _quickNavHandler.CurrentNode;
-        Speak(CharText(cursor.CurrentChar) ?? "blank");
+        Speak(CharText(cursor.CurrentChar) ?? VoxStrings.Get("Text.Blank"));
     }
 
     /// <summary>
@@ -266,7 +266,7 @@ public sealed class BrowseModeController
             _mathExplorer.Stop();
             if (command == NavigationCommand.InteractWithMath)
             {
-                Speak("Leaving math");
+                Speak(VoxStrings.Get("Math.Leaving"));
                 return;
             }
         }
@@ -283,7 +283,7 @@ public sealed class BrowseModeController
                 if (_quitConfirmation.Press())
                     QuitRequested?.Invoke(this, EventArgs.Empty);
                 else
-                    Speak($"Press {ModifierName} Q again to exit Vox");
+                    Speak(VoxStrings.Format("Browse.PressAgainToExit", ModifierName));
                 return;
 
             case NavigationCommand.RunSetup:
@@ -318,7 +318,7 @@ public sealed class BrowseModeController
                 }
                 if (_quickNavHandler.CurrentDocument is null || _cursor is null)
                 {
-                    Speak("No text");
+                    Speak(VoxStrings.Get("Browse.NoText"));
                     return;
                 }
                 break;
@@ -333,7 +333,7 @@ public sealed class BrowseModeController
                 }
                 if (_quickNavHandler.CurrentDocument is null || _cursor is null)
                 {
-                    Speak("Not in a document");
+                    Speak(VoxStrings.Get("Browse.NotInDocument"));
                     return;
                 }
                 break;
@@ -346,7 +346,7 @@ public sealed class BrowseModeController
                 // These only apply to web documents; say so rather than silently eating the key
                 if (_quickNavHandler.CurrentDocument is null || _cursor is null)
                 {
-                    Speak("Not in a document");
+                    Speak(VoxStrings.Get("Browse.NotInDocument"));
                     return;
                 }
                 break;
@@ -392,7 +392,7 @@ public sealed class BrowseModeController
 
             case NavigationCommand.ReadCurrentChar:
                 if (_cursor!.CurrentChar == '\0')
-                    Speak("blank");
+                    Speak(VoxStrings.Get("Text.Blank"));
                 else
                     Speak(_readSpell == SpellMode.None ? CharText(_cursor.CurrentChar)!
                         : Spelling.Say(_cursor.CurrentChar.ToString(), TextUnit.Character, _readSpell));
@@ -401,14 +401,14 @@ public sealed class BrowseModeController
             case NavigationCommand.ReadSelection:
                 var selected = _selection.TextFor(_cursor!);
                 if (selected.Length == 0)
-                    Speak("No selection");
+                    Speak(VoxStrings.Get("Browse.NoSelection"));
                 else
                     Speak(_readSpell == SpellMode.None ? SelectionText(selected)
                         : Spelling.Say(selected, TextUnit.Line, _readSpell));
                 return;
 
             case NavigationCommand.ReadFormatting:
-                Speak("No formatting information"); // the buffer doesn't keep formatting
+                Speak(VoxStrings.Get("Text.NoFormatting")); // the buffer doesn't keep formatting
                 return;
         }
 
@@ -458,7 +458,7 @@ public sealed class BrowseModeController
         if (command == NavigationCommand.MarkStart)
         {
             _selection.SetMark(_cursor!);
-            Speak("Start marked");
+            Speak(VoxStrings.Get("Browse.StartMarked"));
             return;
         }
 
@@ -556,8 +556,8 @@ public sealed class BrowseModeController
         else if (container.IsLandmark)
             Announce(container);
         else
-            AnnounceElement(container, PageElements.IsList(container) ? "list"
-                : PageElements.IsBlockQuote(container) ? "block quote" : "frame");
+            AnnounceElement(container, PageElements.IsList(container) ? VoxStrings.Get("ControlType.List")
+                : PageElements.IsBlockQuote(container) ? VoxStrings.Get("Element.BlockQuote") : VoxStrings.Get("Element.Frame"));
     }
 
     /// <summary>
@@ -577,7 +577,7 @@ public sealed class BrowseModeController
         var result = _tableNavigator.Handle(document, current, command);
         if (result.NotInTable)
         {
-            Speak("Not in a table");
+            Speak(VoxStrings.Get("Browse.NotInTable"));
             return;
         }
         if (result.AtEdge)
@@ -610,9 +610,11 @@ public sealed class BrowseModeController
         _sayAllCursor = null;
 
         if (command == NavigationCommand.SelectAll)
-            Speak("selected all");
+            Speak(VoxStrings.Get("Browse.SelectedAll"));
         else
-            Speak($"{(change.Selected ? "selected" : "unselected")} {SelectionText(change.Text)}");
+            Speak(change.Selected
+                ? VoxStrings.Format("Text.Selected", SelectionText(change.Text))
+                : VoxStrings.Format("Text.Unselected", SelectionText(change.Text)));
     }
 
     /// <summary>Ctrl+C: copies the selected text to the clipboard as plain text.</summary>
@@ -621,16 +623,16 @@ public sealed class BrowseModeController
         var text = _cursor is null ? string.Empty : _selection.TextFor(_cursor);
         if (text.Length == 0)
         {
-            Speak("No selection");
+            Speak(VoxStrings.Get("Browse.NoSelection"));
             return;
         }
         if (_clipboard?.SetText(text.Replace("\n", Environment.NewLine)) != true)
         {
             _audioCuePlayer.Play("error");
-            Speak("Could not copy");
+            Speak(VoxStrings.Get("Browse.CouldNotCopy"));
             return;
         }
-        Speak("Copied to clipboard");
+        Speak(VoxStrings.Get("Browse.CopiedToClipboard"));
     }
 
     /// <summary>
@@ -649,10 +651,10 @@ public sealed class BrowseModeController
         }
         if (!_selection.SelectFromMark(_cursor))
         {
-            Speak("No start marker set");
+            Speak(VoxStrings.Get("Browse.NoStartMarker"));
             return;
         }
-        Speak($"selected {SelectionText(_selection.TextFor(_cursor))}");
+        Speak(VoxStrings.Format("Text.Selected", SelectionText(_selection.TextFor(_cursor))));
     }
 
     // Longer than this, a selection is said by its length rather than read out
@@ -664,8 +666,8 @@ public sealed class BrowseModeController
         if (text.Length == 1)
             return CharText(text[0])!;
         if (string.IsNullOrWhiteSpace(text))
-            return "blank";
-        return text.Length > MaxSpokenSelection ? $"{text.Length} characters" : text;
+            return VoxStrings.Get("Text.Blank");
+        return text.Length > MaxSpokenSelection ? VoxStrings.Format("Browse.CharacterCount", text.Length) : text;
     }
 
     private static bool KeepsSelection(NavigationCommand command) =>
@@ -825,9 +827,9 @@ public sealed class BrowseModeController
                 var state = ToInt(evt.NewValue);
                 var text = state switch
                 {
-                    0 => "collapsed",
-                    1 => "expanded",
-                    2 => "partially expanded",
+                    0 => VoxStrings.Get("State.Collapsed"),
+                    1 => VoxStrings.Get("State.Expanded"),
+                    2 => VoxStrings.Get("Browse.PartiallyExpanded"),
                     _ => null,
                 };
                 bool expanded = state is 1 or 2;
@@ -856,8 +858,8 @@ public sealed class BrowseModeController
                     bool selectionSaid = focus.IsSelected == selected;
                     _lastFocus = focus with { IsSelected = selected };
                     var selectedText = focus.ControlType == "RadioButton"
-                        ? (selected ? "checked" : "not checked")
-                        : (selected ? "selected" : null);
+                        ? (selected ? VoxStrings.Get("State.Checked") : VoxStrings.Get("State.NotChecked"))
+                        : (selected ? VoxStrings.Get("State.Selected") : null);
                     if (selectedText is not null && !selectionSaid)
                         SpeakQueued(selectedText);
                 }
@@ -865,7 +867,7 @@ public sealed class BrowseModeController
 
             case UIA_IsEnabledPropertyId:
                 if (evt.NewValue is bool enabled)
-                    SpeakQueued(enabled ? "available" : "unavailable");
+                    SpeakQueued(enabled ? VoxStrings.Get("Browse.Available") : VoxStrings.Get("Browse.Unavailable"));
                 break;
 
             case UIA_RangeValueValuePropertyId:
@@ -1202,7 +1204,7 @@ public sealed class BrowseModeController
         if (node is null)
         {
             _audioCuePlayer.Play("error");
-            Speak("Element no longer on page");
+            Speak(VoxStrings.Get("Browse.ElementGone"));
             return;
         }
         MoveTo(node);
@@ -1487,7 +1489,7 @@ public sealed class BrowseModeController
     }
 
     private string DismissOverlayKey =>
-        $"{InputHelp.ScreenReaderKeyName(_settings.CurrentValue.ModifierKey)}+Shift+D";
+        $"{InputHelp.ScreenReaderKeyName(_settings.CurrentValue.ModifierKey)}+{VoxStrings.Get("Key.Shift")}+D";
 
     /// <summary>Starts exploring the expression at the cursor (MathCAT).</summary>
     private void InteractWithMath()
@@ -1495,20 +1497,20 @@ public sealed class BrowseModeController
         var math = MathMarkup.Enclosing(_cursor?.CurrentNode ?? _quickNavHandler.CurrentNode);
         if (math is null)
         {
-            Speak("Not in math");
+            Speak(VoxStrings.Get("Math.NotInMath"));
             return;
         }
         if (!_mathSpeech.IsAvailable)
         {
-            Speak("Exploring math needs the MathCAT component");
+            Speak(VoxStrings.Get("Math.NeedsMathCat"));
             return;
         }
         if (MathMarkup.ToMathMl(math) is not { } mathMl || _mathExplorer.Start(mathMl) is not { } text)
         {
-            Speak("This math can't be explored");
+            Speak(VoxStrings.Get("Math.CannotExplore"));
             return;
         }
-        Speak($"Math, {text}");
+        Speak(VoxStrings.Format("Math.Exploring", text));
     }
 
     /// <summary>
@@ -1538,12 +1540,12 @@ public sealed class BrowseModeController
         var overlay = OverlayDetector.Find(document);
         if (overlay is null)
         {
-            Speak("No cookie banner or dialog found");
+            Speak(VoxStrings.Get("Overlay.NoneFound"));
             return;
         }
         if (overlay.DismissButton is not { } button)
         {
-            Speak($"{overlay.Kind} has no reject or close button");
+            Speak(VoxStrings.Format("Overlay.NoDismissButton", OverlayDetector.KindName(overlay.Kind)));
             return;
         }
         Speak(button.Name.Trim());
@@ -1653,7 +1655,7 @@ public sealed class BrowseModeController
         if (FindInBuffer.Find(cursor.Document.FlatText, request.Text, start, forward, request.MatchCase) is not { } match)
         {
             _audioCuePlayer.Play("error");
-            Speak($"{request.Text} not found");
+            Speak(VoxStrings.Format("Find.NotFound", request.Text));
             return;
         }
 
@@ -1727,8 +1729,8 @@ public sealed class BrowseModeController
             NavigationCommand.PrevWord => _cursor.PrevWord(),
             NavigationCommand.NextChar => CharText(_cursor.NextChar()),
             NavigationCommand.PrevChar => CharText(_cursor.PrevChar()),
-            NavigationCommand.StartOfLine => _cursor.StartOfLine() is { } first ? CharText(first) : "blank",
-            NavigationCommand.EndOfLine => _cursor.EndOfLine() is { } last ? CharText(last) : "blank",
+            NavigationCommand.StartOfLine => _cursor.StartOfLine() is { } first ? CharText(first) : VoxStrings.Get("Text.Blank"),
+            NavigationCommand.EndOfLine => _cursor.EndOfLine() is { } last ? CharText(last) : VoxStrings.Get("Text.Blank"),
             NavigationCommand.TopOfDocument => LineText(_cursor.TopOfDocument()),
             NavigationCommand.BottomOfDocument => LineText(_cursor.BottomOfDocument()),
             NavigationCommand.NextParagraph => LineTextOrNull(_cursor.NextParagraph()),
@@ -1794,7 +1796,7 @@ public sealed class BrowseModeController
                 return null;
 
             if (n.IsHeading)
-                return profile.AnnounceHeadingLevel ? $"heading level {n.HeadingLevel}" : null;
+                return profile.AnnounceHeadingLevel ? VoxStrings.Format("Announce.HeadingLevel", n.HeadingLevel) : null;
             return AnnouncementBuilder.SpokenRole(n, profile);
         }
         return null;
@@ -1806,7 +1808,7 @@ public sealed class BrowseModeController
 
     private static string? LineTextOrNull(string? line) => line is null ? null : LineText(line);
 
-    private static string LineText(string line) => string.IsNullOrWhiteSpace(line) ? "blank" : line;
+    private static string LineText(string line) => string.IsNullOrWhiteSpace(line) ? VoxStrings.Get("Text.Blank") : line;
 
     private static string? CharText(char? ch) => ch is { } c ? TypingEchoHandler.GetCharacterName(c) : null;
 
@@ -1826,7 +1828,7 @@ public sealed class BrowseModeController
         var text = _announcementBuilder.Build(
             table, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
         if (string.IsNullOrWhiteSpace(text))
-            text = "table";
+            text = VoxStrings.Get("ControlType.Table");
         // Only a table with text of its own: an empty one's range sits at the following content
         if (_cursor is not null && table.TextRange.Start < _cursor.Document.FlatText.Length && SubtreeHasText(table))
         {

@@ -3223,4 +3223,1751 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
   <data name="Remote.StopWaitingQuestion" xml:space="preserve">
     <value>Stop waiting for remote control?</value>
   </data>
+  <data name="Uia.NotAvailable" xml:space="preserve">
+    <value>Not available</value>
+  </data>
+  <data name="Uia.NoText" xml:space="preserve">
+    <value>No text</value>
+  </data>
+  <data name="Uia.NoFocus" xml:space="preserve">
+    <value>No focus</value>
+  </data>
+  <data name="Uia.NoNavigatorObject" xml:space="preserve">
+    <value>No navigator object</value>
+  </data>
+  <data name="Review.ObjectMode" xml:space="preserve">
+    <value>Object review</value>
+  </data>
+  <data name="Review.DocumentMode" xml:space="preserve">
+    <value>Document review</value>
+  </data>
+  <data name="Review.ScreenMode" xml:space="preserve">
+    <value>Screen review</value>
+  </data>
+  <data name="ObjectNav.NotFocusable" xml:space="preserve">
+    <value>Not focusable</value>
+  </data>
+  <data name="ObjectNav.NoAction" xml:space="preserve">
+    <value>No action</value>
+  </data>
+  <data name="ObjectNav.CouldNotCopy" xml:space="preserve">
+    <value>Could not copy</value>
+  </data>
+  <data name="ObjectNav.CopiedText" xml:space="preserve">
+    <value>{0}, copied to clipboard</value>
+    <comment>{0} is the copied text.</comment>
+  </data>
+  <data name="ObjectNav.Copied" xml:space="preserve">
+    <value>Copied to clipboard</value>
+  </data>
+  <data name="ObjectNav.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+    <comment>Said for an object with no name and no known control type.</comment>
+  </data>
+  <data name="Mouse.LeftClick" xml:space="preserve">
+    <value>Left click</value>
+  </data>
+  <data name="Mouse.RightClick" xml:space="preserve">
+    <value>Right click</value>
+  </data>
+  <data name="Mouse.LeftLocked" xml:space="preserve">
+    <value>Left mouse button locked</value>
+  </data>
+  <data name="Mouse.LeftUnlocked" xml:space="preserve">
+    <value>Left mouse button unlocked</value>
+  </data>
+  <data name="Mouse.TrackingOn" xml:space="preserve">
+    <value>Mouse tracking on</value>
+  </data>
+  <data name="Mouse.TrackingOff" xml:space="preserve">
+    <value>Mouse tracking off</value>
+  </data>
+  <data name="FocusedText.NoSelection" xml:space="preserve">
+    <value>No selection</value>
+  </data>
+  <data name="WhereAmI.NoTitle" xml:space="preserve">
+    <value>No title</value>
+  </data>
+  <data name="WhereAmI.NoStatusBar" xml:space="preserve">
+    <value>No status bar</value>
+  </data>
+  <data name="WhereAmI.NoWindow" xml:space="preserve">
+    <value>No window</value>
+  </data>
+  <data name="WhereAmI.Copied" xml:space="preserve">
+    <value>{0}. Copied to clipboard</value>
+    <comment>{0} is the copied text, its lines joined with ". ".</comment>
+  </data>
+  <data name="ForegroundApp.Unknown" xml:space="preserve">
+    <value>Application</value>
+    <comment>The name said for an application whose name cannot be read (as in "Application not responding").</comment>
+  </data>
+  <data name="Braille.TetherFocus" xml:space="preserve">
+    <value>Braille tethered to focus</value>
+  </data>
+  <data name="Braille.TetherReview" xml:space="preserve">
+    <value>Braille tethered to review</value>
+  </data>
+  <data name="Braille.TetherAutomatic" xml:space="preserve">
+    <value>Braille tethered automatically</value>
+  </data>
+  <data name="App.Ready" xml:space="preserve">
+    <value>Vox screen reader ready</value>
+  </data>
+  <data name="App.ReadyWithoutKeyboard" xml:space="preserve">
+    <value>Vox screen reader ready, but keyboard commands are unavailable. Try running Vox as administrator.</value>
+  </data>
+  <data name="App.LocalSession" xml:space="preserve">
+    <value>Local session</value>
+  </data>
+  <data name="App.SpeechOn" xml:space="preserve">
+    <value>Speech on</value>
+  </data>
+  <data name="App.SpeechPaused" xml:space="preserve">
+    <value>Speech paused</value>
+  </data>
+  <data name="App.InputHelpOn" xml:space="preserve">
+    <value>Input help on</value>
+  </data>
+  <data name="App.InputHelpOff" xml:space="preserve">
+    <value>Input help off</value>
+  </data>
+  <data name="App.GuideNotAvailableHere" xml:space="preserve">
+    <value>The user guide isn't available here</value>
+  </data>
+  <data name="App.GuideNotInstalled" xml:space="preserve">
+    <value>The user guide isn't installed</value>
+  </data>
+  <data name="App.GuideOpenFailed" xml:space="preserve">
+    <value>Could not open the user guide</value>
+  </data>
+  <data name="App.Exiting" xml:space="preserve">
+    <value>Vox exiting</value>
+  </data>
+  <data name="Watchdog.CouldNotRestart" xml:space="preserve">
+    <value>Vox has stopped working and could not be restarted.</value>
+    <comment>Said by the watchdog when Vox keeps crashing.</comment>
+  </data>
+  <data name="CommandSearch.SearchFor" xml:space="preserve">
+    <value>Search for</value>
+  </data>
+  <data name="CommandSearch.Commands" xml:space="preserve">
+    <value>Commands</value>
+  </data>
+  <data name="CommandSearch.SearchForLabel" xml:space="preserve">
+    <value>&amp;Search for:</value>
+  </data>
+  <data name="CommandSearch.CommandsLabel" xml:space="preserve">
+    <value>&amp;Commands:</value>
+  </data>
+  <data name="CommandSearch.Found" xml:space="preserve">
+    <value>{0} found</value>
+    <comment>{0}: the number of commands found</comment>
+  </data>
+  <data name="Confirm.Yes" xml:space="preserve">
+    <value>&amp;Yes</value>
+  </data>
+  <data name="Confirm.No" xml:space="preserve">
+    <value>&amp;No</value>
+  </data>
+  <data name="Gesture.Place.Everywhere" xml:space="preserve">
+    <value>Everywhere</value>
+  </data>
+  <data name="Gesture.Place.BrowseMode" xml:space="preserve">
+    <value>Browse mode</value>
+  </data>
+  <data name="Gesture.Place.FocusMode" xml:space="preserve">
+    <value>Focus mode</value>
+  </data>
+  <data name="Gesture.NewKeyWorks" xml:space="preserve">
+    <value>New key works</value>
+  </data>
+  <data name="Gesture.AddKey" xml:space="preserve">
+    <value>&amp;Add key</value>
+  </data>
+  <data name="Gesture.RemoveKey" xml:space="preserve">
+    <value>&amp;Remove key</value>
+  </data>
+  <data name="Gesture.ResetAll" xml:space="preserve">
+    <value>Reset all to &amp;standard keys</value>
+  </data>
+  <data name="Gesture.NewKeyWorksLabel" xml:space="preserve">
+    <value>New key &amp;works:</value>
+  </data>
+  <data name="Gesture.CommandKeys" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0}: the command name; {1}: its keys, or "no key"</comment>
+  </data>
+  <data name="Gesture.PressNewKeys" xml:space="preserve">
+    <value>Press the new keys for {0}, or Escape to cancel</value>
+    <comment>{0}: the command name</comment>
+  </data>
+  <data name="Gesture.NumpadDigits" xml:space="preserve">
+    <value>Number pad digits type numbers and can't be used. Turn Num Lock off to use the number pad keys.</value>
+  </data>
+  <data name="Gesture.KeyInUseQuestion" xml:space="preserve">
+    <value>{0} is already {1}. Use it for {2} instead?</value>
+    <comment>{0}: the key; {1}: the commands it is bound to now; {2}: the command being given the key</comment>
+  </data>
+  <data name="Gesture.KeyInUse" xml:space="preserve">
+    <value>Key in use</value>
+  </data>
+  <data name="Gesture.KeyAdded" xml:space="preserve">
+    <value>{0} added</value>
+    <comment>{0}: the key</comment>
+  </data>
+  <data name="Gesture.KeyRemoved" xml:space="preserve">
+    <value>{0} removed</value>
+    <comment>{0}: the key</comment>
+  </data>
+  <data name="Gesture.ResetAllQuestion" xml:space="preserve">
+    <value>Put every key back as standard, removing all your own?</value>
+  </data>
+  <data name="Gesture.ResetKeys" xml:space="preserve">
+    <value>Reset keys</value>
+  </data>
+  <data name="PortableCopy.Folder" xml:space="preserve">
+    <value>Folder for the portable copy</value>
+  </data>
+  <data name="PortableCopy.Browse" xml:space="preserve">
+    <value>&amp;Browse...</value>
+  </data>
+  <data name="PortableCopy.CopySettings" xml:space="preserve">
+    <value>Copy my &amp;settings, keys and dictionaries</value>
+  </data>
+  <data name="PortableCopy.CopyComponents" xml:space="preserve">
+    <value>Copy optional &amp;components (eSpeak NG, MathCAT)</value>
+  </data>
+  <data name="PortableCopy.Create" xml:space="preserve">
+    <value>C&amp;reate</value>
+  </data>
+  <data name="PortableCopy.NoFolder" xml:space="preserve">
+    <value>Type or choose a folder first.</value>
+  </data>
+  <data name="PortableCopy.FolderLabel" xml:space="preserve">
+    <value>&amp;Folder:</value>
+  </data>
+  <data name="Profiles.NotAvailable" xml:space="preserve">
+    <value>Profiles aren't available here</value>
+  </data>
+  <data name="Profiles.NormalConfiguration" xml:space="preserve">
+    <value>Normal configuration</value>
+  </data>
+  <data name="Profiles.Profile" xml:space="preserve">
+    <value>Profile {0}</value>
+    <comment>{0}: the profile name</comment>
+  </data>
+  <data name="Profiles.List" xml:space="preserve">
+    <value>Profiles</value>
+  </data>
+  <data name="Profiles.Name" xml:space="preserve">
+    <value>Profile name</value>
+  </data>
+  <data name="Profiles.New" xml:space="preserve">
+    <value>&amp;New</value>
+  </data>
+  <data name="Profiles.Rename" xml:space="preserve">
+    <value>&amp;Rename</value>
+  </data>
+  <data name="Profiles.Delete" xml:space="preserve">
+    <value>&amp;Delete</value>
+  </data>
+  <data name="Profiles.NameTaken" xml:space="preserve">
+    <value>Type a name no other profile has.</value>
+  </data>
+  <data name="Profiles.RenameFailed" xml:space="preserve">
+    <value>Choose a profile and type a new name no other profile has.</value>
+  </data>
+  <data name="Profiles.DeleteQuestion" xml:space="preserve">
+    <value>Delete the profile {0}?</value>
+    <comment>{0}: the profile name</comment>
+  </data>
+  <data name="Profiles.Activate" xml:space="preserve">
+    <value>&amp;Activate</value>
+  </data>
+  <data name="Profiles.UseInThisApp" xml:space="preserve">
+    <value>Use in this application</value>
+  </data>
+  <data name="Profiles.UseInApp" xml:space="preserve">
+    <value>Use in {0}</value>
+    <comment>{0}: the application (process) name</comment>
+  </data>
+  <data name="Profiles.UseDuringSayAll" xml:space="preserve">
+    <value>Use during &amp;Say All</value>
+  </data>
+  <data name="Profiles.NameLabel" xml:space="preserve">
+    <value>&amp;Name:</value>
+  </data>
+  <data name="Profiles.ListLabel" xml:space="preserve">
+    <value>&amp;Profiles:</value>
+  </data>
+  <data name="Profiles.NormalConfigurationActive" xml:space="preserve">
+    <value>Normal configuration, active</value>
+  </data>
+  <data name="Profiles.MarkActive" xml:space="preserve">
+    <value>active</value>
+  </data>
+  <data name="Profiles.MarkManual" xml:space="preserve">
+    <value>chosen by hand</value>
+  </data>
+  <data name="Profiles.Deactivate" xml:space="preserve">
+    <value>De&amp;activate</value>
+  </data>
+  <data name="PortableCopy.NotHere" xml:space="preserve">
+    <value>A portable copy can't be made here</value>
+  </data>
+  <data name="CommandSearch.NotHere" xml:space="preserve">
+    <value>Command search isn't available here</value>
+  </data>
+  <data name="Gesture.NotHere" xml:space="preserve">
+    <value>Keys can't be changed here</value>
+  </data>
+  <data name="PortableCopy.Creating" xml:space="preserve">
+    <value>Creating the portable copy</value>
+  </data>
+  <data name="PortableCopy.Created" xml:space="preserve">
+    <value>Portable copy created in {0}</value>
+    <comment>{0}: the folder</comment>
+  </data>
+  <data name="PortableCopy.Failed" xml:space="preserve">
+    <value>The portable copy could not be created: {0}</value>
+    <comment>{0}: the reason (a system error message)</comment>
+  </data>
+  <data name="Gesture.KeysSaved" xml:space="preserve">
+    <value>Keys saved</value>
+  </data>
+  <data name="Gesture.KeysNotSaved" xml:space="preserve">
+    <value>Keys could not be saved</value>
+  </data>
+  <data name="Settings.Title" xml:space="preserve">
+    <value>Vox settings</value>
+  </data>
+  <data name="Settings.Categories" xml:space="preserve">
+    <value>Categories</value>
+  </data>
+  <data name="Settings.On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Settings.Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="SettingsRing.Setting" xml:space="preserve">
+    <value>{0} {1}</value>
+    <comment>{0}: the setting name; {1}: its value</comment>
+  </data>
+  <data name="SettingsRing.Voice" xml:space="preserve">
+    <value>Voice</value>
+  </data>
+  <data name="SettingsRing.Rate" xml:space="preserve">
+    <value>Rate</value>
+  </data>
+  <data name="SettingsRing.Pitch" xml:space="preserve">
+    <value>Pitch</value>
+  </data>
+  <data name="SettingsRing.Volume" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="SettingsRing.Punctuation" xml:space="preserve">
+    <value>Punctuation</value>
+  </data>
+  <data name="SettingsRing.Synthesizer" xml:space="preserve">
+    <value>Synthesizer</value>
+  </data>
+  <data name="SettingsRing.DefaultVoice" xml:space="preserve">
+    <value>default</value>
+  </data>
+  <data name="RemoteSession.RemoteDesktop" xml:space="preserve">
+    <value>Remote Desktop</value>
+  </data>
+  <data name="RemoteSession.Other" xml:space="preserve">
+    <value>remote connection</value>
+  </data>
+  <data name="RemoteSession.ThisComputer" xml:space="preserve">
+    <value>this computer</value>
+  </data>
+  <data name="RemoteSession.Announcement" xml:space="preserve">
+    <value>Remote session: {0}</value>
+    <comment>{0}: the kind of remote session ("Remote Desktop", "Citrix", "remote connection")</comment>
+  </data>
+  <data name="SecureScreen.SettingsCopied" xml:space="preserve">
+    <value>Settings copied to the sign-in screens</value>
+  </data>
+  <data name="SecureScreen.SettingsNotCopied" xml:space="preserve">
+    <value>Could not copy settings to the sign-in screens</value>
+  </data>
+  <data name="Sleep.NotAvailable" xml:space="preserve">
+    <value>Not available</value>
+  </data>
+  <data name="Sleep.Off" xml:space="preserve">
+    <value>Sleep mode off</value>
+  </data>
+  <data name="Sleep.On" xml:space="preserve">
+    <value>Sleep mode on</value>
+  </data>
+  <data name="Update.Available" xml:space="preserve">
+    <value>Vox {0} is available.</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Update.UpToDate" xml:space="preserve">
+    <value>Vox is up to date.</value>
+  </data>
+  <data name="Update.CheckFailed" xml:space="preserve">
+    <value>Couldn't check for updates.</value>
+  </data>
+  <data name="Update.ChecksOff" xml:space="preserve">
+    <value>Checking for updates is off.</value>
+  </data>
+  <data name="Update.Checking" xml:space="preserve">
+    <value>Checking for updates</value>
+  </data>
+  <data name="Update.AvailableCloseDialog" xml:space="preserve">
+    <value>Vox {0} is available. Close the open Vox dialog and check again to install it.</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Update.AvailableTitle" xml:space="preserve">
+    <value>Update available</value>
+  </data>
+  <data name="Update.InstallQuestion" xml:space="preserve">
+    <value>Vox {0} is available. Download and install it now? Vox will close while it installs.</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Update.Downloading" xml:space="preserve">
+    <value>Downloading Vox {0}</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Update.DownloadFailed" xml:space="preserve">
+    <value>The update couldn't be downloaded.</value>
+  </data>
+  <data name="Update.DownloadDamaged" xml:space="preserve">
+    <value>The download was damaged or altered, so it wasn't installed.</value>
+  </data>
+  <data name="Update.InstallerStarting" xml:space="preserve">
+    <value>The installer is starting. Vox will close now.</value>
+  </data>
+  <data name="Update.AvailableDaily" xml:space="preserve">
+    <value>Vox {0} is available. Choose Check for updates in the Vox menu to install it.</value>
+    <comment>{0}: the version number</comment>
+  </data>
+  <data name="Capitals.Cap" xml:space="preserve">
+    <value>cap {0}</value>
+    <comment>{0}: a letter or word with a capital letter</comment>
+  </data>
+  <data name="Capitals.AllCaps" xml:space="preserve">
+    <value>all caps {0}</value>
+    <comment>{0}: a word in capital letters</comment>
+  </data>
+  <data name="SpeechHistory.Empty" xml:space="preserve">
+    <value>No speech history</value>
+  </data>
+  <data name="SpeechHistory.Copied" xml:space="preserve">
+    <value>Copied</value>
+  </data>
+  <data name="SpeechHistory.CopyFailed" xml:space="preserve">
+    <value>Could not copy</value>
+  </data>
+  <data name="SpeechViewer.Title" xml:space="preserve">
+    <value>Vox speech viewer</value>
+  </data>
+  <data name="Settings.Locked" xml:space="preserve">
+    <value>{0} (set by your organization)</value>
+    <comment>{0}: the label of a setting the organization's policy locks</comment>
+  </data>
+  <data name="AppModule.Blank" xml:space="preserve">
+    <value>blank</value>
+  </data>
+  <data name="AppModule.OneRow" xml:space="preserve">
+    <value>1 row</value>
+  </data>
+  <data name="AppModule.Rows" xml:space="preserve">
+    <value>{0} rows</value>
+    <comment>{0}: the number of rows (more than one)</comment>
+  </data>
+  <data name="AppModule.OneColumn" xml:space="preserve">
+    <value>1 column</value>
+  </data>
+  <data name="AppModule.Columns" xml:space="preserve">
+    <value>{0} columns</value>
+    <comment>{0}: the number of columns (more than one)</comment>
+  </data>
+  <data name="AppModule.OneItem" xml:space="preserve">
+    <value>1 item</value>
+  </data>
+  <data name="AppModule.Items" xml:space="preserve">
+    <value>{0} items</value>
+    <comment>{0}: the number of items (more than one)</comment>
+  </data>
+  <data name="Word.Kind.Heading" xml:space="preserve">
+    <value>heading</value>
+  </data>
+  <data name="Word.Kind.Comment" xml:space="preserve">
+    <value>comment</value>
+  </data>
+  <data name="Word.Kind.Revision" xml:space="preserve">
+    <value>tracked change</value>
+  </data>
+  <data name="Word.Kind.SpellingError" xml:space="preserve">
+    <value>spelling error</value>
+  </data>
+  <data name="Word.NoNext" xml:space="preserve">
+    <value>No next {0}</value>
+    <comment>{0}: what was looked for, lower case (a Word.Kind.* string, or "table"/"list")</comment>
+  </data>
+  <data name="Word.NoPrevious" xml:space="preserve">
+    <value>No previous {0}</value>
+    <comment>{0}: what was looked for, lower case (a Word.Kind.* string, or "table"/"list")</comment>
+  </data>
+  <data name="Word.TableWith" xml:space="preserve">
+    <value>table with {0}, {1}</value>
+    <comment>{0}: the number of rows ("3 rows"), {1}: the number of columns ("2 columns")</comment>
+  </data>
+  <data name="Word.ListWith" xml:space="preserve">
+    <value>list with {0}</value>
+    <comment>{0}: the number of items ("4 items")</comment>
+  </data>
+  <data name="Word.Misspelled" xml:space="preserve">
+    <value>misspelled</value>
+  </data>
+  <data name="Word.CommentBy" xml:space="preserve">
+    <value>Comment by {0}: {1}</value>
+    <comment>{0}: the comment's author, {1}: the comment's text</comment>
+  </data>
+  <data name="Word.RevisionBy" xml:space="preserve">
+    <value>{0} by {1}</value>
+    <comment>{0}: the kind of tracked change (a Word.Revision.* string), {1}: its author</comment>
+  </data>
+  <data name="Word.RevisionByWithText" xml:space="preserve">
+    <value>{0} by {1}: {2}</value>
+    <comment>{0}: the kind of tracked change (a Word.Revision.* string), {1}: its author, {2}: the inserted or deleted text</comment>
+  </data>
+  <data name="Word.Revision.Insertion" xml:space="preserve">
+    <value>Insertion</value>
+  </data>
+  <data name="Word.Revision.Deletion" xml:space="preserve">
+    <value>Deletion</value>
+  </data>
+  <data name="Word.Revision.PropertyChange" xml:space="preserve">
+    <value>Property change</value>
+  </data>
+  <data name="Word.Revision.ParagraphNumberChange" xml:space="preserve">
+    <value>Paragraph number change</value>
+  </data>
+  <data name="Word.Revision.FieldDisplayChange" xml:space="preserve">
+    <value>Field display change</value>
+  </data>
+  <data name="Word.Revision.ReconciledChange" xml:space="preserve">
+    <value>Reconciled change</value>
+  </data>
+  <data name="Word.Revision.Conflict" xml:space="preserve">
+    <value>Conflict</value>
+  </data>
+  <data name="Word.Revision.StyleChange" xml:space="preserve">
+    <value>Style change</value>
+  </data>
+  <data name="Word.Revision.Replaced" xml:space="preserve">
+    <value>Replaced</value>
+  </data>
+  <data name="Word.Revision.ParagraphPropertyChange" xml:space="preserve">
+    <value>Paragraph property change</value>
+  </data>
+  <data name="Word.Revision.TablePropertyChange" xml:space="preserve">
+    <value>Table property change</value>
+  </data>
+  <data name="Word.Revision.SectionPropertyChange" xml:space="preserve">
+    <value>Section property change</value>
+  </data>
+  <data name="Word.Revision.StyleDefinitionChange" xml:space="preserve">
+    <value>Style definition change</value>
+  </data>
+  <data name="Word.Revision.MovedFrom" xml:space="preserve">
+    <value>Moved from</value>
+  </data>
+  <data name="Word.Revision.MovedTo" xml:space="preserve">
+    <value>Moved to</value>
+  </data>
+  <data name="Word.Revision.CellInserted" xml:space="preserve">
+    <value>Cell inserted</value>
+  </data>
+  <data name="Word.Revision.CellDeleted" xml:space="preserve">
+    <value>Cell deleted</value>
+  </data>
+  <data name="Word.Revision.CellsMerged" xml:space="preserve">
+    <value>Cells merged</value>
+  </data>
+  <data name="Word.Revision.Change" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="Word.PageOf" xml:space="preserve">
+    <value>Page {0} of {1}</value>
+    <comment>{0}: the page number, {1}: how many pages the document has</comment>
+  </data>
+  <data name="Word.Page" xml:space="preserve">
+    <value>Page {0}</value>
+    <comment>{0}: the page number</comment>
+  </data>
+  <data name="Word.Section" xml:space="preserve">
+    <value>section {0}</value>
+    <comment>{0}: the section number</comment>
+  </data>
+  <data name="Word.Line" xml:space="preserve">
+    <value>line {0}</value>
+    <comment>{0}: the line number on the page</comment>
+  </data>
+  <data name="Word.Column" xml:space="preserve">
+    <value>column {0}</value>
+    <comment>{0}: the column (character position) on the line</comment>
+  </data>
+  <data name="Word.LocationUnavailable" xml:space="preserve">
+    <value>Location not available</value>
+  </data>
+  <data name="Word.RowColumn" xml:space="preserve">
+    <value>row {0}, column {1}</value>
+    <comment>{0}: the table row number, {1}: the table column number</comment>
+  </data>
+  <data name="Word.StartOfRow" xml:space="preserve">
+    <value>Start of row</value>
+  </data>
+  <data name="Word.EndOfRow" xml:space="preserve">
+    <value>End of row</value>
+  </data>
+  <data name="Word.TopOfColumn" xml:space="preserve">
+    <value>Top of column</value>
+  </data>
+  <data name="Word.BottomOfColumn" xml:space="preserve">
+    <value>Bottom of column</value>
+  </data>
+  <data name="Word.UnknownAuthor" xml:space="preserve">
+    <value>unknown author</value>
+  </data>
+  <data name="Word.NotInTable" xml:space="preserve">
+    <value>Not in a table</value>
+  </data>
+  <data name="Word.Unavailable" xml:space="preserve">
+    <value>Not available while Word is busy</value>
+  </data>
+  <data name="Excel.Merged" xml:space="preserve">
+    <value>{0}, merged {1}</value>
+    <comment>{0}: the cell's address ("B2"), {1}: the merged range ("B2 to D2")</comment>
+  </data>
+  <data name="Excel.HasFormula" xml:space="preserve">
+    <value>has formula</value>
+  </data>
+  <data name="Excel.HasComment" xml:space="preserve">
+    <value>has comment</value>
+  </data>
+  <data name="Excel.HasNote" xml:space="preserve">
+    <value>has note</value>
+  </data>
+  <data name="Excel.FilterOn" xml:space="preserve">
+    <value>filter on</value>
+  </data>
+  <data name="Excel.Validation" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0}: the data validation input title, {1}: its message</comment>
+  </data>
+  <data name="Excel.OneCell" xml:space="preserve">
+    <value>1 cell</value>
+  </data>
+  <data name="Excel.Cells" xml:space="preserve">
+    <value>{0} cells</value>
+    <comment>{0}: the number of cells (more than one)</comment>
+  </data>
+  <data name="Excel.SelectionWithSize" xml:space="preserve">
+    <value>{0} selected, {1}, {2}, {3}</value>
+    <comment>{0}: the selected range ("A1 to C5"), {1}: the number of rows ("3 rows"), {2}: of columns ("5 columns"), {3}: of cells ("15 cells")</comment>
+  </data>
+  <data name="Excel.Selection" xml:space="preserve">
+    <value>{0} selected, {1}</value>
+    <comment>{0}: the selected range ("A1 to A5"), {1}: the number of cells ("5 cells")</comment>
+  </data>
+  <data name="Excel.Formula" xml:space="preserve">
+    <value>{0} formula {1}</value>
+    <comment>{0}: the cell's address, {1}: its formula</comment>
+  </data>
+  <data name="Excel.NoFormula" xml:space="preserve">
+    <value>{0} has no formula, {1}</value>
+    <comment>{0}: the cell's address, {1}: its value (or AppModule.Blank)</comment>
+  </data>
+  <data name="Excel.Comment" xml:space="preserve">
+    <value>Comment: {0}</value>
+    <comment>{0}: the cell's comment</comment>
+  </data>
+  <data name="Excel.Note" xml:space="preserve">
+    <value>Note: {0}</value>
+    <comment>{0}: the cell's note</comment>
+  </data>
+  <data name="Excel.NoCommentOrNote" xml:space="preserve">
+    <value>{0} has no comment or note</value>
+    <comment>{0}: the cell's address</comment>
+  </data>
+  <data name="Excel.NoChart" xml:space="preserve">
+    <value>No chart on this sheet</value>
+  </data>
+  <data name="Excel.UntitledChart" xml:space="preserve">
+    <value>Untitled chart</value>
+  </data>
+  <data name="Excel.ChartTitled" xml:space="preserve">
+    <value>Chart {0}</value>
+    <comment>{0}: the chart's title</comment>
+  </data>
+  <data name="Excel.NoSeries" xml:space="preserve">
+    <value>no series</value>
+  </data>
+  <data name="Excel.OneSeries" xml:space="preserve">
+    <value>1 series: {0}</value>
+    <comment>{0}: the series' name</comment>
+  </data>
+  <data name="Excel.Series" xml:space="preserve">
+    <value>{0} series: {1}</value>
+    <comment>{0}: the number of series (more than one), {1}: their names, comma-separated</comment>
+  </data>
+  <data name="Excel.ChartSummary" xml:space="preserve">
+    <value>{0}, {1}, {2}</value>
+    <comment>{0}: the chart's title (Excel.ChartTitled or Excel.UntitledChart), {1}: its type (an Excel.ChartType.* string), {2}: its series</comment>
+  </data>
+  <data name="Excel.ChartType.Column" xml:space="preserve">
+    <value>column chart</value>
+  </data>
+  <data name="Excel.ChartType.Bar" xml:space="preserve">
+    <value>bar chart</value>
+  </data>
+  <data name="Excel.ChartType.Line" xml:space="preserve">
+    <value>line chart</value>
+  </data>
+  <data name="Excel.ChartType.Pie" xml:space="preserve">
+    <value>pie chart</value>
+  </data>
+  <data name="Excel.ChartType.Doughnut" xml:space="preserve">
+    <value>doughnut chart</value>
+  </data>
+  <data name="Excel.ChartType.Area" xml:space="preserve">
+    <value>area chart</value>
+  </data>
+  <data name="Excel.ChartType.Scatter" xml:space="preserve">
+    <value>scatter chart</value>
+  </data>
+  <data name="Excel.ChartType.Bubble" xml:space="preserve">
+    <value>bubble chart</value>
+  </data>
+  <data name="Excel.ChartType.Radar" xml:space="preserve">
+    <value>radar chart</value>
+  </data>
+  <data name="Excel.ChartType.Other" xml:space="preserve">
+    <value>chart</value>
+  </data>
+  <data name="Excel.ColumnTitlesCleared" xml:space="preserve">
+    <value>Column titles cleared</value>
+  </data>
+  <data name="Excel.RowSetAsColumnTitles" xml:space="preserve">
+    <value>Row {0} set as column titles</value>
+    <comment>{0}: the row number</comment>
+  </data>
+  <data name="Excel.RowTitlesCleared" xml:space="preserve">
+    <value>Row titles cleared</value>
+  </data>
+  <data name="Excel.ColumnSetAsRowTitles" xml:space="preserve">
+    <value>Column {0} set as row titles</value>
+    <comment>{0}: the column's letters ("B")</comment>
+  </data>
+  <data name="Excel.Unavailable" xml:space="preserve">
+    <value>Not available while Excel is busy</value>
+  </data>
+  <data name="Excel.SeriesNumber" xml:space="preserve">
+    <value>Series {0}</value>
+    <comment>{0}: the series' number, for a chart series without a name</comment>
+  </data>
+  <data name="Excel.RangeTo" xml:space="preserve">
+    <value> to </value>
+    <comment>Put between the two ends of a range ("A1 to C5"); keep the spaces</comment>
+  </data>
+  <data name="Outlook.NoSubject" xml:space="preserve">
+    <value>no subject</value>
+  </data>
+  <data name="Outlook.MeetingRequestStatus" xml:space="preserve">
+    <value>meeting request, {0}</value>
+    <comment>{0}: the user's answer so far (an Outlook.Response.* string)</comment>
+  </data>
+  <data name="Outlook.MeetingResponse" xml:space="preserve">
+    <value>meeting response</value>
+  </data>
+  <data name="Outlook.MeetingCancelled" xml:space="preserve">
+    <value>meeting cancelled</value>
+  </data>
+  <data name="Outlook.Unread" xml:space="preserve">
+    <value>unread</value>
+  </data>
+  <data name="Outlook.Flagged" xml:space="preserve">
+    <value>flagged</value>
+  </data>
+  <data name="Outlook.HasAttachment" xml:space="preserve">
+    <value>has attachment</value>
+  </data>
+  <data name="Outlook.Attachments" xml:space="preserve">
+    <value>{0} attachments</value>
+    <comment>{0}: the number of attachments (more than one)</comment>
+  </data>
+  <data name="Outlook.HighImportance" xml:space="preserve">
+    <value>high importance</value>
+  </data>
+  <data name="Outlook.LowImportance" xml:space="preserve">
+    <value>low importance</value>
+  </data>
+  <data name="Outlook.Yesterday" xml:space="preserve">
+    <value>yesterday {0}</value>
+    <comment>{0}: the time ("10:42")</comment>
+  </data>
+  <data name="Outlook.SizeBytes" xml:space="preserve">
+    <value>{0} bytes</value>
+    <comment>{0}: the size in bytes</comment>
+  </data>
+  <data name="Outlook.SizeKilobytes" xml:space="preserve">
+    <value>{0} KB</value>
+    <comment>{0}: the size in kilobytes</comment>
+  </data>
+  <data name="Outlook.SizeMegabytes" xml:space="preserve">
+    <value>{0:0.#} MB</value>
+    <comment>{0}: the size in megabytes, with at most one decimal</comment>
+  </data>
+  <data name="Outlook.NoFrom" xml:space="preserve">
+    <value>No from</value>
+  </data>
+  <data name="Outlook.NoTo" xml:space="preserve">
+    <value>No to</value>
+  </data>
+  <data name="Outlook.NoCc" xml:space="preserve">
+    <value>No cc</value>
+  </data>
+  <data name="Outlook.NoDate" xml:space="preserve">
+    <value>No date</value>
+  </data>
+  <data name="Outlook.NoAttachments" xml:space="preserve">
+    <value>No attachments</value>
+  </data>
+  <data name="Outlook.NoSubjectHeader" xml:space="preserve">
+    <value>No subject</value>
+  </data>
+  <data name="Outlook.HeaderFrom" xml:space="preserve">
+    <value>From: {0}</value>
+    <comment>{0}: the message's sender</comment>
+  </data>
+  <data name="Outlook.HeaderTo" xml:space="preserve">
+    <value>To: {0}</value>
+    <comment>{0}: the message's recipients</comment>
+  </data>
+  <data name="Outlook.HeaderCc" xml:space="preserve">
+    <value>Cc: {0}</value>
+    <comment>{0}: the message's copy recipients</comment>
+  </data>
+  <data name="Outlook.HeaderSubject" xml:space="preserve">
+    <value>Subject: {0}</value>
+    <comment>{0}: the message's subject</comment>
+  </data>
+  <data name="Outlook.HeaderDate" xml:space="preserve">
+    <value>Date: {0}</value>
+    <comment>{0}: the message's date and time</comment>
+  </data>
+  <data name="Outlook.HeaderAttachments" xml:space="preserve">
+    <value>Attachments: {0}</value>
+    <comment>{0}: the message's attachment names, comma-separated</comment>
+  </data>
+  <data name="Outlook.NotMeetingRequest" xml:space="preserve">
+    <value>Not a meeting request</value>
+  </data>
+  <data name="Outlook.Meeting" xml:space="preserve">
+    <value>Meeting {0}</value>
+    <comment>{0}: the meeting's subject (may be empty)</comment>
+  </data>
+  <data name="Outlook.Response.Organizer" xml:space="preserve">
+    <value>you organized it</value>
+  </data>
+  <data name="Outlook.Response.Tentative" xml:space="preserve">
+    <value>tentatively accepted</value>
+  </data>
+  <data name="Outlook.Response.Accepted" xml:space="preserve">
+    <value>accepted</value>
+  </data>
+  <data name="Outlook.Response.Declined" xml:space="preserve">
+    <value>declined</value>
+  </data>
+  <data name="Outlook.Response.None" xml:space="preserve">
+    <value>not answered</value>
+  </data>
+  <data name="Outlook.Answered.Accept" xml:space="preserve">
+    <value>Accepted</value>
+  </data>
+  <data name="Outlook.Answered.Tentative" xml:space="preserve">
+    <value>Tentatively accepted</value>
+  </data>
+  <data name="Outlook.Answered.Decline" xml:space="preserve">
+    <value>Declined</value>
+  </data>
+  <data name="Outlook.NoAppointments" xml:space="preserve">
+    <value>No appointments {0}</value>
+    <comment>{0}: the period (Outlook.PeriodToday or Outlook.PeriodWeek)</comment>
+  </data>
+  <data name="Outlook.OneAppointment" xml:space="preserve">
+    <value>1 appointment {0}</value>
+    <comment>{0}: the period (Outlook.PeriodToday or Outlook.PeriodWeek)</comment>
+  </data>
+  <data name="Outlook.Appointments" xml:space="preserve">
+    <value>{0} appointments {1}</value>
+    <comment>{0}: the number of appointments (more than one), {1}: the period (Outlook.PeriodToday or Outlook.PeriodWeek)</comment>
+  </data>
+  <data name="Outlook.AllDay" xml:space="preserve">
+    <value>all day</value>
+  </data>
+  <data name="Outlook.TimeRange" xml:space="preserve">
+    <value>{0} to {1}</value>
+    <comment>{0}: the start time, {1}: the end time</comment>
+  </data>
+  <data name="Outlook.OrganizedBy" xml:space="preserve">
+    <value>organized by {0}</value>
+    <comment>{0}: the organizer's name</comment>
+  </data>
+  <data name="Outlook.PeriodToday" xml:space="preserve">
+    <value>today</value>
+  </data>
+  <data name="Outlook.PeriodWeek" xml:space="preserve">
+    <value>in the next 7 days</value>
+  </data>
+  <data name="Outlook.NoMessage" xml:space="preserve">
+    <value>No message</value>
+  </data>
+  <data name="Outlook.ConfirmAccept" xml:space="preserve">
+    <value>Press again to accept and send the answer</value>
+  </data>
+  <data name="Outlook.ConfirmTentative" xml:space="preserve">
+    <value>Press again to tentatively accept and send the answer</value>
+  </data>
+  <data name="Outlook.ConfirmDecline" xml:space="preserve">
+    <value>Press again to decline and send the answer</value>
+  </data>
+  <data name="Outlook.NoAnswer" xml:space="preserve">
+    <value>Outlook didn't answer</value>
+  </data>
+  <data name="Outlook.CalendarUnavailable" xml:space="preserve">
+    <value>The calendar isn't available</value>
+  </data>
+  <data name="Outlook.AttachmentNumber" xml:space="preserve">
+    <value>Attachment {0}</value>
+    <comment>{0}: the attachment's number, for one without a file name</comment>
+  </data>
+  <data name="PowerPoint.SlideOf" xml:space="preserve">
+    <value>Slide {0} of {1}</value>
+    <comment>{0}: the slide number, {1}: how many slides there are</comment>
+  </data>
+  <data name="PowerPoint.SlideOfTitled" xml:space="preserve">
+    <value>Slide {0} of {1}, {2}</value>
+    <comment>{0}: the slide number, {1}: how many slides there are, {2}: the slide's title</comment>
+  </data>
+  <data name="PowerPoint.ShapeAltText" xml:space="preserve">
+    <value>{0}, {1}</value>
+    <comment>{0}: the shape's kind (a PowerPoint.Shape.* string), {1}: its alternative text</comment>
+  </data>
+  <data name="PowerPoint.NoNotes" xml:space="preserve">
+    <value>Slide {0} has no notes</value>
+    <comment>{0}: the slide number</comment>
+  </data>
+  <data name="PowerPoint.Notes" xml:space="preserve">
+    <value>Notes: {0}</value>
+    <comment>{0}: the slide's speaker notes</comment>
+  </data>
+  <data name="PowerPoint.Shape.Title" xml:space="preserve">
+    <value>title</value>
+  </data>
+  <data name="PowerPoint.Shape.Subtitle" xml:space="preserve">
+    <value>subtitle</value>
+  </data>
+  <data name="PowerPoint.Shape.TextPlaceholder" xml:space="preserve">
+    <value>text placeholder</value>
+  </data>
+  <data name="PowerPoint.Shape.PicturePlaceholder" xml:space="preserve">
+    <value>picture placeholder</value>
+  </data>
+  <data name="PowerPoint.Shape.ChartPlaceholder" xml:space="preserve">
+    <value>chart placeholder</value>
+  </data>
+  <data name="PowerPoint.Shape.TablePlaceholder" xml:space="preserve">
+    <value>table placeholder</value>
+  </data>
+  <data name="PowerPoint.Shape.Placeholder" xml:space="preserve">
+    <value>placeholder</value>
+  </data>
+  <data name="PowerPoint.Shape.Shape" xml:space="preserve">
+    <value>shape</value>
+  </data>
+  <data name="PowerPoint.Shape.Chart" xml:space="preserve">
+    <value>chart</value>
+  </data>
+  <data name="PowerPoint.Shape.Group" xml:space="preserve">
+    <value>group</value>
+  </data>
+  <data name="PowerPoint.Shape.Equation" xml:space="preserve">
+    <value>equation</value>
+  </data>
+  <data name="PowerPoint.Shape.Picture" xml:space="preserve">
+    <value>picture</value>
+  </data>
+  <data name="PowerPoint.Shape.Media" xml:space="preserve">
+    <value>media</value>
+  </data>
+  <data name="PowerPoint.Shape.TextBox" xml:space="preserve">
+    <value>text box</value>
+  </data>
+  <data name="PowerPoint.Shape.SmartArt" xml:space="preserve">
+    <value>SmartArt</value>
+  </data>
+  <data name="PowerPoint.Shape.Graphic" xml:space="preserve">
+    <value>graphic</value>
+  </data>
+  <data name="PowerPoint.Shape.Object" xml:space="preserve">
+    <value>object</value>
+  </data>
+  <data name="PowerPoint.NoShapes" xml:space="preserve">
+    <value>No shapes on this slide</value>
+  </data>
+  <data name="PowerPoint.NoNextShape" xml:space="preserve">
+    <value>No next shape</value>
+  </data>
+  <data name="PowerPoint.NoPreviousShape" xml:space="preserve">
+    <value>No previous shape</value>
+  </data>
+  <data name="PowerPoint.Unavailable" xml:space="preserve">
+    <value>Not available while PowerPoint is busy</value>
+  </data>
+  <data name="PowerPoint.ShapeNumber" xml:space="preserve">
+    <value>Shape {0}</value>
+    <comment>{0}: the shape's number, for a shape without a name</comment>
+  </data>
+  <data name="Meeting.InCall" xml:space="preserve">
+    <value>In a call</value>
+  </data>
+  <data name="Meeting.NotInCall" xml:space="preserve">
+    <value>Not in a call</value>
+  </data>
+  <data name="Meeting.MicrophoneMutedState" xml:space="preserve">
+    <value>microphone muted</value>
+  </data>
+  <data name="Meeting.MicrophoneOnState" xml:space="preserve">
+    <value>microphone on</value>
+  </data>
+  <data name="Meeting.CameraOnState" xml:space="preserve">
+    <value>camera on</value>
+  </data>
+  <data name="Meeting.CameraOffState" xml:space="preserve">
+    <value>camera off</value>
+  </data>
+  <data name="Meeting.HandRaisedState" xml:space="preserve">
+    <value>hand raised</value>
+  </data>
+  <data name="Meeting.SharingState" xml:space="preserve">
+    <value>sharing your screen</value>
+  </data>
+  <data name="Meeting.CallStarted" xml:space="preserve">
+    <value>Call started</value>
+  </data>
+  <data name="Meeting.CallEnded" xml:space="preserve">
+    <value>Call ended</value>
+  </data>
+  <data name="Meeting.MicrophoneMuted" xml:space="preserve">
+    <value>Microphone muted</value>
+  </data>
+  <data name="Meeting.MicrophoneOn" xml:space="preserve">
+    <value>Microphone on</value>
+  </data>
+  <data name="Meeting.CameraOn" xml:space="preserve">
+    <value>Camera on</value>
+  </data>
+  <data name="Meeting.CameraOff" xml:space="preserve">
+    <value>Camera off</value>
+  </data>
+  <data name="Meeting.HandRaised" xml:space="preserve">
+    <value>Hand raised</value>
+  </data>
+  <data name="Meeting.HandLowered" xml:space="preserve">
+    <value>Hand lowered</value>
+  </data>
+  <data name="Meeting.Sharing" xml:space="preserve">
+    <value>Sharing your screen</value>
+  </data>
+  <data name="Meeting.StoppedSharing" xml:space="preserve">
+    <value>Stopped sharing</value>
+  </data>
+  <data name="Meeting.ControlsUnreadable" xml:space="preserve">
+    <value>The call's controls can't be read</value>
+  </data>
+  <data name="Teams.NoMessages" xml:space="preserve">
+    <value>No messages here</value>
+  </data>
+  <data name="Teams.OnlyOneMessage" xml:space="preserve">
+    <value>Only 1 message</value>
+  </data>
+  <data name="Teams.OnlyMessages" xml:space="preserve">
+    <value>Only {0} messages</value>
+    <comment>{0}: how many messages there are (more than one)</comment>
+  </data>
+  <data name="Explorer.HeaderValue" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0}: a details-view column header ("Size"), {1}: the file's value in it</comment>
+  </data>
+  <data name="Explorer.Name" xml:space="preserve">
+    <value>File Explorer</value>
+  </data>
+  <data name="Text.Blank" xml:space="preserve">
+    <value>blank</value>
+  </data>
+  <data name="Math.Leaving" xml:space="preserve">
+    <value>Leaving math</value>
+  </data>
+  <data name="Browse.PressAgainToExit" xml:space="preserve">
+    <value>Press {0} Q again to exit Vox</value>
+    <comment>{0}: the screen reader key's name (Insert or Caps Lock)</comment>
+  </data>
+  <data name="Browse.NoText" xml:space="preserve">
+    <value>No text</value>
+  </data>
+  <data name="Browse.NotInDocument" xml:space="preserve">
+    <value>Not in a document</value>
+  </data>
+  <data name="Browse.NoSelection" xml:space="preserve">
+    <value>No selection</value>
+  </data>
+  <data name="Text.NoFormatting" xml:space="preserve">
+    <value>No formatting information</value>
+  </data>
+  <data name="Browse.StartMarked" xml:space="preserve">
+    <value>Start marked</value>
+  </data>
+  <data name="Element.BlockQuote" xml:space="preserve">
+    <value>block quote</value>
+  </data>
+  <data name="Element.Frame" xml:space="preserve">
+    <value>frame</value>
+  </data>
+  <data name="Browse.NotInTable" xml:space="preserve">
+    <value>Not in a table</value>
+  </data>
+  <data name="Browse.SelectedAll" xml:space="preserve">
+    <value>selected all</value>
+  </data>
+  <data name="Text.Selected" xml:space="preserve">
+    <value>selected {0}</value>
+    <comment>{0}: the selected text, or how many characters it has</comment>
+  </data>
+  <data name="Text.Unselected" xml:space="preserve">
+    <value>unselected {0}</value>
+    <comment>{0}: the unselected text, or how many characters it has</comment>
+  </data>
+  <data name="Browse.CouldNotCopy" xml:space="preserve">
+    <value>Could not copy</value>
+  </data>
+  <data name="Browse.CopiedToClipboard" xml:space="preserve">
+    <value>Copied to clipboard</value>
+  </data>
+  <data name="Browse.NoStartMarker" xml:space="preserve">
+    <value>No start marker set</value>
+  </data>
+  <data name="Browse.CharacterCount" xml:space="preserve">
+    <value>{0} characters</value>
+    <comment>{0}: the number of characters</comment>
+  </data>
+  <data name="Browse.PartiallyExpanded" xml:space="preserve">
+    <value>partially expanded</value>
+  </data>
+  <data name="Browse.Available" xml:space="preserve">
+    <value>available</value>
+  </data>
+  <data name="Browse.Unavailable" xml:space="preserve">
+    <value>unavailable</value>
+  </data>
+  <data name="Browse.ElementGone" xml:space="preserve">
+    <value>Element no longer on page</value>
+  </data>
+  <data name="Math.NotInMath" xml:space="preserve">
+    <value>Not in math</value>
+  </data>
+  <data name="Math.NeedsMathCat" xml:space="preserve">
+    <value>Exploring math needs the MathCAT component</value>
+  </data>
+  <data name="Math.CannotExplore" xml:space="preserve">
+    <value>This math can't be explored</value>
+  </data>
+  <data name="Math.Exploring" xml:space="preserve">
+    <value>Math, {0}</value>
+    <comment>{0}: the spoken math expression</comment>
+  </data>
+  <data name="Overlay.NoneFound" xml:space="preserve">
+    <value>No cookie banner or dialog found</value>
+  </data>
+  <data name="Overlay.NoDismissButton" xml:space="preserve">
+    <value>{0} has no reject or close button</value>
+    <comment>{0}: the overlay kind (Cookie banner or Dialog)</comment>
+  </data>
+  <data name="Find.NotFound" xml:space="preserve">
+    <value>{0} not found</value>
+    <comment>{0}: the text searched for</comment>
+  </data>
+  <data name="Overlay.CookieBanner" xml:space="preserve">
+    <value>Cookie banner</value>
+  </data>
+  <data name="Overlay.Dialog" xml:space="preserve">
+    <value>Dialog</value>
+  </data>
+  <data name="Overlay.NamedDialog" xml:space="preserve">
+    <value>Dialog, {0}</value>
+    <comment>{0}: the dialog's name</comment>
+  </data>
+  <data name="Overlay.Announcement" xml:space="preserve">
+    <value>{0}. {1} presses {2}</value>
+    <comment>{0}: the overlay kind or named dialog; {1}: the key that dismisses it; {2}: the dismiss button's name</comment>
+  </data>
+  <data name="Element.Graphic" xml:space="preserve">
+    <value>graphic</value>
+  </data>
+  <data name="Element.EmbeddedObject" xml:space="preserve">
+    <value>embedded object</value>
+  </data>
+  <data name="Annotation.Comment" xml:space="preserve">
+    <value>comment</value>
+  </data>
+  <data name="Annotation.Inserted" xml:space="preserve">
+    <value>inserted</value>
+  </data>
+  <data name="Annotation.Deleted" xml:space="preserve">
+    <value>deleted</value>
+  </data>
+  <data name="Annotation.Highlighted" xml:space="preserve">
+    <value>highlighted</value>
+  </data>
+  <data name="Annotation.Suggestion" xml:space="preserve">
+    <value>suggestion</value>
+  </data>
+  <data name="Annotation.EndOfComment" xml:space="preserve">
+    <value>end of comment</value>
+  </data>
+  <data name="Annotation.EndOfInserted" xml:space="preserve">
+    <value>end of inserted</value>
+  </data>
+  <data name="Annotation.EndOfDeleted" xml:space="preserve">
+    <value>end of deleted</value>
+  </data>
+  <data name="Annotation.EndOfHighlighted" xml:space="preserve">
+    <value>end of highlighted</value>
+  </data>
+  <data name="Annotation.EndOfSuggestion" xml:space="preserve">
+    <value>end of suggestion</value>
+  </data>
+  <data name="Annotation.EndOf" xml:space="preserve">
+    <value>end of {0}</value>
+    <comment>{0}: the kind of annotation left</comment>
+  </data>
+  <data name="Annotation.Figure" xml:space="preserve">
+    <value>figure</value>
+  </data>
+  <data name="Annotation.Clickable" xml:space="preserve">
+    <value>clickable</value>
+  </data>
+  <data name="Annotation.OutOfFigure" xml:space="preserve">
+    <value>out of figure</value>
+  </data>
+  <data name="PageSummary.Language" xml:space="preserve">
+    <value>language {0}</value>
+    <comment>{0}: the page's language name</comment>
+  </data>
+  <data name="PageSummary.NoHeadings" xml:space="preserve">
+    <value>no headings</value>
+  </data>
+  <data name="PageSummary.OneHeading" xml:space="preserve">
+    <value>1 heading</value>
+  </data>
+  <data name="PageSummary.Headings" xml:space="preserve">
+    <value>{0} headings</value>
+    <comment>{0}: the number of headings (2 or more)</comment>
+  </data>
+  <data name="PageSummary.NoLinks" xml:space="preserve">
+    <value>no links</value>
+  </data>
+  <data name="PageSummary.OneLink" xml:space="preserve">
+    <value>1 link</value>
+  </data>
+  <data name="PageSummary.Links" xml:space="preserve">
+    <value>{0} links</value>
+    <comment>{0}: the number of links (2 or more)</comment>
+  </data>
+  <data name="PageSummary.NoLandmarks" xml:space="preserve">
+    <value>no landmarks</value>
+  </data>
+  <data name="PageSummary.OneLandmark" xml:space="preserve">
+    <value>1 landmark</value>
+  </data>
+  <data name="PageSummary.Landmarks" xml:space="preserve">
+    <value>{0} landmarks</value>
+    <comment>{0}: the number of landmarks (2 or more)</comment>
+  </data>
+  <data name="PageSummary.NoFormFields" xml:space="preserve">
+    <value>no form fields</value>
+  </data>
+  <data name="PageSummary.OneFormField" xml:space="preserve">
+    <value>1 form field</value>
+  </data>
+  <data name="PageSummary.FormFields" xml:space="preserve">
+    <value>{0} form fields</value>
+    <comment>{0}: the number of form fields (2 or more)</comment>
+  </data>
+  <data name="PageSummary.NoTables" xml:space="preserve">
+    <value>no tables</value>
+  </data>
+  <data name="PageSummary.OneTable" xml:space="preserve">
+    <value>1 table</value>
+  </data>
+  <data name="PageSummary.Tables" xml:space="preserve">
+    <value>{0} tables</value>
+    <comment>{0}: the number of data tables (2 or more)</comment>
+  </data>
+  <data name="PageSummary.LinkHasNoAddress" xml:space="preserve">
+    <value>Link has no address</value>
+  </data>
+  <data name="PageSummary.NotOnLink" xml:space="preserve">
+    <value>Not on a link</value>
+  </data>
+  <data name="List.OutOf" xml:space="preserve">
+    <value>out of list</value>
+  </data>
+  <data name="List.WithOneItem" xml:space="preserve">
+    <value>list with 1 item</value>
+  </data>
+  <data name="List.WithItems" xml:space="preserve">
+    <value>list with {0} items</value>
+    <comment>{0}: the number of items in the list</comment>
+  </data>
+  <data name="List.NestingLevel" xml:space="preserve">
+    <value>{0}, nesting level {1}</value>
+    <comment>{0}: the list announcement; {1}: the nesting level (2 or more)</comment>
+  </data>
+  <data name="Pdf.NoText" xml:space="preserve">
+    <value>PDF document with no text, probably a scanned image</value>
+  </data>
+  <data name="Pdf.Document" xml:space="preserve">
+    <value>PDF document</value>
+  </data>
+  <data name="Pdf.Untagged" xml:space="preserve">
+    <value>Untagged PDF document: no headings or structure</value>
+  </data>
+  <data name="TableNav.Row" xml:space="preserve">
+    <value>row {0}</value>
+    <comment>{0}: the row number</comment>
+  </data>
+  <data name="TableNav.Column" xml:space="preserve">
+    <value>column {0}</value>
+    <comment>{0}: the column number</comment>
+  </data>
+  <data name="TableNav.Dimensions" xml:space="preserve">
+    <value>table with {0} and {1}</value>
+    <comment>{0}: the row count (TableNav.OneRow or TableNav.Rows); {1}: the column count (TableNav.OneColumn or TableNav.Columns)</comment>
+  </data>
+  <data name="TableNav.OneRow" xml:space="preserve">
+    <value>1 row</value>
+  </data>
+  <data name="TableNav.Rows" xml:space="preserve">
+    <value>{0} rows</value>
+    <comment>{0}: the number of rows (not 1)</comment>
+  </data>
+  <data name="TableNav.OneColumn" xml:space="preserve">
+    <value>1 column</value>
+  </data>
+  <data name="TableNav.Columns" xml:space="preserve">
+    <value>{0} columns</value>
+    <comment>{0}: the number of columns (not 1)</comment>
+  </data>
+  <data name="TableNav.ColumnHeadersCleared" xml:space="preserve">
+    <value>column headers cleared</value>
+  </data>
+  <data name="TableNav.RowHeadersCleared" xml:space="preserve">
+    <value>row headers cleared</value>
+  </data>
+  <data name="TableNav.RowSetAsColumnHeaders" xml:space="preserve">
+    <value>row {0} set as column headers</value>
+    <comment>{0}: the row number</comment>
+  </data>
+  <data name="TableNav.ColumnSetAsRowHeaders" xml:space="preserve">
+    <value>column {0} set as row headers</value>
+    <comment>{0}: the column number</comment>
+  </data>
+  <data name="WhereAmI.NoBatteryPluggedIn" xml:space="preserve">
+    <value>No battery, plugged in</value>
+  </data>
+  <data name="WhereAmI.NoBattery" xml:space="preserve">
+    <value>No battery</value>
+  </data>
+  <data name="WhereAmI.BatteryPercent" xml:space="preserve">
+    <value>{0} percent</value>
+    <comment>{0}: the battery charge percentage</comment>
+  </data>
+  <data name="WhereAmI.Charging" xml:space="preserve">
+    <value>charging</value>
+  </data>
+  <data name="WhereAmI.PluggedIn" xml:space="preserve">
+    <value>plugged in</value>
+  </data>
+  <data name="WhereAmI.OnBattery" xml:space="preserve">
+    <value>on battery</value>
+  </data>
+  <data name="WhereAmI.StatusBarEmpty" xml:space="preserve">
+    <value>Status bar is empty</value>
+  </data>
+  <data name="Progress.Percent" xml:space="preserve">
+    <value>{0} percent</value>
+    <comment>{0}: the progress bar's percentage</comment>
+  </data>
+  <data name="MenuContext.Submenu" xml:space="preserve">
+    <value>submenu</value>
+  </data>
+  <data name="MenuContext.Leaving" xml:space="preserve">
+    <value>leaving menu</value>
+  </data>
+  <data name="DevInfo.Name" xml:space="preserve">
+    <value>Name: {0}</value>
+    <comment>{0}: the element's name</comment>
+  </data>
+  <data name="DevInfo.ControlType" xml:space="preserve">
+    <value>Control type: {0}</value>
+    <comment>{0}: the UIA control type</comment>
+  </data>
+  <data name="DevInfo.AriaRole" xml:space="preserve">
+    <value>ARIA role: {0}</value>
+    <comment>{0}: the ARIA role</comment>
+  </data>
+  <data name="DevInfo.Framework" xml:space="preserve">
+    <value>Framework: {0}</value>
+    <comment>{0}: the UIA framework id</comment>
+  </data>
+  <data name="DevInfo.Class" xml:space="preserve">
+    <value>Class: {0}</value>
+    <comment>{0}: the window class name</comment>
+  </data>
+  <data name="DevInfo.AutomationId" xml:space="preserve">
+    <value>Automation id: {0}</value>
+    <comment>{0}: the UIA automation id</comment>
+  </data>
+  <data name="DevInfo.Process" xml:space="preserve">
+    <value>Process: {0} ({1})</value>
+    <comment>{0}: the process name; {1}: the process id</comment>
+  </data>
+  <data name="DevInfo.RuntimeId" xml:space="preserve">
+    <value>Runtime id: {0}</value>
+    <comment>{0}: the UIA runtime id, numbers joined by dots</comment>
+  </data>
+  <data name="DevInfo.None" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="ElementsList.Title" xml:space="preserve">
+    <value>Elements List</value>
+  </data>
+  <data name="ElementsList.TypeTabs" xml:space="preserve">
+    <value>Element type tabs</value>
+  </data>
+  <data name="ElementsList.TabName" xml:space="preserve">
+    <value>{0} tab</value>
+    <comment>{0}: the tab's name (Headings, Links, ...)</comment>
+  </data>
+  <data name="ElementsList.FieldKindLabel" xml:space="preserve">
+    <value>Field &amp;kind:</value>
+    <comment>The &amp; marks the access key</comment>
+  </data>
+  <data name="ElementsList.FieldKind" xml:space="preserve">
+    <value>Field kind</value>
+  </data>
+  <data name="ElementsList.Elements" xml:space="preserve">
+    <value>Elements</value>
+  </data>
+  <data name="ElementsList.FilterLabel" xml:space="preserve">
+    <value>Filter:</value>
+  </data>
+  <data name="ElementsList.Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="ElementsList.FilterDescription" xml:space="preserve">
+    <value>Type to filter the list</value>
+  </data>
+  <data name="ElementsList.Jump" xml:space="preserve">
+    <value>Jump</value>
+  </data>
+  <data name="ElementsList.JumpToElement" xml:space="preserve">
+    <value>Jump to element</value>
+  </data>
+  <data name="ElementsList.Headings" xml:space="preserve">
+    <value>Headings</value>
+  </data>
+  <data name="ElementsList.Links" xml:space="preserve">
+    <value>Links</value>
+  </data>
+  <data name="ElementsList.Landmarks" xml:space="preserve">
+    <value>Landmarks</value>
+  </data>
+  <data name="ElementsList.FormFields" xml:space="preserve">
+    <value>Form Fields</value>
+  </data>
+  <data name="ElementsList.Buttons" xml:space="preserve">
+    <value>Buttons</value>
+  </data>
+  <data name="ElementsList.Tables" xml:space="preserve">
+    <value>Tables</value>
+  </data>
+  <data name="ElementsList.AllFields" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="ElementsList.Edits" xml:space="preserve">
+    <value>Edits</value>
+  </data>
+  <data name="ElementsList.ComboBoxes" xml:space="preserve">
+    <value>Combo boxes</value>
+  </data>
+  <data name="ElementsList.CheckBoxes" xml:space="preserve">
+    <value>Check boxes</value>
+  </data>
+  <data name="ElementsList.RadioButtons" xml:space="preserve">
+    <value>Radio buttons</value>
+  </data>
+  <data name="ElementsList.Heading" xml:space="preserve">
+    <value>H{0}: {1}</value>
+    <comment>{0}: the heading level; {1}: the heading's text</comment>
+  </data>
+  <data name="Pipeline.NotResponding" xml:space="preserve">
+    <value>{0} not responding</value>
+    <comment>{0}: the application's name</comment>
+  </data>
+  <data name="Pipeline.BrowseMode" xml:space="preserve">
+    <value>Browse mode</value>
+  </data>
+  <data name="Pipeline.FocusMode" xml:space="preserve">
+    <value>Focus mode</value>
+  </data>
+  <data name="Find.Title" xml:space="preserve">
+    <value>Find</value>
+  </data>
+  <data name="Find.FindWhatLabel" xml:space="preserve">
+    <value>&amp;Find what:</value>
+    <comment>The &amp; marks the access key</comment>
+  </data>
+  <data name="Find.FindWhat" xml:space="preserve">
+    <value>Find what</value>
+  </data>
+  <data name="Find.MatchCase" xml:space="preserve">
+    <value>Match &amp;case</value>
+    <comment>The &amp; marks the access key</comment>
+  </data>
+  <data name="Find.FindButton" xml:space="preserve">
+    <value>Find</value>
+  </data>
+  <data name="Typing.Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Typing.Star" xml:space="preserve">
+    <value>star</value>
+  </data>
+  <data name="Char.At" xml:space="preserve">
+    <value>at</value>
+  </data>
+  <data name="Char.Hash" xml:space="preserve">
+    <value>hash</value>
+  </data>
+  <data name="Char.Dollar" xml:space="preserve">
+    <value>dollar</value>
+  </data>
+  <data name="Char.Percent" xml:space="preserve">
+    <value>percent</value>
+  </data>
+  <data name="Char.Caret" xml:space="preserve">
+    <value>caret</value>
+  </data>
+  <data name="Char.Ampersand" xml:space="preserve">
+    <value>ampersand</value>
+  </data>
+  <data name="Char.Asterisk" xml:space="preserve">
+    <value>asterisk</value>
+  </data>
+  <data name="Char.OpenParen" xml:space="preserve">
+    <value>open paren</value>
+  </data>
+  <data name="Char.CloseParen" xml:space="preserve">
+    <value>close paren</value>
+  </data>
+  <data name="Char.Exclamation" xml:space="preserve">
+    <value>exclamation</value>
+  </data>
+  <data name="Char.Hyphen" xml:space="preserve">
+    <value>hyphen</value>
+  </data>
+  <data name="Char.Underscore" xml:space="preserve">
+    <value>underscore</value>
+  </data>
+  <data name="Char.Equals" xml:space="preserve">
+    <value>equals</value>
+  </data>
+  <data name="Char.Plus" xml:space="preserve">
+    <value>plus</value>
+  </data>
+  <data name="Char.OpenBracket" xml:space="preserve">
+    <value>open bracket</value>
+  </data>
+  <data name="Char.CloseBracket" xml:space="preserve">
+    <value>close bracket</value>
+  </data>
+  <data name="Char.OpenBrace" xml:space="preserve">
+    <value>open brace</value>
+  </data>
+  <data name="Char.CloseBrace" xml:space="preserve">
+    <value>close brace</value>
+  </data>
+  <data name="Char.Backslash" xml:space="preserve">
+    <value>backslash</value>
+  </data>
+  <data name="Char.Pipe" xml:space="preserve">
+    <value>pipe</value>
+  </data>
+  <data name="Char.Semicolon" xml:space="preserve">
+    <value>semicolon</value>
+  </data>
+  <data name="Char.Colon" xml:space="preserve">
+    <value>colon</value>
+  </data>
+  <data name="Char.Apostrophe" xml:space="preserve">
+    <value>apostrophe</value>
+  </data>
+  <data name="Char.Quote" xml:space="preserve">
+    <value>quote</value>
+  </data>
+  <data name="Char.Comma" xml:space="preserve">
+    <value>comma</value>
+  </data>
+  <data name="Char.Period" xml:space="preserve">
+    <value>period</value>
+  </data>
+  <data name="Char.LessThan" xml:space="preserve">
+    <value>less than</value>
+  </data>
+  <data name="Char.GreaterThan" xml:space="preserve">
+    <value>greater than</value>
+  </data>
+  <data name="Char.Slash" xml:space="preserve">
+    <value>slash</value>
+  </data>
+  <data name="Char.QuestionMark" xml:space="preserve">
+    <value>question mark</value>
+  </data>
+  <data name="Char.Backtick" xml:space="preserve">
+    <value>backtick</value>
+  </data>
+  <data name="Char.Tilde" xml:space="preserve">
+    <value>tilde</value>
+  </data>
+  <data name="CommandSearch.Match" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0}: the command's name; {1}: its keys, or CommandSearch.NoKey</comment>
+  </data>
+  <data name="CommandSearch.NoKey" xml:space="preserve">
+    <value>no key</value>
+  </data>
+  <data name="Text.Color.Black" xml:space="preserve">
+    <value>black</value>
+  </data>
+  <data name="Text.Color.White" xml:space="preserve">
+    <value>white</value>
+  </data>
+  <data name="Text.Color.Gray" xml:space="preserve">
+    <value>gray</value>
+  </data>
+  <data name="Text.Color.Red" xml:space="preserve">
+    <value>red</value>
+  </data>
+  <data name="Text.Color.DarkRed" xml:space="preserve">
+    <value>dark red</value>
+  </data>
+  <data name="Text.Color.Orange" xml:space="preserve">
+    <value>orange</value>
+  </data>
+  <data name="Text.Color.Yellow" xml:space="preserve">
+    <value>yellow</value>
+  </data>
+  <data name="Text.Color.Green" xml:space="preserve">
+    <value>green</value>
+  </data>
+  <data name="Text.Color.DarkGreen" xml:space="preserve">
+    <value>dark green</value>
+  </data>
+  <data name="Text.Color.Blue" xml:space="preserve">
+    <value>blue</value>
+  </data>
+  <data name="Text.Color.DarkBlue" xml:space="preserve">
+    <value>dark blue</value>
+  </data>
+  <data name="Text.Color.LightBlue" xml:space="preserve">
+    <value>light blue</value>
+  </data>
+  <data name="Text.Color.Purple" xml:space="preserve">
+    <value>purple</value>
+  </data>
+  <data name="Text.Color.Pink" xml:space="preserve">
+    <value>pink</value>
+  </data>
+  <data name="Text.Color.Brown" xml:space="preserve">
+    <value>brown</value>
+  </data>
+  <data name="Text.FontSize" xml:space="preserve">
+    <value>{0:0.#} point</value>
+    <comment>{0}: the font size in points</comment>
+  </data>
+  <data name="Text.Bold" xml:space="preserve">
+    <value>bold</value>
+  </data>
+  <data name="Text.Italic" xml:space="preserve">
+    <value>italic</value>
+  </data>
+  <data name="Text.Underlined" xml:space="preserve">
+    <value>underlined</value>
+  </data>
+  <data name="Text.Misspelled" xml:space="preserve">
+    <value>misspelled</value>
+  </data>
+  <data name="Text.Cap" xml:space="preserve">
+    <value>cap {0}</value>
+    <comment>{0}: the name of a capital letter</comment>
+  </data>
+  <data name="Text.LineBreak" xml:space="preserve">
+    <value>line break</value>
+  </data>
+  <data name="Text.IndentedLine" xml:space="preserve">
+    <value>{0}, {1}</value>
+    <comment>{0}: the line's indentation (e.g. 1 tab 2 spaces); {1}: the line's text</comment>
+  </data>
+  <data name="Text.MisspelledText" xml:space="preserve">
+    <value>misspelled, {0}</value>
+    <comment>{0}: the text read at the caret</comment>
+  </data>
+  <data name="Text.NoIndent" xml:space="preserve">
+    <value>no indent</value>
+  </data>
+  <data name="Text.OneTab" xml:space="preserve">
+    <value>1 tab</value>
+  </data>
+  <data name="Text.Tabs" xml:space="preserve">
+    <value>{0} tabs</value>
+    <comment>{0}: the number of tabs (2 or more)</comment>
+  </data>
+  <data name="Text.OneSpace" xml:space="preserve">
+    <value>1 space</value>
+  </data>
+  <data name="Text.Spaces" xml:space="preserve">
+    <value>{0} spaces</value>
+    <comment>{0}: the number of spaces (2 or more)</comment>
+  </data>
+  <data name="Text.AllSelected" xml:space="preserve">
+    <value>all selected</value>
+  </data>
+  <data name="Text.Space" xml:space="preserve">
+    <value>space</value>
+  </data>
+  <data name="Text.TerminalLines" xml:space="preserve">
+    <value>{0} lines of output. {1}</value>
+    <comment>{0}: the number of new lines; {1}: the last line</comment>
+  </data>
 </root>

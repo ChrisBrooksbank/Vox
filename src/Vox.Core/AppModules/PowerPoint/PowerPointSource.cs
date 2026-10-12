@@ -1,4 +1,5 @@
 using Vox.Core.AppModules.Office;
+using Vox.Core.Localization;
 
 namespace Vox.Core.AppModules.PowerPoint;
 
@@ -50,7 +51,7 @@ public sealed class PowerPointObjectModelSource : IPowerPointSource
             dynamic shape = collection.Item(i);
             int type = Try(() => (int)shape.Type);
             var read = new PowerPointShape(
-                Try(() => (string)shape.Name) ?? $"Shape {i}",
+                Try(() => (string)shape.Name) ?? VoxStrings.Format("PowerPoint.ShapeNumber", i),
                 type,
                 Try(() => IsTrue((object?)shape.HasTextFrame) && IsTrue((object?)shape.TextFrame.HasText) ? (string)shape.TextFrame.TextRange.Text : null),
                 Try(() => (string)shape.AlternativeText),

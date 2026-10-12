@@ -1,5 +1,6 @@
 using System.Windows.Forms;
 using Vox.Core.Buffer;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -54,13 +55,13 @@ public sealed class ElementsListDialog : VoxDialog
         _currentNode = currentNode;
 
         // ---- Form properties ------------------------------------------------
-        Text = "Elements List";
+        Text = VoxStrings.Get("ElementsList.Title");
         Size = new System.Drawing.Size(480, 420);
         MinimumSize = new System.Drawing.Size(360, 320);
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.Sizable;
         KeyPreview = true;
-        AccessibleName = "Elements List";
+        AccessibleName = VoxStrings.Get("ElementsList.Title");
         AccessibleRole = AccessibleRole.Dialog;
 
         // ---- Layout ---------------------------------------------------------
@@ -80,11 +81,11 @@ public sealed class ElementsListDialog : VoxDialog
         _tabControl = new TabControl
         {
             Dock = DockStyle.Fill,
-            AccessibleName = "Element type tabs",
+            AccessibleName = VoxStrings.Get("ElementsList.TypeTabs"),
             AccessibleRole = AccessibleRole.PageTabList,
         };
         foreach (var name in ElementsListViewModel.TabNames)
-            _tabControl.TabPages.Add(new TabPage(name) { AccessibleName = $"{name} tab" });
+            _tabControl.TabPages.Add(new TabPage(name) { AccessibleName = VoxStrings.Format("ElementsList.TabName", name) });
         _tabControl.SelectedIndexChanged += OnTabChanged;
         mainPanel.Controls.Add(_tabControl, 0, 0);
 
@@ -98,7 +99,7 @@ public sealed class ElementsListDialog : VoxDialog
         };
         _kindPanel.Controls.Add(new Label
         {
-            Text = "Field &kind:",
+            Text = VoxStrings.Get("ElementsList.FieldKindLabel"),
             AutoSize = true,
             Anchor = AnchorStyles.Left,
             Margin = new Padding(0, 6, 4, 0),
@@ -106,7 +107,7 @@ public sealed class ElementsListDialog : VoxDialog
         _kindBox = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            AccessibleName = "Field kind",
+            AccessibleName = VoxStrings.Get("ElementsList.FieldKind"),
             Width = 160,
         };
         foreach (var name in ElementsListViewModel.FormFieldKindNames)
@@ -120,7 +121,7 @@ public sealed class ElementsListDialog : VoxDialog
         _listBox = new ListBox
         {
             Dock = DockStyle.Fill,
-            AccessibleName = "Elements",
+            AccessibleName = VoxStrings.Get("ElementsList.Elements"),
             AccessibleRole = AccessibleRole.List,
             IntegralHeight = false,
         };
@@ -143,7 +144,7 @@ public sealed class ElementsListDialog : VoxDialog
 
         var filterLabel = new Label
         {
-            Text = "Filter:",
+            Text = VoxStrings.Get("ElementsList.FilterLabel"),
             AutoSize = true,
             Anchor = AnchorStyles.Left | AnchorStyles.Top,
         };
@@ -152,8 +153,8 @@ public sealed class ElementsListDialog : VoxDialog
         _filterBox = new TextBox
         {
             Dock = DockStyle.Fill,
-            AccessibleName = "Filter",
-            AccessibleDescription = "Type to filter the list",
+            AccessibleName = VoxStrings.Get("ElementsList.Filter"),
+            AccessibleDescription = VoxStrings.Get("ElementsList.FilterDescription"),
         };
         _filterBox.TextChanged += OnFilterChanged;
         _filterBox.KeyDown    += OnFilterKeyDown;
@@ -162,8 +163,8 @@ public sealed class ElementsListDialog : VoxDialog
 
         _jumpButton = new Button
         {
-            Text = "Jump",
-            AccessibleName = "Jump to element",
+            Text = VoxStrings.Get("ElementsList.Jump"),
+            AccessibleName = VoxStrings.Get("ElementsList.JumpToElement"),
             DialogResult = DialogResult.None,
             AutoSize = true,
             Anchor = AnchorStyles.Right | AnchorStyles.Bottom,
@@ -173,8 +174,8 @@ public sealed class ElementsListDialog : VoxDialog
 
         _cancelButton = new Button
         {
-            Text = "Cancel",
-            AccessibleName = "Cancel",
+            Text = VoxStrings.Get("Dialog.Cancel"),
+            AccessibleName = VoxStrings.Get("Dialog.Cancel"),
             DialogResult = DialogResult.Cancel,
             AutoSize = true,
             Anchor = AnchorStyles.Right | AnchorStyles.Bottom,

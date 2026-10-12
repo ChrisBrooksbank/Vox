@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -96,7 +97,7 @@ public sealed class WordModule : AppModule
             {
                 var result = await _source.MoveInTableAsync(window, move).ConfigureAwait(false);
                 return result is null ? Unavailable
-                    : !result.InTable ? "Not in a table"
+                    : !result.InTable ? VoxStrings.Get("Word.NotInTable")
                     : result.Cell is { } cell ? WordAnnouncer.Cell(cell, move)
                     : WordAnnouncer.TableEdge(move);
             });
@@ -112,7 +113,7 @@ public sealed class WordModule : AppModule
         return false;
     }
 
-    private const string Unavailable = "Not available while Word is busy";
+    private static string Unavailable => VoxStrings.Get("Word.Unavailable");
 
     public override void OnEvent(ScreenReaderEvent evt)
     {

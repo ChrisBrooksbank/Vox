@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 
@@ -159,10 +160,10 @@ public sealed class ExcelModule : AppModule
         if (row == cell.Row)
         {
             _titles.SetRow(cell.Workbook, cell.Sheet, null);
-            return "Column titles cleared";
+            return VoxStrings.Get("Excel.ColumnTitlesCleared");
         }
         _titles.SetRow(cell.Workbook, cell.Sheet, cell.Row);
-        return $"Row {cell.Row} set as column titles";
+        return VoxStrings.Format("Excel.RowSetAsColumnTitles", cell.Row);
     }
 
     /// <summary>The current column holds the sheet's row titles; pressed again on that column, no column does.</summary>
@@ -172,10 +173,10 @@ public sealed class ExcelModule : AppModule
         if (column == cell.Column)
         {
             _titles.SetColumn(cell.Workbook, cell.Sheet, null);
-            return "Row titles cleared";
+            return VoxStrings.Get("Excel.RowTitlesCleared");
         }
         _titles.SetColumn(cell.Workbook, cell.Sheet, cell.Column);
-        return $"Column {ExcelAddress.ColumnLetters(cell.Column)} set as row titles";
+        return VoxStrings.Format("Excel.ColumnSetAsRowTitles", ExcelAddress.ColumnLetters(cell.Column));
     }
 
     /// <summary>Reads the active cell, then says what <paramref name="describe"/> makes of it.</summary>
@@ -187,7 +188,7 @@ public sealed class ExcelModule : AppModule
             try
             {
                 var cell = await _source.ActiveCellAsync(window).ConfigureAwait(false);
-                Say(cell is null ? "Not available while Excel is busy" : describe(cell));
+                Say(cell is null ? VoxStrings.Get("Excel.Unavailable") : describe(cell));
             }
             catch (Exception ex)
             {

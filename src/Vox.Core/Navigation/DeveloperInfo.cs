@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.Navigation;
 
 /// <summary>What the developer info command reports about the focused element.</summary>
@@ -17,17 +19,17 @@ public sealed record DeveloperInfo(
     {
         var lines = new List<string>
         {
-            $"Name: {Show(Name)}",
-            $"Control type: {Show(ControlType)}",
-            $"ARIA role: {Show(AriaRole)}",
-            $"Framework: {Show(FrameworkId)}",
-            $"Class: {Show(ClassName)}",
-            $"Automation id: {Show(AutomationId)}",
-            $"Process: {Show(ProcessName)} ({ProcessId})",
-            $"Runtime id: {(RuntimeId.Length == 0 ? "none" : string.Join(".", RuntimeId))}",
+            VoxStrings.Format("DevInfo.Name", Show(Name)),
+            VoxStrings.Format("DevInfo.ControlType", Show(ControlType)),
+            VoxStrings.Format("DevInfo.AriaRole", Show(AriaRole)),
+            VoxStrings.Format("DevInfo.Framework", Show(FrameworkId)),
+            VoxStrings.Format("DevInfo.Class", Show(ClassName)),
+            VoxStrings.Format("DevInfo.AutomationId", Show(AutomationId)),
+            VoxStrings.Format("DevInfo.Process", Show(ProcessName), ProcessId),
+            VoxStrings.Format("DevInfo.RuntimeId", RuntimeId.Length == 0 ? VoxStrings.Get("DevInfo.None") : string.Join(".", RuntimeId)),
         };
         return string.Join(Environment.NewLine, lines);
     }
 
-    private static string Show(string? value) => string.IsNullOrWhiteSpace(value) ? "none" : value;
+    private static string Show(string? value) => string.IsNullOrWhiteSpace(value) ? VoxStrings.Get("DevInfo.None") : value;
 }

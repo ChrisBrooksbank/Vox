@@ -5,6 +5,7 @@ using Vox.Core.Accessibility;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 using Vox.Core.Navigation;
 using Vox.Core.Speech;
 
@@ -287,7 +288,7 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
                 case AppNotRespondingEvent notResponding:
                     await _speechQueue.EnqueueAsync(
-                        new Utterance($"{notResponding.AppName} not responding", SpeechPriority.High), token).ConfigureAwait(false);
+                        new Utterance(VoxStrings.Format("Pipeline.NotResponding", notResponding.AppName), SpeechPriority.High), token).ConfigureAwait(false);
                     break;
 
                 case NotificationFlushEvent notificationFlush:
@@ -499,7 +500,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
             return;
 
         // Queued rather than Interrupt, so it never cuts off a focus announcement in progress
-        var modeText = modeChanged.NewMode == InteractionMode.Browse ? "Browse mode" : "Focus mode";
+        var modeText = modeChanged.NewMode == InteractionMode.Browse
+            ? VoxStrings.Get("Pipeline.BrowseMode")
+            : VoxStrings.Get("Pipeline.FocusMode");
         var utterance = new Utterance(modeText, SpeechPriority.High);
         await _speechQueue.EnqueueAsync(utterance, token).ConfigureAwait(false);
     }

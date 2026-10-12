@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.AppModules.Meetings;
 
 /// <summary>
@@ -47,15 +49,15 @@ public static class MeetingControls
     /// <summary>"In a call, microphone muted, camera off, hand raised".</summary>
     public static string Describe(MeetingState state)
     {
-        var parts = new List<string> { state.InCall ? "In a call" : "Not in a call" };
+        var parts = new List<string> { state.InCall ? VoxStrings.Get("Meeting.InCall") : VoxStrings.Get("Meeting.NotInCall") };
         if (state.Muted is { } muted)
-            parts.Add(muted ? "microphone muted" : "microphone on");
+            parts.Add(muted ? VoxStrings.Get("Meeting.MicrophoneMutedState") : VoxStrings.Get("Meeting.MicrophoneOnState"));
         if (state.CameraOn is { } camera)
-            parts.Add(camera ? "camera on" : "camera off");
+            parts.Add(camera ? VoxStrings.Get("Meeting.CameraOnState") : VoxStrings.Get("Meeting.CameraOffState"));
         if (state.HandRaised == true)
-            parts.Add("hand raised");
+            parts.Add(VoxStrings.Get("Meeting.HandRaisedState"));
         if (state.Sharing == true)
-            parts.Add("sharing your screen");
+            parts.Add(VoxStrings.Get("Meeting.SharingState"));
         return string.Join(", ", parts);
     }
 
@@ -64,15 +66,15 @@ public static class MeetingControls
     {
         var parts = new List<string>();
         if (before.InCall != after.InCall)
-            parts.Add(after.InCall ? "Call started" : "Call ended");
+            parts.Add(after.InCall ? VoxStrings.Get("Meeting.CallStarted") : VoxStrings.Get("Meeting.CallEnded"));
         if (after.Muted is { } muted && before.Muted != muted)
-            parts.Add(muted ? "Microphone muted" : "Microphone on");
+            parts.Add(muted ? VoxStrings.Get("Meeting.MicrophoneMuted") : VoxStrings.Get("Meeting.MicrophoneOn"));
         if (after.CameraOn is { } camera && before.CameraOn != camera)
-            parts.Add(camera ? "Camera on" : "Camera off");
+            parts.Add(camera ? VoxStrings.Get("Meeting.CameraOn") : VoxStrings.Get("Meeting.CameraOff"));
         if (after.HandRaised is { } hand && (before.HandRaised ?? false) != hand)
-            parts.Add(hand ? "Hand raised" : "Hand lowered");
+            parts.Add(hand ? VoxStrings.Get("Meeting.HandRaised") : VoxStrings.Get("Meeting.HandLowered"));
         if ((before.Sharing ?? false) != (after.Sharing ?? false))
-            parts.Add(after.Sharing == true ? "Sharing your screen" : "Stopped sharing");
+            parts.Add(after.Sharing == true ? VoxStrings.Get("Meeting.Sharing") : VoxStrings.Get("Meeting.StoppedSharing"));
         return parts.Count == 0 ? null : string.Join(", ", parts);
     }
 

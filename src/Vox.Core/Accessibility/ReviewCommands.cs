@@ -7,6 +7,7 @@ using Vox.Core.Navigation;
 using Vox.Core.Ocr;
 using Vox.Core.Speech;
 using Vox.Core.Text;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Accessibility;
 
@@ -158,9 +159,9 @@ public sealed class ReviewCommands
         _leaveRecognized = true;
         Speak(_mode switch
         {
-            ReviewMode.Object => "Object review",
-            ReviewMode.Document => "Document review",
-            _ => "Screen review",
+            ReviewMode.Object => VoxStrings.Get("Review.ObjectMode"),
+            ReviewMode.Document => VoxStrings.Get("Review.DocumentMode"),
+            _ => VoxStrings.Get("Review.ScreenMode"),
         });
     }
 
@@ -188,7 +189,7 @@ public sealed class ReviewCommands
                 var result = command(_cursor);
                 // Spoken here, in the order commands ran: quick presses finish in order on the UIA
                 // thread, but their continuations could reach the queue out of order
-                Speak(result?.Text ?? "No text");
+                Speak(result?.Text ?? VoxStrings.Get("Uia.NoText"));
                 if (_cursor.Position is { } position && PositionShown is { } shown)
                 {
                     try { shown(position); }
@@ -204,7 +205,7 @@ public sealed class ReviewCommands
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Could not {What}", what);
-            Speak("Not available");
+            Speak(VoxStrings.Get("Uia.NotAvailable"));
             return;
         }
 

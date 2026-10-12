@@ -56,7 +56,7 @@ public class SoundAssetsTests
             Assert.Equal(Path.Combine(directory, "default", "wrap.wav"), files["wrap"]);
             // An unknown scheme is the default one
             Assert.Equal(Path.Combine(directory, "default", "boundary.wav"), AudioCuePlayer.SchemeFiles(directory, "missing")["boundary"]);
-            Assert.Empty(AudioCuePlayer.SchemeFiles(directory, "..").Where(f => !f.Value.StartsWith(Path.Combine(directory, "default"))));
+            Assert.DoesNotContain(AudioCuePlayer.SchemeFiles(directory, ".."), f => !f.Value.StartsWith(Path.Combine(directory, "default")));
         }
         finally
         {

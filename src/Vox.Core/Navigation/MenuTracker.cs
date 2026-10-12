@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.Navigation;
 
 /// <summary>A menu event from UIA.</summary>
@@ -65,6 +67,12 @@ public sealed class MenuTracker
     {
         var pending = _pending;
         _pending = null;
-        return pending;
+        return pending switch
+        {
+            "menu" => VoxStrings.Get("ControlType.Menu"),
+            "submenu" => VoxStrings.Get("MenuContext.Submenu"),
+            "leaving menu" => VoxStrings.Get("MenuContext.Leaving"),
+            _ => pending,
+        };
     }
 }

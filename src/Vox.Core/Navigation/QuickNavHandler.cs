@@ -1,6 +1,7 @@
 using Vox.Core.Audio;
 using Vox.Core.Buffer;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -135,13 +136,13 @@ public sealed class QuickNavHandler
     /// </summary>
     public static string? ElementKindName(NavigationCommand command) => command switch
     {
-        NavigationCommand.NextList or NavigationCommand.PrevList => "list",
-        NavigationCommand.NextListItem or NavigationCommand.PrevListItem => "list item",
-        NavigationCommand.NextGraphic or NavigationCommand.PrevGraphic => "graphic",
-        NavigationCommand.NextBlockQuote or NavigationCommand.PrevBlockQuote => "block quote",
-        NavigationCommand.NextFrame or NavigationCommand.PrevFrame => "frame",
-        NavigationCommand.NextSeparator or NavigationCommand.PrevSeparator => "separator",
-        NavigationCommand.NextEmbeddedObject or NavigationCommand.PrevEmbeddedObject => "embedded object",
+        NavigationCommand.NextList or NavigationCommand.PrevList => VoxStrings.Get("ControlType.List"),
+        NavigationCommand.NextListItem or NavigationCommand.PrevListItem => VoxStrings.Get("ControlType.ListItem"),
+        NavigationCommand.NextGraphic or NavigationCommand.PrevGraphic => VoxStrings.Get("Element.Graphic"),
+        NavigationCommand.NextBlockQuote or NavigationCommand.PrevBlockQuote => VoxStrings.Get("Element.BlockQuote"),
+        NavigationCommand.NextFrame or NavigationCommand.PrevFrame => VoxStrings.Get("Element.Frame"),
+        NavigationCommand.NextSeparator or NavigationCommand.PrevSeparator => VoxStrings.Get("ControlType.Separator"),
+        NavigationCommand.NextEmbeddedObject or NavigationCommand.PrevEmbeddedObject => VoxStrings.Get("Element.EmbeddedObject"),
         _ => null,
     };
 

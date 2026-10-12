@@ -4,6 +4,7 @@ using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Configuration;
 
@@ -62,7 +63,7 @@ public sealed class ProfileCommands(
         if (command != NavigationCommand.OpenProfiles)
             return false;
         if (!profiles.IsAvailable)
-            speech.Enqueue(new Utterance("Profiles aren't available here", SpeechPriority.Interrupt));
+            speech.Enqueue(new Utterance(VoxStrings.Get("Profiles.NotAvailable"), SpeechPriority.Interrupt));
         else if (browse.BeginOwnDialog())
             _ = ShowAsync(foregroundApp());
         return true;
@@ -83,7 +84,7 @@ public sealed class ProfileCommands(
 
     /// <summary>What is said when the profile on top changes: its name, or "Normal configuration".</summary>
     public static string SwitchAnnouncement(string? profile) =>
-        profile is null ? "Normal configuration" : $"Profile {profile}";
+        profile is null ? VoxStrings.Get("Profiles.NormalConfiguration") : VoxStrings.Format("Profiles.Profile", profile);
 }
 
 /// <summary>
@@ -106,7 +107,7 @@ public sealed class ProfilesDialog : VoxDialog
     {
         _profiles = profiles;
         _app = foregroundApp;
-        Text = "Configuration profiles";
+        Text = VoxStrings.Get("Command.OpenProfiles.Name");
         AccessibleName = Text;
         AccessibleRole = AccessibleRole.Dialog;
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -115,48 +116,48 @@ public sealed class ProfilesDialog : VoxDialog
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-        _list = new ListBox { AccessibleName = "Profiles", Width = 320, Height = 160 };
+        _list = new ListBox { AccessibleName = VoxStrings.Get("Profiles.List"), Width = 320, Height = 160 };
         _list.SelectedIndexChanged += (_, _) => ShowSelected();
-        _name = new TextBox { AccessibleName = "Profile name", Width = 320 };
-        var create = new Button { Text = "&New", AutoSize = true };
-        create.Click += (_, _) => Run(() => _profiles.Create(_name.Text) ? _name.Text.Trim() : Fail("Type a name no other profile has."));
-        var rename = new Button { Text = "&Rename", AutoSize = true };
-        rename.Click += (_, _) => Run(() => Selected is { } p && _profiles.Rename(p.Name, _name.Text) ? _name.Text.Trim() : Fail("Choose a profile and type a new name no other profile has."));
-        var delete = new Button { Text = "&Delete", AutoSize = true };
+        _name = new TextBox { AccessibleName = VoxStrings.Get("Profiles.Name"), Width = 320 };
+        var create = new Button { Text = VoxStrings.Get("Profiles.New"), AutoSize = true };
+        create.Click += (_, _) => Run(() => _profiles.Create(_name.Text) ? _name.Text.Trim() : Fail(VoxStrings.Get("Profiles.NameTaken")));
+        var rename = new Button { Text = VoxStrings.Get("Profiles.Rename"), AutoSize = true };
+        rename.Click += (_, _) => Run(() => Selected is { } p && _profiles.Rename(p.Name, _name.Text) ? _name.Text.Trim() : Fail(VoxStrings.Get("Profiles.RenameFailed")));
+        var delete = new Button { Text = VoxStrings.Get("Profiles.Delete"), AutoSize = true };
         delete.Click += (_, _) => Run(() =>
         {
-            if (Selected is { } p && MessageBox.Show(this, $"Delete the profile {p.Name}?", Text, MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (Selected is { } p && MessageBox.Show(this, VoxStrings.Format("Profiles.DeleteQuestion", p.Name), Text, MessageBoxButtons.YesNo) == DialogResult.Yes)
                 _profiles.Delete(p.Name);
             return null;
         });
-        _activate = new Button { Text = "&Activate", AutoSize = true };
+        _activate = new Button { Text = VoxStrings.Get("Profiles.Activate"), AutoSize = true };
         _activate.Click += (_, _) => Run(() =>
         {
             if (Selected is { } p)
                 _profiles.ActivateManually(IsManual(p) ? null : p.Name);
             return Selected?.Name;
         });
-        _forApp = new CheckBox { AutoSize = true, Enabled = _app is not null, Text = _app is null ? "Use in this application" : $"Use in {_app}" };
+        _forApp = new CheckBox { AutoSize = true, Enabled = _app is not null, Text = _app is null ? VoxStrings.Get("Profiles.UseInThisApp") : VoxStrings.Format("Profiles.UseInApp", _app) };
         _forApp.CheckedChanged += (_, _) =>
         {
             if (!_updating && Selected is { } p && _app is not null)
                 Run(() => { _profiles.SetAppActivation(p.Name, _app, _forApp.Checked); return p.Name; });
         };
-        _sayAll = new CheckBox { Text = "Use during &Say All", AutoSize = true };
+        _sayAll = new CheckBox { Text = VoxStrings.Get("Profiles.UseDuringSayAll"), AutoSize = true };
         _sayAll.CheckedChanged += (_, _) =>
         {
             if (!_updating && Selected is { } p)
                 Run(() => { _profiles.SetSayAllTrigger(p.Name, _sayAll.Checked); return p.Name; });
         };
-        var close = new Button { Text = "Close", AutoSize = true, DialogResult = DialogResult.Cancel };
+        var close = new Button { Text = VoxStrings.Get("Dialog.Close"), AutoSize = true, DialogResult = DialogResult.Cancel };
 
         var nameRow = new FlowLayoutPanel { AutoSize = true };
-        nameRow.Controls.Add(new Label { Text = "&Name:", AutoSize = true, Anchor = AnchorStyles.Left });
+        nameRow.Controls.Add(new Label { Text = VoxStrings.Get("Profiles.NameLabel"), AutoSize = true, Anchor = AnchorStyles.Left });
         nameRow.Controls.Add(_name);
         var buttons = new FlowLayoutPanel { AutoSize = true };
         buttons.Controls.AddRange([create, rename, delete, _activate, close]);
         var layout = new TableLayoutPanel { AutoSize = true, ColumnCount = 1, Padding = new Padding(8) };
-        layout.Controls.Add(new Label { Text = "&Profiles:", AutoSize = true });
+        layout.Controls.Add(new Label { Text = VoxStrings.Get("Profiles.ListLabel"), AutoSize = true });
         layout.Controls.Add(_list);
         layout.Controls.Add(nameRow);
         layout.Controls.Add(_forApp);
@@ -180,15 +181,15 @@ public sealed class ProfilesDialog : VoxDialog
         _updating = true;
         var active = _profiles.Active;
         _list.Items.Clear();
-        _list.Items.Add(active.Count == 0 ? "Normal configuration, active" : "Normal configuration");
+        _list.Items.Add(active.Count == 0 ? VoxStrings.Get("Profiles.NormalConfigurationActive") : VoxStrings.Get("Profiles.NormalConfiguration"));
         int index = 0;
         foreach (var (profile, i) in _profiles.Profiles.Select((p, i) => (p, i + 1)))
         {
             var marks = new List<string>();
             if (active.Contains(profile))
-                marks.Add("active");
+                marks.Add(VoxStrings.Get("Profiles.MarkActive"));
             if (IsManual(profile))
-                marks.Add("chosen by hand");
+                marks.Add(VoxStrings.Get("Profiles.MarkManual"));
             _list.Items.Add(marks.Count == 0 ? profile.Name : $"{profile.Name}, {string.Join(", ", marks)}");
             if (select is not null && profile.Name.Equals(select, StringComparison.OrdinalIgnoreCase))
                 index = i;
@@ -207,7 +208,7 @@ public sealed class ProfilesDialog : VoxDialog
         _activate.Enabled = profile is not null;
         _forApp.Checked = profile?.IsForApp(_app) == true;
         _sayAll.Checked = profile?.SayAll == true;
-        _activate.Text = profile is not null && IsManual(profile) ? "De&activate" : "&Activate";
+        _activate.Text = profile is not null && IsManual(profile) ? VoxStrings.Get("Profiles.Deactivate") : VoxStrings.Get("Profiles.Activate");
         if (profile is not null)
             _name.Text = profile.Name;
         _updating = false;

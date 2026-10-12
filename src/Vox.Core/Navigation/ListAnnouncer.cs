@@ -1,4 +1,5 @@
 using Vox.Core.Buffer;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -29,12 +30,12 @@ public static class ListAnnouncer
 
         var parts = new List<string>();
         for (int i = common; i < before.Count; i++)
-            parts.Add("out of list");
+            parts.Add(VoxStrings.Get("List.OutOf"));
         for (int i = common; i < after.Count; i++)
         {
             int items = ItemCount(after[i]);
-            var text = $"list with {items} {(items == 1 ? "item" : "items")}";
-            parts.Add(i > 0 ? $"{text}, nesting level {i + 1}" : text);
+            var text = items == 1 ? VoxStrings.Get("List.WithOneItem") : VoxStrings.Format("List.WithItems", items);
+            parts.Add(i > 0 ? VoxStrings.Format("List.NestingLevel", text, i + 1) : text);
         }
         return string.Join(", ", parts);
     }

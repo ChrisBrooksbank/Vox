@@ -1,5 +1,6 @@
 using System.Globalization;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Text;
 
@@ -46,7 +47,7 @@ public static class Spelling
         if (text.Length > MaxLength)
             text = text[..MaxLength];
         if (text.Length == 0)
-            return "blank";
+            return VoxStrings.Get("Text.Blank");
 
         var parts = new List<string>();
         var elements = StringInfo.GetTextElementEnumerator(text);
@@ -79,6 +80,6 @@ public static class Spelling
             name = char.ToLowerInvariant(ch).ToString();
         else
             name = TypingEchoHandler.GetCharacterName(ch);
-        return isUpper ? "cap " + name : name;
+        return isUpper ? VoxStrings.Format("Text.Cap", name) : name;
     }
 }

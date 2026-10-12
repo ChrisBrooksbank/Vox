@@ -4,6 +4,7 @@ using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Configuration;
 
@@ -46,7 +47,7 @@ public sealed class SettingsCommands(
             case NavigationCommand.CreatePortableCopy:
                 // Needs the user's own folder, which the secure screens never touch
                 if (portable is null || gestures?.UserKeyMapPath is null)
-                    Say("A portable copy can't be made here");
+                    Say(VoxStrings.Get("PortableCopy.NotHere"));
                 else if (browse.BeginOwnDialog())
                     _ = CreatePortableCopyAsync(portable);
                 return true;
@@ -60,13 +61,13 @@ public sealed class SettingsCommands(
                 return true;
             case NavigationCommand.OpenCommandSearch:
                 if (gestures is null)
-                    Say("Command search isn't available here");
+                    Say(VoxStrings.Get("CommandSearch.NotHere"));
                 else if (browse.BeginOwnDialog())
                     _ = ShowCommandSearchAsync(gestures);
                 return true;
             case NavigationCommand.OpenInputGestures:
                 if (gestures?.UserKeyMapPath is null)
-                    Say("Keys can't be changed here");
+                    Say(VoxStrings.Get("Gesture.NotHere"));
                 else if (browse.BeginOwnDialog())
                     _ = ShowGesturesAsync(gestures);
                 return true;
@@ -108,20 +109,20 @@ public sealed class SettingsCommands(
         if (request is null)
             return;
 
-        Say("Creating the portable copy");
+        Say(VoxStrings.Get("PortableCopy.Creating"));
         try
         {
             int files = await Task.Run(() => Lifecycle.PortableCopy.Create(
                 AppContext.BaseDirectory, request.Folder,
                 request.CopySettings ? Lifecycle.VoxPaths.UserData : null,
                 request.CopyComponents ? Lifecycle.VoxPaths.Components : null)).ConfigureAwait(false);
-            Say($"Portable copy created in {request.Folder}");
+            Say(VoxStrings.Format("PortableCopy.Created", request.Folder));
             logger.LogInformation("Portable copy of {Files} files created", files);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Could not create the portable copy");
-            Say($"The portable copy could not be created: {ex.Message}");
+            Say(VoxStrings.Format("PortableCopy.Failed", ex.Message));
         }
     }
 
@@ -160,13 +161,13 @@ public sealed class SettingsCommands(
                 await File.WriteAllTextAsync(temp, KeyMap.ToJson(editor.UserBindings())).ConfigureAwait(false);
                 File.Move(temp, path, overwrite: true);
                 setup.ReloadKeyMap();
-                Say("Keys saved");
+                Say(VoxStrings.Get("Gesture.KeysSaved"));
             }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Input gestures dialog failed");
-            Say("Keys could not be saved");
+            Say(VoxStrings.Get("Gesture.KeysNotSaved"));
         }
         pipeline.Post(new VoxDialogClosedEvent(DateTimeOffset.UtcNow));
     }

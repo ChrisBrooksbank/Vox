@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Updates;
 
@@ -133,9 +134,9 @@ public sealed class UpdateChecker(
     /// <summary>What to say about a check.</summary>
     public static string Describe(UpdateCheckResult result, UpdateRelease? release) => result switch
     {
-        UpdateCheckResult.Available => $"Vox {release!.Version} is available.",
-        UpdateCheckResult.UpToDate => "Vox is up to date.",
-        UpdateCheckResult.Failed => "Couldn't check for updates.",
-        _ => "Checking for updates is off.",
+        UpdateCheckResult.Available => VoxStrings.Format("Update.Available", release!.Version),
+        UpdateCheckResult.UpToDate => VoxStrings.Get("Update.UpToDate"),
+        UpdateCheckResult.Failed => VoxStrings.Get("Update.CheckFailed"),
+        _ => VoxStrings.Get("Update.ChecksOff"),
     };
 }

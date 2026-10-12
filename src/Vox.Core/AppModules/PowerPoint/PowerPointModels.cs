@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.AppModules.PowerPoint;
 
 /// <summary>A shape on a slide: its name, kind (MsoShapeType, and for placeholders PpPlaceholderType), text and alternative text.</summary>
@@ -21,8 +23,9 @@ public static class PowerPointFormatter
     /// <summary>"Slide 3 of 10, Quarterly results".</summary>
     public static string SlideChanged(PowerPointSlide slide)
     {
-        var heading = $"Slide {slide.Number} of {slide.Count}";
-        return string.IsNullOrWhiteSpace(slide.Title) ? heading : $"{heading}, {Clean(slide.Title)}";
+        return string.IsNullOrWhiteSpace(slide.Title)
+            ? VoxStrings.Format("PowerPoint.SlideOf", slide.Number, slide.Count)
+            : VoxStrings.Format("PowerPoint.SlideOfTitled", slide.Number, slide.Count, Clean(slide.Title));
     }
 
     /// <summary>In a slide show: the slide, then the text of every shape but the title.</summary>
@@ -34,7 +37,7 @@ public static class PowerPointFormatter
             if (IsTitle(shape))
                 continue;
             var text = !string.IsNullOrWhiteSpace(shape.Text) ? Clean(shape.Text)
-                : !string.IsNullOrWhiteSpace(shape.AltText) ? $"{TypeName(shape)}, {Clean(shape.AltText)}"
+                : !string.IsNullOrWhiteSpace(shape.AltText) ? VoxStrings.Format("PowerPoint.ShapeAltText", TypeName(shape), Clean(shape.AltText))
                 : null;
             if (text is not null)
                 parts.Add(text);
@@ -50,13 +53,13 @@ public static class PowerPointFormatter
             parts.Add(Clean(shape.Text));
         else if (!string.IsNullOrWhiteSpace(shape.AltText))
             parts.Add(Clean(shape.AltText));
-        parts.Add($"{index} of {count}");
+        parts.Add(VoxStrings.Format("Announce.Position", index, count));
         return string.Join(", ", parts.Where(p => p.Length > 0));
     }
 
     /// <summary>The speaker notes command.</summary>
     public static string Notes(PowerPointSlide slide) =>
-        string.IsNullOrWhiteSpace(slide.Notes) ? $"Slide {slide.Number} has no notes" : $"Notes: {Clean(slide.Notes)}";
+        string.IsNullOrWhiteSpace(slide.Notes) ? VoxStrings.Format("PowerPoint.NoNotes", slide.Number) : VoxStrings.Format("PowerPoint.Notes", Clean(slide.Notes));
 
     /// <summary>Whether a shape is the slide's title placeholder (ppPlaceholderTitle, ppPlaceholderCenterTitle).</summary>
     public static bool IsTitle(PowerPointShape shape) => shape.Type == 14 && shape.PlaceholderType is 1 or 3;
@@ -66,25 +69,25 @@ public static class PowerPointFormatter
     {
         14 => shape.PlaceholderType switch
         {
-            1 or 3 => "title",
-            4 => "subtitle",
-            2 or 7 => "text placeholder",
-            18 => "picture placeholder",
-            8 => "chart placeholder",
-            12 => "table placeholder",
-            _ => "placeholder",
+            1 or 3 => VoxStrings.Get("PowerPoint.Shape.Title"),
+            4 => VoxStrings.Get("PowerPoint.Shape.Subtitle"),
+            2 or 7 => VoxStrings.Get("PowerPoint.Shape.TextPlaceholder"),
+            18 => VoxStrings.Get("PowerPoint.Shape.PicturePlaceholder"),
+            8 => VoxStrings.Get("PowerPoint.Shape.ChartPlaceholder"),
+            12 => VoxStrings.Get("PowerPoint.Shape.TablePlaceholder"),
+            _ => VoxStrings.Get("PowerPoint.Shape.Placeholder"),
         },
-        1 => "shape",
-        3 => "chart",
-        6 => "group",
-        7 => "equation",
-        13 => "picture",
-        16 => "media",
-        17 => "text box",
-        19 => "table",
-        24 => "SmartArt",
-        28 => "graphic",
-        _ => "object",
+        1 => VoxStrings.Get("PowerPoint.Shape.Shape"),
+        3 => VoxStrings.Get("PowerPoint.Shape.Chart"),
+        6 => VoxStrings.Get("PowerPoint.Shape.Group"),
+        7 => VoxStrings.Get("PowerPoint.Shape.Equation"),
+        13 => VoxStrings.Get("PowerPoint.Shape.Picture"),
+        16 => VoxStrings.Get("PowerPoint.Shape.Media"),
+        17 => VoxStrings.Get("PowerPoint.Shape.TextBox"),
+        19 => VoxStrings.Get("ControlType.Table"),
+        24 => VoxStrings.Get("PowerPoint.Shape.SmartArt"),
+        28 => VoxStrings.Get("PowerPoint.Shape.Graphic"),
+        _ => VoxStrings.Get("PowerPoint.Shape.Object"),
     };
 
     // PowerPoint ends paragraphs with \r and lines with \v

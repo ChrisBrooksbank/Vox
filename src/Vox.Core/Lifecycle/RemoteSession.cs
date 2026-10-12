@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Vox.Core.Configuration;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Lifecycle;
 
@@ -32,14 +33,14 @@ public sealed record RemoteSession(RemoteSessionKind Kind, string? ClientName = 
     /// <summary>"Remote Desktop", "Citrix", ...</summary>
     public string Name => Kind switch
     {
-        RemoteSessionKind.RemoteDesktop => "Remote Desktop",
+        RemoteSessionKind.RemoteDesktop => VoxStrings.Get("RemoteSession.RemoteDesktop"),
         RemoteSessionKind.Citrix => "Citrix",
-        RemoteSessionKind.Other => "remote connection",
-        _ => "this computer",
+        RemoteSessionKind.Other => VoxStrings.Get("RemoteSession.Other"),
+        _ => VoxStrings.Get("RemoteSession.ThisComputer"),
     };
 
     /// <summary>What Vox says once at startup in a remote session ("Remote session: Remote Desktop"); null at the computer.</summary>
-    public string? Announcement => IsRemote ? $"Remote session: {Name}" : null;
+    public string? Announcement => IsRemote ? VoxStrings.Format("RemoteSession.Announcement", Name) : null;
 
     /// <summary>For the log.</summary>
     public string Describe() => IsRemote

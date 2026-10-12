@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.Buffer;
 
 /// <summary>
@@ -46,19 +48,23 @@ public static class Annotations
     /// <summary>What entering an annotation of this kind says.</summary>
     public static string EnterText(string kind) => kind switch
     {
-        Insertion => "inserted",
-        Deletion => "deleted",
-        Highlight => "highlighted",
+        Comment => VoxStrings.Get("Annotation.Comment"),
+        Insertion => VoxStrings.Get("Annotation.Inserted"),
+        Deletion => VoxStrings.Get("Annotation.Deleted"),
+        Highlight => VoxStrings.Get("Annotation.Highlighted"),
+        Suggestion => VoxStrings.Get("Annotation.Suggestion"),
         _ => kind,
     };
 
     /// <summary>What leaving it says.</summary>
     public static string ExitText(string kind) => kind switch
     {
-        Insertion => "end of inserted",
-        Deletion => "end of deleted",
-        Highlight => "end of highlighted",
-        _ => $"end of {kind}",
+        Comment => VoxStrings.Get("Annotation.EndOfComment"),
+        Insertion => VoxStrings.Get("Annotation.EndOfInserted"),
+        Deletion => VoxStrings.Get("Annotation.EndOfDeleted"),
+        Highlight => VoxStrings.Get("Annotation.EndOfHighlighted"),
+        Suggestion => VoxStrings.Get("Annotation.EndOfSuggestion"),
+        _ => VoxStrings.Format("Annotation.EndOf", kind),
     };
 
     /// <summary>
@@ -97,9 +103,9 @@ public static class Annotations
         if (node.Annotation.Length > 0)
             yield return EnterText(node.Annotation);
         if (IsFigure(node))
-            yield return "figure";
+            yield return VoxStrings.Get("Annotation.Figure");
         if (node.IsClickable)
-            yield return "clickable";
+            yield return VoxStrings.Get("Annotation.Clickable");
         // The expansion first, then the abbreviation as written
         if (expandAbbreviations && IsAbbreviation(node) && node.Description.Length > 0)
             yield return node.Description;
@@ -108,7 +114,7 @@ public static class Annotations
     private static IEnumerable<string> ExitTexts(VBufferNode node)
     {
         if (IsFigure(node))
-            yield return "out of figure";
+            yield return VoxStrings.Get("Annotation.OutOfFigure");
         if (node.Annotation.Length > 0)
             yield return ExitText(node.Annotation);
     }

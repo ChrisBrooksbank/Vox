@@ -1,5 +1,6 @@
 using System.Globalization;
 using Vox.Core.AppModules.Office;
+using Vox.Core.Localization;
 
 namespace Vox.Core.AppModules.Outlook;
 
@@ -55,7 +56,7 @@ public sealed class OutlookObjectModelSource : IOutlookSource
         _objectModel.RunAsync<string>(OfficeApp.Outlook, window, app =>
         {
             if (CurrentItem((object)app) is not { } current || (int)((dynamic)current).Class != ClassMeetingRequest)
-                return "Not a meeting request";
+                return VoxStrings.Get("Outlook.NotMeetingRequest");
             dynamic appointment = ((dynamic)current).GetAssociatedAppointment(false);
             // No dialog: the answer is sent as it is
             dynamic response = appointment.Respond((int)answer, true);
@@ -94,7 +95,7 @@ public sealed class OutlookObjectModelSource : IOutlookSource
         var attachmentNames = new List<string>();
         int attachments = Try(() => (int)item.Attachments.Count);
         for (int i = 1; i <= attachments; i++)
-            attachmentNames.Add(Try(() => (string)item.Attachments.Item(i).FileName) ?? $"Attachment {i}");
+            attachmentNames.Add(Try(() => (string)item.Attachments.Item(i).FileName) ?? VoxStrings.Format("Outlook.AttachmentNumber", i));
 
         int response = 0;
         DateTime? start = null;

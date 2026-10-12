@@ -1,5 +1,6 @@
 using Vox.Core.Configuration;
 using Vox.Core.Pipeline;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -57,7 +58,7 @@ public sealed class ProgressReporter
         if (known && step == last.Step)
             return null;
         _last[key] = (step, percent, now);
-        return new ProgressReport($"{percent} percent", null);
+        return new ProgressReport(VoxStrings.Format("Progress.Percent", percent), null);
     }
 
     /// <summary>The beep pitch for a percentage: 110 Hz at 0 % to 1760 Hz at 100 %, rising evenly by octaves.</summary>

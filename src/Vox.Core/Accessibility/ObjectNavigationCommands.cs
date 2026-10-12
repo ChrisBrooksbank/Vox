@@ -6,6 +6,7 @@ using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Accessibility;
 
@@ -88,7 +89,7 @@ public sealed class ObjectNavigationCommands
     public Task ReportAsync() => RunAsync(() =>
     {
         EnsureNavigator();
-        return _navigator.Current is { } current ? Say(current.Describe()) : Outcome.Speak("No navigator object");
+        return _navigator.Current is { } current ? Say(current.Describe()) : Outcome.Speak(VoxStrings.Get("Uia.NoNavigatorObject"));
     }, "report the navigator object");
 
     /// <summary>Moves the navigator object to the focused object and says it.</summary>
@@ -97,7 +98,7 @@ public sealed class ObjectNavigationCommands
         _generation = _uiaThread.Generation;
         _followFocus = false;
         _navigator.MoveTo(_source.GetFocused());
-        return _navigator.Current is { } current ? Say(current.Describe()) : Outcome.Speak("No focus");
+        return _navigator.Current is { } current ? Say(current.Describe()) : Outcome.Speak(VoxStrings.Get("Uia.NoFocus"));
     }, "move the navigator object to focus");
 
     /// <summary>Gives the navigator object keyboard focus (the focus change is then announced).</summary>
@@ -105,8 +106,8 @@ public sealed class ObjectNavigationCommands
     {
         EnsureNavigator();
         if (_navigator.Current is not { } current)
-            return Outcome.Speak("No navigator object");
-        return current.SetFocus() ? Outcome.Silent : Outcome.Speak("Not focusable");
+            return Outcome.Speak(VoxStrings.Get("Uia.NoNavigatorObject"));
+        return current.SetFocus() ? Outcome.Silent : Outcome.Speak(VoxStrings.Get("ObjectNav.NotFocusable"));
     }, "focus the navigator object");
 
     /// <summary>Runs the navigator object's default action.</summary>
@@ -114,8 +115,8 @@ public sealed class ObjectNavigationCommands
     {
         EnsureNavigator();
         if (_navigator.Current is not { } current)
-            return Outcome.Speak("No navigator object");
-        return current.Activate() ? Outcome.Silent : Outcome.Speak("No action");
+            return Outcome.Speak(VoxStrings.Get("Uia.NoNavigatorObject"));
+        return current.Activate() ? Outcome.Silent : Outcome.Speak(VoxStrings.Get("ObjectNav.NoAction"));
     }, "activate the navigator object");
 
     /// <summary>Copies the navigator object's text to the clipboard.</summary>
@@ -137,24 +138,24 @@ public sealed class ObjectNavigationCommands
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Could not read the navigator object's text");
-            Speak("Not available");
+            Speak(VoxStrings.Get("Uia.NotAvailable"));
             return;
         }
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            Speak("No text");
+            Speak(VoxStrings.Get("Uia.NoText"));
             return;
         }
         if (_clipboard?.SetText(text) != true)
         {
-            Speak("Could not copy");
+            Speak(VoxStrings.Get("ObjectNav.CouldNotCopy"));
             return;
         }
         // Short text is said, so it's clear what was copied
         Speak(text.Length <= MaxSpokenCopyLength && !text.Contains('\n')
-            ? $"{text.Trim()}, copied to clipboard"
-            : "Copied to clipboard");
+            ? VoxStrings.Format("ObjectNav.CopiedText", text.Trim())
+            : VoxStrings.Get("ObjectNav.Copied"));
     }
 
     /// <summary>What a command ends with, decided on the UIA thread and carried out off it.</summary>
@@ -188,7 +189,7 @@ public sealed class ObjectNavigationCommands
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Could not {What}", what);
-            Speak("Not available");
+            Speak(VoxStrings.Get("Uia.NotAvailable"));
             return;
         }
 
@@ -233,7 +234,7 @@ public sealed class ObjectNavigationCommands
         if (!string.IsNullOrWhiteSpace(text))
             return text;
         return string.IsNullOrWhiteSpace(target.ControlType) || target.ControlType == "Unknown"
-            ? "Unknown"
+            ? VoxStrings.Get("ObjectNav.Unknown")
             : target.ControlType.ToLowerInvariant();
     }
 

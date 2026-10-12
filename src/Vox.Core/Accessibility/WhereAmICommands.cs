@@ -5,6 +5,7 @@ using Vox.Core.Input;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Accessibility;
 
@@ -55,7 +56,7 @@ public sealed class WhereAmICommands
         {
             case NavigationCommand.SayTitle:
                 var title = SafeForeground()?.Title.Trim();
-                Speak(string.IsNullOrEmpty(title) ? "No title" : title);
+                Speak(string.IsNullOrEmpty(title) ? VoxStrings.Get("WhereAmI.NoTitle") : title);
                 return true;
 
             case NavigationCommand.SayFocus:
@@ -63,7 +64,7 @@ public sealed class WhereAmICommands
                 var settings = _settings.CurrentValue;
                 var text = focus is null ? null
                     : _announcementBuilder.Build(focus, VerbosityProfile.For(settings.VerbosityLevel), settings.AnnounceVisitedLinks);
-                Speak(string.IsNullOrWhiteSpace(text) ? "No focus" : text);
+                Speak(string.IsNullOrWhiteSpace(text) ? VoxStrings.Get("Uia.NoFocus") : text);
                 return true;
 
             case NavigationCommand.SayTime:
@@ -76,7 +77,7 @@ public sealed class WhereAmICommands
                 return true;
 
             case NavigationCommand.SayStatusBar:
-                _ = ReadWindowAsync(window => WhereAmI.StatusBarText(window) ?? "No status bar");
+                _ = ReadWindowAsync(window => WhereAmI.StatusBarText(window) ?? VoxStrings.Get("WhereAmI.NoStatusBar"));
                 return true;
 
             case NavigationCommand.ReadWindow:
@@ -104,7 +105,7 @@ public sealed class WhereAmICommands
         var hwnd = SafeForeground()?.Handle ?? IntPtr.Zero;
         if (hwnd == IntPtr.Zero)
         {
-            Speak("No window");
+            Speak(VoxStrings.Get("WhereAmI.NoWindow"));
             return;
         }
         try
@@ -123,7 +124,7 @@ public sealed class WhereAmICommands
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Could not read the foreground window");
-            Speak("Not available");
+            Speak(VoxStrings.Get("Uia.NotAvailable"));
         }
     }
 
@@ -162,18 +163,18 @@ public sealed class WhereAmICommands
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Could not read the focused element");
-            Speak("Not available");
+            Speak(VoxStrings.Get("Uia.NotAvailable"));
             return;
         }
 
         if (info is null)
         {
-            Speak("No focus");
+            Speak(VoxStrings.Get("Uia.NoFocus"));
             return;
         }
         var text = info.Format();
         _clipboard.SetText(text);
-        Speak(text.Replace(Environment.NewLine, ". ") + ". Copied to clipboard");
+        Speak(VoxStrings.Format("WhereAmI.Copied", text.Replace(Environment.NewLine, ". ")));
     }
 
     private void Speak(string text) => _speechQueue.Enqueue(new Utterance(text, SpeechPriority.Interrupt));
