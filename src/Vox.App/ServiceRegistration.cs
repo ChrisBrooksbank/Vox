@@ -329,7 +329,24 @@ public static class ServiceRegistration
                     KeyMap.LayoutBindings(Path.Combine(AppContext.BaseDirectory, "assets", "config"), settings.CurrentValue.KeyboardLayout),
                     KeyMap.ReadUserBindings(policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null)),
                 // NVDA's or JAWS's settings are offered when found (never on secure screens)
-                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? sp.GetRequiredService<SettingsImportCommands>() : null);
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? sp.GetRequiredService<SettingsImportCommands>() : null,
+                // ... and trial mode when NVDA or Narrator is running
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? sp.GetRequiredService<Vox.Core.Trial.TrialMode>() : null);
+        });
+        // Trial mode: NVDA or Narrator stopped while Vox is tried, back with one key; none on secure screens
+        services.AddSingleton<Vox.Core.Trial.IScreenReaderControl>(sp =>
+            new Vox.Core.Trial.WindowsScreenReaderControl(sp.GetRequiredService<ILogger<Vox.Core.Trial.WindowsScreenReaderControl>>()));
+        services.AddSingleton<Vox.Core.Trial.TrialMode>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var lifetime = sp.GetRequiredService<IHostApplicationLifetime>();
+            return new Vox.Core.Trial.TrialMode(
+                sp.GetRequiredService<Vox.Core.Trial.IScreenReaderControl>(),
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? Path.Combine(VoxPaths.UserData, Vox.Core.Trial.TrialRecord.FileName) : null,
+                policy,
+                lifetime.StopApplication,
+                sp.GetRequiredService<ILogger<Vox.Core.Trial.TrialMode>>(),
+                sp.GetRequiredService<SpeechQueue>());
         });
 
         // Navigation

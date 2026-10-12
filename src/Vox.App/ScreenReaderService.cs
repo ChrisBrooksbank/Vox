@@ -71,6 +71,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly Vox.Core.Labels.CustomLabelCommands _labelCommands;
     private readonly SiteSettingsCommands _siteSettingsCommands;
     private readonly Vox.Core.Labels.AutomaticLabeler? _automaticLabels;
+    private readonly Vox.Core.Trial.TrialMode? _trial;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -162,8 +163,10 @@ public sealed class ScreenReaderService : IHostedService
         SiteSettingsCommands siteSettingsCommands,
         RunPolicy? runPolicy = null,
         RemoteSessionMonitor? remoteSessions = null,
-        Vox.Core.Labels.AutomaticLabeler? automaticLabels = null)
+        Vox.Core.Labels.AutomaticLabeler? automaticLabels = null,
+        Vox.Core.Trial.TrialMode? trial = null)
     {
+        _trial = trial;
         _automaticLabels = automaticLabels;
         _addOns = addOns;
         _addOnCommands = addOnCommands;
@@ -234,6 +237,19 @@ public sealed class ScreenReaderService : IHostedService
 
         // Install the low-level keyboard hook (needed before wizard for key input)
         bool hookInstalled = TryInstallKeyboardHook();
+
+        // Trial mode (--trial): the other screen reader stops before Vox starts talking
+        if (_trial is not null)
+        {
+            _trial.ReturnKeyName = () => KeyNameFor(NavigationCommand.ReturnToScreenReader);
+            _trial.ActiveChanged += OnTrialActiveChanged;
+            if (_runPolicy.StartTrial && _trial.IsAvailable)
+            {
+                var said = await Task.Run(_trial.Begin, cancellationToken);
+                _speechQueue.Enqueue(new Utterance(said, SpeechPriority.High));
+            }
+            VoxMenu.TrialActive = _trial.IsActive;
+        }
 
         // Run the first-run wizard before subscribing to UIA events: focus announcements are
         // Interrupt speech and would cut off the wizard's prompts
@@ -427,6 +443,8 @@ public sealed class ScreenReaderService : IHostedService
         _profiles.Switched -= OnProfileSwitched;
         _browseModeController.SiteChanged -= OnSiteChanged;
         _automaticLabels?.Cancel();
+        if (_trial is not null)
+            _trial.ActiveChanged -= OnTrialActiveChanged;
         _appModules.Stop();
         // A remote session ends (keys held on this computer are released), then add-ons close
         _remoteSession.Dispose();
@@ -649,7 +667,7 @@ public sealed class ScreenReaderService : IHostedService
             && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command)
             && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command)
             && !_importCommands.TryHandle(e.Command) && !_labelCommands.TryHandle(e.Command)
-            && !_siteSettingsCommands.TryHandle(e.Command))
+            && !_siteSettingsCommands.TryHandle(e.Command) && !(_trial?.TryHandle(e.Command) ?? false))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -741,6 +759,8 @@ public sealed class ScreenReaderService : IHostedService
     private void OnSayAllReadingChanged(object? sender, bool reading) => _profiles.SetSayAll(reading);
 
     private void OnSiteChanged(object? sender, string? site) => _profiles.SetSite(site);
+
+    private void OnTrialActiveChanged(object? sender, bool active) => VoxMenu.TrialActive = active;
 
     private void OnProfileSwitched(object? sender, string? profile)
     {

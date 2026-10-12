@@ -113,3 +113,15 @@ Instead of a profile per browser, a site can have settings of its own (Vox menu,
 site, while browsing it): the mode its pages start in, verbosity, screen layout and rejecting
 cookie banners automatically. They are laid over the application's profile while the site's
 pages have focus; see [configuration profiles](profiles.md#settings-for-a-web-site).
+
+## Trying Vox safely
+
+Trial mode lets you try Vox without giving up the screen reader you use: start Vox with
+`Vox.App --trial`, or press 1 when the welcome wizard says NVDA or Narrator is running. Vox then
+stops the other screen reader so the two don't talk at once (NVDA as `nvda -q` would, Narrator
+with its own Windows+Ctrl+Enter, ending the program if it doesn't close), and remembers it in
+`trial.json` in Vox's settings folder. Insert+Ctrl+F4 (Go back to my screen reader), or **Quit and
+go back to my screen reader** in the Vox menu while a trial is on, starts that screen reader again
+and then quits Vox; when none was running it starts Narrator. Vox only quits once the other
+screen reader has started, so you are never left without speech. Not on the sign-in, lock and UAC
+screens.

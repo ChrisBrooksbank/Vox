@@ -45,6 +45,8 @@ public sealed class FirstRunWizard
     // Offers to bring over NVDA's or JAWS's settings (none: not offered, e.g. on secure screens)
     private readonly ISettingsImportOffer? _importOffer;
     private ImportReport? _importReport;
+    // Offers trial mode when NVDA or Narrator is running (none: not offered)
+    private readonly Trial.ITrialOffer? _trialOffer;
 
     /// <summary>
     /// Whether the wizard is waiting for a key now. Keys pressed while it isn't are not its own
@@ -59,8 +61,10 @@ public sealed class FirstRunWizard
         IKeyboardHook keyboardHook,
         ILogger<FirstRunWizard> logger,
         Func<GestureEditor>? lessonKeys = null,
-        ISettingsImportOffer? importOffer = null)
+        ISettingsImportOffer? importOffer = null,
+        Trial.ITrialOffer? trialOffer = null)
     {
+        _trialOffer = trialOffer;
         _lessonKeys = lessonKeys;
         _importOffer = importOffer;
         _speechEngine = speechEngine;
@@ -102,6 +106,9 @@ public sealed class FirstRunWizard
 
             // From here on Escape leaves the wizard, keeping what was chosen so far
             _exitOnEscape = true;
+
+            // Another screen reader talking over the wizard: offer to stop it for a trial first
+            await RunTrialStepAsync(cancellationToken);
 
             // NVDA's or JAWS's settings, when found: the steps after it start from them
             settings = await RunImportStepAsync(settings, cancellationToken);
@@ -220,6 +227,46 @@ public sealed class FirstRunWizard
             // 0: the engine doesn't say
             return max <= 0 ? DefaultMaxRateWpm : Math.Clamp(max, MinRateWpm, ISpeechEngine.MaxSupportedWpm);
         }
+    }
+
+    private async Task RunTrialStepAsync(CancellationToken cancellationToken)
+    {
+        if (_trialOffer is null)
+            return;
+        Trial.RunningScreenReader? running;
+        try
+        {
+            running = await Task.Run(_trialOffer.FindRunning, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Could not look for other screen readers");
+            return;
+        }
+        if (running is null)
+            return;
+
+        var key = await PromptAsync(VoxStrings.Format("Wizard.TrialOffer", Trial.TrialMode.Name(running.Kind), _trialOffer.ReturnKey),
+            cancellationToken);
+        while (true)
+        {
+            if (key.VkCode == VirtualKeys.Return)
+                return;
+            if (key.VkCode is VirtualKeys.D1 or VirtualKeys.NumPad1)
+                break;
+            key = await WaitForKeyDownAsync(cancellationToken);
+        }
+        string said;
+        try
+        {
+            said = await Task.Run(_trialOffer.Begin, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Trial mode could not begin");
+            said = VoxStrings.Get("Trial.NotHere");
+        }
+        await SpeakAsync(said, cancellationToken);
     }
 
     private async Task<VoxSettings> RunImportStepAsync(VoxSettings settings, CancellationToken cancellationToken)

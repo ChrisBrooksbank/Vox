@@ -322,5 +322,9 @@ public enum NavigationCommand
 
     // AI that fixes pages
     /// <summary>Asks a question about the page being browsed, answered from its text; offers to move to what the answer names.</summary>
-    AskPage
+    AskPage,
+
+    // Safe trial
+    /// <summary>Trial mode: quits Vox and starts the screen reader it stepped in for (NVDA, or Narrator) again.</summary>
+    ReturnToScreenReader
 }

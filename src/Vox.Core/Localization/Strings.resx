@@ -5301,4 +5301,38 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="Wizard.ImportFailed" xml:space="preserve">
     <value>Those settings could not be brought over. Continuing with setup.</value>
   </data>
+  <data name="VoxMenu.ReturnToScreenReader" xml:space="preserve">
+    <value>&amp;Quit and go back to my screen reader</value>
+    <comment>Trial mode: quits Vox and starts NVDA or Narrator again</comment>
+  </data>
+  <data name="Command.ReturnToScreenReader.Name" xml:space="preserve">
+    <value>Go back to my screen reader</value>
+  </data>
+  <data name="Command.ReturnToScreenReader.Description" xml:space="preserve">
+    <value>In trial mode, quits Vox and starts the screen reader it stepped in for (NVDA, or Narrator) again.</value>
+  </data>
+  <data name="Trial.Began" xml:space="preserve">
+    <value>Trial mode. {0} has been stopped while you try Vox. {1} quits Vox and starts {0} again.</value>
+    <comment>{0} the other screen reader (NVDA, Narrator), {1} the return key</comment>
+  </data>
+  <data name="Trial.BeganAlone" xml:space="preserve">
+    <value>Trial mode. {0} quits Vox and starts {1}.</value>
+    <comment>{0} the return key, {1} Narrator</comment>
+  </data>
+  <data name="Trial.NotHere" xml:space="preserve">
+    <value>Trial mode is not available here</value>
+  </data>
+  <data name="Trial.NotInTrial" xml:space="preserve">
+    <value>Vox is not in trial mode</value>
+  </data>
+  <data name="Trial.Returning" xml:space="preserve">
+    <value>Going back to {0}</value>
+  </data>
+  <data name="Trial.CouldNotStart" xml:space="preserve">
+    <value>Could not start {0}; Vox keeps running</value>
+  </data>
+  <data name="Wizard.TrialOffer" xml:space="preserve">
+    <value>{0} is running. To try Vox safely, press 1: {0} stops now, and {1} quits Vox and starts {0} again. Or press Enter to go on with both running.</value>
+    <comment>{0} NVDA or Narrator, {1} the return key</comment>
+  </data>
 </root>

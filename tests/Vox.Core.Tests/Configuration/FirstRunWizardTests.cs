@@ -709,4 +709,64 @@ public class FirstRunWizardTests : IDisposable
         Assert.Empty(offer.Shown);
         Assert.True(monitor.CurrentValue.FirstRunCompleted);
     }
+
+    // -------------------------------------------------------------------------
+    // Trial mode
+    // -------------------------------------------------------------------------
+
+    private sealed class FakeTrialOffer(Vox.Core.Trial.RunningScreenReader? running) : Vox.Core.Trial.ITrialOffer
+    {
+        public int Begun { get; private set; }
+        public Vox.Core.Trial.RunningScreenReader? FindRunning() => Begun > 0 ? null : running;
+        public string Begin()
+        {
+            Begun++;
+            return "Trial mode.";
+        }
+        public string ReturnKey => "Insert+Ctrl+F4";
+    }
+
+    [Fact]
+    public async Task RunAsync_AnotherScreenReaderRunning_OneBeginsTheTrial()
+    {
+        var (wizard, hook, engine, monitor, manager) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var offer = new FakeTrialOffer(new Vox.Core.Trial.RunningScreenReader(Vox.Core.Trial.OtherScreenReader.Nvda));
+        var spoken = new List<string>();
+        engine.Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Callback<Utterance, CancellationToken>((u, _) => { lock (spoken) spoken.Add(u.Text); })
+            .Returns(Task.CompletedTask);
+        wizard = new FirstRunWizard(engine.Object, manager, monitor, hook, NullLogger<FirstRunWizard>.Instance, trialOffer: offer);
+
+        var wizardTask = wizard.RunAsync();
+        await PressAsync(wizard, wizardTask, hook, 0x0D); // Enter: begin
+        await PressAsync(wizard, wizardTask, hook, 0x31); // 1: trial
+        await WaitUntilWaitingAsync(wizard, wizardTask);
+        Assert.Equal(1, offer.Begun);
+        lock (spoken)
+        {
+            Assert.Contains(spoken, t => t.StartsWith("NVDA is running") && t.Contains("Insert+Ctrl+F4"));
+            Assert.Contains("Trial mode.", spoken);
+        }
+
+        for (int i = 0; i < 10 && !wizardTask.IsCompleted; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+    }
+
+    [Fact]
+    public async Task RunAsync_AnotherScreenReaderRunning_EnterGoesOnWithoutATrial()
+    {
+        var (wizard, hook, engine, monitor, manager) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var offer = new FakeTrialOffer(new Vox.Core.Trial.RunningScreenReader(Vox.Core.Trial.OtherScreenReader.Narrator));
+        wizard = new FirstRunWizard(engine.Object, manager, monitor, hook, NullLogger<FirstRunWizard>.Instance, trialOffer: offer);
+
+        var wizardTask = wizard.RunAsync();
+        for (int i = 0; i < 12 && !wizardTask.IsCompleted; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(0, offer.Begun);
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+    }
 }

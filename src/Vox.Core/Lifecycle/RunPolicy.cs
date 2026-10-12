@@ -15,6 +15,9 @@ public sealed record RunPolicy(bool IsSecure)
     /// <summary>Starts Vox without loading add-ons (safe mode), e.g. after one stopped Vox working.</summary>
     public const string SafeFlag = "--safe";
 
+    /// <summary>Starts Vox in trial mode: a running NVDA or Narrator is stopped, and comes back with one key (<see cref="Trial.TrialMode"/>).</summary>
+    public const string TrialFlag = "--trial";
+
     public static readonly RunPolicy Normal = new(false);
     public static readonly RunPolicy Secure = new(true);
 
@@ -29,6 +32,8 @@ public sealed record RunPolicy(bool IsSecure)
     /// add-on is loaded, though they can still be managed (to remove the one causing trouble).
     /// </summary>
     public bool SafeMode { get; init; }
+    /// <summary>Started with <see cref="TrialFlag"/>: begin trial mode at startup (never on secure screens).</summary>
+    public bool StartTrial { get; init; }
 
     public bool AllowSettingsWrites => !IsSecure;
     public bool AllowAddOns => !IsSecure && !AddOnsOffByPolicy;
@@ -58,10 +63,11 @@ public sealed record RunPolicy(bool IsSecure)
     public static RunPolicy FromArgs(IEnumerable<string> args)
     {
         var list = args.ToList();
-        if (list.Any(a => string.Equals(a, SecureFlag, StringComparison.OrdinalIgnoreCase) || string.Equals(a, "/secure", StringComparison.OrdinalIgnoreCase)))
+        bool Has(string flag) => list.Any(a => string.Equals(a, flag, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(a, "/" + flag[2..], StringComparison.OrdinalIgnoreCase));
+        if (Has(SecureFlag))
             return Secure;
-        return list.Any(a => string.Equals(a, SafeFlag, StringComparison.OrdinalIgnoreCase) || string.Equals(a, "/safe", StringComparison.OrdinalIgnoreCase))
-            ? Normal with { SafeMode = true }
-            : Normal;
+        bool safe = Has(SafeFlag), trial = Has(TrialFlag);
+        return safe || trial ? Normal with { SafeMode = safe, StartTrial = trial } : Normal;
     }
 }
