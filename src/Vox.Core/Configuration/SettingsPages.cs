@@ -1,4 +1,5 @@
 using System.Text;
+using Vox.Core.Localization;
 using Vox.Core.Speech;
 
 namespace Vox.Core.Configuration;
@@ -62,138 +63,136 @@ public static class SettingsPages
         nameof(VoxSettings.FirstRunCompleted), nameof(VoxSettings.SchemaVersion),
     };
 
-    public static SettingsPage General() => new("General",
+    public static SettingsPage General() => new(L("SettingsPage.General"),
     [
-        new ToggleField("Start Vox when I &sign in", s => s.StartAtLogon, (s, v) => s with { StartAtLogon = v }),
-        Choice("Check for &updates", s => s.UpdateChannel, (s, v) => s with { UpdateChannel = v },
-            new() { [Updates.UpdateChannel.Off] = "Never", [Updates.UpdateChannel.Stable] = "Releases", [Updates.UpdateChannel.Beta] = "Releases and betas" }),
+        new ToggleField(L("Setting.StartAtLogon"), s => s.StartAtLogon, (s, v) => s with { StartAtLogon = v }),
+        Choice(L("Setting.UpdateChannel"), s => s.UpdateChannel, (s, v) => s with { UpdateChannel = v }),
     ]);
 
-    public static SettingsPage Braille() => new("Braille",
+    public static SettingsPage Braille() => new(L("SettingsPage.Braille"),
     [
-        new ChoiceField("Braille &display",
+        new ChoiceField(L("Setting.BrailleDisplay"),
             [
-                new SettingChoice("Automatic (find a display)", null),
-                new SettingChoice("HID braille display", (object?)"HID"),
-                new SettingChoice("BRLTTY", (object?)"BRLTTY"),
-                new SettingChoice("No braille", (object?)Vox.Core.Braille.BrailleDisplayManager.NoneId),
+                new SettingChoice(L("Choice.BrailleDisplay.Automatic"), null),
+                new SettingChoice(L("Choice.BrailleDisplay.HID"), (object?)"HID"),
+                new SettingChoice(L("Choice.BrailleDisplay.BRLTTY"), (object?)"BRLTTY"),
+                new SettingChoice(L("Choice.BrailleDisplay.None"), (object?)Vox.Core.Braille.BrailleDisplayManager.NoneId),
             ],
             s => s.BrailleDisplay, (s, v) => s with { BrailleDisplay = (string?)v }),
-        new ChoiceField("Braille &table",
+        new ChoiceField(L("Setting.BrailleTable"),
             Vox.Core.Braille.BrailleTables.All.Select(t => new SettingChoice(t.DisplayName, (object?)t.Id)).ToList(),
             s => s.BrailleTable, (s, v) => v is string table ? s with { BrailleTable = table } : s),
-        new ToggleField("Show the &word at the cursor uncontracted", s => s.BrailleExpandWordAtCursor, (s, v) => s with { BrailleExpandWordAtCursor = v }),
-        Choice("Braille &follows", s => s.BrailleTether, (s, v) => s with { BrailleTether = v },
-            new() { [BrailleTether.Automatic] = "Automatically", [BrailleTether.Focus] = "Focus", [BrailleTether.Review] = "Review cursor" }),
-        Choice("Focus &context", s => s.BrailleFocusContext, (s, v) => s with { BrailleFocusContext = v },
-            new() { [BrailleFocusContext.FillDisplay] = "Fill the display", [BrailleFocusContext.ScrollBackOnly] = "Only when scrolling back",
-                    [BrailleFocusContext.ChangedContext] = "Only what changed" }),
-        Choice("Cursor &shape", s => s.BrailleCursorShape, (s, v) => s with { BrailleCursorShape = v },
-            new() { [BrailleCursorShape.Underline] = "Dots 7 and 8", [BrailleCursorShape.Dot8] = "Dot 8", [BrailleCursorShape.AllDots] = "All dots" }),
-        new ToggleField("&Blink the cursor", s => s.BrailleCursorBlink, (s, v) => s with { BrailleCursorBlink = v }),
-        new NumberField("Cursor blink &rate (milliseconds)", 100, 2000, 50, s => s.BrailleCursorBlinkRateMs, (s, v) => s with { BrailleCursorBlinkRateMs = v }),
-        new NumberField("&Message timeout (seconds, 0: no messages)", 0, 20, 1, s => s.BrailleMessageTimeoutSeconds, (s, v) => s with { BrailleMessageTimeoutSeconds = v }),
-        new ToggleField("Show the s&election (dots 7 and 8)", s => s.BrailleShowSelection, (s, v) => s with { BrailleShowSelection = v }),
-        new ToggleField("&Avoid splitting words when panning", s => s.BrailleWordWrap, (s, v) => s with { BrailleWordWrap = v }),
+        new ToggleField(L("Setting.BrailleExpandWordAtCursor"), s => s.BrailleExpandWordAtCursor, (s, v) => s with { BrailleExpandWordAtCursor = v }),
+        Choice(L("Setting.BrailleTether"), s => s.BrailleTether, (s, v) => s with { BrailleTether = v }),
+        Choice(L("Setting.BrailleFocusContext"), s => s.BrailleFocusContext, (s, v) => s with { BrailleFocusContext = v }),
+        Choice(L("Setting.BrailleCursorShape"), s => s.BrailleCursorShape, (s, v) => s with { BrailleCursorShape = v }),
+        new ToggleField(L("Setting.BrailleCursorBlink"), s => s.BrailleCursorBlink, (s, v) => s with { BrailleCursorBlink = v }),
+        new NumberField(L("Setting.BrailleCursorBlinkRateMs"), 100, 2000, 50, s => s.BrailleCursorBlinkRateMs, (s, v) => s with { BrailleCursorBlinkRateMs = v }),
+        new NumberField(L("Setting.BrailleMessageTimeoutSeconds"), 0, 20, 1, s => s.BrailleMessageTimeoutSeconds, (s, v) => s with { BrailleMessageTimeoutSeconds = v }),
+        new ToggleField(L("Setting.BrailleShowSelection"), s => s.BrailleShowSelection, (s, v) => s with { BrailleShowSelection = v }),
+        new ToggleField(L("Setting.BrailleWordWrap"), s => s.BrailleWordWrap, (s, v) => s with { BrailleWordWrap = v }),
     ]);
 
-    public static SettingsPage Verbosity() => new("Verbosity",
+    public static SettingsPage Verbosity() => new(L("SettingsPage.Verbosity"),
     [
-        Choice("&Verbosity", s => s.VerbosityLevel, (s, v) => s with { VerbosityLevel = v }),
-        Choice("&Progress bars", s => s.ProgressBars, (s, v) => s with { ProgressBars = v },
-            new() { [ProgressReporting.Every10Percent] = "Say every 10 percent", [ProgressReporting.Every25Percent] = "Say every 25 percent",
-                    [ProgressReporting.Beep] = "Beep", [ProgressReporting.Off] = "Off" }),
-        new ToggleField("Report progress bars in &background windows", s => s.ReportBackgroundProgress, (s, v) => s with { ReportBackgroundProgress = v }),
+        Choice(L("Setting.VerbosityLevel"), s => s.VerbosityLevel, (s, v) => s with { VerbosityLevel = v }),
+        Choice(L("Setting.ProgressBars"), s => s.ProgressBars, (s, v) => s with { ProgressBars = v }),
+        new ToggleField(L("Setting.ReportBackgroundProgress"), s => s.ReportBackgroundProgress, (s, v) => s with { ReportBackgroundProgress = v }),
     ]);
 
-    public static SettingsPage BrowseMode() => new("Browse mode",
+    public static SettingsPage BrowseMode() => new(L("SettingsPage.BrowseMode"),
     [
-        new ToggleField("&Screen layout (links and other inline text stay on their line)", s => s.ScreenLayout, (s, v) => s with { ScreenLayout = v }),
-        new NumberField("&Maximum line length (0: no limit)", 0, 1000, 10, s => s.MaxLineLength, (s, v) => s with { MaxLineLength = v }),
-        new ToggleField("Say &visited links", s => s.AnnounceVisitedLinks, (s, v) => s with { AnnounceVisitedLinks = v }),
-        new ToggleField("Say what &abbreviations stand for", s => s.ExpandAbbreviations, (s, v) => s with { ExpandAbbreviations = v }),
+        new ToggleField(L("Setting.ScreenLayout"), s => s.ScreenLayout, (s, v) => s with { ScreenLayout = v }),
+        new NumberField(L("Setting.MaxLineLength"), 0, 1000, 10, s => s.MaxLineLength, (s, v) => s with { MaxLineLength = v }),
+        new ToggleField(L("Setting.AnnounceVisitedLinks"), s => s.AnnounceVisitedLinks, (s, v) => s with { AnnounceVisitedLinks = v }),
+        new ToggleField(L("Setting.ExpandAbbreviations"), s => s.ExpandAbbreviations, (s, v) => s with { ExpandAbbreviations = v }),
     ]);
 
-    public static SettingsPage DocumentFormatting() => new("Document formatting",
+    public static SettingsPage DocumentFormatting() => new(L("SettingsPage.DocumentFormatting"),
     [
-        Choice("&Spelling errors", s => s.SpellingErrors, (s, v) => s with { SpellingErrors = v },
-            new() { [SpellingErrorReporting.Speech] = "Say \"misspelled\"", [SpellingErrorReporting.Earcon] = "Play a sound", [SpellingErrorReporting.Off] = "Off" }),
-        Choice("&Indentation", s => s.Indentation, (s, v) => s with { Indentation = v },
-            new() { [IndentationReporting.Off] = "Off", [IndentationReporting.Speech] = "Speech", [IndentationReporting.Tones] = "Tones", [IndentationReporting.Both] = "Speech and tones" }),
+        Choice(L("Setting.SpellingErrors"), s => s.SpellingErrors, (s, v) => s with { SpellingErrors = v }),
+        Choice(L("Setting.Indentation"), s => s.Indentation, (s, v) => s with { Indentation = v }),
     ]);
 
-    public static SettingsPage AudioCues(AudioOptions options) => new("Audio cues",
+    public static SettingsPage AudioCues(AudioOptions options) => new(L("SettingsPage.AudioCues"),
     [
-        new ToggleField("Play &audio cues", s => s.AudioCuesEnabled, (s, v) => s with { AudioCuesEnabled = v }),
-        new ChoiceField("Sound &scheme",
+        new ToggleField(L("Setting.AudioCuesEnabled"), s => s.AudioCuesEnabled, (s, v) => s with { AudioCuesEnabled = v }),
+        new ChoiceField(L("Setting.EarconScheme"),
             options.EarconSchemes.Select(scheme => new SettingChoice(SettingsPages.Readable(scheme), (object?)scheme)).ToList(),
             s => s.EarconScheme, (s, v) => v is string scheme ? s with { EarconScheme = scheme } : s),
-        new ToggleField("Play &states (checked, expanded, selected) as sounds", s => s.StatesAsSounds, (s, v) => s with { StatesAsSounds = v }),
-        new ChoiceField("&Output device",
-            [new SettingChoice("Default", null), .. options.OutputDevices.Select(d => new SettingChoice(d, (object?)d))],
+        new ToggleField(L("Setting.StatesAsSounds"), s => s.StatesAsSounds, (s, v) => s with { StatesAsSounds = v }),
+        new ChoiceField(L("Setting.AudioOutputDevice"),
+            [new SettingChoice(L("Choice.AudioOutputDevice.Default"), null), .. options.OutputDevices.Select(d => new SettingChoice(d, (object?)d))],
             s => s.AudioOutputDevice, (s, v) => s with { AudioOutputDevice = (string?)v }),
-        Choice("Lower other &sounds", s => s.AudioDucking, (s, v) => s with { AudioDucking = v }),
-        new ToggleField("&Keep the audio device awake", s => s.KeepAudioDeviceAwake, (s, v) => s with { KeepAudioDeviceAwake = v }),
+        Choice(L("Setting.AudioDucking"), s => s.AudioDucking, (s, v) => s with { AudioDucking = v }),
+        new ToggleField(L("Setting.KeepAudioDeviceAwake"), s => s.KeepAudioDeviceAwake, (s, v) => s with { KeepAudioDeviceAwake = v }),
     ]);
 
-    public static SettingsPage Keyboard() => new("Keyboard",
+    public static SettingsPage Keyboard() => new(L("SettingsPage.Keyboard"),
     [
-        Choice("Screen reader &key", s => s.ModifierKey, (s, v) => s with { ModifierKey = v },
-            new() { [ModifierKey.Insert] = "Insert", [ModifierKey.CapsLock] = "Caps Lock" }),
-        Choice("Keyboard &layout", s => s.KeyboardLayout, (s, v) => s with { KeyboardLayout = v }),
-        Choice("&Typing echo", s => s.TypingEchoMode, (s, v) => s with { TypingEchoMode = v },
-            new() { [TypingEchoMode.None] = "Off", [TypingEchoMode.Characters] = "Characters", [TypingEchoMode.Words] = "Words", [TypingEchoMode.Both] = "Characters and words" }),
+        Choice(L("Setting.ModifierKey"), s => s.ModifierKey, (s, v) => s with { ModifierKey = v }),
+        Choice(L("Setting.KeyboardLayout"), s => s.KeyboardLayout, (s, v) => s with { KeyboardLayout = v }),
+        Choice(L("Setting.TypingEchoMode"), s => s.TypingEchoMode, (s, v) => s with { TypingEchoMode = v }),
     ]);
 
-    public static SettingsPage Mouse() => new("Mouse",
+    public static SettingsPage Mouse() => new(L("SettingsPage.Mouse"),
     [
-        new ToggleField("&Read what is under the mouse", s => s.MouseTracking, (s, v) => s with { MouseTracking = v }),
-        Choice("&Text under the mouse by", s => s.MouseTextUnit, (s, v) => s with { MouseTextUnit = v }),
+        new ToggleField(L("Setting.MouseTracking"), s => s.MouseTracking, (s, v) => s with { MouseTracking = v }),
+        Choice(L("Setting.MouseTextUnit"), s => s.MouseTextUnit, (s, v) => s with { MouseTextUnit = v }),
     ]);
 
-    public static SettingsPage Review() => new("Review",
+    public static SettingsPage Review() => new(L("SettingsPage.Review"),
     [
-        new ToggleField("&Simple review (skip unnamed groups and panes)", s => s.SimpleReviewMode, (s, v) => s with { SimpleReviewMode = v }),
-        new ToggleField("Review follows &focus", s => s.ReviewFollowsFocus, (s, v) => s with { ReviewFollowsFocus = v }),
-        new ToggleField("Review follows the &caret", s => s.ReviewFollowsCaret, (s, v) => s with { ReviewFollowsCaret = v }),
+        new ToggleField(L("Setting.SimpleReviewMode"), s => s.SimpleReviewMode, (s, v) => s with { SimpleReviewMode = v }),
+        new ToggleField(L("Setting.ReviewFollowsFocus"), s => s.ReviewFollowsFocus, (s, v) => s with { ReviewFollowsFocus = v }),
+        new ToggleField(L("Setting.ReviewFollowsCaret"), s => s.ReviewFollowsCaret, (s, v) => s with { ReviewFollowsCaret = v }),
     ]);
 
     public static SettingsPage Speech(SpeechOptions options)
     {
         var fields = new List<SettingField>
         {
-            new ChoiceField("&Synthesizer",
-                [new SettingChoice("Automatic (best available)", null), .. options.Engines.Select(e => new SettingChoice(e.DisplayName, (object?)e.Id))],
+            new ChoiceField(L("Setting.SpeechEngine"),
+                [new SettingChoice(L("Choice.SpeechEngine.Automatic"), null), .. options.Engines.Select(e => new SettingChoice(e.DisplayName, (object?)e.Id))],
                 s => s.SpeechEngine,
                 // Another synthesizer has other voices: start with its default one
                 (s, v) => Equals(s.SpeechEngine, v) ? s : s with { SpeechEngine = (string?)v, VoiceName = null }),
-            new ChoiceField("V&oice",
-                [new SettingChoice("Default", null), .. options.Voices.Select(v => new SettingChoice(v, (object?)v))],
+            new ChoiceField(L("Setting.VoiceName"),
+                [new SettingChoice(L("Choice.Voice.Default"), null), .. options.Voices.Select(v => new SettingChoice(v, (object?)v))],
                 s => s.VoiceName,
                 (s, v) => s with { VoiceName = (string?)v }),
-            new NumberField("&Rate (words per minute)", ISpeechEngine.MinSupportedWpm,
+            new NumberField(L("Setting.SpeechRateWpm"), ISpeechEngine.MinSupportedWpm,
                 Math.Clamp(options.MaxRateWpm, ISpeechEngine.MinSupportedWpm, ISpeechEngine.MaxSupportedWpm), 10,
                 s => s.SpeechRateWpm, (s, v) => s with { SpeechRateWpm = v }),
         };
         if (options.Capabilities.HasFlag(SpeechCapabilities.Pitch))
-            fields.Add(new NumberField("&Pitch", 0, 100, 5, s => s.SpeechPitch, (s, v) => s with { SpeechPitch = v }));
+            fields.Add(new NumberField(L("Setting.SpeechPitch"), 0, 100, 5, s => s.SpeechPitch, (s, v) => s with { SpeechPitch = v }));
         if (options.Capabilities.HasFlag(SpeechCapabilities.Volume))
-            fields.Add(new NumberField("Vol&ume", 10, 100, 5, s => s.SpeechVolume, (s, v) => s with { SpeechVolume = v }));
-        fields.Add(Choice("P&unctuation", s => s.PunctuationLevel, (s, v) => s with { PunctuationLevel = v }));
-        fields.Add(Choice("&Capitals when reading by character", s => s.CapitalsForCharacters, (s, v) => s with { CapitalsForCharacters = v }));
-        fields.Add(Choice("Capitals when reading by &word or line", s => s.CapitalsForWords, (s, v) => s with { CapitalsForWords = v }));
-        fields.Add(Choice("&Numbers", s => s.Numbers, (s, v) => s with { Numbers = v }));
-        fields.Add(new ToggleField("Read other &languages with a voice for them", s => s.AutoLanguageSwitching, (s, v) => s with { AutoLanguageSwitching = v }));
-        return new SettingsPage("Speech", fields);
+            fields.Add(new NumberField(L("Setting.SpeechVolume"), 10, 100, 5, s => s.SpeechVolume, (s, v) => s with { SpeechVolume = v }));
+        fields.Add(Choice(L("Setting.PunctuationLevel"), s => s.PunctuationLevel, (s, v) => s with { PunctuationLevel = v }));
+        fields.Add(Choice(L("Setting.CapitalsForCharacters"), s => s.CapitalsForCharacters, (s, v) => s with { CapitalsForCharacters = v }));
+        fields.Add(Choice(L("Setting.CapitalsForWords"), s => s.CapitalsForWords, (s, v) => s with { CapitalsForWords = v }));
+        fields.Add(Choice(L("Setting.Numbers"), s => s.Numbers, (s, v) => s with { Numbers = v }));
+        fields.Add(new ToggleField(L("Setting.AutoLanguageSwitching"), s => s.AutoLanguageSwitching, (s, v) => s with { AutoLanguageSwitching = v }));
+        return new SettingsPage(L("SettingsPage.Speech"), fields);
     }
 
-    /// <summary>A choice of every value of an enum setting, named readably ("WhileSpeaking": "While speaking").</summary>
-    public static ChoiceField Choice<T>(string label, Func<VoxSettings, T> get, Func<VoxSettings, T, VoxSettings> set,
-        Dictionary<T, string>? names = null) where T : struct, Enum =>
+    /// <summary>
+    /// A choice of every value of an enum setting, each named by its <c>Choice.&lt;type&gt;.&lt;value&gt;</c>
+    /// string, else readably ("WhileSpeaking": "While speaking").
+    /// </summary>
+    public static ChoiceField Choice<T>(string label, Func<VoxSettings, T> get, Func<VoxSettings, T, VoxSettings> set)
+        where T : struct, Enum =>
         new(label,
-            Enum.GetValues<T>().Select(v => new SettingChoice(names?.GetValueOrDefault(v) ?? Readable(v.ToString()), v)).ToList(),
+            Enum.GetValues<T>().Select(v => new SettingChoice(ChoiceName(v), v)).ToList(),
             s => get(s),
             (s, v) => v is T value ? set(s, value) : s);
+
+    /// <summary>How the settings dialog names a value of an enum setting.</summary>
+    public static string ChoiceName<T>(T value) where T : struct, Enum =>
+        VoxStrings.GetOrDefault($"Choice.{typeof(T).Name}.{value}", Readable(value.ToString()));
+
+    private static string L(string name) => VoxStrings.Get(name);
 
     /// <summary>"WhileSpeaking" as "While speaking".</summary>
     public static string Readable(string name)

@@ -1493,4 +1493,708 @@ The laptop layout has no numeric keypad keys. &lt;a href="index.html"&gt;Back to
   <data name="KeyboardReference.NoKeys" xml:space="preserve">
     <value>(none; see the Vox menu)</value>
   </data>
+  <data name="Wizard.Skipped" xml:space="preserve">
+    <value>Setup skipped. You can run it again at any time with {0}.</value>
+    <comment>{0}: the key that runs setup (Wizard.RerunKey)</comment>
+  </data>
+  <data name="Wizard.RerunKey" xml:space="preserve">
+    <value>{0} Control S</value>
+    <comment>The key that runs setup again: {0} the screen reader key (Insert or Caps Lock)</comment>
+  </data>
+  <data name="Wizard.Complete" xml:space="preserve">
+    <value>Setup complete. Welcome to Vox.</value>
+  </data>
+  <data name="Wizard.Ended" xml:space="preserve">
+    <value>Setup ended. Your choices so far are saved.</value>
+  </data>
+  <data name="Wizard.Welcome" xml:space="preserve">
+    <value>Welcome to Vox screen reader. This guided setup will help you configure speech rate, voice, verbosity, keyboard layout and modifier key. Press Enter to begin, or Escape to skip setup.</value>
+  </data>
+  <data name="Wizard.SampleSentence" xml:space="preserve">
+    <value>The quick brown fox jumps over the lazy dog.</value>
+    <comment>A sentence to hear the rate and voice with: a pangram in your language suits best</comment>
+  </data>
+  <data name="Wizard.RatePrompt" xml:space="preserve">
+    <value>Step 1 of 6: Speech rate. Current rate is {0} words per minute. Press Up to increase, Down to decrease, or Enter to accept.</value>
+    <comment>{0}: the rate</comment>
+  </data>
+  <data name="Wizard.RateSample" xml:space="preserve">
+    <value>{0} words per minute. {1}</value>
+    <comment>{0}: the rate, {1}: Wizard.SampleSentence</comment>
+  </data>
+  <data name="Wizard.RateSet" xml:space="preserve">
+    <value>Speech rate set to {0} words per minute.</value>
+    <comment>{0}: the rate</comment>
+  </data>
+  <data name="Wizard.NoVoices" xml:space="preserve">
+    <value>Step 2 of 6: No additional voices found. Continuing with default voice.</value>
+  </data>
+  <data name="Wizard.VoicePrompt" xml:space="preserve">
+    <value>Step 2 of 6: Voice selection. {0} voices available. Current voice: {1}. Press Up or Down to cycle voices, Enter to accept.</value>
+    <comment>{0}: how many voices, {1}: the voice's name</comment>
+  </data>
+  <data name="Wizard.VoiceSample" xml:space="preserve">
+    <value>{0}. {1}</value>
+    <comment>{0}: the voice's name, {1}: Wizard.SampleSentence</comment>
+  </data>
+  <data name="Wizard.VoiceSet" xml:space="preserve">
+    <value>Voice set to {0}.</value>
+    <comment>{0}: the voice's name</comment>
+  </data>
+  <data name="Wizard.VerbosityPrompt" xml:space="preserve">
+    <value>Step 3 of 6: Verbosity level. Press 1 for Beginner — all element details announced, recommended for new users. Press 2 for Intermediate — control type and essential state. Press 3 for Advanced — minimal announcements. Press Enter to keep the current setting.</value>
+  </data>
+  <data name="Wizard.VerbositySet" xml:space="preserve">
+    <value>Verbosity set to {0}.</value>
+    <comment>{0}: an Enum.VerbosityLevel string</comment>
+  </data>
+  <data name="Wizard.LayoutPrompt" xml:space="preserve">
+    <value>Step 4 of 6: Keyboard layout. Press 1 for Desktop, which uses the numeric keypad, for keyboards that have one. Press 2 for Laptop, for keyboards without a numeric keypad; it uses Caps Lock as the modifier key. Press Enter to keep {0}.</value>
+    <comment>{0}: an Enum.KeyboardLayout string</comment>
+  </data>
+  <data name="Wizard.LayoutSet" xml:space="preserve">
+    <value>Keyboard layout set to {0}.</value>
+    <comment>{0}: an Enum.KeyboardLayout string</comment>
+  </data>
+  <data name="Wizard.ModifierPrompt" xml:space="preserve">
+    <value>Step 5 of 6: Modifier key. It is now {0}. Press 1 for Insert key, recommended for the desktop layout. Press 2 for Caps Lock, recommended for the laptop layout. Press Enter to keep it.</value>
+    <comment>{0}: Key.Insert or Key.CapsLock</comment>
+  </data>
+  <data name="Wizard.ModifierSet" xml:space="preserve">
+    <value>Modifier key set to {0}.</value>
+    <comment>{0}: an Enum.ModifierKey string</comment>
+  </data>
+  <data name="Wizard.TutorialPrompt" xml:space="preserve">
+    <value>Step 6 of 6: Quick tutorial. In browse mode, press H to jump to the next heading. Press K to jump to the next link. Press Enter to activate the current element. Press {0} Space to toggle between browse and focus modes. Press {0} {1} to read from the current position. Press Control to stop speech at any time. Press {0} Q twice to exit Vox, and {0} Control S to run this setup again. Press Enter to continue.</value>
+    <comment>{0}: the screen reader key (Insert or Caps Lock), {1}: the Say All key (A, or Key.DownArrow)</comment>
+  </data>
+  <data name="Wizard.PractiseOffer" xml:space="preserve">
+    <value>To practise the keys now, press 1. To finish setup, press Enter.</value>
+  </data>
+  <data name="Enum.VerbosityLevel.Beginner" xml:space="preserve">
+    <value>Beginner</value>
+  </data>
+  <data name="Enum.VerbosityLevel.Intermediate" xml:space="preserve">
+    <value>Intermediate</value>
+  </data>
+  <data name="Enum.VerbosityLevel.Advanced" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="Enum.KeyboardLayout.Desktop" xml:space="preserve">
+    <value>Desktop</value>
+  </data>
+  <data name="Enum.KeyboardLayout.Laptop" xml:space="preserve">
+    <value>Laptop</value>
+  </data>
+  <data name="Enum.ModifierKey.Insert" xml:space="preserve">
+    <value>Insert</value>
+  </data>
+  <data name="Enum.ModifierKey.CapsLock" xml:space="preserve">
+    <value>CapsLock</value>
+  </data>
+  <data name="Lesson.ChoiceSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
+  <data name="Lesson.Choice" xml:space="preserve">
+    <value>{0} for {1}</value>
+    <comment>A lesson in the menu: {0} its number, {1} its topic</comment>
+  </data>
+  <data name="Lesson.Menu" xml:space="preserve">
+    <value>Practice lessons. Press {0}, or Escape to finish.</value>
+    <comment>{0}: the lessons (Lesson.Choice, joined by Lesson.ChoiceSeparator)</comment>
+  </data>
+  <data name="Lesson.Finished" xml:space="preserve">
+    <value>Practice finished. The lessons are in the Vox menu whenever you want them.</value>
+  </data>
+  <data name="Lesson.Start" xml:space="preserve">
+    <value>Lesson: {0}. {1} Escape ends the lesson.</value>
+    <comment>{0}: the topic, {1}: the lesson's introduction</comment>
+  </data>
+  <data name="Lesson.Ask" xml:space="preserve">
+    <value>{0}, press {1}.</value>
+    <comment>{0}: the step's instruction ("To move to the next heading"), {1}: the key</comment>
+  </data>
+  <data name="Lesson.Right" xml:space="preserve">
+    <value>Right. {0}</value>
+    <comment>{0}: what the key did (the step's Done string)</comment>
+  </data>
+  <data name="Lesson.KeyIs" xml:space="preserve">
+    <value>The key is {0}. Moving on.</value>
+    <comment>{0}: the key</comment>
+  </data>
+  <data name="Lesson.ThatWas" xml:space="preserve">
+    <value>That was {0}. {1}, press {2}.</value>
+    <comment>{0}: the key pressed, {1}: the step's instruction, {2}: the key asked for</comment>
+  </data>
+  <data name="Lesson.Done" xml:space="preserve">
+    <value>That's the {0} lesson done.</value>
+    <comment>{0}: the topic</comment>
+  </data>
+  <data name="Lesson.WebPages.Topic" xml:space="preserve">
+    <value>web pages</value>
+  </data>
+  <data name="Lesson.WebPages.Introduction" xml:space="preserve">
+    <value>On a web page, Vox reads in browse mode: letters move by element, and the arrow keys read line by line.</value>
+  </data>
+  <data name="Lesson.WebPages.NextHeading.Instruction" xml:space="preserve">
+    <value>To move to the next heading</value>
+  </data>
+  <data name="Lesson.WebPages.NextHeading.Done" xml:space="preserve">
+    <value>That moves to the next heading. With Shift, it goes back.</value>
+  </data>
+  <data name="Lesson.WebPages.NextLink.Instruction" xml:space="preserve">
+    <value>To move to the next link</value>
+  </data>
+  <data name="Lesson.WebPages.NextLink.Done" xml:space="preserve">
+    <value>That moves to the next link.</value>
+  </data>
+  <data name="Lesson.WebPages.NextLandmark.Instruction" xml:space="preserve">
+    <value>To move to the next landmark, such as the navigation or the main content</value>
+  </data>
+  <data name="Lesson.WebPages.NextLandmark.Done" xml:space="preserve">
+    <value>That moves to the next landmark.</value>
+  </data>
+  <data name="Lesson.WebPages.ElementsList.Instruction" xml:space="preserve">
+    <value>To list the page's headings, links and landmarks</value>
+  </data>
+  <data name="Lesson.WebPages.ElementsList.Done" xml:space="preserve">
+    <value>That opens the elements list, to pick one by name.</value>
+  </data>
+  <data name="Lesson.WebPages.ToggleMode.Instruction" xml:space="preserve">
+    <value>To switch between browse mode and focus mode, where keys go to the page</value>
+  </data>
+  <data name="Lesson.WebPages.ToggleMode.Done" xml:space="preserve">
+    <value>That switches mode. Vox also switches by itself in text boxes.</value>
+  </data>
+  <data name="Lesson.WebPages.SayAll.Instruction" xml:space="preserve">
+    <value>To read from where you are to the end</value>
+  </data>
+  <data name="Lesson.WebPages.SayAll.Done" xml:space="preserve">
+    <value>That reads on until you press a key.</value>
+  </data>
+  <data name="Lesson.WebPages.PageSummary.Instruction" xml:space="preserve">
+    <value>To hear a summary of the page</value>
+  </data>
+  <data name="Lesson.WebPages.PageSummary.Done" xml:space="preserve">
+    <value>That says the page's title and how many headings, links and form fields it has.</value>
+  </data>
+  <data name="Lesson.EditingText.Topic" xml:space="preserve">
+    <value>editing text</value>
+  </data>
+  <data name="Lesson.EditingText.Introduction" xml:space="preserve">
+    <value>In a text box or document, the arrow keys move the caret and Vox reads what it passes. These keys read without moving.</value>
+  </data>
+  <data name="Lesson.EditingText.ReadCurrentLine.Instruction" xml:space="preserve">
+    <value>To read the current line</value>
+  </data>
+  <data name="Lesson.EditingText.ReadCurrentLine.Done" xml:space="preserve">
+    <value>That reads the line. Press it twice quickly to spell it.</value>
+  </data>
+  <data name="Lesson.EditingText.ReadCurrentWord.Instruction" xml:space="preserve">
+    <value>To read the current word</value>
+  </data>
+  <data name="Lesson.EditingText.ReadCurrentWord.Done" xml:space="preserve">
+    <value>That reads the word.</value>
+  </data>
+  <data name="Lesson.EditingText.ReadCurrentChar.Instruction" xml:space="preserve">
+    <value>To read the current character</value>
+  </data>
+  <data name="Lesson.EditingText.ReadCurrentChar.Done" xml:space="preserve">
+    <value>That reads the character.</value>
+  </data>
+  <data name="Lesson.EditingText.ReadSelection.Instruction" xml:space="preserve">
+    <value>To read the selected text</value>
+  </data>
+  <data name="Lesson.EditingText.ReadSelection.Done" xml:space="preserve">
+    <value>That reads what is selected.</value>
+  </data>
+  <data name="Lesson.EditingText.SayFocus.Instruction" xml:space="preserve">
+    <value>To hear what has focus</value>
+  </data>
+  <data name="Lesson.EditingText.SayFocus.Done" xml:space="preserve">
+    <value>That says the focused control.</value>
+  </data>
+  <data name="Lesson.EditingText.SayTitle.Instruction" xml:space="preserve">
+    <value>To hear the window's title</value>
+  </data>
+  <data name="Lesson.EditingText.SayTitle.Done" xml:space="preserve">
+    <value>That says the title of the window in front.</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.Topic" xml:space="preserve">
+    <value>reviewing the screen</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.Introduction" xml:space="preserve">
+    <value>The review cursor reads anywhere on the screen without moving the focus, and object navigation moves between controls.</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.ReviewCurrentLine.Instruction" xml:space="preserve">
+    <value>To read the line at the review cursor</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.ReviewCurrentLine.Done" xml:space="preserve">
+    <value>That reads the review cursor's line.</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.ReviewNextLine.Instruction" xml:space="preserve">
+    <value>To move the review cursor to the next line</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.ReviewNextLine.Done" xml:space="preserve">
+    <value>That moves it down a line.</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.ReviewNextWord.Instruction" xml:space="preserve">
+    <value>To move the review cursor to the next word</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.ReviewNextWord.Done" xml:space="preserve">
+    <value>That moves it to the next word.</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.NextReviewMode.Instruction" xml:space="preserve">
+    <value>To change what is reviewed: the object, the document, or the whole screen</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.NextReviewMode.Done" xml:space="preserve">
+    <value>That changes the review mode.</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.ReportNavigator.Instruction" xml:space="preserve">
+    <value>To hear the navigator object</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.ReportNavigator.Done" xml:space="preserve">
+    <value>That says the object the navigator is on.</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.NavigatorNext.Instruction" xml:space="preserve">
+    <value>To move the navigator to the next object</value>
+  </data>
+  <data name="Lesson.ReviewingScreen.NavigatorNext.Done" xml:space="preserve">
+    <value>That moves to the next object.</value>
+  </data>
+  <data name="Setting.StartAtLogon" xml:space="preserve">
+    <value>Start Vox when I &amp;sign in</value>
+  </data>
+  <data name="Setting.UpdateChannel" xml:space="preserve">
+    <value>Check for &amp;updates</value>
+  </data>
+  <data name="Setting.BrailleDisplay" xml:space="preserve">
+    <value>Braille &amp;display</value>
+  </data>
+  <data name="Setting.BrailleTable" xml:space="preserve">
+    <value>Braille &amp;table</value>
+  </data>
+  <data name="Setting.BrailleExpandWordAtCursor" xml:space="preserve">
+    <value>Show the &amp;word at the cursor uncontracted</value>
+  </data>
+  <data name="Setting.BrailleTether" xml:space="preserve">
+    <value>Braille &amp;follows</value>
+  </data>
+  <data name="Setting.BrailleFocusContext" xml:space="preserve">
+    <value>Focus &amp;context</value>
+  </data>
+  <data name="Setting.BrailleCursorShape" xml:space="preserve">
+    <value>Cursor &amp;shape</value>
+  </data>
+  <data name="Setting.BrailleCursorBlink" xml:space="preserve">
+    <value>&amp;Blink the cursor</value>
+  </data>
+  <data name="Setting.BrailleCursorBlinkRateMs" xml:space="preserve">
+    <value>Cursor blink &amp;rate (milliseconds)</value>
+  </data>
+  <data name="Setting.BrailleMessageTimeoutSeconds" xml:space="preserve">
+    <value>&amp;Message timeout (seconds, 0: no messages)</value>
+  </data>
+  <data name="Setting.BrailleShowSelection" xml:space="preserve">
+    <value>Show the s&amp;election (dots 7 and 8)</value>
+  </data>
+  <data name="Setting.BrailleWordWrap" xml:space="preserve">
+    <value>&amp;Avoid splitting words when panning</value>
+  </data>
+  <data name="Setting.VerbosityLevel" xml:space="preserve">
+    <value>&amp;Verbosity</value>
+  </data>
+  <data name="Setting.ProgressBars" xml:space="preserve">
+    <value>&amp;Progress bars</value>
+  </data>
+  <data name="Setting.ReportBackgroundProgress" xml:space="preserve">
+    <value>Report progress bars in &amp;background windows</value>
+  </data>
+  <data name="Setting.ScreenLayout" xml:space="preserve">
+    <value>&amp;Screen layout (links and other inline text stay on their line)</value>
+  </data>
+  <data name="Setting.MaxLineLength" xml:space="preserve">
+    <value>&amp;Maximum line length (0: no limit)</value>
+  </data>
+  <data name="Setting.AnnounceVisitedLinks" xml:space="preserve">
+    <value>Say &amp;visited links</value>
+  </data>
+  <data name="Setting.ExpandAbbreviations" xml:space="preserve">
+    <value>Say what &amp;abbreviations stand for</value>
+  </data>
+  <data name="Setting.SpellingErrors" xml:space="preserve">
+    <value>&amp;Spelling errors</value>
+  </data>
+  <data name="Setting.Indentation" xml:space="preserve">
+    <value>&amp;Indentation</value>
+  </data>
+  <data name="Setting.AudioCuesEnabled" xml:space="preserve">
+    <value>Play &amp;audio cues</value>
+  </data>
+  <data name="Setting.EarconScheme" xml:space="preserve">
+    <value>Sound &amp;scheme</value>
+  </data>
+  <data name="Setting.StatesAsSounds" xml:space="preserve">
+    <value>Play &amp;states (checked, expanded, selected) as sounds</value>
+  </data>
+  <data name="Setting.AudioOutputDevice" xml:space="preserve">
+    <value>&amp;Output device</value>
+  </data>
+  <data name="Setting.AudioDucking" xml:space="preserve">
+    <value>Lower other &amp;sounds</value>
+  </data>
+  <data name="Setting.KeepAudioDeviceAwake" xml:space="preserve">
+    <value>&amp;Keep the audio device awake</value>
+  </data>
+  <data name="Setting.ModifierKey" xml:space="preserve">
+    <value>Screen reader &amp;key</value>
+  </data>
+  <data name="Setting.KeyboardLayout" xml:space="preserve">
+    <value>Keyboard &amp;layout</value>
+  </data>
+  <data name="Setting.TypingEchoMode" xml:space="preserve">
+    <value>&amp;Typing echo</value>
+  </data>
+  <data name="Setting.MouseTracking" xml:space="preserve">
+    <value>&amp;Read what is under the mouse</value>
+  </data>
+  <data name="Setting.MouseTextUnit" xml:space="preserve">
+    <value>&amp;Text under the mouse by</value>
+  </data>
+  <data name="Setting.SimpleReviewMode" xml:space="preserve">
+    <value>&amp;Simple review (skip unnamed groups and panes)</value>
+  </data>
+  <data name="Setting.ReviewFollowsFocus" xml:space="preserve">
+    <value>Review follows &amp;focus</value>
+  </data>
+  <data name="Setting.ReviewFollowsCaret" xml:space="preserve">
+    <value>Review follows the &amp;caret</value>
+  </data>
+  <data name="Setting.SpeechEngine" xml:space="preserve">
+    <value>&amp;Synthesizer</value>
+  </data>
+  <data name="Setting.VoiceName" xml:space="preserve">
+    <value>V&amp;oice</value>
+  </data>
+  <data name="Setting.SpeechRateWpm" xml:space="preserve">
+    <value>&amp;Rate (words per minute)</value>
+  </data>
+  <data name="Setting.SpeechPitch" xml:space="preserve">
+    <value>&amp;Pitch</value>
+  </data>
+  <data name="Setting.SpeechVolume" xml:space="preserve">
+    <value>Vol&amp;ume</value>
+  </data>
+  <data name="Setting.PunctuationLevel" xml:space="preserve">
+    <value>P&amp;unctuation</value>
+  </data>
+  <data name="Setting.CapitalsForCharacters" xml:space="preserve">
+    <value>&amp;Capitals when reading by character</value>
+  </data>
+  <data name="Setting.CapitalsForWords" xml:space="preserve">
+    <value>Capitals when reading by &amp;word or line</value>
+  </data>
+  <data name="Setting.Numbers" xml:space="preserve">
+    <value>&amp;Numbers</value>
+  </data>
+  <data name="Setting.AutoLanguageSwitching" xml:space="preserve">
+    <value>Read other &amp;languages with a voice for them</value>
+  </data>
+  <data name="SettingsPage.General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="SettingsPage.Braille" xml:space="preserve">
+    <value>Braille</value>
+  </data>
+  <data name="SettingsPage.Verbosity" xml:space="preserve">
+    <value>Verbosity</value>
+  </data>
+  <data name="SettingsPage.BrowseMode" xml:space="preserve">
+    <value>Browse mode</value>
+  </data>
+  <data name="SettingsPage.DocumentFormatting" xml:space="preserve">
+    <value>Document formatting</value>
+  </data>
+  <data name="SettingsPage.AudioCues" xml:space="preserve">
+    <value>Audio cues</value>
+  </data>
+  <data name="SettingsPage.Keyboard" xml:space="preserve">
+    <value>Keyboard</value>
+  </data>
+  <data name="SettingsPage.Mouse" xml:space="preserve">
+    <value>Mouse</value>
+  </data>
+  <data name="SettingsPage.Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="SettingsPage.Speech" xml:space="preserve">
+    <value>Speech</value>
+  </data>
+  <data name="Choice.BrailleDisplay.Automatic" xml:space="preserve">
+    <value>Automatic (find a display)</value>
+  </data>
+  <data name="Choice.BrailleDisplay.HID" xml:space="preserve">
+    <value>HID braille display</value>
+  </data>
+  <data name="Choice.BrailleDisplay.BRLTTY" xml:space="preserve">
+    <value>BRLTTY</value>
+  </data>
+  <data name="Choice.BrailleDisplay.None" xml:space="preserve">
+    <value>No braille</value>
+  </data>
+  <data name="Choice.SpeechEngine.Automatic" xml:space="preserve">
+    <value>Automatic (best available)</value>
+  </data>
+  <data name="Choice.Voice.Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Choice.AudioOutputDevice.Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Choice.UpdateChannel.Off" xml:space="preserve">
+    <value>Never</value>
+  </data>
+  <data name="Choice.UpdateChannel.Stable" xml:space="preserve">
+    <value>Releases</value>
+  </data>
+  <data name="Choice.UpdateChannel.Beta" xml:space="preserve">
+    <value>Releases and betas</value>
+  </data>
+  <data name="Choice.PunctuationLevel.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Choice.PunctuationLevel.Some" xml:space="preserve">
+    <value>Some</value>
+  </data>
+  <data name="Choice.PunctuationLevel.Most" xml:space="preserve">
+    <value>Most</value>
+  </data>
+  <data name="Choice.PunctuationLevel.All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Choice.CapitalIndication.Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Choice.CapitalIndication.Pitch" xml:space="preserve">
+    <value>Pitch</value>
+  </data>
+  <data name="Choice.CapitalIndication.SayCap" xml:space="preserve">
+    <value>Say cap</value>
+  </data>
+  <data name="Choice.CapitalIndication.Beep" xml:space="preserve">
+    <value>Beep</value>
+  </data>
+  <data name="Choice.NumberReading.Words" xml:space="preserve">
+    <value>Words</value>
+  </data>
+  <data name="Choice.NumberReading.Digits" xml:space="preserve">
+    <value>Digits</value>
+  </data>
+  <data name="Choice.BrailleTether.Automatic" xml:space="preserve">
+    <value>Automatically</value>
+  </data>
+  <data name="Choice.BrailleTether.Focus" xml:space="preserve">
+    <value>Focus</value>
+  </data>
+  <data name="Choice.BrailleTether.Review" xml:space="preserve">
+    <value>Review cursor</value>
+  </data>
+  <data name="Choice.BrailleFocusContext.FillDisplay" xml:space="preserve">
+    <value>Fill the display</value>
+  </data>
+  <data name="Choice.BrailleFocusContext.ScrollBackOnly" xml:space="preserve">
+    <value>Only when scrolling back</value>
+  </data>
+  <data name="Choice.BrailleFocusContext.ChangedContext" xml:space="preserve">
+    <value>Only what changed</value>
+  </data>
+  <data name="Choice.BrailleCursorShape.Underline" xml:space="preserve">
+    <value>Dots 7 and 8</value>
+  </data>
+  <data name="Choice.BrailleCursorShape.Dot8" xml:space="preserve">
+    <value>Dot 8</value>
+  </data>
+  <data name="Choice.BrailleCursorShape.AllDots" xml:space="preserve">
+    <value>All dots</value>
+  </data>
+  <data name="Choice.VerbosityLevel.Beginner" xml:space="preserve">
+    <value>Beginner</value>
+  </data>
+  <data name="Choice.VerbosityLevel.Intermediate" xml:space="preserve">
+    <value>Intermediate</value>
+  </data>
+  <data name="Choice.VerbosityLevel.Advanced" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="Choice.ProgressReporting.Every10Percent" xml:space="preserve">
+    <value>Say every 10 percent</value>
+  </data>
+  <data name="Choice.ProgressReporting.Every25Percent" xml:space="preserve">
+    <value>Say every 25 percent</value>
+  </data>
+  <data name="Choice.ProgressReporting.Beep" xml:space="preserve">
+    <value>Beep</value>
+  </data>
+  <data name="Choice.ProgressReporting.Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Choice.SpellingErrorReporting.Speech" xml:space="preserve">
+    <value>Say "misspelled"</value>
+  </data>
+  <data name="Choice.SpellingErrorReporting.Earcon" xml:space="preserve">
+    <value>Play a sound</value>
+  </data>
+  <data name="Choice.SpellingErrorReporting.Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Choice.IndentationReporting.Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Choice.IndentationReporting.Speech" xml:space="preserve">
+    <value>Speech</value>
+  </data>
+  <data name="Choice.IndentationReporting.Tones" xml:space="preserve">
+    <value>Tones</value>
+  </data>
+  <data name="Choice.IndentationReporting.Both" xml:space="preserve">
+    <value>Speech and tones</value>
+  </data>
+  <data name="Choice.AudioDuckingMode.Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Choice.AudioDuckingMode.WhileSpeaking" xml:space="preserve">
+    <value>While speaking</value>
+  </data>
+  <data name="Choice.AudioDuckingMode.Always" xml:space="preserve">
+    <value>Always</value>
+  </data>
+  <data name="Choice.ModifierKey.Insert" xml:space="preserve">
+    <value>Insert</value>
+  </data>
+  <data name="Choice.ModifierKey.CapsLock" xml:space="preserve">
+    <value>Caps Lock</value>
+  </data>
+  <data name="Choice.KeyboardLayout.Desktop" xml:space="preserve">
+    <value>Desktop</value>
+  </data>
+  <data name="Choice.KeyboardLayout.Laptop" xml:space="preserve">
+    <value>Laptop</value>
+  </data>
+  <data name="Choice.TypingEchoMode.None" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Choice.TypingEchoMode.Characters" xml:space="preserve">
+    <value>Characters</value>
+  </data>
+  <data name="Choice.TypingEchoMode.Words" xml:space="preserve">
+    <value>Words</value>
+  </data>
+  <data name="Choice.TypingEchoMode.Both" xml:space="preserve">
+    <value>Characters and words</value>
+  </data>
+  <data name="Choice.MouseTextUnit.Object" xml:space="preserve">
+    <value>Object</value>
+  </data>
+  <data name="Choice.MouseTextUnit.Line" xml:space="preserve">
+    <value>Line</value>
+  </data>
+  <data name="Choice.MouseTextUnit.Word" xml:space="preserve">
+    <value>Word</value>
+  </data>
+  <data name="BrailleTable.en-ueb-g2.ctb" xml:space="preserve">
+    <value>English, Unified English Braille, grade 2</value>
+  </data>
+  <data name="BrailleTable.en-ueb-g1.ctb" xml:space="preserve">
+    <value>English, Unified English Braille, grade 1</value>
+  </data>
+  <data name="BrailleTable.en-us-comp8.ctb" xml:space="preserve">
+    <value>English, US computer braille, 8-dot</value>
+  </data>
+  <data name="BrailleTable.en-us-g2.ctb" xml:space="preserve">
+    <value>English, US English Braille (EBAE), grade 2</value>
+  </data>
+  <data name="BrailleTable.en-us-g1.ctb" xml:space="preserve">
+    <value>English, US English Braille (EBAE), grade 1</value>
+  </data>
+  <data name="BrailleTable.en-GB-g2.ctb" xml:space="preserve">
+    <value>English, UK, grade 2</value>
+  </data>
+  <data name="BrailleTable.de-g1.ctb" xml:space="preserve">
+    <value>German, grade 1</value>
+  </data>
+  <data name="BrailleTable.de-g2.ctb" xml:space="preserve">
+    <value>German, grade 2</value>
+  </data>
+  <data name="BrailleTable.fr-bfu-comp8.utb" xml:space="preserve">
+    <value>French, uncontracted, 8-dot</value>
+  </data>
+  <data name="BrailleTable.fr-bfu-g2.ctb" xml:space="preserve">
+    <value>French, grade 2</value>
+  </data>
+  <data name="BrailleTable.es-g1.ctb" xml:space="preserve">
+    <value>Spanish, grade 1</value>
+  </data>
+  <data name="BrailleTable.es-g2.ctb" xml:space="preserve">
+    <value>Spanish, grade 2</value>
+  </data>
+  <data name="BrailleTable.it-it-comp6.utb" xml:space="preserve">
+    <value>Italian, 6-dot</value>
+  </data>
+  <data name="BrailleTable.nl-NL-g0.utb" xml:space="preserve">
+    <value>Dutch, uncontracted</value>
+  </data>
+  <data name="BrailleTable.sv-g1.ctb" xml:space="preserve">
+    <value>Swedish, grade 1</value>
+  </data>
+  <data name="BrailleTable.da-dk-g16.ctb" xml:space="preserve">
+    <value>Danish, 6-dot, uncontracted</value>
+  </data>
+  <data name="BrailleTable.no-no-g1.ctb" xml:space="preserve">
+    <value>Norwegian, grade 1</value>
+  </data>
+  <data name="BrailleTable.pl-pl-comp8.ctb" xml:space="preserve">
+    <value>Polish, 8-dot computer braille</value>
+  </data>
+  <data name="VoxMenu.OpenSettings" xml:space="preserve">
+    <value>&amp;Settings...</value>
+  </data>
+  <data name="VoxMenu.OpenInputGestures" xml:space="preserve">
+    <value>&amp;Input gestures...</value>
+  </data>
+  <data name="VoxMenu.OpenProfiles" xml:space="preserve">
+    <value>Con&amp;figuration profiles...</value>
+  </data>
+  <data name="VoxMenu.OpenCommandSearch" xml:space="preserve">
+    <value>&amp;Command search...</value>
+  </data>
+  <data name="VoxMenu.ToggleSpeechViewer" xml:space="preserve">
+    <value>Speech &amp;viewer</value>
+  </data>
+  <data name="VoxMenu.TogglePauseSpeech" xml:space="preserve">
+    <value>&amp;Pause speech</value>
+  </data>
+  <data name="VoxMenu.OpenUserGuide" xml:space="preserve">
+    <value>User &amp;guide</value>
+  </data>
+  <data name="VoxMenu.RunTutorial" xml:space="preserve">
+    <value>Practice &amp;lessons...</value>
+  </data>
+  <data name="VoxMenu.CreatePortableCopy" xml:space="preserve">
+    <value>Create p&amp;ortable copy...</value>
+  </data>
+  <data name="VoxMenu.CheckForUpdates" xml:space="preserve">
+    <value>Check for &amp;updates...</value>
+  </data>
+  <data name="VoxMenu.RunSetup" xml:space="preserve">
+    <value>Run &amp;welcome wizard...</value>
+  </data>
+  <data name="VoxMenu.ExitVox" xml:space="preserve">
+    <value>E&amp;xit Vox</value>
+  </data>
+  <data name="VoxMenu.Title" xml:space="preserve">
+    <value>Vox menu</value>
+  </data>
+  <data name="VoxMenu.TrayTip" xml:space="preserve">
+    <value>Vox screen reader</value>
+  </data>
 </root>
