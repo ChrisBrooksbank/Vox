@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 200
+- Build iterations: 203
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -283,9 +283,9 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### OCR and AI (spec: ocr-ai.md)
 
-- [ ] Add `IOcrEngine` and `WindowsOcrEngine`; screen-capture helper for window, navigator and image bounds (blocked in secure mode) (spec: ocr-ai.md)
-- [ ] Present OCR results as a reviewable `ITextDocument` with word positions and click-on-word; Insert+R recognises the navigator object; unit tests (spec: ocr-ai.md)
-- [ ] Offer OCR for untagged PDFs (spec: ocr-ai.md)
+- [x] Add `IOcrEngine` and `WindowsOcrEngine`; screen-capture helper for window, navigator and image bounds (blocked in secure mode) (spec: ocr-ai.md)
+- [x] Present OCR results as a reviewable `ITextDocument` with word positions and click-on-word; Insert+R recognises the navigator object; unit tests (spec: ocr-ai.md)
+- [x] Offer OCR for untagged PDFs (spec: ocr-ai.md)
 - [ ] Add `IImageDescriber`, consent rules (ask/allow/never; never password fields, secure desktop or private apps) and description cache; unit tests (spec: ocr-ai.md)
 - [ ] Add `LocalImageDescriber` (Windows AI APIs) and `CloudImageDescriber` (user-configured provider and key) (spec: ocr-ai.md)
 - [ ] Add Insert+G describe image/object with progress cue and cancellation (spec: ocr-ai.md)

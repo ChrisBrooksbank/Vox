@@ -117,7 +117,8 @@ public static class CommandCatalog
             NavigationCommand.ReviewPrevWord, NavigationCommand.ReviewCurrentWord, NavigationCommand.ReviewNextWord,
             NavigationCommand.ReviewPrevChar, NavigationCommand.ReviewCurrentChar, NavigationCommand.ReviewNextChar,
             NavigationCommand.ReviewTop, NavigationCommand.ReviewBottom, NavigationCommand.NextReviewMode,
-            NavigationCommand.PrevReviewMode);
+            NavigationCommand.PrevReviewMode, NavigationCommand.RecognizeNavigator, NavigationCommand.RecognizeWindow,
+            NavigationCommand.ClickRecognizedWord);
         Add(CommandCategory.Mouse,
             NavigationCommand.ToggleMouseTracking, NavigationCommand.RouteMouseToNavigator,
             NavigationCommand.MouseLeftClick, NavigationCommand.MouseRightClick, NavigationCommand.ToggleLeftMouseLock);

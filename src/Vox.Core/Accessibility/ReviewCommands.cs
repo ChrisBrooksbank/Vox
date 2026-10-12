@@ -4,6 +4,7 @@ using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Navigation;
+using Vox.Core.Ocr;
 using Vox.Core.Speech;
 using Vox.Core.Text;
 
@@ -51,6 +52,12 @@ public sealed class ReviewCommands
     private IntPtr _attachedWindow;
     private int _generation = -1;
 
+    // Recognised text under review (UIA thread), until focus or the caret moves, the review mode
+    // changes or (while browsing) the browse cursor moves
+    private OcrDocument? _recognized;
+    private ReviewTether? _recognizedTether;
+    private volatile bool _leaveRecognized;
+
     public ReviewCommands(UIAThread uiaThread, ObjectNavigationCommands navigation, IReviewTextSource source,
         SpeechQueue speechQueue, IAudioCuePlayer audioCuePlayer, IOptionsMonitor<VoxSettings> settings,
         ILogger<ReviewCommands> logger)
@@ -73,7 +80,11 @@ public sealed class ReviewCommands
     public Func<ReviewTether?>? BrowseTether { get; set; }
 
     /// <summary>Focus moved: document review picks up the newly focused control's text.</summary>
-    public void HandleFocusChanged() => Interlocked.Increment(ref _focusVersion);
+    public void HandleFocusChanged()
+    {
+        Interlocked.Increment(ref _focusVersion);
+        _leaveRecognized = true;
+    }
 
     /// <summary>The caret moved: the review cursor goes to it, when the setting says so.</summary>
     public void HandleCaretMoved()
@@ -81,6 +92,7 @@ public sealed class ReviewCommands
         if (!_settings.CurrentValue.ReviewFollowsCaret)
             return;
         Interlocked.Increment(ref _caretVersion);
+        _leaveRecognized = true;
         // In object review the navigator returns to the focused control with the caret
         _navigation.HandleFocusChanged();
     }
@@ -143,6 +155,7 @@ public sealed class ReviewCommands
             return;
         }
         _mode = modes[index];
+        _leaveRecognized = true;
         Speak(_mode switch
         {
             ReviewMode.Object => "Object review",
@@ -164,7 +177,11 @@ public sealed class ReviewCommands
         {
             atBoundary = await _uiaThread.RunAsync(() =>
             {
-                if (tether is not null)
+                if (InRecognizedText(tether))
+                {
+                    // The cursor stays in the recognised text
+                }
+                else if (tether is not null)
                     EnsureTethered(tether, followCaret);
                 else
                     EnsureDocument(mode, focusVersion, caretVersion, window);
@@ -193,6 +210,56 @@ public sealed class ReviewCommands
 
         if (atBoundary)
             _audioCuePlayer.Play("boundary");
+    }
+
+    /// <summary>
+    /// Reviews recognised text (<see cref="OcrCommands"/>) from its start, until focus or the
+    /// caret moves, the review mode changes or the browse cursor moves away from
+    /// <paramref name="tether"/> (where it was when recognition started; null: not browsing).
+    /// </summary>
+    public Task ShowRecognizedAsync(OcrDocument document, ReviewTether? tether) => _uiaThread.RunAsync(() =>
+    {
+        _leaveRecognized = false;
+        _recognized = document;
+        _recognizedTether = tether;
+        _cursor.Attach(document);
+        if (_cursor.Position is { } position && PositionShown is { } shown)
+        {
+            try { shown(position); }
+            catch (Exception ex) { _logger.LogDebug(ex, "Error showing the review line"); }
+        }
+    });
+
+    /// <summary>
+    /// The recognised word at the review cursor, or null when the review cursor isn't in
+    /// recognised text. Call on the thread commands arrive on (it reads the browse tether).
+    /// </summary>
+    public Task<OcrWord?> RecognizedWordAsync()
+    {
+        var tether = BrowseTether?.Invoke();
+        return _uiaThread.RunAsync(() =>
+            InRecognizedText(tether) && _cursor.Position is { } position ? _recognized!.WordAt(position) : null);
+    }
+
+    /// <summary>
+    /// True while the review cursor is in recognised text; otherwise drops it, so the next
+    /// command attaches the text its mode reviews (UIA thread).
+    /// </summary>
+    private bool InRecognizedText(ReviewTether? tether)
+    {
+        if (_recognized is null)
+            return false;
+        var at = _recognizedTether;
+        bool browseMoved = (at is null) != (tether is null)
+            || (at is not null && tether is not null && (!ReferenceEquals(at.Buffer, tether.Buffer) || at.Offset != tether.Offset));
+        if (!_leaveRecognized && !browseMoved && ReferenceEquals(_cursor.Document, _recognized))
+            return true;
+        _recognized = null;
+        _recognizedTether = null;
+        // Attach again whatever the mode reviews
+        _attachedMode = null;
+        _attachedTether = null;
+        return false;
     }
 
     /// <summary>

@@ -22,6 +22,7 @@ using Vox.Core.Lifecycle;
 using Vox.Core.Localization;
 using Vox.Core.MathSpeech;
 using Vox.Core.Navigation;
+using Vox.Core.Ocr;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
 using Vox.Core.Text;
@@ -263,6 +264,11 @@ public static class ServiceRegistration
         services.AddSingleton<LiveRegionMonitor>();
         services.AddSingleton<BrowseDocumentTracker>();
         services.AddSingleton<IBrowseDocumentActions>(sp => sp.GetRequiredService<BrowseDocumentTracker>());
+        // Text recognition: on this computer, never on secure screens
+        services.AddSingleton<IOcrEngine, WindowsOcrEngine>();
+        services.AddSingleton<IScreenCapture>(sp => new GdiScreenCapture(sp.GetService<RunPolicy>() ?? RunPolicy.Normal));
+        services.AddSingleton<IOcrTargetSource, UIAOcrTargetSource>();
+        services.AddSingleton<OcrCommands>();
 
         // Input
         services.AddSingleton<IKeyboardHook, KeyboardHook>();

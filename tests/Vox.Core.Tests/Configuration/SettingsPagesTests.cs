@@ -115,7 +115,7 @@ public class SettingsPagesTests
     [Fact]
     public void EverySettingIsOnAPage()
     {
-        var shown = SettingsPages.All(Options(), Audio).SelectMany(p => p.Fields).SelectMany(PropertiesChangedBy).ToHashSet();
+        var shown = SettingsPages.All(Options(), Audio, ["en-US"]).SelectMany(p => p.Fields).SelectMany(PropertiesChangedBy).ToHashSet();
         var settable = typeof(VoxSettings).GetProperties().Where(p => p.SetMethod is not null).Select(p => p.Name);
 
         var missing = settable.Except(shown).Except(SettingsPages.NotOnAnyPage).ToList();
@@ -129,6 +129,16 @@ public class SettingsPagesTests
 
         Assert.Equal(["Default", "Speakers", "Headphones"], Field<ChoiceField>(page, "Output device").Choices.Select(c => c.Text));
         Assert.Equal("subtle", Field<ChoiceField>(page, "Sound scheme").Set(new VoxSettings(), "subtle").EarconScheme);
+    }
+
+    [Fact]
+    public void OcrLanguages_ComeFromWhatWindowsCanRecognise()
+    {
+        var field = Field<ChoiceField>(SettingsPages.Review(["en-US", "fr-FR"]), "Text recognition language");
+
+        Assert.Equal([null, "en-US", "fr-FR"], field.Choices.Select(c => (string?)c.Value));
+        Assert.Equal("fr-FR", field.Set(new VoxSettings(), "fr-FR").OcrLanguage);
+        Assert.Null(field.Set(new VoxSettings { OcrLanguage = "fr-FR" }, null).OcrLanguage);
     }
 
     [Theory]

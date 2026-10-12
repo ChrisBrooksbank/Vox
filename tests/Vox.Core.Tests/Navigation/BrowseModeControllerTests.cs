@@ -96,6 +96,25 @@ public class BrowseModeControllerTests : IDisposable
         Assert.Equal("fr-FR", line!.Language);
     }
 
+    [Fact]
+    public void RecognitionTarget_IsTheGraphicAtTheCursor_ElseThePage()
+    {
+        var root = new MockElement { RuntimeId = [1], ControlType = "Document" };
+        var link = new MockElement { RuntimeId = [2], ControlType = "Hyperlink" };
+        link.AddChild(new MockElement { RuntimeId = [3], Name = "Sales chart", ControlType = "Image" });
+        root.AddChild(link);
+        root.AddChild(new MockElement { RuntimeId = [4], Name = "Figures for the year", AriaRole = "heading", AriaProperties = "level=2" });
+        var document = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+
+        Assert.Equal([3], _controller.RecognitionTarget()!.UIARuntimeId);
+        _controller.HandleCommand(NavigationCommand.NextLine);
+        Assert.Same(document.Root, _controller.RecognitionTarget());
+
+        _navigationManager.SwitchTo(InteractionMode.Focus, "test", announce: false);
+        Assert.Null(_controller.RecognitionTarget());
+    }
+
     // Document: H1 "Welcome" / text "Intro text" / link "Read more" / edit "Search"
     private static VBufferDocument BuildDocument()
     {

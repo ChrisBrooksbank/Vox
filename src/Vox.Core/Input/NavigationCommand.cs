@@ -268,5 +268,13 @@ public enum NavigationCommand
 
     // Zoom module
     ZoomCallState,
-    ZoomCallKey
+    ZoomCallKey,
+
+    // Text recognition
+    /// <summary>Recognises the text of the navigator object (while browsing: the graphic at the cursor, else the page) and reviews it.</summary>
+    RecognizeNavigator,
+    /// <summary>Recognises the text of the foreground window and reviews it.</summary>
+    RecognizeWindow,
+    /// <summary>Clicks the recognised word at the review cursor.</summary>
+    ClickRecognizedWord
 }

@@ -249,6 +249,11 @@ public record VoxSettings
     public bool MouseTracking { get; init; } = false;
     /// <summary>What mouse tracking reports: the object, or the line or word of text under the pointer.</summary>
     public MouseTextUnit MouseTextUnit { get; init; } = MouseTextUnit.Line;
+    /// <summary>
+    /// The language text recognition reads (a BCP 47 tag, "en-US", "fr"); null: Vox's language,
+    /// else the Windows user's languages. Windows must have that language's OCR feature.
+    /// </summary>
+    public string? OcrLanguage { get; init; }
 
     /// <summary>The braille display driver by id ("HID", "BRLTTY"); null: find a display automatically; "None": no braille.</summary>
     public string? BrailleDisplay { get; init; }

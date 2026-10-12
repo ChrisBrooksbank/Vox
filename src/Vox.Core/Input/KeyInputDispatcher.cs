@@ -103,6 +103,9 @@ public sealed class KeyInputDispatcher
     /// <summary>Switches to another keymap (another keyboard layout); takes effect with the next key.</summary>
     public void SetKeyMap(KeyMap keyMap) => _keyMap = keyMap;
 
+    /// <summary>The keymap in use.</summary>
+    public KeyMap KeyMap => _keyMap;
+
     // The foreground application's module's keys, checked before the keymap; null when it adds none
     private volatile KeyMap? _appKeyMap;
 

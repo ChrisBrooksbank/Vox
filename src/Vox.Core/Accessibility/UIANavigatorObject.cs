@@ -135,6 +135,16 @@ public sealed class UIANavigatorObject : INavigatorObject
         return ((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2);
     }
 
+    public Ocr.ScreenRect? GetBounds() => BoundsOf(_element);
+
+    /// <summary>An element's bounding rectangle, or null when it has none (off screen, no location). UIA thread only.</summary>
+    public static Ocr.ScreenRect? BoundsOf(IUIAutomationElement element)
+    {
+        var bounds = element.CurrentBoundingRectangle;
+        var rect = Ocr.ScreenRect.FromEdges(bounds.left, bounds.top, bounds.right, bounds.bottom);
+        return rect.IsEmpty ? null : rect;
+    }
+
     private object? Pattern(int patternId)
     {
         try { return _element.GetCurrentPattern(patternId); }

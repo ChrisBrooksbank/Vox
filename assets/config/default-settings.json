@@ -49,6 +49,7 @@
   "ReviewFollowsCaret": true,
   "MouseTracking": false,
   "MouseTextUnit": "Line",
+  "OcrLanguage": null,
   "BrailleDisplay": null,
   "BrailleTable": "en-ueb-g2.ctb",
   "BrailleCursorShape": "Underline",

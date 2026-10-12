@@ -58,8 +58,9 @@ public sealed record AudioOptions(IReadOnlyList<string> OutputDevices, IReadOnly
 /// </summary>
 public static class SettingsPages
 {
-    public static IReadOnlyList<SettingsPage> All(SpeechOptions speech, AudioOptions audio) =>
-        [General(), Speech(speech), Braille(), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Review(), Applications()];
+    /// <param name="ocrLanguages">The languages Windows can recognise text in (BCP 47 tags).</param>
+    public static IReadOnlyList<SettingsPage> All(SpeechOptions speech, AudioOptions audio, IReadOnlyList<string>? ocrLanguages = null) =>
+        [General(), Speech(speech), Braille(), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Review(ocrLanguages), Applications()];
 
     /// <summary>Settings no page shows: edited elsewhere (sleep mode's key, the wizard) or not by people.</summary>
     public static readonly IReadOnlySet<string> NotOnAnyPage = new HashSet<string>
@@ -199,12 +200,22 @@ public static class SettingsPages
         Choice(L("Setting.MouseTextUnit"), s => s.MouseTextUnit, (s, v) => s with { MouseTextUnit = v }),
     ]);
 
-    public static SettingsPage Review() => new(L("SettingsPage.Review"),
+    public static SettingsPage Review(IReadOnlyList<string>? ocrLanguages = null) => new(L("SettingsPage.Review"),
     [
         new ToggleField(L("Setting.SimpleReviewMode"), s => s.SimpleReviewMode, (s, v) => s with { SimpleReviewMode = v }),
         new ToggleField(L("Setting.ReviewFollowsFocus"), s => s.ReviewFollowsFocus, (s, v) => s with { ReviewFollowsFocus = v }),
         new ToggleField(L("Setting.ReviewFollowsCaret"), s => s.ReviewFollowsCaret, (s, v) => s with { ReviewFollowsCaret = v }),
+        new ChoiceField(L("Setting.OcrLanguage"),
+            [new SettingChoice(L("Choice.OcrLanguage.Automatic"), null), .. (ocrLanguages ?? []).Select(l => new SettingChoice(LanguageName(l), (object?)l))],
+            s => s.OcrLanguage, (s, v) => s with { OcrLanguage = (string?)v }),
     ]);
+
+    /// <summary>A language as people read it ("français (France)"), else its tag.</summary>
+    private static string LanguageName(string tag)
+    {
+        try { return System.Globalization.CultureInfo.GetCultureInfo(tag).NativeName; }
+        catch (System.Globalization.CultureNotFoundException) { return tag; }
+    }
 
     public static SettingsPage Speech(SpeechOptions options)
     {
