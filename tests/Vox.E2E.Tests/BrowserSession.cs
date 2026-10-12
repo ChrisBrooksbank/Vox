@@ -48,6 +48,32 @@ public sealed class BrowserSession : IDisposable
         return new BrowserSession(Process.Start(start)!, profile);
     }
 
+    /// <summary>The browser's main process (its own, thanks to the fresh profile; renderers are its descendants).</summary>
+    public Process Process => _process;
+
+    /// <summary>The browser's window, once it has one with a title.</summary>
+    public async Task<IntPtr> WindowAsync(TimeSpan timeout)
+    {
+        var window = await DesktopWindows.WaitForAsync(
+            w => w.ProcessId == _process.Id && w.ClassName == "Chrome_WidgetWin_1" && w.Title.Length > 0,
+            timeout, "the browser window");
+        return window.Handle;
+    }
+
+    /// <summary>Kills the browser and every process it started, as a crash would.</summary>
+    public void Kill()
+    {
+        try
+        {
+            if (!_process.HasExited)
+                _process.Kill(entireProcessTree: true);
+            _process.WaitForExit(5000);
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
     /// <summary>True when <paramref name="browser"/> is installed (scenarios for a missing one are left out).</summary>
     public static bool IsInstalled(Browser browser) => BrowserPath(browser) is not null;
 
@@ -71,15 +97,7 @@ public sealed class BrowserSession : IDisposable
 
     public void Dispose()
     {
-        try
-        {
-            if (!_process.HasExited)
-                _process.Kill(entireProcessTree: true);
-            _process.WaitForExit(5000);
-        }
-        catch (InvalidOperationException)
-        {
-        }
+        Kill();
         _process.Dispose();
         try { Directory.Delete(_profile, recursive: true); }
         catch (IOException) { }

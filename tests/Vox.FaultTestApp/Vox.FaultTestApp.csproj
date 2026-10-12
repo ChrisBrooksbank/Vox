@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A small WinForms app whose accessibility provider hangs or throws on demand, for the
+       end-to-end fault-injection runs (tests/Vox.E2E.Tests, docs/e2e.md). Not shipped. -->
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <IsPackable>false</IsPackable>
+    <AssemblyTitle>Vox fault test app</AssemblyTitle>
+  </PropertyGroup>
+</Project>

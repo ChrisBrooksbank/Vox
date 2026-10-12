@@ -14,7 +14,7 @@ public static class KeyNotation
         ["Space"] = 0x20, ["Left"] = KeyInjector.Left, ["Up"] = KeyInjector.Up, ["Right"] = KeyInjector.Right,
         ["Down"] = KeyInjector.Down, ["Home"] = KeyInjector.Home, ["End"] = KeyInjector.End,
         ["Delete"] = 0x2E, ["PageUp"] = 0x21, ["PageDown"] = 0x22, ["Backspace"] = 0x08,
-        ["Comma"] = 0xBC, ["Period"] = 0xBE,
+        ["Comma"] = 0xBC, ["Period"] = 0xBE, ["NumpadMinus"] = 0x6D, ["NumpadPlus"] = 0x6B,
     };
 
     /// <summary>The key and the modifiers held for it.</summary>
@@ -39,6 +39,8 @@ public static class KeyNotation
             return code;
         if (name.Length == 1 && char.IsAsciiLetterOrDigit(name[0]))
             return char.ToUpperInvariant(name[0]);
+        if (name.Length == 7 && name.StartsWith("Numpad", StringComparison.OrdinalIgnoreCase) && char.IsAsciiDigit(name[6]))
+            return (ushort)(0x60 + name[6] - '0');
         if (name.Length is 2 or 3 && (name[0] is 'F' or 'f') && int.TryParse(name[1..], out var f) && f is >= 1 and <= 12)
             return (ushort)(0x70 + f - 1);
         throw new FormatException($"Unknown key \"{name}\"");
