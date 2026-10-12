@@ -60,6 +60,10 @@ if (args is ["--remote-relay", .. var relayRest])
     return VoxExitCodes.Normal;
 }
 
+// Unattended import of NVDA's or JAWS's settings for deployment (docs/switching.md)
+if (args is ["--import-settings", var importSource, .. var importRest])
+    return SettingsImportTool.Run(importSource, importRest, policy);
+
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.File(

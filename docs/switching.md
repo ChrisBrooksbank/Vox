@@ -1,7 +1,18 @@
 # Bringing your settings from NVDA or JAWS
 
-Vox can read another screen reader's settings and bring over what it has a counterpart for. Each
-import ends with a report: what was brought over (with the value it replaced in Vox), and what was
+Vox can read another screen reader's settings and bring over what it has a counterpart for:
+
+- the first time Vox starts, the welcome wizard offers it when NVDA or JAWS settings are found
+  (1 brings them over, 2 JAWS's when both are there, Enter sets up Vox without them); the full
+  report opens when the wizard ends;
+- from the Vox menu (Insert+N), Import settings from NVDA or JAWS shows the report first, with
+  the screen reader to import from when both are found; nothing changes until you choose Import;
+- unattended, for deployment: `Vox.App --import-settings nvda|jaws [--user-profile <path>]`
+  imports the current user's settings (or those of the user whose profile folder is given, such
+  as `C:\Users\sam`, into that profile's `AppData\Roaming\Vox`), prints only what was imported,
+  and exits with 1 when there was nothing to import.
+
+Never on the sign-in, lock and UAC screens. Each import has a report: what was brought over (with the value it replaced in Vox), and what was
 skipped and why. Nothing of Vox's is replaced without a copy: a file the import changes is first
 copied beside itself as `<name>.<date>-<time>.bak` (for example `keymap.json.20261012-202530.bak`).
 

@@ -67,6 +67,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly AddOnCommands _addOnCommands;
     private readonly RemoteAccessSession _remoteSession;
     private readonly RemoteCommands _remoteCommands;
+    private readonly Vox.Core.Switching.SettingsImportCommands _importCommands;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -153,6 +154,7 @@ public sealed class ScreenReaderService : IHostedService
         AddOnCommands addOnCommands,
         RemoteAccessSession remoteSession,
         RemoteCommands remoteCommands,
+        Vox.Core.Switching.SettingsImportCommands importCommands,
         RunPolicy? runPolicy = null,
         RemoteSessionMonitor? remoteSessions = null)
     {
@@ -160,6 +162,7 @@ public sealed class ScreenReaderService : IHostedService
         _addOnCommands = addOnCommands;
         _remoteSession = remoteSession;
         _remoteCommands = remoteCommands;
+        _importCommands = importCommands;
         _remoteSessions = remoteSessions;
         _profiles = profiles;
         _profileCommands = profileCommands;
@@ -624,7 +627,8 @@ public sealed class ScreenReaderService : IHostedService
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
             && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
             && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command)
-            && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command))
+            && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command)
+            && !_importCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 

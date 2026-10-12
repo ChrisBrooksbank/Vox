@@ -168,4 +168,19 @@ public class SpeechEngineRegistryTests
 
         Assert.Equal(1, Started("OneCore").Cancels);
     }
+
+    [Fact]
+    public void VoicesOf_AsksAnEngineNotInUse_AndStopsItAgain()
+    {
+        var registry = Create();
+        registry.Select("OneCore");
+
+        Assert.Equal(["SAPI voice"], registry.VoicesOf("sapi"));
+        Assert.True(Started("SAPI").Disposed);
+        Assert.Equal(["OneCore voice"], registry.VoicesOf("OneCore"));
+        Assert.False(Started("OneCore").Disposed);
+        Assert.Null(registry.VoicesOf("missing"));
+        _failToStart.Add("Other");
+        Assert.Null(registry.VoicesOf("Other"));
+    }
 }

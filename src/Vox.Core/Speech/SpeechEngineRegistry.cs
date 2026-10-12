@@ -257,6 +257,38 @@ public sealed class SpeechEngineRegistry : ISpeechEngine, IDisposable
 
     public IReadOnlyList<string> GetAvailableVoices() => Current.GetAvailableVoices();
 
+    /// <summary>
+    /// The voices of the engine with <paramref name="id"/>, or null when there is no such engine or
+    /// it can't be started. An engine not in use is started just to ask, then stopped again.
+    /// </summary>
+    public IReadOnlyList<string>? VoicesOf(string id)
+    {
+        SpeechEngineDescriptor? descriptor;
+        lock (_lock)
+        {
+            descriptor = _engines.FirstOrDefault(e => string.Equals(e.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (descriptor is null)
+                return null;
+            if (descriptor == _currentDescriptor)
+                return _current!.GetAvailableVoices();
+        }
+        ISpeechEngine? engine = null;
+        try
+        {
+            engine = descriptor.Create();
+            return engine.GetAvailableVoices();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Speech engine {Engine} could not be asked for its voices", id);
+            return null;
+        }
+        finally
+        {
+            (engine as IDisposable)?.Dispose();
+        }
+    }
+
     public string? CurrentVoice => Current.CurrentVoice;
 
     public SpeechCapabilities Capabilities => Current.Capabilities;

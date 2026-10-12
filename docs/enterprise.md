@@ -60,6 +60,13 @@ Any other setting can be enforced by a value named after it under
 key deployed as `assets\config\addon-key.pem` beside Vox ([Add-ons](addons.md)). An enforced setting can't be changed in the settings dialog, by a
 configuration profile, or by editing `settings.json`.
 
+## Bringing over NVDA and JAWS settings
+
+`Vox.App --import-settings nvda|jaws [--user-profile <path>]` brings a user's NVDA or JAWS speech
+settings, keys and dictionaries over into Vox without asking (for example in a sign-in script, or
+for each profile folder with `--user-profile`), keeping a copy of each Vox file it replaces and
+printing only what was imported. See [Bringing your settings from NVDA or JAWS](switching.md).
+
 ## Roaming and local data
 
 User settings, keys, dictionaries and profiles are kept in `%APPDATA%\Vox`, which follows users

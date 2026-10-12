@@ -304,5 +304,9 @@ public enum NavigationCommand
     /// <summary>While connected to another computer: switches between sending keys to it and using this one.</summary>
     ToggleRemoteControl,
     /// <summary>Ends the remote session.</summary>
-    DisconnectRemote
+    DisconnectRemote,
+
+    // Switching from other screen readers
+    /// <summary>Brings over NVDA's or JAWS's settings, keys and dictionaries after showing what will change.</summary>
+    ImportSettings
 }

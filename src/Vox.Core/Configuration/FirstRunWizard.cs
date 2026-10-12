@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Vox.Core.Input;
 using Vox.Core.Localization;
 using Vox.Core.Speech;
+using Vox.Core.Switching;
 
 namespace Vox.Core.Configuration;
 
@@ -12,6 +13,7 @@ namespace Vox.Core.Configuration;
 ///
 /// Steps:
 ///   1. Welcome — Enter to continue, Escape to skip
+///      (then, when NVDA or JAWS settings are found: 1 or 2 brings them over, Enter goes on)
 ///   2. Speech rate — Up/Down to adjust live, speaks test sentence
 ///   3. Voice selection — Up/Down to cycle voices
 ///   4. Verbosity — 1=Beginner, 2=Intermediate, 3=Advanced
@@ -40,6 +42,9 @@ public sealed class FirstRunWizard
     private readonly Func<GestureEditor>? _lessonKeys;
     // While a practice lesson waits for a key, every key is the lesson's
     private volatile bool _swallowAllKeys;
+    // Offers to bring over NVDA's or JAWS's settings (none: not offered, e.g. on secure screens)
+    private readonly ISettingsImportOffer? _importOffer;
+    private ImportReport? _importReport;
 
     /// <summary>
     /// Whether the wizard is waiting for a key now. Keys pressed while it isn't are not its own
@@ -53,9 +58,11 @@ public sealed class FirstRunWizard
         SettingsMonitor settingsMonitor,
         IKeyboardHook keyboardHook,
         ILogger<FirstRunWizard> logger,
-        Func<GestureEditor>? lessonKeys = null)
+        Func<GestureEditor>? lessonKeys = null,
+        ISettingsImportOffer? importOffer = null)
     {
         _lessonKeys = lessonKeys;
+        _importOffer = importOffer;
         _speechEngine = speechEngine;
         _settingsManager = settingsManager;
         _settingsMonitor = settingsMonitor;
@@ -95,6 +102,9 @@ public sealed class FirstRunWizard
 
             // From here on Escape leaves the wizard, keeping what was chosen so far
             _exitOnEscape = true;
+
+            // NVDA's or JAWS's settings, when found: the steps after it start from them
+            settings = await RunImportStepAsync(settings, cancellationToken);
 
             // Step 2: Speech rate
             settings = await RunSpeechRateStepAsync(settings, cancellationToken);
@@ -147,6 +157,9 @@ public sealed class FirstRunWizard
             Volatile.Write(ref _keyWaiter, null);
             _keyboardHook.SuppressionFilter = previousFilter;
             _keyboardHook.KeyPressed -= OnKeyPressed;
+            // The import's full report, to read once the wizard has let go of the keyboard
+            if (Interlocked.Exchange(ref _importReport, null) is { } report)
+                _importOffer?.ShowReport(report);
         }
     }
 
@@ -207,6 +220,65 @@ public sealed class FirstRunWizard
             // 0: the engine doesn't say
             return max <= 0 ? DefaultMaxRateWpm : Math.Clamp(max, MinRateWpm, ISpeechEngine.MaxSupportedWpm);
         }
+    }
+
+    private async Task<VoxSettings> RunImportStepAsync(VoxSettings settings, CancellationToken cancellationToken)
+    {
+        if (_importOffer is null)
+            return settings;
+        IReadOnlyList<ImportSource> sources;
+        try
+        {
+            sources = _importOffer.FindSources();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not look for other screen readers' settings");
+            return settings;
+        }
+        if (sources.Count == 0)
+            return settings;
+
+        var prompt = sources.Count == 1
+            ? VoxStrings.Format("Wizard.ImportOffer", ImportReportText.SourceName(sources[0]))
+            : VoxStrings.Get("Wizard.ImportOfferBoth");
+        var key = await PromptAsync(prompt, cancellationToken);
+        ImportSource source;
+        while (true)
+        {
+            if (key.VkCode == VirtualKeys.Return)
+                return settings;
+            if (key.VkCode is VirtualKeys.D1 or VirtualKeys.NumPad1)
+            {
+                source = sources[0];
+                break;
+            }
+            if (key.VkCode is VirtualKeys.D2 or VirtualKeys.NumPad2 && sources.Count > 1)
+            {
+                source = sources[1];
+                break;
+            }
+            key = await WaitForKeyDownAsync(cancellationToken);
+        }
+
+        ImportReport? report;
+        try
+        {
+            report = await Task.Run(() => _importOffer.Import(source), cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Import of {Source} settings failed", source);
+            report = null;
+        }
+        if (report is null)
+        {
+            await SpeakAsync(VoxStrings.Get("Wizard.ImportFailed"), cancellationToken);
+            return settings;
+        }
+        _importReport = report;
+        await SpeakAsync(VoxStrings.Format("Wizard.ImportDone", report.Imported.Count, report.Skipped.Count), cancellationToken);
+        return _settingsMonitor.CurrentValue;
     }
 
     private async Task<VoxSettings> RunSpeechRateStepAsync(VoxSettings settings, CancellationToken cancellationToken)

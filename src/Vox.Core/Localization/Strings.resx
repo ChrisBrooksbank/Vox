@@ -4970,4 +4970,133 @@ The laptop layout has no numeric keypad keys. Application keys work only while t
     <value>{0} lines of output. {1}</value>
     <comment>{0}: the number of new lines; {1}: the last line</comment>
   </data>
+  <data name="Command.ImportSettings.Name" xml:space="preserve">
+    <value>Import settings from NVDA or JAWS</value>
+  </data>
+  <data name="Command.ImportSettings.Description" xml:space="preserve">
+    <value>Brings over your speech settings, keys and dictionaries from NVDA or JAWS, after showing what will change.</value>
+  </data>
+  <data name="VoxMenu.ImportSettings" xml:space="preserve">
+    <value>I&amp;mport settings from NVDA or JAWS...</value>
+  </data>
+  <data name="Import.Source.Nvda" xml:space="preserve">
+    <value>NVDA</value>
+  </data>
+  <data name="Import.Source.Jaws" xml:space="preserve">
+    <value>JAWS</value>
+  </data>
+  <data name="Import.Title" xml:space="preserve">
+    <value>Settings from {0}</value>
+    <comment>{0}: NVDA or JAWS</comment>
+  </data>
+  <data name="Import.Preview" xml:space="preserve">
+    <value>Nothing has been changed yet. Choose Import to bring over what is listed here; Vox keeps a copy of every file of its own it replaces.</value>
+  </data>
+  <data name="Import.Applied" xml:space="preserve">
+    <value>These settings have been brought over.</value>
+  </data>
+  <data name="Import.Summary" xml:space="preserve">
+    <value>{0} brought over, {1} not brought over.</value>
+    <comment>{0}: number of items imported; {1}: number skipped</comment>
+  </data>
+  <data name="Import.ImportedHeading" xml:space="preserve">
+    <value>Brought over:</value>
+  </data>
+  <data name="Import.ImportedChanged" xml:space="preserve">
+    <value>{0}: {1}, was {2}. From {3}</value>
+    <comment>{0}: Vox setting or file; {1}: new value; {2}: Vox's value before; {3}: where it came from</comment>
+  </data>
+  <data name="Import.ImportedNew" xml:space="preserve">
+    <value>{0}: {1}. From {2}</value>
+    <comment>{0}: Vox setting or file; {1}: new value; {2}: where it came from</comment>
+  </data>
+  <data name="Import.ImportedSame" xml:space="preserve">
+    <value>{0}: {1}, as it was already. From {2}</value>
+    <comment>{0}: Vox setting or file; {1}: value; {2}: where it came from</comment>
+  </data>
+  <data name="Import.NoValue" xml:space="preserve">
+    <value>nothing</value>
+  </data>
+  <data name="Import.SkippedHeading" xml:space="preserve">
+    <value>Not brought over:</value>
+  </data>
+  <data name="Import.SkippedItem" xml:space="preserve">
+    <value>{0}: {1}. {2}</value>
+    <comment>{0}: where it is in the other screen reader's files; {1}: its value; {2}: why it was skipped</comment>
+  </data>
+  <data name="Import.SkippedItemDetail" xml:space="preserve">
+    <value>{0}: {1}. {2} ({3})</value>
+    <comment>{0}: where; {1}: value; {2}: why; {3}: more detail</comment>
+  </data>
+  <data name="Import.Reason.NoCounterpart" xml:space="preserve">
+    <value>Vox has nothing like it</value>
+  </data>
+  <data name="Import.Reason.NotInstalled" xml:space="preserve">
+    <value>not installed for Vox</value>
+  </data>
+  <data name="Import.Reason.InvalidValue" xml:space="preserve">
+    <value>not understood</value>
+  </data>
+  <data name="Import.Reason.Malformed" xml:space="preserve">
+    <value>the line could not be read</value>
+  </data>
+  <data name="Import.Reason.Unsupported" xml:space="preserve">
+    <value>Vox does this its own way</value>
+  </data>
+  <data name="Import.Reason.Unreadable" xml:space="preserve">
+    <value>could not be read</value>
+  </data>
+  <data name="Import.FilesHeading" xml:space="preserve">
+    <value>Files read:</value>
+  </data>
+  <data name="Import.BackupsHeading" xml:space="preserve">
+    <value>Copies of Vox's files kept before they were replaced:</value>
+  </data>
+  <data name="Import.NoneFound" xml:space="preserve">
+    <value>No NVDA or JAWS settings were found on this computer.</value>
+  </data>
+  <data name="Import.NotHere" xml:space="preserve">
+    <value>Settings can't be imported here.</value>
+  </data>
+  <data name="Import.Done" xml:space="preserve">
+    <value>Settings from {0} brought over: {1} changes.</value>
+    <comment>{0}: NVDA or JAWS; {1}: number of changes</comment>
+  </data>
+  <data name="Import.NothingChanged" xml:space="preserve">
+    <value>Vox already has everything it could bring over from {0}.</value>
+    <comment>{0}: NVDA or JAWS</comment>
+  </data>
+  <data name="Import.Failed" xml:space="preserve">
+    <value>The settings could not be imported: {0}</value>
+    <comment>{0}: the error</comment>
+  </data>
+  <data name="Import.Dialog.Title" xml:space="preserve">
+    <value>Import settings</value>
+  </data>
+  <data name="Import.Dialog.Source" xml:space="preserve">
+    <value>&amp;From:</value>
+  </data>
+  <data name="Import.Dialog.Report" xml:space="preserve">
+    <value>What will be brought over</value>
+  </data>
+  <data name="Import.Dialog.ReportApplied" xml:space="preserve">
+    <value>What was brought over</value>
+  </data>
+  <data name="Import.Dialog.Import" xml:space="preserve">
+    <value>&amp;Import</value>
+  </data>
+  <data name="Wizard.ImportOffer" xml:space="preserve">
+    <value>Settings from {0} were found on this computer. Press 1 to bring them over: speech, keys and dictionaries. Press Enter to set up Vox yourself.</value>
+    <comment>{0}: NVDA or JAWS</comment>
+  </data>
+  <data name="Wizard.ImportOfferBoth" xml:space="preserve">
+    <value>Settings from NVDA and JAWS were found on this computer. Press 1 to bring over NVDA's, or 2 for JAWS's: speech, keys and dictionaries. Press Enter to set up Vox yourself.</value>
+  </data>
+  <data name="Wizard.ImportDone" xml:space="preserve">
+    <value>{0} settings brought over, {1} not. The full report opens when setup ends. Now check the speech.</value>
+    <comment>{0}: number imported; {1}: number skipped</comment>
+  </data>
+  <data name="Wizard.ImportFailed" xml:space="preserve">
+    <value>Those settings could not be brought over. Continuing with setup.</value>
+  </data>
 </root>

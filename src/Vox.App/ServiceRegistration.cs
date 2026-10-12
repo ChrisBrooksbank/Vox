@@ -28,6 +28,7 @@ using Vox.Core.Ocr;
 using Vox.Core.Pipeline;
 using Vox.Core.Remote;
 using Vox.Core.Speech;
+using Vox.Core.Switching;
 using Vox.Core.Text;
 using Vox.Core.Updates;
 
@@ -314,7 +315,9 @@ public static class ServiceRegistration
                 // The practice lessons teach the keys in use: the layout's and the user's own
                 () => new GestureEditor(
                     KeyMap.LayoutBindings(Path.Combine(AppContext.BaseDirectory, "assets", "config"), settings.CurrentValue.KeyboardLayout),
-                    KeyMap.ReadUserBindings(policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null)));
+                    KeyMap.ReadUserBindings(policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null)),
+                // NVDA's or JAWS's settings are offered when found (never on secure screens)
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? sp.GetRequiredService<SettingsImportCommands>() : null);
         });
 
         // Navigation
@@ -432,6 +435,31 @@ public static class ServiceRegistration
                 lifetime.StopApplication,
                 policy.AllowSettingsWrites ? Path.Combine(VoxPaths.UserData, "update-check.txt") : null,
                 sp.GetRequiredService<ILogger<UpdateCommands>>());
+        });
+        // Settings from NVDA and JAWS (Vox menu, first-run wizard); none on secure screens
+        services.AddSingleton<ISettingsImportPresenter, SettingsImportPresenter>();
+        services.AddSingleton<SettingsImportCommands>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();
+            var keyMapLogger = sp.GetRequiredService<ILogger<KeyMap>>();
+            var speech = sp.GetRequiredService<SpeechEngineRegistry>();
+            var configDirectory = Path.Combine(AppContext.BaseDirectory, "assets", "config");
+            var import = policy.AllowSettingsWrites && policy.AllowUserProfileAccess
+                ? new SettingsImport(ImportLocations.ForCurrentUser(policy.SettingsPath), speech.VoicesOf,
+                    layout => KeyMap.LayoutBindings(configDirectory, layout))
+                : null;
+            return new SettingsImportCommands(
+                import,
+                sp.GetRequiredService<ISettingsImportPresenter>(),
+                settings,
+                sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+                () => dispatcher.SetKeyMap(LoadKeyMap(settings.CurrentValue.KeyboardLayout, keyMapLogger, policy)),
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<EventPipeline>(),
+                sp.GetRequiredService<ILogger<SettingsImportCommands>>(),
+                sp.GetRequiredService<SpeechQueue>());
         });
         services.AddSingleton<SettingsCommands>(sp =>
         {
