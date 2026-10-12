@@ -5,6 +5,7 @@ using Vox.Core.Audio;
 using Vox.Core.Buffer;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 using Vox.Core.MathSpeech;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
@@ -36,6 +37,10 @@ public sealed class BrowseModeController
     private sealed record PartialLoad(string Key, RememberedDocument? Earlier, int PlacedOffset);
     // The overlay (cookie banner, modal dialog) last announced, so it is announced once
     private int[]? _announcedOverlay;
+    // The CAPTCHA last announced, so it is announced once
+    private int[]? _announcedCaptcha;
+    // Where Insert+Ctrl+M went last: the page, and which suggestion
+    private (VBufferDocument Document, int Index)? _mainContent;
     private readonly IAudioCuePlayer _audioCuePlayer;
     private readonly NavigationManager _navigationManager;
     private readonly QuickNavHandler _quickNavHandler;
@@ -466,6 +471,12 @@ public sealed class BrowseModeController
         if (command == NavigationCommand.PageSummary)
         {
             Speak(PageSummary.Describe(_quickNavHandler.CurrentDocument));
+            return;
+        }
+
+        if (command == NavigationCommand.MoveToMainContent)
+        {
+            MoveToMainContent();
             return;
         }
 
@@ -1004,6 +1015,7 @@ public sealed class BrowseModeController
         if (fresh && PdfDocuments.LoadAnnouncement(document, RecognizeKey) is { } pdf)
             _speechQueue.Enqueue(new Utterance(pdf, SpeechPriority.Normal));
         AnnounceOverlay(document);
+        AnnounceCaptcha(document);
 
         // A web application (an editor, VS Code, Teams) is used through its own keys
         if (fresh && DocumentModes.Initial(document, processName, _settings.CurrentValue.AppDefaultModes) == InteractionMode.Focus)
@@ -1117,6 +1129,7 @@ public sealed class BrowseModeController
         _cursor.SetDocument(updated, newOffset);
         KeepInModalScope();
         AnnounceOverlay(updated);
+        AnnounceCaptcha(updated);
         if (selecting)
             _selection.Rebase(updated, result.OldTextStart, result.OldTextEnd, result.TextDelta, _cursor.TextOffset);
         else
@@ -1395,6 +1408,58 @@ public sealed class BrowseModeController
         _announcedOverlay = id;
         _speechQueue.Enqueue(new Utterance(OverlayDetector.Announcement(overlay!, DismissOverlayKey), SpeechPriority.Normal));
     }
+
+    /// <summary>
+    /// Says that a page has a CAPTCHA and the accessible way through it (the audio challenge, an
+    /// accessibility option), once per CAPTCHA; never tries to solve it. Queued after what is
+    /// being said.
+    /// </summary>
+    private void AnnounceCaptcha(VBufferDocument document)
+    {
+        if (!_settings.CurrentValue.AnnounceCaptchas)
+            return;
+        var captcha = CaptchaDetector.Find(document);
+        var id = captcha?.Node.UIARuntimeId;
+        if (id is null || (_announcedCaptcha is not null && id.AsSpan().SequenceEqual(_announcedCaptcha)))
+        {
+            // Gone (solved, or the page moved on): announce it again if it comes back
+            _announcedCaptcha = id;
+            return;
+        }
+        _announcedCaptcha = id;
+        _speechQueue.Enqueue(new Utterance(CaptchaDetector.Announcement(captcha!), SpeechPriority.Normal));
+    }
+
+    /// <summary>
+    /// Moves to where the main content starts (<see cref="MainContent"/>); pressed again on the
+    /// same page, to the next suggestion.
+    /// </summary>
+    private void MoveToMainContent()
+    {
+        var document = _quickNavHandler.CurrentDocument!;
+        var suggestions = MainContent.Suggestions(document);
+        if (suggestions.Count == 0)
+        {
+            Speak(VoxStrings.Get("MainContent.None"));
+            return;
+        }
+        int index = _mainContent is { } last && ReferenceEquals(last.Document, document)
+            ? (last.Index + 1) % suggestions.Count
+            : 0;
+        _mainContent = (document, index);
+        var suggestion = suggestions[index];
+        MoveTo(suggestion.Node);
+        Speak(suggestion.Reason);
+        // After the reason, not over it
+        _speechQueue.Enqueue(new Utterance(LineText(_cursor!.ReadCurrentLine()), SpeechPriority.High)
+        {
+            Language = _cursor.CurrentNode?.Language is { Length: > 0 } language ? language : null,
+        });
+    }
+
+    /// <summary>The page being browsed (for a summary), or null when not browsing. Pipeline thread.</summary>
+    public VBufferDocument? BrowsedDocument() =>
+        _documentActive && _navigationManager.CurrentMode == InteractionMode.Browse ? _quickNavHandler.CurrentDocument : null;
 
     /// <summary>
     /// The key a command is on in the keymap in use, as people read it ("Insert+R"), or null when

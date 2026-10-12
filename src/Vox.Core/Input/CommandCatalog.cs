@@ -94,7 +94,8 @@ public static class CommandCatalog
         Add(CommandCategory.BrowseMode,
             NavigationCommand.ActivateElement, NavigationCommand.ToggleMode, NavigationCommand.ExitFocusMode,
             NavigationCommand.ElementsList, NavigationCommand.PageSummary, NavigationCommand.SayLinkUrl,
-            NavigationCommand.DismissOverlay, NavigationCommand.InteractWithMath);
+            NavigationCommand.DismissOverlay, NavigationCommand.InteractWithMath, NavigationCommand.SummarizePage,
+            NavigationCommand.MoveToMainContent);
         Add(CommandCategory.Tables,
             NavigationCommand.TableNextColumn, NavigationCommand.TablePrevColumn, NavigationCommand.TableNextRow,
             NavigationCommand.TablePrevRow, NavigationCommand.TableFirstCell, NavigationCommand.TableLastCell,
@@ -118,7 +119,7 @@ public static class CommandCatalog
             NavigationCommand.ReviewPrevChar, NavigationCommand.ReviewCurrentChar, NavigationCommand.ReviewNextChar,
             NavigationCommand.ReviewTop, NavigationCommand.ReviewBottom, NavigationCommand.NextReviewMode,
             NavigationCommand.PrevReviewMode, NavigationCommand.RecognizeNavigator, NavigationCommand.RecognizeWindow,
-            NavigationCommand.ClickRecognizedWord);
+            NavigationCommand.ClickRecognizedWord, NavigationCommand.DescribeObject, NavigationCommand.AskAboutScreen);
         Add(CommandCategory.Mouse,
             NavigationCommand.ToggleMouseTracking, NavigationCommand.RouteMouseToNavigator,
             NavigationCommand.MouseLeftClick, NavigationCommand.MouseRightClick, NavigationCommand.ToggleLeftMouseLock);
@@ -136,7 +137,7 @@ public static class CommandCatalog
             NavigationCommand.OpenUserGuide, NavigationCommand.CheckForUpdates, NavigationCommand.CreatePortableCopy,
             NavigationCommand.RunTutorial, NavigationCommand.ExitVox, NavigationCommand.OpenCommandSearch,
             NavigationCommand.OpenInputGestures, NavigationCommand.OpenSettings, NavigationCommand.ToggleInputHelp,
-            NavigationCommand.RunSetup, NavigationCommand.Quit, NavigationCommand.OpenProfiles);
+            NavigationCommand.RunSetup, NavigationCommand.Quit, NavigationCommand.OpenProfiles, NavigationCommand.SetAiKey);
         // Application modules: only while their application is in the foreground
         Add(CommandCategory.Applications,
             NavigationCommand.ExcelReadFormula, NavigationCommand.ExcelReadComment, NavigationCommand.ExcelSetColumnTitles,

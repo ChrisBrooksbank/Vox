@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.Ai;
 using Vox.Core.AppModules;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
@@ -59,6 +60,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SleepMode _sleepMode;
     private readonly MouseCommands _mouseCommands;
     private readonly OcrCommands _ocr;
+    private readonly AiCommands _ai;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -140,6 +142,7 @@ public sealed class ScreenReaderService : IHostedService
         ProfileManager profiles,
         ProfileCommands profileCommands,
         OcrCommands ocr,
+        AiCommands ai,
         RunPolicy? runPolicy = null,
         RemoteSessionMonitor? remoteSessions = null)
     {
@@ -157,6 +160,7 @@ public sealed class ScreenReaderService : IHostedService
         _sleepMode = sleepMode;
         _mouseCommands = mouseCommands;
         _ocr = ocr;
+        _ai = ai;
         _objectNavigation = objectNavigation;
         _speechViewer = speechViewer;
         _duckingController = duckingController;
@@ -257,6 +261,10 @@ public sealed class ScreenReaderService : IHostedService
         _review.BrowseTether = _browseModeController.ReviewTether;
         // While browsing, text recognition reads the graphic at the cursor or the page
         _ocr.BrowseTarget = _browseModeController.RecognitionTarget;
+        // ... and so does describing; the summary reads the page being browsed
+        _ai.BrowseTarget = _browseModeController.RecognitionTarget;
+        _ai.BrowseDocument = _browseModeController.BrowsedDocument;
+        _ai.MainContentKey = () => KeyNameFor(NavigationCommand.MoveToMainContent);
         _browseModeController.KeyNameFor = KeyNameFor;
 
         // Keep key resolution in sync with the browse/focus mode and document focus
@@ -375,6 +383,10 @@ public sealed class ScreenReaderService : IHostedService
         _appModules.Stop();
         _review.BrowseTether = null;
         _ocr.BrowseTarget = null;
+        _ai.BrowseTarget = null;
+        _ai.BrowseDocument = null;
+        _ai.MainContentKey = null;
+        _ai.Cancel();
         _browseModeController.KeyNameFor = null;
         _speechQueue.IsMuted = null;
         _keyInputDispatcher.IsAsleep = null;
@@ -573,8 +585,12 @@ public sealed class ScreenReaderService : IHostedService
             _speechQueue.Enqueue(new Utterance(message, SpeechPriority.Interrupt));
             return;
         }
+        // Stopping speech also stops waiting for an AI answer
+        if (e.Command == NavigationCommand.StopSpeech)
+            _ai.Cancel();
         if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
             && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command) && !_ocr.TryHandle(e.Command)
+            && !_ai.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
             && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
             && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command))

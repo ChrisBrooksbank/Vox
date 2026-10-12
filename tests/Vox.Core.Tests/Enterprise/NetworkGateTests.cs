@@ -119,6 +119,36 @@ public class NetworkGateTests
         Assert.Contains("network is turned off", logger.AllText);
     }
 
+    [Fact]
+    public async Task TheCloudDescriber_IsStoppedByItsClient_Too()
+    {
+        var wire = new Tripwire();
+        var settings = new Moq.Mock<Microsoft.Extensions.Options.IOptionsMonitor<Vox.Core.Configuration.VoxSettings>>();
+        settings.Setup(m => m.CurrentValue).Returns(new Vox.Core.Configuration.VoxSettings { AiCloudProvider = Vox.Core.Ai.AiCloudProvider.Claude });
+        var describer = new Vox.Core.Ai.CloudImageDescriber(NetworkGate.CreateHttpClient(NetworkOff, TimeSpan.FromSeconds(5), wire),
+            settings.Object, new Ai.FakeKeyStore("key"), NullLogger<Vox.Core.Ai.CloudImageDescriber>.Instance);
+
+        var failed = await Assert.ThrowsAsync<Vox.Core.Ai.AiException>(() =>
+            describer.DescribeAsync(new Vox.Core.Ai.AiRequest(Vox.Core.Ai.AiTask.SummarizePage, Context: "text")));
+
+        Assert.Equal(Vox.Core.Ai.AiFailure.Failed, failed.Failure);
+        Assert.Equal(0, wire.Requests);
+    }
+
+    [Theory]
+    [InlineData("http://192.0.2.1:11434")]
+    [InlineData("https://models.example.com")]
+    public void TheLocalDescriber_NeverUsesAnotherComputer(string endpoint)
+    {
+        var settings = new Moq.Mock<Microsoft.Extensions.Options.IOptionsMonitor<Vox.Core.Configuration.VoxSettings>>();
+        settings.Setup(m => m.CurrentValue).Returns(new Vox.Core.Configuration.VoxSettings { AiLocalModel = "llava", AiLocalEndpoint = endpoint });
+        var describer = new Vox.Core.Ai.LocalImageDescriber(NetworkGate.CreateHttpClient(RunPolicy.Normal, TimeSpan.FromSeconds(5), new Tripwire()),
+            settings.Object, NullLogger<Vox.Core.Ai.LocalImageDescriber>.Instance);
+
+        Assert.False(describer.IsAvailable);
+        Assert.Null(describer.Endpoint);
+    }
+
     // Types that open connections
     private static readonly Regex NetworkTypes = new(
         @"\b(HttpClient|HttpClientHandler|SocketsHttpHandler|WinHttpHandler|TcpClient|TcpListener|UdpClient|Socket|WebClient|WebRequest|HttpWebRequest|ClientWebSocket|Dns|Ping|SmtpClient|FtpWebRequest)\b");
@@ -131,6 +161,8 @@ public class NetworkGateTests
         ["Vox.Core/Enterprise/NetworkGate.cs"] = "the gate itself",
         ["Vox.Core/Updates/UpdateChecker.cs"] = "uses the HttpClient it is given (NetworkGate's) and checks RunPolicy.AllowNetwork",
         ["Vox.Core/Braille/Brltty/BrlttyDisplay.cs"] = "connects only after NetworkGate.MayConnect",
+        ["Vox.Core/Ai/CloudImageDescriber.cs"] = "uses the HttpClient it is given (NetworkGate's); AiConsent refuses while the network is off",
+        ["Vox.Core/Ai/LocalImageDescriber.cs"] = "uses the HttpClient it is given (NetworkGate's) and only ever a loopback address",
     };
 
     private static string SourceDirectory =>

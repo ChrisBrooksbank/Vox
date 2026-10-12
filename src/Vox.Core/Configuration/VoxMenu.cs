@@ -23,6 +23,7 @@ public static class VoxMenu
         Item(NavigationCommand.OpenUserGuide),
         Item(NavigationCommand.RunTutorial),
         Item(NavigationCommand.CreatePortableCopy),
+        Item(NavigationCommand.SetAiKey),
         Item(NavigationCommand.CheckForUpdates),
         Item(NavigationCommand.RunSetup),
         Item(NavigationCommand.ExitVox),

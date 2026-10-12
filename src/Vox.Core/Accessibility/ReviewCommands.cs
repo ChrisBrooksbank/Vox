@@ -54,7 +54,7 @@ public sealed class ReviewCommands
 
     // Recognised text under review (UIA thread), until focus or the caret moves, the review mode
     // changes or (while browsing) the browse cursor moves
-    private OcrDocument? _recognized;
+    private ITextDocument? _recognized;
     private ReviewTether? _recognizedTether;
     private volatile bool _leaveRecognized;
 
@@ -213,11 +213,12 @@ public sealed class ReviewCommands
     }
 
     /// <summary>
-    /// Reviews recognised text (<see cref="OcrCommands"/>) from its start, until focus or the
-    /// caret moves, the review mode changes or the browse cursor moves away from
-    /// <paramref name="tether"/> (where it was when recognition started; null: not browsing).
+    /// Reviews recognised text (<see cref="OcrCommands"/>) or an answer (<see cref="Ai.AiCommands"/>)
+    /// from its start, until focus or the caret moves, the review mode changes or the browse cursor
+    /// moves away from <paramref name="tether"/> (where it was when the command started; null: not
+    /// browsing).
     /// </summary>
-    public Task ShowRecognizedAsync(OcrDocument document, ReviewTether? tether) => _uiaThread.RunAsync(() =>
+    public Task ShowRecognizedAsync(ITextDocument document, ReviewTether? tether) => _uiaThread.RunAsync(() =>
     {
         _leaveRecognized = false;
         _recognized = document;
@@ -238,7 +239,7 @@ public sealed class ReviewCommands
     {
         var tether = BrowseTether?.Invoke();
         return _uiaThread.RunAsync(() =>
-            InRecognizedText(tether) && _cursor.Position is { } position ? _recognized!.WordAt(position) : null);
+            InRecognizedText(tether) && _recognized is OcrDocument ocr && _cursor.Position is { } position ? ocr.WordAt(position) : null);
     }
 
     /// <summary>

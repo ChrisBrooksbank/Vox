@@ -254,6 +254,28 @@ public record VoxSettings
     /// else the Windows user's languages. Windows must have that language's OCR feature.
     /// </summary>
     public string? OcrLanguage { get; init; }
+    /// <summary>
+    /// The cloud provider that describes pictures and answers questions about the screen, with the
+    /// user's own key (Vox menu, Set AI provider key); None: only a model on this computer.
+    /// </summary>
+    public Ai.AiCloudProvider AiCloudProvider { get; init; } = Ai.AiCloudProvider.None;
+    /// <summary>The cloud provider's model; null: its default (Claude: claude-opus-5-5).</summary>
+    public string? AiModel { get; init; }
+    /// <summary>The cloud provider's address; null: its own (Claude: https://api.anthropic.com).</summary>
+    public string? AiEndpoint { get; init; }
+    /// <summary>Whether things may be sent to the cloud provider: ask once per session, allow, or never.</summary>
+    public Ai.AiConsentMode AiCloudConsent { get; init; } = Ai.AiConsentMode.Ask;
+    /// <summary>
+    /// Applications (process names) whose windows are never sent to the cloud provider. Password
+    /// fields and the secure screens never are, whatever is listed.
+    /// </summary>
+    public List<string> AiPrivateApps { get; init; } = ["KeePass", "KeePassXC", "1Password", "Bitwarden"];
+    /// <summary>A vision model on this computer (served by Ollama), used before the cloud provider; null: none.</summary>
+    public string? AiLocalModel { get; init; }
+    /// <summary>Where the local model is served; only an address on this computer is ever used.</summary>
+    public string AiLocalEndpoint { get; init; } = Ai.LocalImageDescriber.DefaultEndpoint;
+    /// <summary>Say when a page has a CAPTCHA, and where its audio or accessible alternative is.</summary>
+    public bool AnnounceCaptchas { get; init; } = true;
 
     /// <summary>The braille display driver by id ("HID", "BRLTTY"); null: find a display automatically; "None": no braille.</summary>
     public string? BrailleDisplay { get; init; }
