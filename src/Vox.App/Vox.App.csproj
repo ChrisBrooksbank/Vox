@@ -62,4 +62,18 @@
     <Exec Condition="'$(OS)' == 'Windows_NT'" ContinueOnError="true"
           Command="dotnet &quot;$(TargetPath)&quot; --keyboard-reference &quot;$(TargetDir)docs\guide\keyboard.html&quot;" />
   </Target>
+
+  <!--
+    dotnet publish copies only the build's own outputs, so the assets and the guide copied above
+    are added to the publish folder too: Vox finds them beside itself at runtime (the installer and
+    the portable zip are made from this folder).
+  -->
+  <Target Name="PublishVoxAssets" AfterTargets="Publish">
+    <ItemGroup>
+      <_VoxBuiltAssets Include="$(OutDir)assets\**\*" />
+      <_VoxBuiltGuide Include="$(OutDir)docs\guide\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_VoxBuiltAssets)" DestinationFolder="$(PublishDir)assets\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_VoxBuiltGuide)" DestinationFolder="$(PublishDir)docs\guide\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

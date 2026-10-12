@@ -1,9 +1,10 @@
 name: Release
 
-# Builds the Vox installer (Vox.msi) on demand: publishes Vox.App, Vox.Watchdog and Vox.Service
-# self-contained into one folder, signs them and the MSI when a certificate is configured (UI
-# access needs a signed Vox in Program Files; docs/signing.md), and builds the MSI from them
-# (docs/installer.md).
+# Builds the Vox installer (Vox.msi) and a portable zip on demand: publishes Vox.App, Vox.Watchdog
+# and Vox.Service self-contained into one folder, signs them and the MSI when a certificate is
+# configured (UI access needs a signed Vox in Program Files; docs/signing.md), and builds the MSI
+# from them (docs/installer.md). With "Publish a GitHub release" it also makes a release (a
+# pre-release unless told otherwise) with both files, so they download without a GitHub account.
 on:
   workflow_dispatch:
     inputs:
@@ -11,9 +12,17 @@ on:
         description: Version (major.minor.patch)
         required: true
         default: 0.1.0
+      publish:
+        description: Publish a GitHub release with the installer and the portable zip
+        type: boolean
+        default: false
+      prerelease:
+        description: Mark the GitHub release as a pre-release (beta)
+        type: boolean
+        default: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   installer:
@@ -54,6 +63,17 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
 
+      # The keyboard reference is made by running Vox.App; a framework-dependent, unsigned build can
+      # run anywhere (a signed UI-access exe starts only from Program Files)
+      - name: Add the keyboard reference to the user guide
+        shell: pwsh
+        run: |
+          dotnet build src/Vox.App -c Release -o build-guide
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force "$env:PUBLISH_DIR\docs\guide" | Out-Null
+          dotnet build-guide\Vox.App.dll --keyboard-reference "$env:PUBLISH_DIR\docs\guide\keyboard.html"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Sign the published programs
         if: env.HAS_CERTIFICATE == 'true'
         shell: pwsh
@@ -76,8 +96,32 @@ jobs:
           & $env:SIGNTOOL sign /f "$env:RUNNER_TEMP\vox.pfx" /p $env:SIGNING_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 (Get-ChildItem installer-out\*.msi).FullName
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload the installer
+      # The portable copy: the same files with an empty userConfig folder, so it keeps its settings
+      # beside itself (VoxPaths) and runs from any folder or USB stick without installing
+      - name: Make the portable zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "$env:PUBLISH_DIR\userConfig" | Out-Null
+          New-Item -ItemType File -Force "$env:PUBLISH_DIR\userConfig\.portable" | Out-Null
+          Copy-Item installer-out\*.msi "Vox-${{ inputs.version }}.msi"
+          Compress-Archive -Path "$env:PUBLISH_DIR\*" -DestinationPath "Vox-${{ inputs.version }}-portable.zip"
+
+      - name: Upload the installer and the portable zip
         uses: actions/upload-artifact@v4
         with:
           name: Vox-${{ inputs.version }}
-          path: installer-out/*.msi
+          path: |
+            Vox-${{ inputs.version }}.msi
+            Vox-${{ inputs.version }}-portable.zip
+
+      - name: Publish the GitHub release
+        if: inputs.publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $flags = @()
+          if ('${{ inputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
+          gh release create "v${{ inputs.version }}" "Vox-${{ inputs.version }}.msi" "Vox-${{ inputs.version }}-portable.zip" `
+            --target $env:GITHUB_SHA --title "Vox ${{ inputs.version }}" --generate-notes @flags
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -44,7 +44,8 @@ sealed class ProcessLauncher(string path, string[] arguments) : IProcessLauncher
     // Vox.App is told it is supervised, so a restart it is asked for goes through its exit code
     public IRunningProcess Start(bool safeMode)
     {
-        var info = new ProcessStartInfo(path) { UseShellExecute = false };
+        // Vox.App is a console program (its tools print); started by the watchdog it gets no window
+        var info = new ProcessStartInfo(path) { UseShellExecute = false, CreateNoWindow = true };
         foreach (var argument in RestartRequest.ArgumentsFor(arguments, safeMode, supervised: true))
             info.ArgumentList.Add(argument);
         return new RunningProcess(Process.Start(info) ?? throw new InvalidOperationException($"Could not start {path}"));

@@ -6,7 +6,7 @@
 msiexec /i Vox.msi /qn STARTATLOGON=1 UPDATECHANNEL=Off KEYBOARDLAYOUT=Laptop
 ```
 
-The MSI installs per machine to `Program Files\Vox` (needed for UI access, `docs/signing.md`).
+The MSI installs per machine to `Program Files\Vox` (needed for UI access, [Signing Vox and UI access](signing.md)).
 
 | Property | Default | Meaning |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ From lowest to highest, a later layer winning for each setting it has:
 1. Vox's built-in defaults (`assets/config/default-settings.json`);
 2. the computer's defaults: `%ProgramData%\Vox\machine-settings.json` (any settings, same format
    as a user's `settings.json`), then `HKLM\Software\Vox\Defaults` (the installer's properties);
-3. the user's settings (`settings.json`) and their configuration profiles (`docs/profiles.md`);
+3. the user's settings (`settings.json`) and their configuration profiles ([Configuration profiles](profiles.md));
 4. **Group Policy**, which always wins and can't be changed by the user.
 
 Values that can't be used (an unknown setting, a bad value) are logged and left out.
@@ -47,7 +47,7 @@ Store) and `installer/policy/en-US/Vox.adml` to its `en-US` folder. The policies
 | Turn off all network access | `DisableNetwork` = 1 | No network connection of any kind (see below); no update checks |
 | Turn off update checks | `DisableUpdates` = 1 | Update channel forced to Off |
 | Update channel | `UpdateChannel` = Stable/Beta/Off | Forced; users can't change it |
-| Turn off optional components and add-ons | `DisableAddOns` = 1 | eSpeak NG, MathCAT and liblouis aren't loaded; no add-on is loaded, installed or offered by the store (`docs/addons.md`) |
+| Turn off optional components and add-ons | `DisableAddOns` = 1 | eSpeak NG, MathCAT and liblouis aren't loaded; no add-on is loaded, installed or offered by the store ([Add-ons](addons.md)) |
 | Turn off AI features | `DisableAI` = 1 | No image descriptions or explanations |
 | Start Vox at sign-in | `StartAtLogon` = 1/0 | Forced on or off |
 | Lock all settings | `LockSettings` = 1 | No setting can be changed; the settings dialog shows them as set by the organization |
@@ -57,7 +57,7 @@ Any other setting can be enforced by a value named after it under
 `Software\Policies\Vox\Settings` (REG_SZ, or REG_DWORD for numbers and on/off), e.g.
 `PunctuationLevel` = `All`. An organization can run its own add-on catalogue this way:
 `AddOnCatalogueUrl` = the address (or file path) of its signed `catalogue.json`, with its public
-key deployed as `assets\config\addon-key.pem` beside Vox (`docs/addons.md`). An enforced setting can't be changed in the settings dialog, by a
+key deployed as `assets\config\addon-key.pem` beside Vox ([Add-ons](addons.md)). An enforced setting can't be changed in the settings dialog, by a
 configuration profile, or by editing `settings.json`.
 
 ## Roaming and local data
@@ -70,7 +70,7 @@ too (for shared or kiosk computers). A portable copy keeps everything beside its
 ## No network unless allowed
 
 Vox only uses the network to check for updates, for the add-on store, for remote access
-(`docs/remote.md`) and for cloud AI the user set up (and to talk to BRLTTY or a local AI model on
+([Remote access](remote.md)) and for cloud AI the user set up (and to talk to BRLTTY or a local AI model on
 the same computer). Every connection goes through one gate (`NetworkGate`): with `DisableNetwork`
 set, or on the secure screens, it refuses every connection that leaves the computer, the update
 checker never runs, the store only reads a catalogue on the computer itself, and remote access
@@ -78,4 +78,4 @@ neither connects nor listens. A unit test checks that every network user in Vox 
 
 ## Remote sessions
 
-See `docs/remote-sessions.md`. Install Vox on the session host and start it inside the session.
+See [Remote Desktop and Citrix](remote-sessions.md). Install Vox on the session host and start it inside the session.

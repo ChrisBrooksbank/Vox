@@ -1,6 +1,6 @@
 # MathCAT (optional math speech)
 
-[MathCAT](https://github.com/NSoiffer/MathCAT) turns MathML into speech ("x squared", "fraction a over b") and lets you explore an expression part by part. Vox doesn't ship it: install it as a separate component, as with eSpeak NG (`docs/espeak.md`).
+[MathCAT](https://github.com/NSoiffer/MathCAT) turns MathML into speech ("x squared", "fraction a over b") and lets you explore an expression part by part. Vox doesn't ship it: install it as a separate component, as with [eSpeak NG](espeak.md).
 
 ## Installing
 

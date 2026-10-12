@@ -40,7 +40,8 @@
 
 <h2 id="start">Getting started</h2>
 <p>When Vox starts for the first time, a short welcome wizard asks how fast to speak, how much detail you want and which key to use as the Vox key. Run it again at any time from the Vox menu (<kbd>Insert+N</kbd>), or with <kbd>Insert+Ctrl+S</kbd>.</p>
-<p>To quit Vox, press <kbd>Insert+Q</kbd> twice, or choose Exit Vox in the Vox menu.</p>
+<p>To start Vox, press <kbd>Ctrl+Alt+V</kbd> (the installer sets up this key). To start it every time you sign in, check Start Vox when I sign in on the General page of the settings (<kbd>Insert+Ctrl+G</kbd>).</p>
+<p>To quit Vox, press <kbd>Insert+Q</kbd> twice, or choose Exit Vox in the Vox menu. <kbd>Ctrl</kbd> stops speech at any time.</p>
 
 <h2 id="vox-key">The Vox key</h2>
 <p>Most Vox commands are pressed with the Vox key held down: <kbd>Insert</kbd>, or <kbd>Caps Lock</kbd> if you chose it. Keys pressed with the Vox key are always Vox's: they never reach the application. To use the Vox key's own function (turn Caps Lock on, for example), press it twice quickly.</p>
@@ -117,7 +118,7 @@
   <li>If an application stops responding, Vox says so and keeps working everywhere else.</li>
   <li>If Vox itself stops, it restarts on its own. If an add-on is the trouble, Restart with add-ons disabled (Vox menu) starts Vox without any.</li>
   <li><kbd>Insert+F1</kbd> says details of the focused control (useful in bug reports); the speech viewer in the Vox menu shows everything Vox says.</li>
-  <li>Logs are in <code>%APPDATA%\Vox\logs</code>.</li>
+  <li>Logs are in <code>%LOCALAPPDATA%\Vox\logs</code> (in a portable copy, the <code>userConfig\logs</code> folder beside Vox).</li>
 </ul>
 </main>
 </body>

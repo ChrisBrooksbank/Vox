@@ -38,7 +38,7 @@ are good references), and short ones: they are heard thousands of times a day.
 2. Run Vox with the language set (Settings, General, Language; or `"Language": "fr"` in
    `settings.json`) and go through a page, the settings dialog and the Vox menu.
 3. Arabic and Hebrew: Vox's dialogs are laid out right to left; text stays in reading order in
-   speech and braille (`docs/braille.md`), with invisible direction marks left out.
+   speech and braille ([Braille](braille.md)), with invisible direction marks left out.
 
 ## The first translations
 

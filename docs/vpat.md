@@ -14,10 +14,10 @@ before the report is published.
 | Contrast and high contrast (1.4.3, 1.4.11) | Not evaluated | Dialogs follow the system colours; to be checked in high-contrast modes |
 | Resize text (1.4.4) | Partially supports | Dialogs follow system DPI scaling; text size setting not yet tested at 200 % |
 | Timing (2.2.1) | Supports | Nothing in Vox times out on the user, except the two-press confirmations (2 seconds), which can be repeated |
-| Language (3.1.1) | Partially supports | English user interface; translations are in progress (Milestone D) |
+| Language (3.1.1) | Partially supports | English user interface; Spanish, French, German, Portuguese, Chinese, Japanese, Arabic and Hindi translations are machine-made and awaiting review ([Translating Vox](translating.md)) |
 | Help (Section 508 602) | Supports | User guide in accessible HTML, generated keyboard reference, input help (Insert+1), command search |
 | Interoperability with assistive technology (508 502) | Supports | Vox is itself the assistive technology; it coexists with Narrator and other screen readers (sleep mode) |
-| Installer (WCAG via 508 E205) | Partially supports | WiX standard minimal UI, keyboard operable; silent install documented (`docs/enterprise.md`) |
+| Installer (WCAG via 508 E205) | Partially supports | WiX standard minimal UI, keyboard operable; silent install documented ([Deploying Vox in an organization](enterprise.md)) |
 
 ## Before publishing
 

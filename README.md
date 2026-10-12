@@ -2,274 +2,246 @@
   <img src="docs/images/hero.png" alt="Vox: a screen reader for Windows 11, written from scratch in C# and .NET 9" width="100%">
 </p>
 
-<p align="center">
-  <img alt=".NET 9" src="https://img.shields.io/badge/.NET-9.0-8b5cf6?style=for-the-badge&logo=dotnet&logoColor=white">
-  <img alt="Windows 11" src="https://img.shields.io/badge/Windows-11-22d3ee?style=for-the-badge&logo=windows11&logoColor=white">
-  <img alt="UI Automation" src="https://img.shields.io/badge/UI%20Automation-native-f472b6?style=for-the-badge">
-  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-a3e635?style=for-the-badge">
-  <img alt="Status: Phase 1" src="https://img.shields.io/badge/status-phase%201%20MVP-fbbf24?style=for-the-badge">
-</p>
+# Vox: a free, open-source screen reader for Windows 11
 
-<p align="center"><b><i>The web, read aloud. Fast, keyboard-first, open source.</i></b></p>
+Vox reads Windows aloud and lets you use your computer with the keyboard alone. It reads web
+pages, documents, email and applications in speech and braille. It follows the keyboard
+conventions of NVDA, so if you already use a screen reader your habits carry over.
 
----
+Vox is new and still in testing. Please keep the screen reader you use now installed, so you
+always have a way back. We'd love to hear how Vox works for you: see
+[Feedback and bug reports](#feedback-and-bug-reports).
 
-Close your eyes and open a web page.
+## Contents
 
-There's no layout and no colour, and nothing to glance at. A page becomes a **stream of
-sound**: a heading, a link, a paragraph that runs on, a search box waiting for you. To move
-around it you need something that turns the screen into speech and the keyboard into a
-cursor, with no lag. That something is a **screen reader**. Millions of people use one for
-every minute they spend on a computer.
+- [Install Vox](#install-vox)
+- [First steps](#first-steps)
+- [Essential keys](#essential-keys)
+- [What Vox can do](#what-vox-can-do)
+- [Documentation](#documentation)
+- [Feedback and bug reports](#feedback-and-bug-reports)
+- [For developers](#for-developers)
 
-**Vox** is a new screen reader for Windows 11, built from the ground up in modern C#. It
-listens to Windows through **UI Automation**, turns web pages into a navigable **virtual
-buffer**, and talks back through **SAPI5** speech, with short **earcons** for mode changes
-and boundaries. It's built to be fast and easy to hack on.
+## Install Vox
 
-<p align="center">
-  <img src="docs/images/demo.gif" alt="Animated demo: keys pressed in Vox move a virtual cursor over a web page while a panel shows what Vox says, such as 'heading level 2, Search the archive' and 'Read the getting-started guide, link'" width="100%">
-</p>
+You need Windows 11 (64-bit). Nothing else has to be installed first. The installer works with
+Narrator (press **Ctrl+Windows+Enter** to turn it on), NVDA or JAWS.
 
-<p align="center"><sub>Illustration of a browse-mode session: the key you press, where the virtual cursor lands, and what Vox says.</sub></p>
+1. Download `Vox-<version>.msi` from the
+   [releases page](https://github.com/ChrisBrooksbank/Vox/releases). It's under the **Assets**
+   heading of the newest release.
+2. Open it. Check **I accept the terms in the License Agreement**, choose **Install**, and answer
+   **Yes** (**Alt+Y**) when Windows asks for permission.
+3. On the last page, leave **Start Vox now** checked and press **Enter** on **Finish**.
+4. Vox starts talking. Turn off your other screen reader (for Narrator, **Ctrl+Windows+Enter**
+   again).
 
----
+After that, **Ctrl+Alt+V** starts Vox from anywhere.
 
-## ✦ What it does today
+**[Installing Vox](docs/install.md)** goes through every step with the exact keys to press. It also
+covers security warnings for unsigned builds, the portable copy (for computers where you can't
+install programs), updating, and uninstalling. If the releases page has no files yet, no build has
+been published so far. The guide explains how to build Vox from source.
 
-| | |
-|---|---|
-| 🌐 **Browse mode for Edge & Chrome** | Each page becomes a virtual document you read by line, word, character or paragraph, even text no keyboard focus can reach. |
-| ⚡ **Single-key quick nav** | `H` headings, `K` links, `D` landmarks, `F` form fields, `T` tables, `1`–`6` heading levels. Add `Shift` to go backwards. |
-| 🎯 **Automatic focus mode** | Tab into a text box and your keys go to the page. A short cue tells you; there's no chatter. `Esc` takes you back. |
-| 🗣️ **Say All** | `Insert`+`↓` reads from the cursor to the end of the page. The cursor follows along, so it stops where you stopped listening. |
-| 📋 **Elements List** | `Insert`+`F7` opens every heading, link, landmark and form field in a filterable list, then jumps to the one you pick. |
-| 📣 **Live regions & notifications** | Chat messages, "Saved!", toasts. Polite updates are throttled, assertive ones cut through, and background apps stay quiet. |
-| ⌨️ **Typing echo** | Characters, words or both, in your real keyboard layout (dead keys and AltGr included). Passwords echo as "star". |
-| 🎚️ **Three verbosity levels** | *Beginner* says everything, *Advanced* says just enough. A talking first-run wizard sets rate, voice, verbosity and modifier key. |
-| 🔁 **Live pages** | Pages that change under you are re-captured incrementally. The cursor stays on the same character, and each page remembers where you were. |
+## First steps
+
+The first time Vox starts, a short spoken wizard asks how fast to speak, how much detail you want,
+and which key to use as the **Vox key**: **Insert** or **Caps Lock**. In this README and in the
+guide, "Insert" means whichever you chose. To use the key's normal function, press it twice
+quickly. The wizard ends by offering practice lessons for web pages, editing text and reviewing the
+screen.
+
+Three ways to learn the keys:
+
+- **Input help**, **Insert+1**: while it's on, each key you press says what it does instead of
+  doing it. Press **Insert+1** again to turn it off.
+- **The Vox menu**, **Insert+N**: settings, the user guide, command search, practice lessons, the
+  speech viewer and more. It's also on the Vox icon in the notification area.
+- **The user guide and keyboard reference**: in the Vox menu, under User guide. The keyboard
+  reference lists every command with its keys.
+
+For laptops without a numeric keypad, choose the laptop keyboard layout: open the settings with
+**Insert+Ctrl+G** and go to the Keyboard page.
+
+## Essential keys
+
+These are the desktop layout's keys. The laptop layout changes only the keys that use the numeric
+keypad.
+
+### Anywhere
+
+| Key | What it does |
+| --- | --- |
+| Ctrl | Stop speech |
+| Insert+Down Arrow | Say All: read from here to the end |
+| Insert+Up Arrow | Read the current line |
+| Insert+Tab | Say what has focus |
+| Insert+T | Say the window title |
+| Insert+B | Read the whole window |
+| Insert+F12 | Say the time |
+| Insert+N | Open the Vox menu |
+| Insert+Ctrl+G | Open the settings |
+| Insert+1 | Input help on or off |
+| Insert+S | Pause speech, or start it again |
+| Insert+Shift+S | Sleep mode: Vox stays quiet in this application |
+| Insert+R | Read text in a picture or an inaccessible control (text recognition) |
+| Insert+Ctrl+S | Run the welcome wizard again |
+| Insert+Q, twice | Quit Vox |
+
+### On web pages (browse mode)
+
+In Edge, Chrome and Firefox, Vox reads a page as a document you move through with the arrow keys.
+Single letters jump between elements. Add **Shift** to any letter to go backwards.
+
+| Key | What it does |
+| --- | --- |
+| Up and Down Arrow | Previous or next line |
+| Ctrl+Up and Ctrl+Down Arrow | Previous or next paragraph |
+| Ctrl+Home, Ctrl+End | Top or bottom of the page |
+| H, or 1 to 6 | Next heading, or next heading at that level |
+| K | Next link |
+| D | Next landmark (main content, navigation, and so on) |
+| F | Next form field |
+| B, E, C, X, R | Next button, edit box, combo box, check box, radio button |
+| T | Next table. In a table, Ctrl+Alt+arrows move between cells |
+| L, I | Next list, next list item |
+| G | Next graphic |
+| N | Skip past a block of links to the next text |
+| Enter or Space | Activate the link, button or control at the cursor |
+| Insert+F7 | Elements List: every heading, link, landmark and form field |
+| Insert+Ctrl+F | Find text on the page |
+| Insert+Space | Switch between browse mode and focus mode |
+| Escape | Leave focus mode |
 
 <p align="center">
   <img src="docs/images/modes.png" alt="Browse mode versus focus mode: in browse mode single keys navigate; in focus mode every key goes to the page" width="100%">
 </p>
 
----
+When you Tab or arrow into a text box, Vox switches to **focus mode** by itself and plays a short
+sound: now your keys go to the page, so you can type. Escape takes you back to browse mode.
 
-## ✦ A short history of computers that talk
+## What Vox can do
 
-<p align="center">
-  <img src="docs/images/timeline.png" alt="Timeline: Optacon 1971, Kurzweil Reading Machine 1976, IBM Screen Reader 1986, JAWS 1989, MSAA 1997, VoiceOver 2005, NVDA 2006, iPhone 3GS 2009, WAI-ARIA 1.0 2014, and Vox now" width="100%">
-</p>
+**Web pages.** Browse mode for Edge, Chrome and Firefox, including Electron and WebView2 apps.
+There are single-key jumps for more than 20 kinds of element, the Elements List, find, and text
+selection and copy. Tables are read with their headers. Live regions and notifications are spoken
+without flooding you. Pages that change while you read keep your place. Each page remembers where
+you were. Vox announces cookie banners and dialogs, and Insert+Shift+D dismisses them. Math is
+spoken with the optional MathCAT component. PDFs open in Edge or Chrome are read like web pages.
 
-**Before speech, there was touch.** In 1971 the **Optacon** went on sale. Stanford engineer
-John Linvill designed it after his daughter Candy lost her sight. A tiny camera passed over
-printed text, and a grid of vibrating pins raised each letter's shape under a fingertip. It
-was slow and took months to learn, but for the first time ordinary print could be read
-without a sighted helper.
+**Applications and documents.** Vox reads text fields and editors with caret, selection and
+spelling-error reporting. It reads terminals, menus, dialogs and File Explorer's details view.
+Object navigation and a review cursor let you explore any window. Mouse tracking says what is under
+the pointer. Vox has special support for Word, Excel, Outlook, PowerPoint, Teams, Zoom, Visual
+Studio Code, Visual Studio and Acrobat.
 
-**Then machines started reading aloud.** In 1976 Ray Kurzweil unveiled the **Kurzweil
-Reading Machine**, a flatbed scanner, an omni-font OCR engine and a speech synthesizer the
-size of a washing machine. It read books out loud. Stevie Wonder famously bought one of the
-first.
+**Speech.** Vox speaks through the Windows OneCore voices, SAPI 5 voices, or the optional eSpeak NG.
+You can change the rate, pitch, volume, punctuation level and the way capitals and numbers are
+read. Text in other languages switches voice automatically. You can add your own pronunciation
+dictionaries. Optional sounds play for states, modes and boundaries. Typing echo can say
+characters, words or both.
 
-**Then the PC arrived, and someone had to make it talk.** In 1986 IBM's **Screen Reader**
-for DOS read the text-mode screen through a speech synthesizer and a dedicated keypad. It
-was the work of Jim Thatcher, a mathematician who spent the rest of his career on
-accessibility. In 1989 Ted Henter, a motorcycle racer blinded in a car crash, shipped
-**JAWS** ("Job Access With Speech"). JAWS went on to become the dominant commercial screen
-reader for decades.
+**Braille.** Vox supports HID braille displays and every display BRLTTY supports. It shows
+contracted or uncontracted braille with the optional liblouis component, and has routing keys,
+panning, and typing from the braille keyboard.
 
-**Then the GUI broke everything.** DOS screens were text in memory, so a screen reader just
-read them. Windows *drew* its text as pixels, which left nothing to read. Screen readers
-fought back with *off-screen models*: they intercepted every drawing call and rebuilt the
-screen as text behind the scenes. It was heroic, fragile work. Microsoft answered in 1997
-with **Active Accessibility (MSAA)**, so applications could *describe* themselves to
-assistive tech. Its successor, **UI Automation**, arrived with Windows Vista, and Vox is
-built on it.
+**Text recognition and descriptions.** Vox reads text in pictures, scanned PDFs and inaccessible
+applications with Windows' built-in text recognition, on your computer. AI descriptions of images
+and screens are optional and off until you set them up. They use a local model or a cloud service,
+and Vox asks before anything is sent.
 
-**Then came the web, the hardest UI of all.** Pages aren't windows full of controls. They're
-long documents with links, headings and forms scattered through them. Screen readers
-responded with the **virtual buffer**: they copy the page into a flat document the user can
-arrow through like a word processor, with single-letter keys to jump between elements. The
-idea of *browse mode* and *focus mode* comes from this era, and it's still the best answer we
-have.
+**Sign-in screens and safety.** Vox reads the Windows sign-in, lock and "allow changes" (UAC)
+screens. It restarts itself if it crashes, and says "not responding" instead of hanging when an
+application stops responding. It never logs what you type. There is no telemetry.
 
-**Then screen readers got free.** In 2005 Apple built **VoiceOver** into Mac OS X, so the
-reader came with the computer rather than a large licence fee. In 2006 Michael Curran, a
-blind student in Australia, started **NVDA** (NonVisual Desktop Access), a free, open-source
-Windows screen reader written in Python. It's now one of the most widely used screen readers
-in the world. In 2009 the **iPhone 3GS** put a screen reader into every pocket, with
-gestures in place of a keyboard. And in 2014 **WAI-ARIA 1.0** became a W3C Recommendation,
-which gave web developers a standard way to tell assistive tech what their widgets are and
-what state they're in.
+**Yours to adjust.** A settings dialog, a voice settings ring (Insert+Ctrl+arrows) and your own key
+bindings. Configuration profiles change settings per application or during Say All. Sleep mode
+keeps Vox quiet in chosen applications. Vox can run as a portable copy from a USB stick.
 
-**Now there's Vox.** Same lineage, new engine: native UI Automation, a typed and tested core,
-and an event pipeline designed for the web as it is today, with single-page apps, live
-regions and pages that never stop changing.
+**More.** Add-ons, and an add-on store that installs only signed packages. Remote access lets a
+trainer control your computer and hear its speech. Vox's interface comes in English, Spanish,
+French, German, Portuguese, Chinese, Japanese, Arabic and Hindi. The translations other than
+English are machine-made and still need review. Organisations can set defaults and lock settings
+with Group Policy.
 
----
+## Documentation
 
-## ✦ How it works
+All the guides are listed in the **[documentation index](docs/README.md)**. The ones most people
+need:
 
-<p align="center">
-  <img src="docs/images/pipeline.png" alt="Architecture: keyboard hook, UIA events and the document tracker feed one event pipeline, which drives browse mode and the speech queue, ending in SAPI5 speech and NAudio earcons" width="100%">
-</p>
+- [Installing Vox](docs/install.md)
+- The user guide, in the Vox menu (**Insert+N**, User guide). Its source is [docs/guide](docs/guide/index.html)
+- [Changing your keys](docs/keymap.md) and [configuration profiles](docs/profiles.md)
+- [Braille displays](docs/braille.md)
+- Office and other applications: [Word](docs/apps/word.md), [Excel](docs/apps/excel.md),
+  [Outlook](docs/apps/outlook.md), [PowerPoint](docs/apps/powerpoint.md),
+  [Teams](docs/apps/teams.md), [File Explorer](docs/apps/explorer.md),
+  [developer tools, Zoom and Acrobat](docs/apps/developer-tools.md)
+- [Text recognition](docs/ocr.md) and [AI descriptions](docs/ai.md)
 
-Everything Vox hears goes into **one ordered pipeline**, and everything it says comes out of
-**one priority queue**:
+## Feedback and bug reports
 
-- **Keyboard hook.** A `WH_KEYBOARD_LL` hook that does almost nothing, on purpose: Windows
-  silently unhooks a slow hook, so the callback only records modifier state, decides whether
-  to swallow the key, and posts it to a channel in under a millisecond.
-- **UI Automation.** Every COM call goes through one dedicated STA thread. Event callbacks
-  just post to the pipeline and return.
-- **Virtual buffer.** When focus enters a Chromium or Gecko document, Vox captures the whole
-  tree in **one cached UIA call** and copies it into a COM-free snapshot. It then builds a flat
-  text buffer with prebuilt indices for headings, links, landmarks, form fields and tables.
-  Structure changes are debounced and spliced in incrementally. Old snapshots are never
-  mutated.
-- **Speech queue.** Priorities `Interrupt > High > Normal > Low`. Every interrupt starts a new
-  *epoch*: whatever was playing stops at once, and anything queued before it is dropped, so
-  you never hear stale speech.
-- **Earcons.** One NAudio mixer stays open while cues play, so mode, boundary and wrap sounds
-  start instantly and overlap cleanly.
+Screen readers are personal, and the best features come from people who use one all day. Bug
+reports, ideas and pull requests are all welcome.
 
-Every component sits behind an interface (`ISpeechEngine`, `IKeyboardHook`, `IEventSink`,
-`IAudioCuePlayer`, `IVBufferElement`), so the core logic is covered by **700+ unit tests**
-that never need a real screen, voice or browser.
+- **Report a bug or suggest an idea:**
+  [open an issue](https://github.com/ChrisBrooksbank/Vox/issues/new/choose) and pick **Screen
+  reader bug report** or **Suggestion**. The form is a list of headings and plain text fields.
+- **Test beta versions:** the [beta programme](docs/beta.md) explains how to join. It also shows how
+  to copy exactly what Vox said into a report, which is the most useful thing you can send.
+- **Security problems:** report them privately, as [docs/security.md](docs/security.md) explains,
+  not as a public issue.
 
----
+## For developers
 
-## ✦ Keys
+Vox is written in C# on .NET 9. It uses UI Automation to read Windows, and keeps a virtual buffer
+model for web pages. It has a single ordered event pipeline and a priority speech queue. The core
+logic sits behind interfaces and is covered by nearly 3,000 unit tests that need no screen,
+voice or browser.
 
-`Insert` is the Vox key (you can switch it to `Caps Lock` in setup). Tap it twice quickly to
-use its normal function.
-
-| Browse mode | |
-|---|---|
-| `↑` `↓` | previous / next line |
-| `←` `→` | previous / next character |
-| `Ctrl`+`←` `→` | previous / next word |
-| `Ctrl`+`↑` `↓` | previous / next paragraph |
-| `Home` / `End` | start / end of line |
-| `Ctrl`+`Home` / `Ctrl`+`End` | top / bottom of page |
-| `H` · `K` · `D` · `F` · `T` | next heading · link · landmark · form field · table |
-| `1`–`6` | next heading at that level |
-| `Shift` + any of the above | the same, backwards |
-| `Enter` / `Space` | activate the element under the cursor |
-
-| Anywhere | |
-|---|---|
-| `Insert`+`Space` | toggle browse / focus mode |
-| `Esc` *(focus mode)* | back to browse mode |
-| `Insert`+`↓` | Say All |
-| `Insert`+`↑` | read the current line |
-| `Insert`+`Ctrl`+`↑` | read the current word |
-| `Insert`+`F7` | Elements List |
-| `Ctrl` | stop speech |
-| `Insert`+`Ctrl`+`S` | run the setup wizard again |
-| `Insert`+`Q` *(twice)* | quit Vox |
-
-Every binding lives in [`assets/config/default-keymap.json`](assets/config/default-keymap.json)
-and follows NVDA's conventions, so your muscle memory carries over.
-
----
-
-## ✦ Get it running
-
-You'll need **Windows 11**, the **[.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)**,
-and Edge or Chrome 126+.
-
-```bash
+```powershell
 git clone https://github.com/ChrisBrooksbank/Vox.git
 cd Vox
-
 dotnet build                          # build the solution
-dotnet test                           # run the test suite
-dotnet run --project src/Vox.App      # start talking (run as administrator for the keyboard hook)
+dotnet test                           # run the tests (on Windows)
+dotnet run --project src/Vox.App      # run Vox from the build folder
 ```
 
-On first launch a **spoken setup wizard** walks you through speech rate, voice, verbosity and
-modifier key. Press `Esc` to skip it. You can bring it back any time with
-`Insert`+`Ctrl`+`S`.
+You need Windows 11 and the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0). On
+Linux, `dotnet build -p:EnableWindowsTargeting=true` builds everything, but the tests and Vox itself
+need Windows. CI builds and tests every push on Windows.
 
-**Settings** live in `%APPDATA%\Vox\settings.json` and reload live as you edit them:
+Before you open a pull request, `dotnet build && dotnet test` must pass. Also follow these house
+rules:
 
-```jsonc
-{
-  "VerbosityLevel": "Beginner",     // Beginner | Intermediate | Advanced
-  "SpeechRateWpm": 200,             // 150–450
-  "VoiceName": null,                // null = best installed voice
-  "TypingEchoMode": "Both",         // None | Characters | Words | Both
-  "AudioCuesEnabled": true,
-  "AnnounceVisitedLinks": true,
-  "ModifierKey": "Insert",          // Insert | CapsLock
-  "MaxLineLength": 100,             // long lines are split at a word boundary (0 = never)
-  "FirstRunCompleted": true
-}
-```
+- keep the keyboard hook callback under 1 ms;
+- make every UI Automation call on the UIA thread;
+- put key bindings in the keymap JSON, not in code;
+- add a test for each behaviour you change.
 
-Logs go to `%LOCALAPPDATA%\Vox\logs\`.
+These pages explain the code:
 
----
+- [CLAUDE.md](CLAUDE.md): the architecture in depth (event flow, threading, every subsystem).
+- [docs/README.md](docs/README.md#for-developers-and-maintainers): building the installer,
+  signing, updates, add-ons, end-to-end tests, benchmarks, translating, and the security
+  checklist.
+- [PLAN.md](PLAN.md), [COMMERCIAL_PARITY_PLAN.md](COMMERCIAL_PARITY_PLAN.md) and
+  [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): the roadmap and task list. [specs/](specs/)
+  holds the per-subsystem requirements.
 
-## ✦ Inside the repo
-
-```
-src/
-├── Vox.Core/            # everything that matters, unit-tested
-│   ├── Accessibility/   #   UIA thread, event subscriber, document tracker, live regions
-│   ├── Buffer/          #   virtual buffer: builder, document, cursor, incremental updater
-│   ├── Navigation/      #   browse-mode controller, quick nav, Say All, Elements List
-│   ├── Input/           #   keyboard hook, keymap, dispatcher, typing echo
-│   ├── Pipeline/        #   the event pipeline and its event records
-│   ├── Speech/          #   priority speech queue, SAPI5 engine
-│   ├── Audio/           #   earcon mixer
-│   └── Configuration/   #   settings, verbosity profiles, first-run wizard
-└── Vox.App/             # host, DI wiring, the one IHostedService
-tests/Vox.Core.Tests/    # xUnit + Moq, mirrors Vox.Core's layout
-assets/                  # default keymap, default settings, earcon .wav files
-specs/                   # per-subsystem requirements
-docs/images/             # the pictures in this README
-```
-
----
-
-## ✦ Where it's going
-
-- **Phase 1, now: "read a web page, for real".** Browse and focus modes, quick nav, Say All,
-  Elements List, live regions, typing echo, verbosity, first-run wizard.
-- **Phase 2: robust desktop and braille.** Braille displays, object navigation in any app,
-  review cursor, find in page, app modules, a settings dialog, system tray.
-- **Phase 3: performance and reach.** A native IAccessible2 helper, richer table navigation,
-  Firefox, and AI image descriptions.
-
-The full roadmap is in [PLAN.md](PLAN.md). Per-subsystem requirements are in [`specs/`](specs/),
-and the task checklist is in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
-
----
-
-## ✦ Contributing
-
-Screen readers are personal. Every user has habits, workarounds and pet peeves, and the best
-features come from people who use one all day. Bug reports, keymap ideas and pull requests are
-all welcome. To test beta builds and report what Vox says, see the [beta programme](docs/beta.md);
-security problems go privately, as [docs/security.md](docs/security.md) explains.
-
-Before you open a PR:
-
-```bash
-dotnet build && dotnet test    # both must pass
-```
-
-Some house rules: keep the keyboard hook callback under 1 ms, keep every UIA call on the UIA
-thread, put new key bindings in the keymap JSON (not in code), and add a test for each
-behaviour you change. [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md) cover the architecture
-in more depth.
-
----
+How the event pipeline fits together:
 
 <p align="center">
-  <b>MIT licensed.</b> Built for the people who hear the web.<br>
-  <sub>“The power of the Web is in its universality. Access by everyone regardless of disability is an essential aspect.” — Tim Berners-Lee</sub>
+  <img src="docs/images/pipeline.png" alt="Architecture: keyboard hook, UIA events and the document tracker feed one event pipeline, which drives browse mode and the speech queue, ending in speech and earcons" width="100%">
 </p>
+
+Vox stands in a long line of talking machines and screen readers, from the Optacon and the Kurzweil
+Reading Machine to JAWS and NVDA. [A short history of computers that talk](docs/history.md) tells
+that story.
+
+---
+
+Vox is MIT licensed. See [LICENSE](LICENSE).
+
+> "The power of the Web is in its universality. Access by everyone regardless of disability is an
+> essential aspect." (Tim Berners-Lee)

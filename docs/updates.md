@@ -17,7 +17,7 @@ Vox can tell you when a newer version is out and install it when you say so. It 
   Installer addresses must be HTTPS.
 - Beside it, `feed.json.sig` holds the base64 RSA-SHA256 signature of the feed's exact bytes, made with Vox's release key.
 - Vox checks the signature with the public key in `assets/config/update-key.pem`, which ships with Vox. A feed that doesn't check out is ignored. **Without that file, Vox never checks for updates**, so builds without a release key never trust anything.
-- A downloaded installer is run only if its SHA-256 is the one the signed feed gives. The MSI itself is also Authenticode-signed (`docs/installer.md`).
+- A downloaded installer is run only if its SHA-256 is the one the signed feed gives. The MSI itself is also Authenticode-signed ([Installer](installer.md)).
 
 ## Publishing a release
 
