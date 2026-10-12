@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+    <!-- fr: machine-made first translation of the most-spoken strings; to be reviewed by a native speaker (docs/translating.md). Strings not here are said in English. -->
+  <data name="Announce.HeadingLevel" xml:space="preserve">
+    <value>titre de niveau {0}</value>
+  </data>
+  <data name="Announce.Landmark" xml:space="preserve">
+    <value>repère {0}</value>
+  </data>
+  <data name="Announce.Position" xml:space="preserve">
+    <value>{0} sur {1}</value>
+  </data>
+  <data name="Announce.Level" xml:space="preserve">
+    <value>niveau {0}</value>
+  </data>
+  <data name="Landmark.Banner" xml:space="preserve">
+    <value>Bannière</value>
+  </data>
+  <data name="Landmark.Complementary" xml:space="preserve">
+    <value>Complémentaire</value>
+  </data>
+  <data name="Landmark.Contentinfo" xml:space="preserve">
+    <value>Informations sur le contenu</value>
+  </data>
+  <data name="Landmark.Form" xml:space="preserve">
+    <value>Formulaire</value>
+  </data>
+  <data name="Landmark.Main" xml:space="preserve">
+    <value>Principal</value>
+  </data>
+  <data name="Landmark.Navigation" xml:space="preserve">
+    <value>Navigation</value>
+  </data>
+  <data name="Landmark.Region" xml:space="preserve">
+    <value>Région</value>
+  </data>
+  <data name="Landmark.Search" xml:space="preserve">
+    <value>Recherche</value>
+  </data>
+  <data name="State.Visited" xml:space="preserve">
+    <value>visité</value>
+  </data>
+  <data name="State.Required" xml:space="preserve">
+    <value>obligatoire</value>
+  </data>
+  <data name="State.Expanded" xml:space="preserve">
+    <value>développé</value>
+  </data>
+  <data name="State.Collapsed" xml:space="preserve">
+    <value>réduit</value>
+  </data>
+  <data name="State.Checked" xml:space="preserve">
+    <value>coché</value>
+  </data>
+  <data name="State.NotChecked" xml:space="preserve">
+    <value>non coché</value>
+  </data>
+  <data name="State.HalfChecked" xml:space="preserve">
+    <value>partiellement coché</value>
+  </data>
+  <data name="State.Selected" xml:space="preserve">
+    <value>sélectionné</value>
+  </data>
+  <data name="State.Pressed" xml:space="preserve">
+    <value>enfoncé</value>
+  </data>
+  <data name="State.NotPressed" xml:space="preserve">
+    <value>non enfoncé</value>
+  </data>
+  <data name="State.HalfPressed" xml:space="preserve">
+    <value>partiellement enfoncé</value>
+  </data>
+  <data name="State.SpellingError" xml:space="preserve">
+    <value>faute d'orthographe</value>
+  </data>
+  <data name="State.GrammarError" xml:space="preserve">
+    <value>faute de grammaire</value>
+  </data>
+  <data name="State.InvalidEntry" xml:space="preserve">
+    <value>saisie non valide</value>
+  </data>
+  <data name="State.Current" xml:space="preserve">
+    <value>actuel</value>
+  </data>
+  <data name="State.Current.page" xml:space="preserve">
+    <value>page actuelle</value>
+  </data>
+  <data name="State.Current.step" xml:space="preserve">
+    <value>étape actuelle</value>
+  </data>
+  <data name="State.Current.location" xml:space="preserve">
+    <value>emplacement actuel</value>
+  </data>
+  <data name="State.Current.date" xml:space="preserve">
+    <value>date actuelle</value>
+  </data>
+  <data name="State.Current.time" xml:space="preserve">
+    <value>heure actuelle</value>
+  </data>
+  <data name="State.CurrentKind" xml:space="preserve">
+    <value>{0} actuel</value>
+  </data>
+  <data name="State.SortedAscending" xml:space="preserve">
+    <value>tri croissant</value>
+  </data>
+  <data name="State.SortedDescending" xml:space="preserve">
+    <value>tri décroissant</value>
+  </data>
+  <data name="State.Sorted" xml:space="preserve">
+    <value>trié</value>
+  </data>
+  <data name="State.HasDetails" xml:space="preserve">
+    <value>a des détails</value>
+  </data>
+  <data name="ControlType.AppBar" xml:space="preserve">
+    <value>barre d'application</value>
+  </data>
+  <data name="ControlType.Button" xml:space="preserve">
+    <value>bouton</value>
+  </data>
+  <data name="ControlType.Calendar" xml:space="preserve">
+    <value>calendrier</value>
+  </data>
+  <data name="ControlType.CheckBox" xml:space="preserve">
+    <value>case à cocher</value>
+  </data>
+  <data name="ControlType.ComboBox" xml:space="preserve">
+    <value>liste déroulante</value>
+  </data>
+  <data name="ControlType.DataGrid" xml:space="preserve">
+    <value>grille</value>
+  </data>
+  <data name="ControlType.DataItem" xml:space="preserve">
+    <value>élément de grille</value>
+  </data>
+  <data name="ControlType.Document" xml:space="preserve">
+    <value>document</value>
+  </data>
+  <data name="ControlType.Edit" xml:space="preserve">
+    <value>zone d'édition</value>
+  </data>
+  <data name="ControlType.Header" xml:space="preserve">
+    <value>en-tête</value>
+  </data>
+  <data name="ControlType.HeaderItem" xml:space="preserve">
+    <value>en-tête de colonne</value>
+  </data>
+  <data name="ControlType.Hyperlink" xml:space="preserve">
+    <value>lien</value>
+  </data>
+  <data name="ControlType.Image" xml:space="preserve">
+    <value>image</value>
+  </data>
+  <data name="ControlType.List" xml:space="preserve">
+    <value>liste</value>
+  </data>
+  <data name="ControlType.ListItem" xml:space="preserve">
+    <value>élément de liste</value>
+  </data>
+  <data name="ControlType.Menu" xml:space="preserve">
+    <value>menu</value>
+  </data>
+  <data name="ControlType.MenuBar" xml:space="preserve">
+    <value>barre de menus</value>
+  </data>
+  <data name="ControlType.MenuItem" xml:space="preserve">
+    <value>élément de menu</value>
+  </data>
+  <data name="ControlType.ProgressBar" xml:space="preserve">
+    <value>barre de progression</value>
+  </data>
+  <data name="ControlType.RadioButton" xml:space="preserve">
+    <value>bouton radio</value>
+  </data>
+  <data name="ControlType.ScrollBar" xml:space="preserve">
+    <value>barre de défilement</value>
+  </data>
+  <data name="ControlType.SemanticZoom" xml:space="preserve">
+    <value>zoom sémantique</value>
+  </data>
+  <data name="ControlType.Separator" xml:space="preserve">
+    <value>séparateur</value>
+  </data>
+  <data name="ControlType.Slider" xml:space="preserve">
+    <value>curseur</value>
+  </data>
+  <data name="ControlType.Spinner" xml:space="preserve">
+    <value>compteur</value>
+  </data>
+  <data name="ControlType.SplitButton" xml:space="preserve">
+    <value>bouton partagé</value>
+  </data>
+  <data name="ControlType.StatusBar" xml:space="preserve">
+    <value>barre d'état</value>
+  </data>
+  <data name="ControlType.Tab" xml:space="preserve">
+    <value>liste d'onglets</value>
+  </data>
+  <data name="ControlType.TabItem" xml:space="preserve">
+    <value>onglet</value>
+  </data>
+  <data name="ControlType.Table" xml:space="preserve">
+    <value>tableau</value>
+  </data>
+  <data name="ControlType.Thumb" xml:space="preserve">
+    <value>poignée</value>
+  </data>
+  <data name="ControlType.TitleBar" xml:space="preserve">
+    <value>barre de titre</value>
+  </data>
+  <data name="ControlType.ToolBar" xml:space="preserve">
+    <value>barre d'outils</value>
+  </data>
+  <data name="ControlType.ToolTip" xml:space="preserve">
+    <value>info-bulle</value>
+  </data>
+  <data name="ControlType.Tree" xml:space="preserve">
+    <value>arborescence</value>
+  </data>
+  <data name="ControlType.TreeItem" xml:space="preserve">
+    <value>élément d'arborescence</value>
+  </data>
+  <data name="ControlType.Window" xml:space="preserve">
+    <value>fenêtre</value>
+  </data>
+  <data name="CommandCategory.QuickNavigation" xml:space="preserve">
+    <value>Navigation rapide</value>
+  </data>
+  <data name="CommandCategory.Reading" xml:space="preserve">
+    <value>Lecture</value>
+  </data>
+  <data name="CommandCategory.BrowseMode" xml:space="preserve">
+    <value>Mode navigation</value>
+  </data>
+  <data name="CommandCategory.Tables" xml:space="preserve">
+    <value>Tableaux</value>
+  </data>
+  <data name="CommandCategory.FindAndSelect" xml:space="preserve">
+    <value>Rechercher, sélectionner et copier</value>
+  </data>
+  <data name="CommandCategory.ObjectNavigation" xml:space="preserve">
+    <value>Navigation par objet</value>
+  </data>
+  <data name="CommandCategory.Review" xml:space="preserve">
+    <value>Curseur de revue</value>
+  </data>
+  <data name="CommandCategory.Mouse" xml:space="preserve">
+    <value>Souris</value>
+  </data>
+  <data name="CommandCategory.Speech" xml:space="preserve">
+    <value>Parole</value>
+  </data>
+  <data name="CommandCategory.Braille" xml:space="preserve">
+    <value>Braille</value>
+  </data>
+  <data name="CommandCategory.Applications" xml:space="preserve">
+    <value>Applications</value>
+  </data>
+  <data name="CommandCategory.System" xml:space="preserve">
+    <value>Système</value>
+  </data>
+  <data name="SettingsPage.General" xml:space="preserve">
+    <value>Général</value>
+  </data>
+  <data name="SettingsPage.Speech" xml:space="preserve">
+    <value>Parole</value>
+  </data>
+  <data name="SettingsPage.Braille" xml:space="preserve">
+    <value>Braille</value>
+  </data>
+  <data name="SettingsPage.Verbosity" xml:space="preserve">
+    <value>Verbosité</value>
+  </data>
+  <data name="SettingsPage.BrowseMode" xml:space="preserve">
+    <value>Mode navigation</value>
+  </data>
+  <data name="SettingsPage.DocumentFormatting" xml:space="preserve">
+    <value>Mise en forme des documents</value>
+  </data>
+  <data name="SettingsPage.AudioCues" xml:space="preserve">
+    <value>Sons</value>
+  </data>
+  <data name="SettingsPage.Keyboard" xml:space="preserve">
+    <value>Clavier</value>
+  </data>
+  <data name="SettingsPage.Mouse" xml:space="preserve">
+    <value>Souris</value>
+  </data>
+  <data name="SettingsPage.Review" xml:space="preserve">
+    <value>Revue</value>
+  </data>
+  <data name="SettingsPage.Applications" xml:space="preserve">
+    <value>Applications</value>
+  </data>
+  <data name="VoxMenu.Title" xml:space="preserve">
+    <value>Menu de Vox</value>
+  </data>
+  <data name="VoxMenu.TrayTip" xml:space="preserve">
+    <value>Lecteur d'écran Vox</value>
+  </data>
+  <data name="Dialog.Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="Setting.Language" xml:space="preserve">
+    <value>&amp;Langue</value>
+  </data>
+  <data name="Choice.Language.Windows" xml:space="preserve">
+    <value>Comme Windows</value>
+  </data>
+</root>

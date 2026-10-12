@@ -1,0 +1,16 @@
+{
+  "bindings": [
+    {"modifiers": "Insert|Alt", "vkCode": 49, "mode": "Any", "command": "OutlookReadFrom"},
+    {"modifiers": "Insert|Alt", "vkCode": 50, "mode": "Any", "command": "OutlookReadTo"},
+    {"modifiers": "Insert|Alt", "vkCode": 51, "mode": "Any", "command": "OutlookReadCc"},
+    {"modifiers": "Insert|Alt", "vkCode": 52, "mode": "Any", "command": "OutlookReadSubject"},
+    {"modifiers": "Insert|Alt", "vkCode": 53, "mode": "Any", "command": "OutlookReadDate"},
+    {"modifiers": "Insert|Alt", "vkCode": 54, "mode": "Any", "command": "OutlookReadAttachments"},
+    {"modifiers": "Insert|Alt", "vkCode": 73, "mode": "Any", "command": "OutlookMeetingStatus"},
+    {"modifiers": "Insert|Alt", "vkCode": 65, "mode": "Any", "command": "OutlookAcceptMeeting"},
+    {"modifiers": "Insert|Alt", "vkCode": 84, "mode": "Any", "command": "OutlookTentativeMeeting"},
+    {"modifiers": "Insert|Alt", "vkCode": 68, "mode": "Any", "command": "OutlookDeclineMeeting"},
+    {"modifiers": "Insert|Alt", "vkCode": 56, "mode": "Any", "command": "OutlookToday"},
+    {"modifiers": "Insert|Alt", "vkCode": 57, "mode": "Any", "command": "OutlookThisWeek"}
+  ]
+}

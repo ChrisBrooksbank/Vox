@@ -1,0 +1,151 @@
+{
+  "comment": "Symbol names for hi: they replace the English names (symbols-en.json); levels and pauses stay the English file's. Machine-translated: to be reviewed by a native speaker (docs/translating.md).",
+  "symbols": [
+    {
+      "symbol": "!",
+      "name": "विस्मयादिबोधक"
+    },
+    {
+      "symbol": ".",
+      "name": "बिंदु"
+    },
+    {
+      "symbol": ",",
+      "name": "अल्पविराम"
+    },
+    {
+      "symbol": "?",
+      "name": "प्रश्नचिह्न"
+    },
+    {
+      "symbol": "'",
+      "name": "अपॉस्ट्रॉफ़ी"
+    },
+    {
+      "symbol": "\"",
+      "name": "उद्धरण चिह्न"
+    },
+    {
+      "symbol": "(",
+      "name": "बायाँ कोष्ठक"
+    },
+    {
+      "symbol": ")",
+      "name": "दायाँ कोष्ठक"
+    },
+    {
+      "symbol": "[",
+      "name": "बायाँ वर्ग कोष्ठक"
+    },
+    {
+      "symbol": "]",
+      "name": "दायाँ वर्ग कोष्ठक"
+    },
+    {
+      "symbol": "{",
+      "name": "बायाँ धनु कोष्ठक"
+    },
+    {
+      "symbol": "}",
+      "name": "दायाँ धनु कोष्ठक"
+    },
+    {
+      "symbol": "-",
+      "name": "डैश"
+    },
+    {
+      "symbol": ":",
+      "name": "कोलन"
+    },
+    {
+      "symbol": ";",
+      "name": "अर्धविराम"
+    },
+    {
+      "symbol": "…",
+      "name": "तीन बिंदु"
+    },
+    {
+      "symbol": "#",
+      "name": "हैश"
+    },
+    {
+      "symbol": "$",
+      "name": "डॉलर"
+    },
+    {
+      "symbol": "%",
+      "name": "प्रतिशत"
+    },
+    {
+      "symbol": "&",
+      "name": "और"
+    },
+    {
+      "symbol": "*",
+      "name": "तारांकन"
+    },
+    {
+      "symbol": "+",
+      "name": "धन"
+    },
+    {
+      "symbol": "/",
+      "name": "स्लैश"
+    },
+    {
+      "symbol": "<",
+      "name": "से कम"
+    },
+    {
+      "symbol": "=",
+      "name": "बराबर"
+    },
+    {
+      "symbol": ">",
+      "name": "से अधिक"
+    },
+    {
+      "symbol": "@",
+      "name": "एट"
+    },
+    {
+      "symbol": "\\",
+      "name": "बैकस्लैश"
+    },
+    {
+      "symbol": "^",
+      "name": "कैरेट"
+    },
+    {
+      "symbol": "_",
+      "name": "अंडरस्कोर"
+    },
+    {
+      "symbol": "|",
+      "name": "खड़ी रेखा"
+    },
+    {
+      "symbol": "~",
+      "name": "टिल्ड"
+    },
+    {
+      "symbol": "•",
+      "name": "बुलेट"
+    },
+    {
+      "symbol": "€",
+      "name": "यूरो"
+    },
+    {
+      "symbol": "£",
+      "name": "पाउंड"
+    },
+    {
+      "symbol": "।",
+      "name": "पूर्ण विराम",
+      "level": "All",
+      "preserve": true
+    }
+  ]
+}

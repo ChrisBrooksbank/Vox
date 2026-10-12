@@ -95,6 +95,22 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// </summary>
     public Func<IReadOnlyList<int[]>, string?>? ErrorMessageProvider { get; set; }
 
+    /// <summary>
+    /// Asked first for every event; false drops it unhandled (the foreground application's module
+    /// leaving something to the application). Called on the pipeline thread; null keeps everything.
+    /// </summary>
+    public Func<ScreenReaderEvent, bool>? EventFilter { get; set; }
+
+    /// <summary>
+    /// Changes a focus announcement before it is spoken (the foreground application's module):
+    /// given the event and Vox's text, returns the text to say, or null or empty for none. Called
+    /// on the pipeline thread, before the focus context is added.
+    /// </summary>
+    public Func<FocusChangedEvent, string, string?>? FocusAnnouncementFormatter { get; set; }
+
+    /// <summary>Raised on the pipeline thread after any event has been handled.</summary>
+    public event EventHandler<ScreenReaderEvent>? EventProcessed;
+
     /// <summary>Raised on the pipeline thread for menu events.</summary>
     public event EventHandler<MenuEvent>? MenuEventProcessed;
 
@@ -211,6 +227,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
     {
         try
         {
+            if (EventFilter is { } eventFilter && evt is not PipelineWorkEvent && !eventFilter(evt))
+                return;
+
             switch (evt)
             {
                 case FocusChangedEvent focus:
@@ -342,6 +361,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     _logger.LogWarning("Unhandled event type: {EventType}", evt.GetType().Name);
                     break;
             }
+
+            if (evt is not PipelineWorkEvent)
+                EventProcessed?.Invoke(this, evt);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -369,6 +391,8 @@ public sealed class EventPipeline : IEventSink, IDisposable
             && ErrorMessageProvider?.Invoke(errorIds) is { Length: > 0 } errorMessage)
             focus = focus with { ErrorMessage = errorMessage };
         var text = BuildFocusAnnouncement(focus);
+        if (FocusAnnouncementFormatter is { } formatter)
+            text = formatter(focus, text) ?? string.Empty;
         var context = FocusContextProvider?.Invoke(focus);
         if (!string.IsNullOrWhiteSpace(context))
             text = string.IsNullOrWhiteSpace(text) ? context : $"{context}. {text}";
@@ -475,7 +499,7 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     /// <summary>The screen reader key as the user has it (for input help).</summary>
     private string ScreenReaderKeyName() =>
-        _settings?.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+        Input.InputHelp.ScreenReaderKeyName(_settings?.CurrentValue.ModifierKey ?? ModifierKey.Insert);
 
     private async Task HandleNavigationCommandAsync(NavigationCommandEvent evt, CancellationToken token)
     {

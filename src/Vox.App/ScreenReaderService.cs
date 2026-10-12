@@ -3,10 +3,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.AppModules;
 using Vox.Core.Audio;
 using Vox.Core.Configuration;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
+using Vox.Core.Localization;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
@@ -47,6 +49,9 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SpeechHistoryCommands _speechHistoryCommands;
     private readonly SettingsCommands _settingsCommands;
     private readonly Vox.Core.Updates.UpdateCommands _updateCommands;
+    private readonly AppModuleManager _appModules;
+    private readonly ProfileManager _profiles;
+    private readonly ProfileCommands _profileCommands;
     private VoxTrayIcon? _trayIcon;
     // Pause speech (Insert+S): nothing is said until it is pressed again
     private volatile bool _speechPaused;
@@ -64,6 +69,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly FirstRunWizard _firstRunWizard;
     private readonly IOptionsMonitor<VoxSettings> _settings;
     private readonly IHostApplicationLifetime _lifetime;
+    private readonly RemoteSessionMonitor? _remoteSessions;
     private readonly ILogger<ScreenReaderService> _logger;
     private int _setupRunning;
 
@@ -128,8 +134,16 @@ public sealed class ScreenReaderService : IHostedService
         MouseCommands mouseCommands,
         SettingsCommands settingsCommands,
         Vox.Core.Updates.UpdateCommands updateCommands,
-        RunPolicy? runPolicy = null)
+        AppModuleManager appModules,
+        ProfileManager profiles,
+        ProfileCommands profileCommands,
+        RunPolicy? runPolicy = null,
+        RemoteSessionMonitor? remoteSessions = null)
     {
+        _remoteSessions = remoteSessions;
+        _profiles = profiles;
+        _profileCommands = profileCommands;
+        _appModules = appModules;
         _updateCommands = updateCommands;
         _settingsCommands = settingsCommands;
         _review = review;
@@ -226,6 +240,15 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
         _eventPipeline.FocusContextProvider = FocusContext;
         _eventPipeline.ErrorMessageProvider = _browseModeController.ErrorMessageFor;
+        // The foreground application's module may drop events, change focus announcements and
+        // see every event once handled
+        _eventPipeline.EventFilter = _appModules.ShouldProcess;
+        _eventPipeline.FocusAnnouncementFormatter = _appModules.FormatFocusAnnouncement;
+        _eventPipeline.EventProcessed += OnEventProcessed;
+        // Configuration profiles follow the foreground application and Say All
+        _appModules.ForegroundAppChanged += OnForegroundAppChanged;
+        _sayAllController.ReadingChanged += OnSayAllReadingChanged;
+        _profiles.Switched += OnProfileSwitched;
         // In browse mode the review cursor reviews the virtual buffer
         _review.BrowseTether = _browseModeController.ReviewTether;
 
@@ -265,11 +288,42 @@ public sealed class ScreenReaderService : IHostedService
                 ? "Vox screen reader ready"
                 : "Vox screen reader ready, but keyboard commands are unavailable. Try running Vox as administrator.",
             SpeechPriority.Normal));
+
+        // Said once: in a remote session the keys and audio go through the remote-desktop client
+        if (_remoteSessions is not null)
+        {
+            if (_remoteSessions.Current.Announcement is { } remote && !_runPolicy.IsSecure)
+                _speechQueue.Enqueue(new Utterance(remote, SpeechPriority.Normal));
+            _remoteSessions.Changed += OnRemoteSessionChanged;
+            try { Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitch; }
+            catch (Exception ex) { _logger.LogDebug(ex, "Session changes won't be noticed"); }
+        }
+    }
+
+    // Reconnecting to the session from Remote Desktop, or at the computer again
+    private void OnSessionSwitch(object? sender, Microsoft.Win32.SessionSwitchEventArgs e)
+    {
+        if (e.Reason is Microsoft.Win32.SessionSwitchReason.RemoteConnect or Microsoft.Win32.SessionSwitchReason.ConsoleConnect)
+            _remoteSessions?.Refresh();
+    }
+
+    private void OnRemoteSessionChanged(object? sender, RemoteSession session)
+    {
+        ApplySettings(_settings.CurrentValue);
+        if (!_runPolicy.IsSecure)
+            _speechQueue.Enqueue(new Utterance(session.Announcement ?? "Local session", SpeechPriority.Normal));
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Vox Screen Reader stopping");
+
+        if (_remoteSessions is not null)
+        {
+            _remoteSessions.Changed -= OnRemoteSessionChanged;
+            try { Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitch; }
+            catch (Exception ex) { _logger.LogDebug(ex, "Could not unsubscribe from session changes"); }
+        }
 
         // Stop key input first so no new commands arrive
         _keyInputDispatcher.Stop();
@@ -305,6 +359,13 @@ public sealed class ScreenReaderService : IHostedService
         _browseModeController.SetupRequested -= OnSetupRequested;
         _eventPipeline.FocusAnnouncementFilter = null;
         _eventPipeline.FocusContextProvider = null;
+        _eventPipeline.EventFilter = null;
+        _eventPipeline.FocusAnnouncementFormatter = null;
+        _eventPipeline.EventProcessed -= OnEventProcessed;
+        _appModules.ForegroundAppChanged -= OnForegroundAppChanged;
+        _sayAllController.ReadingChanged -= OnSayAllReadingChanged;
+        _profiles.Switched -= OnProfileSwitched;
+        _appModules.Stop();
         _review.BrowseTether = null;
         _speechQueue.IsMuted = null;
         _keyInputDispatcher.IsAsleep = null;
@@ -360,6 +421,9 @@ public sealed class ScreenReaderService : IHostedService
     /// </summary>
     private void ApplySettings(VoxSettings settings)
     {
+        // As the settings work in this session (a remote one turns some audio settings off)
+        if (_remoteSessions is not null)
+            settings = _remoteSessions.Current.Adjust(settings);
         lock (_settingsLock)
         {
             var previous = _appliedSettings;
@@ -388,6 +452,8 @@ public sealed class ScreenReaderService : IHostedService
                 _audioCuePlayer.KeepAwake = settings.KeepAudioDeviceAwake;
             if (previous is null || previous.AudioDucking != settings.AudioDucking)
                 _duckingController.SetMode(settings.AudioDucking);
+            if (previous is null || previous.Language != settings.Language)
+                ApplyLanguage(previous, settings);
             if (previous is null || previous.ModifierKey != settings.ModifierKey)
                 _keyboardHook.ScreenReaderModifier = settings.ModifierKey;
             // At startup the keymap was loaded for the configured layout already
@@ -396,6 +462,9 @@ public sealed class ScreenReaderService : IHostedService
             // The page is laid out again in the new way
             if (previous is not null && previous.ScreenLayout != settings.ScreenLayout)
                 _documentTracker.RequestRecapture(null);
+            // An app module turned on or off: picked again on the pipeline thread
+            if (previous is not null && !previous.DisabledAppModules.SequenceEqual(settings.DisabledAppModules))
+                _eventPipeline.Post(new PipelineWorkEvent(DateTimeOffset.UtcNow, _appModules.Reselect));
             if (previous is null || previous.StartAtLogon != settings.StartAtLogon)
             {
                 try
@@ -411,6 +480,28 @@ public sealed class ScreenReaderService : IHostedService
         }
     }
 
+    /// <summary>
+    /// Vox's strings follow the Language setting at once. When it changes and the braille table is
+    /// still the old language's usual one, braille follows too.
+    /// </summary>
+    private void ApplyLanguage(VoxSettings? previous, VoxSettings settings)
+    {
+        var before = VoxStrings.EffectiveCulture;
+        VoxStrings.Culture = VoxLanguages.Culture(settings.Language);
+        if (settings.Language is not null && VoxStrings.Culture is null)
+            _logger.LogWarning("Unknown language {Language} in the settings; following Windows", settings.Language);
+        if (previous is null)
+            return;
+        var table = VoxLanguages.BrailleTableFor(VoxStrings.EffectiveCulture);
+        if (string.Equals(settings.BrailleTable, VoxLanguages.BrailleTableFor(before), StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(settings.BrailleTable, table, StringComparison.OrdinalIgnoreCase)
+            && _settings is SettingsMonitor monitor)
+        {
+            // Not from inside this settings change
+            _ = Task.Run(() => monitor.UpdateSettings(monitor.CurrentValue with { BrailleTable = table }));
+        }
+    }
+
     private void OnRawKeyReceived(object? sender, RawKeyEvent e)
     {
         _browseModeController.HandleRawKey(e);
@@ -422,6 +513,9 @@ public sealed class ScreenReaderService : IHostedService
     {
         // Braille commands are BrailleService's
         if (e.Command is NavigationCommand.BraillePanLeft or NavigationCommand.BraillePanRight or NavigationCommand.CycleBrailleTether)
+            return;
+        // The foreground application's own commands
+        if (_appModules.TryHandle(e.Command))
             return;
         if (e.Command == NavigationCommand.ToggleSpeechViewer)
         {
@@ -474,12 +568,14 @@ public sealed class ScreenReaderService : IHostedService
             && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
             && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
-            && !_updateCommands.TryHandle(e.Command))
+            && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
     private void OnFocusChangedProcessed(object? sender, FocusChangedEvent e)
     {
+        // First, so the focused application's module formats this very announcement
+        _appModules.Refresh();
         _browseModeController.HandleFocusChanged(e);
         _whereAmI.HandleFocusChanged(e);
         _review.HandleFocusChanged();
@@ -521,6 +617,18 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnMenuEventProcessed(object? sender, MenuEvent e) => _menuTracker.Handle(e.Kind);
 
+    private void OnEventProcessed(object? sender, ScreenReaderEvent e) => _appModules.OnEvent(e);
+
+    private void OnForegroundAppChanged(object? sender, string? processName) => _profiles.SetForegroundApp(processName);
+
+    private void OnSayAllReadingChanged(object? sender, bool reading) => _profiles.SetSayAll(reading);
+
+    private void OnProfileSwitched(object? sender, string? profile)
+    {
+        if (_settings.CurrentValue.AnnounceProfileSwitches)
+            _speechQueue.Enqueue(new Utterance(ProfileCommands.SwitchAnnouncement(profile), SpeechPriority.Normal));
+    }
+
     /// <summary>Said before a focus announcement: the window title when focus moved into another window, then menu context.</summary>
     private string? FocusContext(FocusChangedEvent focus)
     {
@@ -544,6 +652,7 @@ public sealed class ScreenReaderService : IHostedService
     {
         // Keys typed into the new window are decided from the cached sleep state
         _sleepMode.IsAsleepNow();
+        _appModules.Update(e.ProcessId, e.WindowHandle);
         TrackBackground(_dialogReader.HandleForegroundWindowChangedAsync(e));
     }
 

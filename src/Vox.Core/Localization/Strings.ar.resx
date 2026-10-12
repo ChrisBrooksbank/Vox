@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+    <!-- ar: machine-made first translation of the most-spoken strings; to be reviewed by a native speaker (docs/translating.md). Strings not here are said in English. -->
+  <data name="Announce.HeadingLevel" xml:space="preserve">
+    <value>عنوان من المستوى {0}</value>
+  </data>
+  <data name="Announce.Landmark" xml:space="preserve">
+    <value>معلم {0}</value>
+  </data>
+  <data name="Announce.Position" xml:space="preserve">
+    <value>{0} من {1}</value>
+  </data>
+  <data name="Announce.Level" xml:space="preserve">
+    <value>المستوى {0}</value>
+  </data>
+  <data name="Landmark.Banner" xml:space="preserve">
+    <value>شعار</value>
+  </data>
+  <data name="Landmark.Complementary" xml:space="preserve">
+    <value>تكميلي</value>
+  </data>
+  <data name="Landmark.Contentinfo" xml:space="preserve">
+    <value>معلومات المحتوى</value>
+  </data>
+  <data name="Landmark.Form" xml:space="preserve">
+    <value>نموذج</value>
+  </data>
+  <data name="Landmark.Main" xml:space="preserve">
+    <value>رئيسي</value>
+  </data>
+  <data name="Landmark.Navigation" xml:space="preserve">
+    <value>تنقل</value>
+  </data>
+  <data name="Landmark.Region" xml:space="preserve">
+    <value>منطقة</value>
+  </data>
+  <data name="Landmark.Search" xml:space="preserve">
+    <value>بحث</value>
+  </data>
+  <data name="State.Visited" xml:space="preserve">
+    <value>تمت زيارته</value>
+  </data>
+  <data name="State.Required" xml:space="preserve">
+    <value>مطلوب</value>
+  </data>
+  <data name="State.Expanded" xml:space="preserve">
+    <value>موسع</value>
+  </data>
+  <data name="State.Collapsed" xml:space="preserve">
+    <value>مطوي</value>
+  </data>
+  <data name="State.Checked" xml:space="preserve">
+    <value>محدد</value>
+  </data>
+  <data name="State.NotChecked" xml:space="preserve">
+    <value>غير محدد</value>
+  </data>
+  <data name="State.HalfChecked" xml:space="preserve">
+    <value>محدد جزئيا</value>
+  </data>
+  <data name="State.Selected" xml:space="preserve">
+    <value>مختار</value>
+  </data>
+  <data name="State.Pressed" xml:space="preserve">
+    <value>مضغوط</value>
+  </data>
+  <data name="State.NotPressed" xml:space="preserve">
+    <value>غير مضغوط</value>
+  </data>
+  <data name="State.HalfPressed" xml:space="preserve">
+    <value>مضغوط جزئيا</value>
+  </data>
+  <data name="State.SpellingError" xml:space="preserve">
+    <value>خطأ إملائي</value>
+  </data>
+  <data name="State.GrammarError" xml:space="preserve">
+    <value>خطأ نحوي</value>
+  </data>
+  <data name="State.InvalidEntry" xml:space="preserve">
+    <value>إدخال غير صالح</value>
+  </data>
+  <data name="State.Current" xml:space="preserve">
+    <value>حالي</value>
+  </data>
+  <data name="State.Current.page" xml:space="preserve">
+    <value>الصفحة الحالية</value>
+  </data>
+  <data name="State.Current.step" xml:space="preserve">
+    <value>الخطوة الحالية</value>
+  </data>
+  <data name="State.Current.location" xml:space="preserve">
+    <value>الموقع الحالي</value>
+  </data>
+  <data name="State.Current.date" xml:space="preserve">
+    <value>التاريخ الحالي</value>
+  </data>
+  <data name="State.Current.time" xml:space="preserve">
+    <value>الوقت الحالي</value>
+  </data>
+  <data name="State.CurrentKind" xml:space="preserve">
+    <value>{0} الحالي</value>
+  </data>
+  <data name="State.SortedAscending" xml:space="preserve">
+    <value>ترتيب تصاعدي</value>
+  </data>
+  <data name="State.SortedDescending" xml:space="preserve">
+    <value>ترتيب تنازلي</value>
+  </data>
+  <data name="State.Sorted" xml:space="preserve">
+    <value>مرتب</value>
+  </data>
+  <data name="State.HasDetails" xml:space="preserve">
+    <value>يحتوي على تفاصيل</value>
+  </data>
+  <data name="ControlType.AppBar" xml:space="preserve">
+    <value>شريط التطبيق</value>
+  </data>
+  <data name="ControlType.Button" xml:space="preserve">
+    <value>زر</value>
+  </data>
+  <data name="ControlType.Calendar" xml:space="preserve">
+    <value>تقويم</value>
+  </data>
+  <data name="ControlType.CheckBox" xml:space="preserve">
+    <value>خانة اختيار</value>
+  </data>
+  <data name="ControlType.ComboBox" xml:space="preserve">
+    <value>مربع تحرير وسرد</value>
+  </data>
+  <data name="ControlType.DataGrid" xml:space="preserve">
+    <value>شبكة</value>
+  </data>
+  <data name="ControlType.DataItem" xml:space="preserve">
+    <value>عنصر شبكة</value>
+  </data>
+  <data name="ControlType.Document" xml:space="preserve">
+    <value>مستند</value>
+  </data>
+  <data name="ControlType.Edit" xml:space="preserve">
+    <value>تحرير</value>
+  </data>
+  <data name="ControlType.Header" xml:space="preserve">
+    <value>رأس</value>
+  </data>
+  <data name="ControlType.HeaderItem" xml:space="preserve">
+    <value>رأس عمود</value>
+  </data>
+  <data name="ControlType.Hyperlink" xml:space="preserve">
+    <value>رابط</value>
+  </data>
+  <data name="ControlType.Image" xml:space="preserve">
+    <value>صورة</value>
+  </data>
+  <data name="ControlType.List" xml:space="preserve">
+    <value>قائمة</value>
+  </data>
+  <data name="ControlType.ListItem" xml:space="preserve">
+    <value>عنصر قائمة</value>
+  </data>
+  <data name="ControlType.Menu" xml:space="preserve">
+    <value>قائمة أوامر</value>
+  </data>
+  <data name="ControlType.MenuBar" xml:space="preserve">
+    <value>شريط القوائم</value>
+  </data>
+  <data name="ControlType.MenuItem" xml:space="preserve">
+    <value>عنصر قائمة أوامر</value>
+  </data>
+  <data name="ControlType.ProgressBar" xml:space="preserve">
+    <value>شريط التقدم</value>
+  </data>
+  <data name="ControlType.RadioButton" xml:space="preserve">
+    <value>زر اختيار</value>
+  </data>
+  <data name="ControlType.ScrollBar" xml:space="preserve">
+    <value>شريط التمرير</value>
+  </data>
+  <data name="ControlType.SemanticZoom" xml:space="preserve">
+    <value>تكبير دلالي</value>
+  </data>
+  <data name="ControlType.Separator" xml:space="preserve">
+    <value>فاصل</value>
+  </data>
+  <data name="ControlType.Slider" xml:space="preserve">
+    <value>منزلق</value>
+  </data>
+  <data name="ControlType.Spinner" xml:space="preserve">
+    <value>زر دوار</value>
+  </data>
+  <data name="ControlType.SplitButton" xml:space="preserve">
+    <value>زر منقسم</value>
+  </data>
+  <data name="ControlType.StatusBar" xml:space="preserve">
+    <value>شريط الحالة</value>
+  </data>
+  <data name="ControlType.Tab" xml:space="preserve">
+    <value>قائمة علامات تبويب</value>
+  </data>
+  <data name="ControlType.TabItem" xml:space="preserve">
+    <value>علامة تبويب</value>
+  </data>
+  <data name="ControlType.Table" xml:space="preserve">
+    <value>جدول</value>
+  </data>
+  <data name="ControlType.Thumb" xml:space="preserve">
+    <value>مقبض</value>
+  </data>
+  <data name="ControlType.TitleBar" xml:space="preserve">
+    <value>شريط العنوان</value>
+  </data>
+  <data name="ControlType.ToolBar" xml:space="preserve">
+    <value>شريط الأدوات</value>
+  </data>
+  <data name="ControlType.ToolTip" xml:space="preserve">
+    <value>تلميح</value>
+  </data>
+  <data name="ControlType.Tree" xml:space="preserve">
+    <value>شجرة</value>
+  </data>
+  <data name="ControlType.TreeItem" xml:space="preserve">
+    <value>عنصر شجرة</value>
+  </data>
+  <data name="ControlType.Window" xml:space="preserve">
+    <value>نافذة</value>
+  </data>
+  <data name="CommandCategory.QuickNavigation" xml:space="preserve">
+    <value>التنقل السريع</value>
+  </data>
+  <data name="CommandCategory.Reading" xml:space="preserve">
+    <value>القراءة</value>
+  </data>
+  <data name="CommandCategory.BrowseMode" xml:space="preserve">
+    <value>وضع التصفح</value>
+  </data>
+  <data name="CommandCategory.Tables" xml:space="preserve">
+    <value>الجداول</value>
+  </data>
+  <data name="CommandCategory.FindAndSelect" xml:space="preserve">
+    <value>البحث والتحديد والنسخ</value>
+  </data>
+  <data name="CommandCategory.ObjectNavigation" xml:space="preserve">
+    <value>التنقل بين الكائنات</value>
+  </data>
+  <data name="CommandCategory.Review" xml:space="preserve">
+    <value>مؤشر المراجعة</value>
+  </data>
+  <data name="CommandCategory.Mouse" xml:space="preserve">
+    <value>الماوس</value>
+  </data>
+  <data name="CommandCategory.Speech" xml:space="preserve">
+    <value>الكلام</value>
+  </data>
+  <data name="CommandCategory.Braille" xml:space="preserve">
+    <value>برايل</value>
+  </data>
+  <data name="CommandCategory.Applications" xml:space="preserve">
+    <value>التطبيقات</value>
+  </data>
+  <data name="CommandCategory.System" xml:space="preserve">
+    <value>النظام</value>
+  </data>
+  <data name="SettingsPage.General" xml:space="preserve">
+    <value>عام</value>
+  </data>
+  <data name="SettingsPage.Speech" xml:space="preserve">
+    <value>الكلام</value>
+  </data>
+  <data name="SettingsPage.Braille" xml:space="preserve">
+    <value>برايل</value>
+  </data>
+  <data name="SettingsPage.Verbosity" xml:space="preserve">
+    <value>مستوى التفاصيل</value>
+  </data>
+  <data name="SettingsPage.BrowseMode" xml:space="preserve">
+    <value>وضع التصفح</value>
+  </data>
+  <data name="SettingsPage.DocumentFormatting" xml:space="preserve">
+    <value>تنسيق المستندات</value>
+  </data>
+  <data name="SettingsPage.AudioCues" xml:space="preserve">
+    <value>الأصوات</value>
+  </data>
+  <data name="SettingsPage.Keyboard" xml:space="preserve">
+    <value>لوحة المفاتيح</value>
+  </data>
+  <data name="SettingsPage.Mouse" xml:space="preserve">
+    <value>الماوس</value>
+  </data>
+  <data name="SettingsPage.Review" xml:space="preserve">
+    <value>المراجعة</value>
+  </data>
+  <data name="SettingsPage.Applications" xml:space="preserve">
+    <value>التطبيقات</value>
+  </data>
+  <data name="VoxMenu.Title" xml:space="preserve">
+    <value>قائمة Vox</value>
+  </data>
+  <data name="VoxMenu.TrayTip" xml:space="preserve">
+    <value>قارئ الشاشة Vox</value>
+  </data>
+  <data name="Dialog.Close" xml:space="preserve">
+    <value>إغلاق</value>
+  </data>
+  <data name="Setting.Language" xml:space="preserve">
+    <value>اللغة (&amp;L)</value>
+  </data>
+  <data name="Choice.Language.Windows" xml:space="preserve">
+    <value>مثل Windows</value>
+  </data>
+</root>

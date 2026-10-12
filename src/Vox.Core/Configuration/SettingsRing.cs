@@ -103,7 +103,11 @@ public sealed class SettingsRing
         var settings = _settings.CurrentValue;
         var changed = Step(_current, settings, Math.Sign(direction));
         if (changed != settings)
+        {
             _updateSettings(changed);
+            // As it is now: an organization's policy may keep the setting where it was
+            changed = _settings.CurrentValue;
+        }
         return Value(_current, changed);
     }
 

@@ -3,8 +3,8 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 170
-- Last updated: 2026-10-11
+- Build iterations: 200
+- Last updated: 2026-10-12
 
 ## Tasks
 
@@ -252,32 +252,32 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### App modules (spec: office-apps.md)
 
-- [ ] Add `IAppModule` and `AppModuleManager` (foreground-process selection, keymap layers, announcement overrides); unit tests (spec: office-apps.md)
-- [ ] Add Office object-model helper on its own STA thread with timeouts; unit tests with a fake (spec: office-apps.md)
-- [ ] Word: quick navigation in documents (headings, tables, lists, comments, revisions, spelling errors) (spec: office-apps.md)
-- [ ] Word: comments and tracked changes announced on caret entry; comments tab in Elements List (spec: office-apps.md)
-- [ ] Word: page/section/line/column report command; table cell navigation through `TableNavigator` (spec: office-apps.md)
-- [ ] Excel: cell move announcement (address, value, formula indicator) and read-formula command; unit tests (spec: office-apps.md)
-- [ ] Excel: user-defined title row/column per sheet spoken on move; unit tests (spec: office-apps.md)
-- [ ] Excel: selection range size, sheet switch, filters, comments/notes, validation messages, chart summary (spec: office-apps.md)
-- [ ] Outlook: message list column order and status position settings; unit tests (spec: office-apps.md)
-- [ ] Outlook: reading pane auto-read, header fields command, calendar day/week summaries, meeting request actions (spec: office-apps.md)
-- [ ] PowerPoint: slide number/title on change, shape navigation, speaker notes, slideshow reading (spec: office-apps.md)
-- [ ] Teams: message navigation, filtered new-message announcements, meeting control and call state (spec: office-apps.md)
-- [ ] File Explorer details view: column headers with values; unit tests (spec: office-apps.md)
-- [ ] VS Code: avoid double-speaking its accessibility signals; Visual Studio, Zoom and Acrobat basics (spec: office-apps.md)
+- [x] Add `IAppModule` and `AppModuleManager` (foreground-process selection, keymap layers, announcement overrides); unit tests (spec: office-apps.md)
+- [x] Add Office object-model helper on its own STA thread with timeouts; unit tests with a fake (spec: office-apps.md)
+- [x] Word: quick navigation in documents (headings, tables, lists, comments, revisions, spelling errors) (spec: office-apps.md)
+- [x] Word: comments and tracked changes announced on caret entry; comments tab in Elements List (spec: office-apps.md)
+- [x] Word: page/section/line/column report command; table cell navigation through `TableNavigator` (spec: office-apps.md)
+- [x] Excel: cell move announcement (address, value, formula indicator) and read-formula command; unit tests (spec: office-apps.md)
+- [x] Excel: user-defined title row/column per sheet spoken on move; unit tests (spec: office-apps.md)
+- [x] Excel: selection range size, sheet switch, filters, comments/notes, validation messages, chart summary (spec: office-apps.md)
+- [x] Outlook: message list column order and status position settings; unit tests (spec: office-apps.md)
+- [x] Outlook: reading pane auto-read, header fields command, calendar day/week summaries, meeting request actions (spec: office-apps.md)
+- [x] PowerPoint: slide number/title on change, shape navigation, speaker notes, slideshow reading (spec: office-apps.md)
+- [x] Teams: message navigation, filtered new-message announcements, meeting control and call state (spec: office-apps.md)
+- [x] File Explorer details view: column headers with values; unit tests (spec: office-apps.md)
+- [x] VS Code: avoid double-speaking its accessibility signals; Visual Studio, Zoom and Acrobat basics (spec: office-apps.md)
 
 #### Profiles, languages, enterprise — W8b (spec: product-settings-help-install.md)
 
-- [ ] Add configuration profiles (named overrides, per-app activation, Say All trigger, manual switch, merge order default < app < trigger < manual); unit tests (spec: product-settings-help-install.md)
-- [ ] Move all spoken and UI strings to `.resx` and use `IStringLocalizer` in `AnnouncementBuilder`, `ControlTypeNames`, wizard and dialogs; pseudo-locale test (spec: product-settings-help-install.md)
-- [ ] Add language setting and per-language symbol dictionaries, braille tables and key names (spec: product-settings-help-install.md)
-- [ ] Add RTL text order in the buffer and braille; unit tests (spec: product-settings-help-install.md)
-- [ ] Document the translator workflow and add the first translations (es, fr, de, pt, zh, ja, ar, hi) (spec: product-settings-help-install.md)
-- [ ] Add silent-install MSI properties, ADMX policy templates, roaming settings option, network-off guarantee (spec: product-settings-help-install.md)
-- [ ] Detect RDP/Citrix sessions, document limits, and test UIA over RDP (spec: product-settings-help-install.md)
-- [ ] Add desktop E2E scenarios for Notepad, Explorer and Settings (interactive runner) (spec: quality-engineering.md)
-- [ ] Add fault-injection E2E runs (hung provider, browser crash, sleep/resume, session switch) and a 4-hour soak test checking memory and handles (spec: quality-engineering.md)
+- [x] Add configuration profiles (named overrides, per-app activation, Say All trigger, manual switch, merge order default < app < trigger < manual); unit tests (spec: product-settings-help-install.md)
+- [x] Move all spoken and UI strings to `.resx` and use `IStringLocalizer` in `AnnouncementBuilder`, `ControlTypeNames`, wizard and dialogs; pseudo-locale test (spec: product-settings-help-install.md)
+- [x] Add language setting and per-language symbol dictionaries, braille tables and key names (spec: product-settings-help-install.md)
+- [x] Add RTL text order in the buffer and braille; unit tests (spec: product-settings-help-install.md)
+- [x] Document the translator workflow and add the first translations (es, fr, de, pt, zh, ja, ar, hi) (spec: product-settings-help-install.md)
+- [x] Add silent-install MSI properties, ADMX policy templates, roaming settings option, network-off guarantee (spec: product-settings-help-install.md)
+- [x] Detect RDP/Citrix sessions, document limits, and test UIA over RDP (spec: product-settings-help-install.md)
+- [x] Add desktop E2E scenarios for Notepad, Explorer and Settings (interactive runner) (spec: quality-engineering.md)
+- [x] Add fault-injection E2E runs (hung provider, browser crash, sleep/resume, session switch) and a 4-hour soak test checking memory and handles (spec: quality-engineering.md)
 
 ### Milestone E — "Better than"
 

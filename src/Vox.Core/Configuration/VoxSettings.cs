@@ -165,6 +165,8 @@ public record VoxSettings
     public bool StatesAsSounds { get; init; } = false;
     /// <summary>Text in another language (a page's lang) is read with a voice for that language.</summary>
     public bool AutoLanguageSwitching { get; init; } = true;
+    /// <summary>The language Vox speaks and shows its own words in (a culture name, "fr"); null follows Windows' display language.</summary>
+    public string? Language { get; init; }
     /// <summary>The voice to use for a language (BCP 47 tag or just the language, e.g. "fr"), overriding the automatic choice.</summary>
     public Dictionary<string, string> LanguageVoices { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Applications (process names) in sleep mode: Vox neither speaks nor takes keys while they have focus.</summary>
@@ -174,6 +176,26 @@ public record VoxSettings
     /// overriding the automatic choice (Focus mode for web applications, else Browse mode).
     /// </summary>
     public Dictionary<string, InteractionMode> AppDefaultModes { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>App modules (by id: "word", "excel", ...) turned off: their applications are read like any other.</summary>
+    public List<string> DisabledAppModules { get; init; } = [];
+    /// <summary>Say a configuration profile's name when an application or a hand choice switches to it.</summary>
+    public bool AnnounceProfileSwitches { get; init; } = true;
+    /// <summary>Excel: say "has formula" for a cell with a formula.</summary>
+    public bool ExcelReportFormulas { get; init; } = true;
+    /// <summary>Excel: say "has comment" and "has note" for a cell with one.</summary>
+    public bool ExcelReportCommentsAndNotes { get; init; } = true;
+    /// <summary>Word: say comments and tracked changes when the caret moves into them.</summary>
+    public bool WordReportCommentsAndRevisions { get; init; } = true;
+    /// <summary>Outlook: the message list columns read, in order ("From", "Subject", "Received", "Size", "Categories", "To").</summary>
+    public List<string> OutlookColumns { get; init; } = ["From", "Subject", "Received"];
+    /// <summary>Outlook: whether a message's statuses (unread, flagged, attachment) are said before or after its columns.</summary>
+    public AppModules.Outlook.OutlookStatusPosition OutlookStatusPosition { get; init; } = AppModules.Outlook.OutlookStatusPosition.First;
+    /// <summary>Outlook: read the message after its row when another message is selected.</summary>
+    public bool OutlookAutoRead { get; init; }
+    /// <summary>File Explorer: say the column headers with a details-view item's values.</summary>
+    public bool ExplorerColumnHeaders { get; init; } = true;
+    /// <summary>Teams: which new-message announcements are said.</summary>
+    public AppModules.Teams.TeamsMessageAnnouncements TeamsMessageAnnouncements { get; init; } = AppModules.Teams.TeamsMessageAnnouncements.All;
     public string? VoiceName { get; init; }
     /// <summary>Speech engine by id ("OneCore", "eSpeak" when installed, "SAPI"); null: the preferred engine that starts (OneCore, then SAPI).</summary>
     public string? SpeechEngine { get; init; }

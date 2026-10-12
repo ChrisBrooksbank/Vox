@@ -1,0 +1,21 @@
+{
+  "bindings": [
+    {"modifiers": "Insert", "vkCode": 46, "mode": "Any", "command": "WordLocation"},
+    {"modifiers": "Insert|Alt", "vkCode": 72, "mode": "Any", "command": "WordNextHeading"},
+    {"modifiers": "Insert|Alt|Shift", "vkCode": 72, "mode": "Any", "command": "WordPrevHeading"},
+    {"modifiers": "Insert|Alt", "vkCode": 84, "mode": "Any", "command": "WordNextTable"},
+    {"modifiers": "Insert|Alt|Shift", "vkCode": 84, "mode": "Any", "command": "WordPrevTable"},
+    {"modifiers": "Insert|Alt", "vkCode": 76, "mode": "Any", "command": "WordNextList"},
+    {"modifiers": "Insert|Alt|Shift", "vkCode": 76, "mode": "Any", "command": "WordPrevList"},
+    {"modifiers": "Insert|Alt", "vkCode": 67, "mode": "Any", "command": "WordNextComment"},
+    {"modifiers": "Insert|Alt|Shift", "vkCode": 67, "mode": "Any", "command": "WordPrevComment"},
+    {"modifiers": "Insert|Alt", "vkCode": 82, "mode": "Any", "command": "WordNextRevision"},
+    {"modifiers": "Insert|Alt|Shift", "vkCode": 82, "mode": "Any", "command": "WordPrevRevision"},
+    {"modifiers": "Insert|Alt", "vkCode": 83, "mode": "Any", "command": "WordNextSpellingError"},
+    {"modifiers": "Insert|Alt|Shift", "vkCode": 83, "mode": "Any", "command": "WordPrevSpellingError"},
+    {"modifiers": "Ctrl|Alt", "vkCode": 37, "mode": "Any", "command": "WordTableCellLeft"},
+    {"modifiers": "Ctrl|Alt", "vkCode": 39, "mode": "Any", "command": "WordTableCellRight"},
+    {"modifiers": "Ctrl|Alt", "vkCode": 38, "mode": "Any", "command": "WordTableCellUp"},
+    {"modifiers": "Ctrl|Alt", "vkCode": 40, "mode": "Any", "command": "WordTableCellDown"}
+  ]
+}

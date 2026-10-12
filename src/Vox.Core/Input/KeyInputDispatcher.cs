@@ -103,6 +103,15 @@ public sealed class KeyInputDispatcher
     /// <summary>Switches to another keymap (another keyboard layout); takes effect with the next key.</summary>
     public void SetKeyMap(KeyMap keyMap) => _keyMap = keyMap;
 
+    // The foreground application's module's keys, checked before the keymap; null when it adds none
+    private volatile KeyMap? _appKeyMap;
+
+    /// <summary>
+    /// Sets the layer of keys the foreground application's module adds (null: none). Its bindings
+    /// are looked up before the keymap's, in the same way; takes effect with the next key.
+    /// </summary>
+    public void SetAppKeyMap(KeyMap? keyMap) => _appKeyMap = keyMap;
+
     /// <summary>
     /// Starts listening to keyboard events by subscribing to the hook.
     /// </summary>
@@ -246,12 +255,18 @@ public sealed class KeyInputDispatcher
             passThrough = false;
             return false;
         }
-        return context == OutsideDocumentContext
-            ? _keyMap.TryResolveOutsideDocument(modifiers, vkCode, out command, out passThrough)
-            : _keyMap.TryResolve(modifiers, vkCode,
+        // The application's keys first
+        if (_appKeyMap is { } app && Lookup(app, modifiers, vkCode, context, out command, out passThrough))
+            return true;
+        return Lookup(_keyMap, modifiers, vkCode, context, out command, out passThrough);
+    }
+
+    private static bool Lookup(KeyMap map, KeyModifiers modifiers, int vkCode, int context, out NavigationCommand command, out bool passThrough) =>
+        context == OutsideDocumentContext
+            ? map.TryResolveOutsideDocument(modifiers, vkCode, out command, out passThrough)
+            : map.TryResolve(modifiers, vkCode,
                 context == BrowseContext ? InteractionMode.Browse : InteractionMode.Focus,
                 out command, out passThrough);
-    }
 
     private readonly Diagnostics.LatencyTracker? _latency;
 

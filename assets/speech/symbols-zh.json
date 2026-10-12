@@ -1,0 +1,187 @@
+{
+  "comment": "Symbol names for zh: they replace the English names (symbols-en.json); levels and pauses stay the English file's. Machine-translated: to be reviewed by a native speaker (docs/translating.md).",
+  "symbols": [
+    {
+      "symbol": "!",
+      "name": "感叹号"
+    },
+    {
+      "symbol": ".",
+      "name": "点"
+    },
+    {
+      "symbol": ",",
+      "name": "逗号"
+    },
+    {
+      "symbol": "?",
+      "name": "问号"
+    },
+    {
+      "symbol": "'",
+      "name": "撇号"
+    },
+    {
+      "symbol": "\"",
+      "name": "引号"
+    },
+    {
+      "symbol": "(",
+      "name": "左括号"
+    },
+    {
+      "symbol": ")",
+      "name": "右括号"
+    },
+    {
+      "symbol": "[",
+      "name": "左方括号"
+    },
+    {
+      "symbol": "]",
+      "name": "右方括号"
+    },
+    {
+      "symbol": "{",
+      "name": "左花括号"
+    },
+    {
+      "symbol": "}",
+      "name": "右花括号"
+    },
+    {
+      "symbol": "-",
+      "name": "短横线"
+    },
+    {
+      "symbol": ":",
+      "name": "冒号"
+    },
+    {
+      "symbol": ";",
+      "name": "分号"
+    },
+    {
+      "symbol": "…",
+      "name": "省略号"
+    },
+    {
+      "symbol": "#",
+      "name": "井号"
+    },
+    {
+      "symbol": "$",
+      "name": "美元"
+    },
+    {
+      "symbol": "%",
+      "name": "百分号"
+    },
+    {
+      "symbol": "&",
+      "name": "和"
+    },
+    {
+      "symbol": "*",
+      "name": "星号"
+    },
+    {
+      "symbol": "+",
+      "name": "加号"
+    },
+    {
+      "symbol": "/",
+      "name": "斜杠"
+    },
+    {
+      "symbol": "<",
+      "name": "小于"
+    },
+    {
+      "symbol": "=",
+      "name": "等于"
+    },
+    {
+      "symbol": ">",
+      "name": "大于"
+    },
+    {
+      "symbol": "@",
+      "name": "at"
+    },
+    {
+      "symbol": "\\",
+      "name": "反斜杠"
+    },
+    {
+      "symbol": "^",
+      "name": "脱字符"
+    },
+    {
+      "symbol": "_",
+      "name": "下划线"
+    },
+    {
+      "symbol": "|",
+      "name": "竖线"
+    },
+    {
+      "symbol": "~",
+      "name": "波浪号"
+    },
+    {
+      "symbol": "•",
+      "name": "项目符号"
+    },
+    {
+      "symbol": "€",
+      "name": "欧元"
+    },
+    {
+      "symbol": "£",
+      "name": "英镑"
+    },
+    {
+      "symbol": "。",
+      "name": "句号",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "，",
+      "name": "逗号",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "、",
+      "name": "顿号",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "？",
+      "name": "问号",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "！",
+      "name": "感叹号",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "：",
+      "name": "冒号",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "；",
+      "name": "分号",
+      "level": "All",
+      "preserve": true
+    }
+  ]
+}

@@ -216,7 +216,7 @@ public sealed class BrowseModeController
     private readonly Input.RepeatPressConfirmation _quitConfirmation = new(TimeSpan.FromSeconds(3));
 
     private string ModifierName =>
-        _settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+        InputHelp.ScreenReaderKeyName(_settings.CurrentValue.ModifierKey);
 
     /// <summary>
     /// Raised when Escape should go to the page (the focused control has an open popup such as an
@@ -425,6 +425,11 @@ public sealed class BrowseModeController
         }
 
         if (_navigationManager.CurrentMode != InteractionMode.Browse)
+            return;
+
+        // The commands below work on the page, so not while it isn't in front. Typed keys only
+        // bring them on the page; a braille display's keys post them from anywhere.
+        if (!_documentActive)
             return;
 
         if (IsCaretCommand(command))
@@ -1392,7 +1397,7 @@ public sealed class BrowseModeController
     }
 
     private string DismissOverlayKey =>
-        $"{(_settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert")}+Shift+D";
+        $"{InputHelp.ScreenReaderKeyName(_settings.CurrentValue.ModifierKey)}+Shift+D";
 
     /// <summary>Starts exploring the expression at the cursor (MathCAT).</summary>
     private void InteractWithMath()

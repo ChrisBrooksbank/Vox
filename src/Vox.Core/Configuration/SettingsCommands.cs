@@ -36,7 +36,8 @@ public sealed class SettingsCommands(
     SpeechQueue? speechQueue = null,
     GestureSetup? gestures = null,
     IVoxMenuPresenter? menu = null,
-    IPortableCopyPresenter? portable = null)
+    IPortableCopyPresenter? portable = null,
+    Enterprise.PolicySettings? policy = null)
 {
     public bool TryHandle(NavigationCommand command)
     {
@@ -130,7 +131,10 @@ public sealed class SettingsCommands(
         {
             var speechOptions = new SpeechOptions(speech.Engines, speech.GetAvailableVoices(), speech.MaxRateWpm, speech.Capabilities);
             var audioOptions = new AudioOptions(OutputDevices(), EarconSchemes());
-            await presenter.ShowAsync(() => settings.CurrentValue, SettingsPages.All(speechOptions, audioOptions), updateSettings).ConfigureAwait(false);
+            // Settings the organization's policy sets are shown, but can't be changed
+            var pages = SettingsPages.WithPolicy(SettingsPages.All(speechOptions, audioOptions),
+                policy ?? Enterprise.PolicySettings.None, settings.CurrentValue);
+            await presenter.ShowAsync(() => settings.CurrentValue, pages, updateSettings).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -148,7 +152,7 @@ public sealed class SettingsCommands(
             var editor = new GestureEditor(layout, ReadUserKeyMap(path));
             var services = new GestureDialogServices(
                 setup.Dispatcher.CaptureNextKey, setup.Dispatcher.CancelCapture, Say,
-                settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert");
+                InputHelp.ScreenReaderKeyName(settings.CurrentValue.ModifierKey));
             if (await setup.Presenter.ShowAsync(editor, services).ConfigureAwait(false))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -173,7 +177,7 @@ public sealed class SettingsCommands(
         {
             var layout = KeyMap.LayoutBindings(setup.ConfigDirectory, settings.CurrentValue.KeyboardLayout);
             var keys = new GestureEditor(layout, setup.UserKeyMapPath is { } path ? ReadUserKeyMap(path) : []);
-            var screenReaderKey = settings.CurrentValue.ModifierKey == ModifierKey.CapsLock ? "Caps Lock" : "Insert";
+            var screenReaderKey = InputHelp.ScreenReaderKeyName(settings.CurrentValue.ModifierKey);
             await setup.Search.ShowAsync(query => CommandSearch.Find(query, keys, screenReaderKey)).ConfigureAwait(false);
         }
         catch (Exception ex)

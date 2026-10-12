@@ -1,0 +1,169 @@
+{
+  "comment": "Symbol names for ja: they replace the English names (symbols-en.json); levels and pauses stay the English file's. Machine-translated: to be reviewed by a native speaker (docs/translating.md).",
+  "symbols": [
+    {
+      "symbol": "!",
+      "name": "感嘆符"
+    },
+    {
+      "symbol": ".",
+      "name": "ドット"
+    },
+    {
+      "symbol": ",",
+      "name": "カンマ"
+    },
+    {
+      "symbol": "?",
+      "name": "疑問符"
+    },
+    {
+      "symbol": "'",
+      "name": "アポストロフィ"
+    },
+    {
+      "symbol": "\"",
+      "name": "引用符"
+    },
+    {
+      "symbol": "(",
+      "name": "左かっこ"
+    },
+    {
+      "symbol": ")",
+      "name": "右かっこ"
+    },
+    {
+      "symbol": "[",
+      "name": "左角かっこ"
+    },
+    {
+      "symbol": "]",
+      "name": "右角かっこ"
+    },
+    {
+      "symbol": "{",
+      "name": "左波かっこ"
+    },
+    {
+      "symbol": "}",
+      "name": "右波かっこ"
+    },
+    {
+      "symbol": "-",
+      "name": "ハイフン"
+    },
+    {
+      "symbol": ":",
+      "name": "コロン"
+    },
+    {
+      "symbol": ";",
+      "name": "セミコロン"
+    },
+    {
+      "symbol": "…",
+      "name": "三点リーダー"
+    },
+    {
+      "symbol": "#",
+      "name": "シャープ"
+    },
+    {
+      "symbol": "$",
+      "name": "ドル"
+    },
+    {
+      "symbol": "%",
+      "name": "パーセント"
+    },
+    {
+      "symbol": "&",
+      "name": "アンド"
+    },
+    {
+      "symbol": "*",
+      "name": "アスタリスク"
+    },
+    {
+      "symbol": "+",
+      "name": "プラス"
+    },
+    {
+      "symbol": "/",
+      "name": "スラッシュ"
+    },
+    {
+      "symbol": "<",
+      "name": "小なり"
+    },
+    {
+      "symbol": "=",
+      "name": "イコール"
+    },
+    {
+      "symbol": ">",
+      "name": "大なり"
+    },
+    {
+      "symbol": "@",
+      "name": "アットマーク"
+    },
+    {
+      "symbol": "\\",
+      "name": "バックスラッシュ"
+    },
+    {
+      "symbol": "^",
+      "name": "キャレット"
+    },
+    {
+      "symbol": "_",
+      "name": "アンダースコア"
+    },
+    {
+      "symbol": "|",
+      "name": "縦線"
+    },
+    {
+      "symbol": "~",
+      "name": "チルダ"
+    },
+    {
+      "symbol": "•",
+      "name": "中黒"
+    },
+    {
+      "symbol": "€",
+      "name": "ユーロ"
+    },
+    {
+      "symbol": "£",
+      "name": "ポンド"
+    },
+    {
+      "symbol": "。",
+      "name": "句点",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "、",
+      "name": "読点",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "「",
+      "name": "かぎかっこ",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "」",
+      "name": "かぎかっこ閉じ",
+      "level": "All",
+      "preserve": true
+    }
+  ]
+}

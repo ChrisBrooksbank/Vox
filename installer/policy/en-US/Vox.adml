@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>Vox screen reader</displayName>
+  <description>Policies for the Vox screen reader.</description>
+  <resources>
+    <stringTable>
+      <string id="Vox">Vox screen reader</string>
+      <string id="SUPPORTED_Vox">Vox 1.0 and later</string>
+      <string id="DisableNetwork">Turn off all network access</string>
+      <string id="DisableNetwork_Help">When enabled, Vox makes no network connections at all: no update checks, no online services, and BRLTTY only on this computer. The computer's setting wins over the user's.</string>
+      <string id="DisableUpdates">Turn off update checks</string>
+      <string id="DisableUpdates_Help">When enabled, Vox never checks for or offers updates (deploy them centrally instead).</string>
+      <string id="UpdateChannel">Update channel</string>
+      <string id="UpdateChannel_Help">Which Vox releases are offered: releases only, releases and betas, or none. Users can't change it.</string>
+      <string id="UpdateChannel_Stable">Releases</string>
+      <string id="UpdateChannel_Beta">Releases and betas</string>
+      <string id="UpdateChannel_Off">Never check</string>
+      <string id="DisableAddOns">Turn off optional components and add-ons</string>
+      <string id="DisableAddOns_Help">When enabled, Vox loads no optional components or add-ons (eSpeak NG, MathCAT, liblouis).</string>
+      <string id="DisableAI">Turn off AI features</string>
+      <string id="DisableAI_Help">When enabled, Vox offers no AI features (image descriptions, explanations), local or online.</string>
+      <string id="StartAtLogon">Start Vox at sign-in</string>
+      <string id="StartAtLogon_Help">Enabled: Vox starts when users sign in, and they can't turn it off. Disabled: it never does.</string>
+      <string id="LockSettings">Lock all settings</string>
+      <string id="LockSettings_Help">When enabled, users can't change any Vox setting; the settings dialog shows them as set by the organization.</string>
+      <string id="SettingsLocation">Where user settings are kept</string>
+      <string id="SettingsLocation_Help">Roaming (the default): %APPDATA%\Vox, which follows users with a roaming profile. Local: %LOCALAPPDATA%\Vox, on this computer only. Logs are always local.</string>
+      <string id="SettingsLocation_Roaming">Roaming profile</string>
+      <string id="SettingsLocation_Local">This computer only</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="UpdateChannel">
+        <dropdownList refId="UpdateChannel" noSort="true" defaultItem="0">Update channel:</dropdownList>
+      </presentation>
+      <presentation id="SettingsLocation">
+        <dropdownList refId="SettingsLocation" noSort="true" defaultItem="0">Keep settings in:</dropdownList>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

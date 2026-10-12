@@ -45,6 +45,7 @@ public sealed class BrlttyDisplay : IBrailleDisplayDriver
     private readonly IReadOnlyList<string> _keyFilePaths;
     private readonly TimeSpan _connectTimeout;
     private readonly ILogger<BrlttyDisplay>? _logger;
+    private readonly Lifecycle.RunPolicy _policy;
 
     private readonly object _connectLock = new();
     private readonly object _writeLock = new();
@@ -57,13 +58,19 @@ public sealed class BrlttyDisplay : IBrailleDisplayDriver
     /// <param name="keyFilePaths">Key files to try, first existing one wins; null for <see cref="DefaultKeyFilePaths"/>.</param>
     /// <param name="connectTimeout">The time connecting and the handshake may take; null for about a second.</param>
     /// <param name="logger">Optional logger.</param>
+    /// <param name="policy">
+    /// What this Vox may do: a server on another computer is connected to only while it allows the
+    /// network (<see cref="Enterprise.NetworkGate.MayConnect"/>); null: <see cref="Lifecycle.RunPolicy.Normal"/>.
+    /// </param>
     public BrlttyDisplay(
         string host = "127.0.0.1",
         int port = BrlApiProtocol.DefaultPort,
         IReadOnlyList<string>? keyFilePaths = null,
         TimeSpan? connectTimeout = null,
-        ILogger<BrlttyDisplay>? logger = null)
+        ILogger<BrlttyDisplay>? logger = null,
+        Lifecycle.RunPolicy? policy = null)
     {
+        _policy = policy ?? Lifecycle.RunPolicy.Normal;
         _host = host;
         _port = port;
         _keyFilePaths = keyFilePaths ?? DefaultKeyFilePaths();
@@ -103,6 +110,12 @@ public sealed class BrlttyDisplay : IBrailleDisplayDriver
                 return true;
             _connection?.Close();
             _connection = null;
+
+            if (!Enterprise.NetworkGate.MayConnect(_policy, _host))
+            {
+                _logger?.LogDebug("Not connecting to BRLTTY at {Host}: the network is turned off", _host);
+                return false;
+            }
 
             TcpClient? client = null;
             try

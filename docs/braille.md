@@ -90,3 +90,11 @@ BRLTTY reports its own commands rather than the display's keys: `brltty.json` ma
   selection; `BrailleLabels` holds the role and state labels.
 - `IBrailleRouter` (`BrailleRouter`) carries routing keys to the caret (UIA `Select`), the browse
   cursor (`BrailleRouteEvent` on the pipeline), the review cursor and the focus (its default action).
+
+## Arabic and Hebrew
+
+Braille shows text in reading order, as Arabic and Hebrew braille are read left to right. The
+invisible direction marks that mixed-direction text carries (U+200E, U+200F, embeddings and
+isolates) are left out of the display; the cursor and routing keys still land on the right
+characters. Changing Vox's language also changes the braille table when it was the old
+language's usual one.

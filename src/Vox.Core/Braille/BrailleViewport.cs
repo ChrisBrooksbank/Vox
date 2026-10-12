@@ -70,7 +70,8 @@ public sealed class BrailleViewport
         _options = options;
         _cellCount = Math.Max(cellCount, 0);
         Line = line;
-        Translation = _translator.Translate(line.Text, line.CursorOffset,
+        // Direction marks in Arabic and Hebrew text aren't shown (Text.BidiText)
+        Translation = Text.BidiText.Translate(_translator, line.Text, line.CursorOffset,
             options.ExpandWordAtCursor && line.CursorOffset is not null);
 
         if (keepWindow && previousStart < Math.Max(Translation.Cells.Length, 1) && CursorVisibleFrom(previousStart))

@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.Braille;
 
 /// <summary>A liblouis table Vox offers in settings: its file name and the name shown to the user.</summary>
@@ -19,27 +21,38 @@ public static class BrailleTables
     public const string Contracted = "en-ueb-g2.ctb";
 
     /// <summary>The tables offered in settings, the default first.</summary>
-    public static IReadOnlyList<BrailleTable> All { get; } =
+    public static IReadOnlyList<BrailleTable> All =>
     [
-        new(Contracted, "English, Unified English Braille, grade 2", true),
-        new("en-ueb-g1.ctb", "English, Unified English Braille, grade 1", false),
-        new(Uncontracted, "English, US computer braille, 8-dot", false),
-        new("en-us-g2.ctb", "English, US English Braille (EBAE), grade 2", true),
-        new("en-us-g1.ctb", "English, US English Braille (EBAE), grade 1", false),
-        new("en-GB-g2.ctb", "English, UK, grade 2", true),
-        new("de-g1.ctb", "German, grade 1", false),
-        new("de-g2.ctb", "German, grade 2", true),
-        new("fr-bfu-comp8.utb", "French, uncontracted, 8-dot", false),
-        new("fr-bfu-g2.ctb", "French, grade 2", true),
-        new("es-g1.ctb", "Spanish, grade 1", false),
-        new("es-g2.ctb", "Spanish, grade 2", true),
-        new("it-it-comp6.utb", "Italian, 6-dot", false),
-        new("nl-NL-g0.utb", "Dutch, uncontracted", false),
-        new("sv-g1.ctb", "Swedish, grade 1", false),
-        new("da-dk-g16.ctb", "Danish, 6-dot, uncontracted", false),
-        new("no-no-g1.ctb", "Norwegian, grade 1", false),
-        new("pl-pl-comp8.ctb", "Polish, 8-dot computer braille", false),
+        Table(Contracted, true),
+        Table("en-ueb-g1.ctb", false),
+        Table(Uncontracted, false),
+        Table("en-us-g2.ctb", true),
+        Table("en-us-g1.ctb", false),
+        Table("en-GB-g2.ctb", true),
+        Table("de-g1.ctb", false),
+        Table("de-g2.ctb", true),
+        Table("fr-bfu-comp8.utb", false),
+        Table("fr-bfu-g2.ctb", true),
+        Table("es-g1.ctb", false),
+        Table("es-g2.ctb", true),
+        Table("it-it-comp6.utb", false),
+        Table("nl-NL-g0.utb", false),
+        Table("sv-g1.ctb", false),
+        Table("da-dk-g16.ctb", false),
+        Table("no-no-g1.ctb", false),
+        Table("pl-pl-comp8.ctb", false),
+        Table("pt-pt-g1.utb", false),
+        Table("pt-pt-g2.ctb", true),
+        Table("ar-ar-g1.utb", false),
+        Table("ar-ar-g2.ctb", true),
+        Table("zh-chn.ctb", false),
+        Table("ja-kantenji.utb", false),
+        Table("hi-in-g1.utb", false),
     ];
+
+    // A table named by its BrailleTable.<id> string, in the language in use
+    private static BrailleTable Table(string id, bool contracted) =>
+        new(id, VoxStrings.GetOrDefault("BrailleTable." + id, id), contracted);
 
     /// <summary>The offered table with this id (case-insensitive), or null.</summary>
     public static BrailleTable? Find(string table) =>

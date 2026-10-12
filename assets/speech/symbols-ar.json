@@ -1,0 +1,163 @@
+{
+  "comment": "Symbol names for ar: they replace the English names (symbols-en.json); levels and pauses stay the English file's. Machine-translated: to be reviewed by a native speaker (docs/translating.md).",
+  "symbols": [
+    {
+      "symbol": "!",
+      "name": "علامة تعجب"
+    },
+    {
+      "symbol": ".",
+      "name": "نقطة"
+    },
+    {
+      "symbol": ",",
+      "name": "فاصلة"
+    },
+    {
+      "symbol": "?",
+      "name": "علامة استفهام"
+    },
+    {
+      "symbol": "'",
+      "name": "فاصلة عليا"
+    },
+    {
+      "symbol": "\"",
+      "name": "علامة تنصيص"
+    },
+    {
+      "symbol": "(",
+      "name": "قوس أيسر"
+    },
+    {
+      "symbol": ")",
+      "name": "قوس أيمن"
+    },
+    {
+      "symbol": "[",
+      "name": "قوس مربع أيسر"
+    },
+    {
+      "symbol": "]",
+      "name": "قوس مربع أيمن"
+    },
+    {
+      "symbol": "{",
+      "name": "قوس معقوف أيسر"
+    },
+    {
+      "symbol": "}",
+      "name": "قوس معقوف أيمن"
+    },
+    {
+      "symbol": "-",
+      "name": "شرطة"
+    },
+    {
+      "symbol": ":",
+      "name": "نقطتان"
+    },
+    {
+      "symbol": ";",
+      "name": "فاصلة منقوطة"
+    },
+    {
+      "symbol": "…",
+      "name": "ثلاث نقاط"
+    },
+    {
+      "symbol": "#",
+      "name": "علامة الشباك"
+    },
+    {
+      "symbol": "$",
+      "name": "دولار"
+    },
+    {
+      "symbol": "%",
+      "name": "بالمئة"
+    },
+    {
+      "symbol": "&",
+      "name": "و"
+    },
+    {
+      "symbol": "*",
+      "name": "نجمة"
+    },
+    {
+      "symbol": "+",
+      "name": "زائد"
+    },
+    {
+      "symbol": "/",
+      "name": "شرطة مائلة"
+    },
+    {
+      "symbol": "<",
+      "name": "أصغر من"
+    },
+    {
+      "symbol": "=",
+      "name": "يساوي"
+    },
+    {
+      "symbol": ">",
+      "name": "أكبر من"
+    },
+    {
+      "symbol": "@",
+      "name": "آت"
+    },
+    {
+      "symbol": "\\",
+      "name": "شرطة مائلة عكسية"
+    },
+    {
+      "symbol": "^",
+      "name": "علامة الإقحام"
+    },
+    {
+      "symbol": "_",
+      "name": "شرطة سفلية"
+    },
+    {
+      "symbol": "|",
+      "name": "خط عمودي"
+    },
+    {
+      "symbol": "~",
+      "name": "تلدة"
+    },
+    {
+      "symbol": "•",
+      "name": "نقطة تعداد"
+    },
+    {
+      "symbol": "€",
+      "name": "يورو"
+    },
+    {
+      "symbol": "£",
+      "name": "جنيه"
+    },
+    {
+      "symbol": "،",
+      "name": "فاصلة",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "؟",
+      "name": "علامة استفهام",
+      "level": "All",
+      "preserve": true
+    },
+    {
+      "symbol": "؛",
+      "name": "فاصلة منقوطة",
+      "level": "All",
+      "preserve": true
+    }
+  ]
+}

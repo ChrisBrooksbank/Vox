@@ -1,13 +1,25 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.AppModules;
+using Vox.Core.AppModules.Excel;
+using Vox.Core.AppModules.Explorer;
+using Vox.Core.AppModules.Office;
+using Vox.Core.AppModules.Outlook;
+using Vox.Core.AppModules.PowerPoint;
+using Vox.Core.AppModules.Teams;
+using Vox.Core.AppModules.Word;
 using Vox.Core.Audio;
 using Vox.Core.Braille;
 using Vox.Core.Braille.Brltty;
 using Vox.Core.Braille.Hid;
 using Vox.Core.Configuration;
 using Vox.Core.Diagnostics;
+using Vox.Core.Enterprise;
 using Vox.Core.Input;
 using Vox.Core.Lifecycle;
+using Vox.Core.Localization;
 using Vox.Core.MathSpeech;
 using Vox.Core.Navigation;
 using Vox.Core.Pipeline;
@@ -32,10 +44,43 @@ public static class ServiceRegistration
             return new SettingsManager(logger, defaultSettingsPath, policy.SettingsPath)
             {
                 ReadOnly = !policy.AllowSettingsWrites,
+                // What the administrator set for new users (the installer's properties, machine-settings.json)
+                MachineDefaults = MachineSettings.Read(sp.GetRequiredService<IRegistryReader>(), MachineSettings.FilePath, logger),
             };
         });
+        services.AddSingleton<IRegistryReader, Win32RegistryReader>();
+        // The organization's policies (Program.cs reads them first, as they shape RunPolicy and paths)
+        services.TryAddSingleton(sp => PolicySettings.Read(sp.GetRequiredService<IRegistryReader>(),
+            includeUser: !(sp.GetService<RunPolicy>() ?? RunPolicy.Normal).IsSecure));
         services.AddSingleton<SettingsMonitor>();
+        // Configuration profiles, laid over the settings as soon as they exist; none on secure screens
+        services.AddSingleton<ProfileManager>(sp =>
+        {
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            var profiles = new ProfileManager(new ProfileStore(
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? ProfileStore.DefaultDirectory : null,
+                sp.GetRequiredService<ILogger<ProfileStore>>()));
+            sp.GetRequiredService<SettingsMonitor>().AttachProfiles(profiles);
+            return profiles;
+        });
+        services.AddSingleton<IProfilesPresenter, ProfilesPresenter>();
+        services.AddSingleton<ProfileCommands>(sp =>
+        {
+            var appModules = sp.GetRequiredService<AppModuleManager>();
+            return new ProfileCommands(
+                sp.GetRequiredService<IProfilesPresenter>(),
+                sp.GetRequiredService<ProfileManager>(),
+                () => appModules.ActiveProcessName,
+                sp.GetRequiredService<BrowseModeController>(),
+                sp.GetRequiredService<IEventSink>(),
+                sp.GetRequiredService<SpeechQueue>(),
+                sp.GetRequiredService<ILogger<ProfileCommands>>());
+        });
         services.AddSingleton<IOptionsMonitor<VoxSettings>>(sp => sp.GetRequiredService<SettingsMonitor>());
+
+        // Strings: every IStringLocalizer<T> reads Localization/Strings.resx in the Language setting
+        services.AddSingleton<IStringLocalizerFactory, VoxStringLocalizerFactory>();
+        services.AddTransient(typeof(IStringLocalizer<>), typeof(StringLocalizer<>));
 
         // Speech
         // The registry is the engine everything speaks through; it starts the configured engine
@@ -101,8 +146,10 @@ public static class ServiceRegistration
                 // On the text as it is on screen, before anything replaces words
                 new CapitalsRule(() => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue),
                 sp.GetRequiredService<PronunciationRule>(),
-                new PunctuationRule(SymbolDictionary.LoadBuiltIn(),
-                    () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.PunctuationLevel),
+                // Symbols named in the page's language, else Vox's
+                new PunctuationRule(SymbolDictionary.ForLanguage,
+                    () => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.PunctuationLevel,
+                    () => VoxStrings.EffectiveCulture.TwoLetterISOLanguageName),
                 // After symbols, which leave separators inside numbers alone
                 new NumbersRule(() => sp.GetRequiredService<IOptionsMonitor<VoxSettings>>().CurrentValue.Numbers),
             ],
@@ -193,6 +240,9 @@ public static class ServiceRegistration
         services.AddSingleton<MouseTracker>(sp => ActivatorUtilities.CreateInstance<MouseTracker>(sp,
             new Action<VoxSettings>(sp.GetRequiredService<SettingsMonitor>().UpdateSettings)));
         services.AddSingleton<IStartupRegistration, RunKeyStartupRegistration>();
+        // Remote Desktop / Citrix: said at startup; some audio settings are off remotely
+        services.AddSingleton<IRemoteSessionProbe, Win32RemoteSessionProbe>();
+        services.AddSingleton<RemoteSessionMonitor>();
         services.AddSingleton<IAudioDucker, Win32AudioDucker>();
         services.AddSingleton<DuckingController>(sp =>
         {
@@ -261,7 +311,10 @@ public static class ServiceRegistration
         services.AddSingleton<AnnouncementBuilder>(sp =>
         {
             var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
-            return new AnnouncementBuilder { StatesAsSounds = () => settings.CurrentValue.StatesAsSounds };
+            return new AnnouncementBuilder(sp.GetRequiredService<IStringLocalizer<AnnouncementBuilder>>())
+            {
+                StatesAsSounds = () => settings.CurrentValue.StatesAsSounds,
+            };
         });
         services.AddSingleton<SayAllController>();
         services.AddSingleton<IElementsListPresenter, ElementsListPresenter>();
@@ -297,12 +350,14 @@ public static class ServiceRegistration
             var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
             var key = policy.AllowNetwork ? UpdateChecker.ReadPublicKey(Path.Combine(AppContext.BaseDirectory, "assets", "config")) : null;
             return new UpdateChecker(
-                new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
+                // Refuses every request while the network is off (DisableNetwork policy)
+                NetworkGate.CreateHttpClient(policy, TimeSpan.FromSeconds(60)),
                 () => settings.CurrentValue.UpdateChannel,
                 key,
                 UpdateChecker.DefaultFeedUrl,
                 typeof(ServiceRegistration).Assembly.GetName().Version ?? new Version(0, 1),
-                sp.GetRequiredService<ILogger<UpdateChecker>>());
+                sp.GetRequiredService<ILogger<UpdateChecker>>(),
+                policy);
         });
         services.AddSingleton<UpdateCommands>(sp =>
         {
@@ -343,13 +398,64 @@ public static class ServiceRegistration
                 sp.GetRequiredService<SpeechQueue>(),
                 gestures,
                 sp.GetRequiredService<IVoxMenuPresenter>(),
-                sp.GetRequiredService<IPortableCopyPresenter>());
+                sp.GetRequiredService<IPortableCopyPresenter>(),
+                sp.GetRequiredService<PolicySettings>());
+        });
+
+        // App modules: Vox's support for particular applications, chosen by the foreground
+        // process. Office's object model is read on its own STA thread.
+        services.AddSingleton<OfficeObjectModel>();
+        services.AddSingleton<IOfficeObjectModel>(sp => sp.GetRequiredService<OfficeObjectModel>());
+        services.AddSingleton<ExcelTitleStore>(sp => new ExcelTitleStore(
+            (sp.GetService<RunPolicy>() ?? RunPolicy.Normal).AllowSettingsWrites ? ExcelTitleStore.DefaultPath : null,
+            sp.GetRequiredService<ILogger<TableHeaderStore>>()));
+        services.AddSingleton<IExcelSource, ExcelObjectModelSource>();
+        services.AddSingleton<IAppModule, ExcelModule>();
+        services.AddSingleton<IWordSource, WordObjectModelSource>();
+        services.AddSingleton<IAppModule, WordModule>();
+        services.AddSingleton<IOutlookSource, OutlookObjectModelSource>();
+        services.AddSingleton<IAppModule, OutlookModule>();
+        services.AddSingleton<IPowerPointSource, PowerPointObjectModelSource>();
+        services.AddSingleton<IAppModule>(sp => new PowerPointModule(
+            sp.GetRequiredService<IPowerPointSource>(), sp.GetRequiredService<SpeechQueue>(),
+            sp.GetRequiredService<IEventSink>(), sp.GetRequiredService<ILogger<PowerPointModule>>()));
+        services.AddSingleton<UIAAppSources>();
+        services.AddSingleton<IWindowButtonSource>(sp => sp.GetRequiredService<UIAAppSources>());
+        services.AddSingleton<IDetailsRowSource>(sp => sp.GetRequiredService<UIAAppSources>());
+        // What Vox says, so applications' own announcements of the same aren't said again
+        services.AddSingleton<RecentSpeech>(sp =>
+        {
+            var recent = new RecentSpeech();
+            sp.GetRequiredService<SpeechQueue>().UtteranceQueued += (_, u) => recent.Add(u.Text);
+            return recent;
+        });
+        services.AddSingleton<IAppModule, ExplorerModule>();
+        services.AddSingleton<IAppModule>(sp => new TeamsModule(
+            sp.GetRequiredService<IWindowButtonSource>(), sp.GetRequiredService<SpeechQueue>(), sp.GetRequiredService<IEventSink>(),
+            sp.GetRequiredService<RecentSpeech>(), sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            () => sp.GetRequiredService<QuickNavHandler>().CurrentDocument));
+        services.AddSingleton<IAppModule>(sp => new ZoomModule(
+            sp.GetRequiredService<IWindowButtonSource>(), sp.GetRequiredService<SpeechQueue>(), sp.GetRequiredService<IEventSink>(),
+            sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<IAppModule>(sp => QuietAppModule.VisualStudioCode(sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<IAppModule>(sp => QuietAppModule.VisualStudio(sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<IAppModule>(sp => QuietAppModule.Acrobat(sp.GetRequiredService<RecentSpeech>()));
+        services.AddSingleton<AppModuleManager>(sp =>
+        {
+            var dispatcher = sp.GetRequiredService<KeyInputDispatcher>();
+            return new AppModuleManager(
+                sp.GetServices<IAppModule>(),
+                sp.GetRequiredService<IForegroundWindow>(),
+                dispatcher.SetAppKeyMap,
+                sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+                sp.GetRequiredService<ILogger<AppModuleManager>>());
         });
 
         // Braille: display drivers in the order auto-detect tries them, then the controller
         services.AddSingleton<IKeyboardOutput, SendInputKeyboardOutput>();
         services.AddSingleton<IBrailleDisplayDriver>(sp => new HidBrailleDisplay(sp.GetRequiredService<ILogger<HidBrailleDisplay>>()));
-        services.AddSingleton<IBrailleDisplayDriver>(sp => new BrlttyDisplay(logger: sp.GetRequiredService<ILogger<BrlttyDisplay>>()));
+        services.AddSingleton<IBrailleDisplayDriver>(sp => new BrlttyDisplay(logger: sp.GetRequiredService<ILogger<BrlttyDisplay>>(),
+            policy: sp.GetService<RunPolicy>() ?? RunPolicy.Normal));
         services.AddSingleton<BrailleDisplayManager>();
         services.AddSingleton<IBrailleDisplaySource>(sp => sp.GetRequiredService<BrailleDisplayManager>());
         services.AddSingleton<UIAFocusAncestry>();

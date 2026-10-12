@@ -21,6 +21,17 @@ public class KeyboardReferenceTests
     }
 
     [Fact]
+    public void ApplicationCommands_HaveTheirModulesKeys()
+    {
+        var html = KeyboardReference.Html(ConfigDirectory);
+        var applications = html[html.IndexOf("<h2>Applications</h2>", StringComparison.Ordinal)..];
+        applications = applications[..applications.IndexOf("</table>", StringComparison.Ordinal)];
+
+        Assert.Contains("<th scope=\"row\">Excel: read formula</th><td><kbd>Insert+F2</kbd></td><td><kbd>Insert+F2</kbd></td>", applications);
+        Assert.DoesNotContain("(none", applications);
+    }
+
+    [Fact]
     public void LaptopColumn_HasNoKeypadKeys()
     {
         var html = KeyboardReference.Html(ConfigDirectory);

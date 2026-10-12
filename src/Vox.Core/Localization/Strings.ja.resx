@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+    <!-- ja: machine-made first translation of the most-spoken strings; to be reviewed by a native speaker (docs/translating.md). Strings not here are said in English. -->
+  <data name="Announce.HeadingLevel" xml:space="preserve">
+    <value>見出しレベル {0}</value>
+  </data>
+  <data name="Announce.Landmark" xml:space="preserve">
+    <value>{0} ランドマーク</value>
+  </data>
+  <data name="Announce.Position" xml:space="preserve">
+    <value>{1} 件中 {0} 件目</value>
+  </data>
+  <data name="Announce.Level" xml:space="preserve">
+    <value>レベル {0}</value>
+  </data>
+  <data name="Landmark.Banner" xml:space="preserve">
+    <value>バナー</value>
+  </data>
+  <data name="Landmark.Complementary" xml:space="preserve">
+    <value>補足</value>
+  </data>
+  <data name="Landmark.Contentinfo" xml:space="preserve">
+    <value>コンテンツ情報</value>
+  </data>
+  <data name="Landmark.Form" xml:space="preserve">
+    <value>フォーム</value>
+  </data>
+  <data name="Landmark.Main" xml:space="preserve">
+    <value>メイン</value>
+  </data>
+  <data name="Landmark.Navigation" xml:space="preserve">
+    <value>ナビゲーション</value>
+  </data>
+  <data name="Landmark.Region" xml:space="preserve">
+    <value>領域</value>
+  </data>
+  <data name="Landmark.Search" xml:space="preserve">
+    <value>検索</value>
+  </data>
+  <data name="State.Visited" xml:space="preserve">
+    <value>訪問済み</value>
+  </data>
+  <data name="State.Required" xml:space="preserve">
+    <value>必須</value>
+  </data>
+  <data name="State.Expanded" xml:space="preserve">
+    <value>展開</value>
+  </data>
+  <data name="State.Collapsed" xml:space="preserve">
+    <value>折りたたみ</value>
+  </data>
+  <data name="State.Checked" xml:space="preserve">
+    <value>チェック</value>
+  </data>
+  <data name="State.NotChecked" xml:space="preserve">
+    <value>チェックなし</value>
+  </data>
+  <data name="State.HalfChecked" xml:space="preserve">
+    <value>一部チェック</value>
+  </data>
+  <data name="State.Selected" xml:space="preserve">
+    <value>選択</value>
+  </data>
+  <data name="State.Pressed" xml:space="preserve">
+    <value>押下</value>
+  </data>
+  <data name="State.NotPressed" xml:space="preserve">
+    <value>非押下</value>
+  </data>
+  <data name="State.HalfPressed" xml:space="preserve">
+    <value>一部押下</value>
+  </data>
+  <data name="State.SpellingError" xml:space="preserve">
+    <value>スペルミス</value>
+  </data>
+  <data name="State.GrammarError" xml:space="preserve">
+    <value>文法の誤り</value>
+  </data>
+  <data name="State.InvalidEntry" xml:space="preserve">
+    <value>無効な入力</value>
+  </data>
+  <data name="State.Current" xml:space="preserve">
+    <value>現在</value>
+  </data>
+  <data name="State.Current.page" xml:space="preserve">
+    <value>現在のページ</value>
+  </data>
+  <data name="State.Current.step" xml:space="preserve">
+    <value>現在のステップ</value>
+  </data>
+  <data name="State.Current.location" xml:space="preserve">
+    <value>現在の場所</value>
+  </data>
+  <data name="State.Current.date" xml:space="preserve">
+    <value>今日の日付</value>
+  </data>
+  <data name="State.Current.time" xml:space="preserve">
+    <value>現在の時刻</value>
+  </data>
+  <data name="State.CurrentKind" xml:space="preserve">
+    <value>現在の{0}</value>
+  </data>
+  <data name="State.SortedAscending" xml:space="preserve">
+    <value>昇順</value>
+  </data>
+  <data name="State.SortedDescending" xml:space="preserve">
+    <value>降順</value>
+  </data>
+  <data name="State.Sorted" xml:space="preserve">
+    <value>並べ替え済み</value>
+  </data>
+  <data name="State.HasDetails" xml:space="preserve">
+    <value>詳細あり</value>
+  </data>
+  <data name="ControlType.AppBar" xml:space="preserve">
+    <value>アプリバー</value>
+  </data>
+  <data name="ControlType.Button" xml:space="preserve">
+    <value>ボタン</value>
+  </data>
+  <data name="ControlType.Calendar" xml:space="preserve">
+    <value>カレンダー</value>
+  </data>
+  <data name="ControlType.CheckBox" xml:space="preserve">
+    <value>チェックボックス</value>
+  </data>
+  <data name="ControlType.ComboBox" xml:space="preserve">
+    <value>コンボボックス</value>
+  </data>
+  <data name="ControlType.DataGrid" xml:space="preserve">
+    <value>グリッド</value>
+  </data>
+  <data name="ControlType.DataItem" xml:space="preserve">
+    <value>グリッド項目</value>
+  </data>
+  <data name="ControlType.Document" xml:space="preserve">
+    <value>ドキュメント</value>
+  </data>
+  <data name="ControlType.Edit" xml:space="preserve">
+    <value>エディット</value>
+  </data>
+  <data name="ControlType.Header" xml:space="preserve">
+    <value>ヘッダー</value>
+  </data>
+  <data name="ControlType.HeaderItem" xml:space="preserve">
+    <value>列見出し</value>
+  </data>
+  <data name="ControlType.Hyperlink" xml:space="preserve">
+    <value>リンク</value>
+  </data>
+  <data name="ControlType.Image" xml:space="preserve">
+    <value>画像</value>
+  </data>
+  <data name="ControlType.List" xml:space="preserve">
+    <value>リスト</value>
+  </data>
+  <data name="ControlType.ListItem" xml:space="preserve">
+    <value>リスト項目</value>
+  </data>
+  <data name="ControlType.Menu" xml:space="preserve">
+    <value>メニュー</value>
+  </data>
+  <data name="ControlType.MenuBar" xml:space="preserve">
+    <value>メニューバー</value>
+  </data>
+  <data name="ControlType.MenuItem" xml:space="preserve">
+    <value>メニュー項目</value>
+  </data>
+  <data name="ControlType.ProgressBar" xml:space="preserve">
+    <value>プログレスバー</value>
+  </data>
+  <data name="ControlType.RadioButton" xml:space="preserve">
+    <value>ラジオボタン</value>
+  </data>
+  <data name="ControlType.ScrollBar" xml:space="preserve">
+    <value>スクロールバー</value>
+  </data>
+  <data name="ControlType.SemanticZoom" xml:space="preserve">
+    <value>セマンティックズーム</value>
+  </data>
+  <data name="ControlType.Separator" xml:space="preserve">
+    <value>区切り</value>
+  </data>
+  <data name="ControlType.Slider" xml:space="preserve">
+    <value>スライダー</value>
+  </data>
+  <data name="ControlType.Spinner" xml:space="preserve">
+    <value>スピンボタン</value>
+  </data>
+  <data name="ControlType.SplitButton" xml:space="preserve">
+    <value>分割ボタン</value>
+  </data>
+  <data name="ControlType.StatusBar" xml:space="preserve">
+    <value>ステータスバー</value>
+  </data>
+  <data name="ControlType.Tab" xml:space="preserve">
+    <value>タブリスト</value>
+  </data>
+  <data name="ControlType.TabItem" xml:space="preserve">
+    <value>タブ</value>
+  </data>
+  <data name="ControlType.Table" xml:space="preserve">
+    <value>表</value>
+  </data>
+  <data name="ControlType.Thumb" xml:space="preserve">
+    <value>つまみ</value>
+  </data>
+  <data name="ControlType.TitleBar" xml:space="preserve">
+    <value>タイトルバー</value>
+  </data>
+  <data name="ControlType.ToolBar" xml:space="preserve">
+    <value>ツールバー</value>
+  </data>
+  <data name="ControlType.ToolTip" xml:space="preserve">
+    <value>ツールチップ</value>
+  </data>
+  <data name="ControlType.Tree" xml:space="preserve">
+    <value>ツリー</value>
+  </data>
+  <data name="ControlType.TreeItem" xml:space="preserve">
+    <value>ツリー項目</value>
+  </data>
+  <data name="ControlType.Window" xml:space="preserve">
+    <value>ウィンドウ</value>
+  </data>
+  <data name="CommandCategory.QuickNavigation" xml:space="preserve">
+    <value>クイックナビゲーション</value>
+  </data>
+  <data name="CommandCategory.Reading" xml:space="preserve">
+    <value>読み上げ</value>
+  </data>
+  <data name="CommandCategory.BrowseMode" xml:space="preserve">
+    <value>ブラウズモード</value>
+  </data>
+  <data name="CommandCategory.Tables" xml:space="preserve">
+    <value>表</value>
+  </data>
+  <data name="CommandCategory.FindAndSelect" xml:space="preserve">
+    <value>検索、選択、コピー</value>
+  </data>
+  <data name="CommandCategory.ObjectNavigation" xml:space="preserve">
+    <value>オブジェクトナビゲーション</value>
+  </data>
+  <data name="CommandCategory.Review" xml:space="preserve">
+    <value>レビューカーソル</value>
+  </data>
+  <data name="CommandCategory.Mouse" xml:space="preserve">
+    <value>マウス</value>
+  </data>
+  <data name="CommandCategory.Speech" xml:space="preserve">
+    <value>音声</value>
+  </data>
+  <data name="CommandCategory.Braille" xml:space="preserve">
+    <value>点字</value>
+  </data>
+  <data name="CommandCategory.Applications" xml:space="preserve">
+    <value>アプリケーション</value>
+  </data>
+  <data name="CommandCategory.System" xml:space="preserve">
+    <value>システム</value>
+  </data>
+  <data name="SettingsPage.General" xml:space="preserve">
+    <value>全般</value>
+  </data>
+  <data name="SettingsPage.Speech" xml:space="preserve">
+    <value>音声</value>
+  </data>
+  <data name="SettingsPage.Braille" xml:space="preserve">
+    <value>点字</value>
+  </data>
+  <data name="SettingsPage.Verbosity" xml:space="preserve">
+    <value>詳細度</value>
+  </data>
+  <data name="SettingsPage.BrowseMode" xml:space="preserve">
+    <value>ブラウズモード</value>
+  </data>
+  <data name="SettingsPage.DocumentFormatting" xml:space="preserve">
+    <value>文書の書式</value>
+  </data>
+  <data name="SettingsPage.AudioCues" xml:space="preserve">
+    <value>サウンド</value>
+  </data>
+  <data name="SettingsPage.Keyboard" xml:space="preserve">
+    <value>キーボード</value>
+  </data>
+  <data name="SettingsPage.Mouse" xml:space="preserve">
+    <value>マウス</value>
+  </data>
+  <data name="SettingsPage.Review" xml:space="preserve">
+    <value>レビュー</value>
+  </data>
+  <data name="SettingsPage.Applications" xml:space="preserve">
+    <value>アプリケーション</value>
+  </data>
+  <data name="VoxMenu.Title" xml:space="preserve">
+    <value>Vox メニュー</value>
+  </data>
+  <data name="VoxMenu.TrayTip" xml:space="preserve">
+    <value>Vox スクリーンリーダー</value>
+  </data>
+  <data name="Dialog.Close" xml:space="preserve">
+    <value>閉じる</value>
+  </data>
+  <data name="Setting.Language" xml:space="preserve">
+    <value>言語(&amp;L)</value>
+  </data>
+  <data name="Choice.Language.Windows" xml:space="preserve">
+    <value>Windows と同じ</value>
+  </data>
+</root>

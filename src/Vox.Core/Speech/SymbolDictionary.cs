@@ -61,6 +61,45 @@ public sealed class SymbolDictionary
     public static SymbolDictionary LoadBuiltIn() =>
         new(ReadBuiltIn("emoji-en.json").Entries.Concat(ReadBuiltIn("symbols-en.json").Entries));
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SymbolDictionary> ByLanguage = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The built-in symbols with their names in <paramref name="language"/> (a two-letter code, "fr"):
+    /// the English dictionary with the names of <c>symbols-&lt;language&gt;.json</c> in place of
+    /// the English ones, keeping the English levels; symbols only that language has are added as it
+    /// gives them. English, or a language without a file, is <see cref="LoadBuiltIn"/>. Cached.
+    /// </summary>
+    public static SymbolDictionary ForLanguage(string? language)
+    {
+        language = string.IsNullOrWhiteSpace(language) ? "en" : language.Split('-')[0].ToLowerInvariant();
+        return ByLanguage.GetOrAdd(language, static lang =>
+        {
+            var english = LoadBuiltIn();
+            if (lang == "en" || !HasBuiltIn($"symbols-{lang}.json"))
+                return english;
+            var local = ReadBuiltIn($"symbols-{lang}.json");
+            var entries = english.Entries.ToDictionary(e => e.Symbol, StringComparer.Ordinal);
+            foreach (var entry in local.Entries)
+            {
+                entries[entry.Symbol] = entries.TryGetValue(entry.Symbol, out var englishEntry)
+                    ? englishEntry with { Name = entry.Name }
+                    : entry;
+            }
+            return new SymbolDictionary(entries.Values);
+        });
+    }
+
+    /// <summary>The languages with symbol names of their own, besides English.</summary>
+    public static IReadOnlyList<string> Languages =>
+        typeof(SymbolDictionary).Assembly.GetManifestResourceNames()
+            .Where(n => n.StartsWith("Vox.Core.speech.symbols-", StringComparison.Ordinal) && n.EndsWith(".json", StringComparison.Ordinal))
+            .Select(n => n["Vox.Core.speech.symbols-".Length..^".json".Length])
+            .Where(l => l != "en")
+            .ToList();
+
+    private static bool HasBuiltIn(string fileName) =>
+        typeof(SymbolDictionary).Assembly.GetManifestResourceInfo("Vox.Core.speech." + fileName) is not null;
+
     /// <summary>One built-in dictionary file.</summary>
     public static SymbolDictionary ReadBuiltIn(string fileName)
     {

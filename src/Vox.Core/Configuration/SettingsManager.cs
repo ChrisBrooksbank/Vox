@@ -11,7 +11,7 @@ namespace Vox.Core.Configuration;
 /// </summary>
 public sealed class SettingsManager
 {
-    public static readonly string DefaultUserSettingsPath = Path.Combine(
+    public static string DefaultUserSettingsPath => Path.Combine(
         Lifecycle.VoxPaths.UserData, "settings.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -49,6 +49,13 @@ public sealed class SettingsManager
     public bool ReadOnly { get; init; }
 
     /// <summary>
+    /// The computer's default settings (<see cref="Enterprise.MachineSettings"/>), laid between the
+    /// built-in defaults and the user's file: what a new user starts with, and what a user's file
+    /// doesn't say. Null: none.
+    /// </summary>
+    public JsonObject? MachineDefaults { get; init; }
+
+    /// <summary>
     /// Loads settings from the user settings file, falling back to defaults if not found or invalid.
     /// </summary>
     public VoxSettings Load()
@@ -83,7 +90,8 @@ public sealed class SettingsManager
             // a newer one is read as far as this version understands it, and never overwritten
             int version = SettingsMigrations.Migrate(document);
             _fileIsNewer = version > VoxSettings.CurrentSchemaVersion;
-            var loaded = document.Deserialize<VoxSettings>(JsonOptions);
+            var loaded = (MachineDefaults is null ? document : Enterprise.SettingValues.Overlay(MachineDefaults, document))
+                .Deserialize<VoxSettings>(JsonOptions);
             if (loaded is null)
                 return false;
 
@@ -167,6 +175,24 @@ public sealed class SettingsManager
 
     private VoxSettings LoadDefaults()
     {
+        if (MachineDefaults is not null)
+        {
+            try
+            {
+                var builtIn = File.Exists(_defaultSettingsPath) ? JsonNode.Parse(File.ReadAllText(_defaultSettingsPath)) as JsonObject : null;
+                var settings = Enterprise.SettingValues.Overlay(builtIn, MachineDefaults).Deserialize<VoxSettings>(JsonOptions);
+                if (settings is not null)
+                {
+                    _logger.LogInformation("Loaded default settings with the computer's defaults");
+                    return settings;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+            {
+                _logger.LogWarning(ex, "Failed to apply the computer's default settings");
+            }
+        }
+
         if (File.Exists(_defaultSettingsPath))
         {
             try
@@ -198,38 +224,110 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
 {
     private readonly SettingsManager _manager;
     private readonly ILogger<SettingsMonitor> _logger;
+    // The normal configuration (the settings file), and what it makes with the active profiles
+    private VoxSettings _normal;
     private VoxSettings _current;
+    private readonly object _updateLock = new();
+    private ProfileManager? _profiles;
     private readonly object _listenerLock = new();
     private readonly List<Action<VoxSettings, string?>> _listeners = new();
     private FileSystemWatcher? _watcher;
     // Track last programmatic save time to suppress the resulting file watcher event
     private long _lastProgrammaticSaveTick;
 
-    public SettingsMonitor(SettingsManager manager, ILogger<SettingsMonitor> logger)
+    // The organization's policies: laid over every settings value this monitor gives out
+    private readonly Enterprise.PolicySettings _policy;
+
+    public SettingsMonitor(SettingsManager manager, ILogger<SettingsMonitor> logger, Enterprise.PolicySettings? policy = null)
     {
         _manager = manager;
         _logger = logger;
-        _current = _manager.Load();
+        _policy = policy ?? Enterprise.PolicySettings.None;
+        _normal = _manager.Load();
+        _current = _policy.Apply(_normal);
         StartWatching();
     }
 
+    /// <summary>The organization's policies, which these settings always follow.</summary>
+    public Enterprise.PolicySettings Policy => _policy;
+
+    /// <summary>The effective settings: the normal configuration with the active profiles, then the policies, laid over it.</summary>
     public VoxSettings CurrentValue => _current;
 
-    public VoxSettings Get(string? name) => _current;
+    /// <summary>The normal configuration, without profiles.</summary>
+    public VoxSettings NormalValue => _normal;
 
     /// <summary>
-    /// Updates the current settings in memory and persists to disk.
-    /// Notifies all registered OnChange listeners.
+    /// Lays the active configuration profiles over the settings from now on; when they change the
+    /// settings are worked out again and listeners told.
     /// </summary>
-    public void UpdateSettings(VoxSettings settings)
+    public void AttachProfiles(ProfileManager profiles)
     {
-        _current = settings;
-        Interlocked.Exchange(ref _lastProgrammaticSaveTick, Environment.TickCount64);
-        _manager.Save(settings);
+        _profiles = profiles;
+        profiles.Changed += (_, _) => Recompute();
+        Recompute();
+    }
+
+    private void Recompute()
+    {
+        VoxSettings settings;
+        lock (_updateLock)
+        {
+            settings = Compose(_normal);
+            if (settings == _current)
+                return;
+            _current = settings;
+        }
+        Notify(settings);
+    }
+
+    /// <summary>The effective settings for <paramref name="normal"/>: the active profiles, then the policies, over it.</summary>
+    private VoxSettings Compose(VoxSettings normal) => _policy.Apply(_profiles?.Apply(normal) ?? normal);
+
+    private void Notify(VoxSettings settings)
+    {
         Action<VoxSettings, string?>[] snapshot;
         lock (_listenerLock) { snapshot = _listeners.ToArray(); }
         foreach (var listener in snapshot)
             listener(settings, null);
+    }
+
+    public VoxSettings Get(string? name) => _current;
+
+    /// <summary>
+    /// Changes the settings to <paramref name="settings"/> and saves them, notifying all OnChange
+    /// listeners. While a configuration profile is active, what changed is kept in that profile
+    /// (all but the global settings), as NVDA does; otherwise in the normal configuration.
+    /// </summary>
+    public void UpdateSettings(VoxSettings settings)
+    {
+        // A setting the policy sets can't be changed, whoever changes it
+        settings = _policy.Restrain(_current, settings);
+        VoxSettings effective;
+        lock (_updateLock)
+        {
+            if (_profiles is { EditTarget: not null } profiles)
+            {
+                var forNormal = profiles.RecordChanges(ProfileSettings.Diff(_current, settings));
+                if (forNormal.Count > 0)
+                    SaveNormal(ProfileSettings.Merge(_normal, [forNormal]));
+                effective = Compose(_normal);
+            }
+            else
+            {
+                SaveNormal(settings);
+                effective = Compose(_normal);
+            }
+            _current = effective;
+        }
+        Notify(effective);
+    }
+
+    private void SaveNormal(VoxSettings settings)
+    {
+        _normal = settings;
+        Interlocked.Exchange(ref _lastProgrammaticSaveTick, Environment.TickCount64);
+        _manager.Save(settings);
     }
 
     public IDisposable? OnChange(Action<VoxSettings, string?> listener)
@@ -283,12 +381,15 @@ public sealed class SettingsMonitor : IOptionsMonitor<VoxSettings>, IDisposable
                 _logger.LogWarning("Settings file changed but could not be read; keeping current settings");
                 return;
             }
-            _current = reloaded;
+            VoxSettings effective;
+            lock (_updateLock)
+            {
+                _normal = _policy.Restrain(_normal, reloaded);
+                effective = Compose(_normal);
+                _current = effective;
+            }
             _logger.LogInformation("Settings reloaded from file change");
-            Action<VoxSettings, string?>[] snapshot;
-            lock (_listenerLock) { snapshot = _listeners.ToArray(); }
-            foreach (var listener in snapshot)
-                listener(reloaded, null);
+            Notify(effective);
         }
         catch (Exception ex)
         {

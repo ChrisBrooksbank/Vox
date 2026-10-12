@@ -14,6 +14,12 @@ public abstract class VoxDialog : Form
     /// <summary>Shows the dialog modally, centred, on top and in the foreground.</summary>
     public DialogResult ShowInForeground()
     {
+        // Arabic and Hebrew: laid out right to left
+        if (Localization.VoxStrings.IsRightToLeft)
+        {
+            RightToLeft = RightToLeft.Yes;
+            RightToLeftLayout = true;
+        }
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         Shown += (_, _) => BringToForeground();

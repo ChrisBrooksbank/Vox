@@ -28,6 +28,12 @@ public sealed class SayAllController
         _logger = logger;
     }
 
+    /// <summary>
+    /// Raised with true when Say All starts and false when it stops, for whatever reason (any
+    /// thread; the Say All configuration profile follows it).
+    /// </summary>
+    public event EventHandler<bool>? ReadingChanged;
+
     /// <summary>True while Say All is actively reading.</summary>
     public bool IsReading => !_readingTask.IsCompleted;
 
@@ -49,7 +55,12 @@ public sealed class SayAllController
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
-        _readingTask = Task.Run(async () => await ReadLoopAsync(source, token).ConfigureAwait(false), token);
+        ReadingChanged?.Invoke(this, true);
+        _readingTask = Task.Run(async () =>
+        {
+            try { await ReadLoopAsync(source, token).ConfigureAwait(false); }
+            finally { ReadingChanged?.Invoke(this, false); }
+        });
     }
 
     /// <summary>

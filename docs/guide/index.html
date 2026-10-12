@@ -25,7 +25,9 @@
   <li><a href="#review">Reviewing the screen</a></li>
   <li><a href="#speech">Speech</a></li>
   <li><a href="#braille">Braille</a></li>
+  <li><a href="#office">Office, Teams and other applications</a></li>
   <li><a href="#settings">Settings and your own keys</a></li>
+  <li><a href="#profiles">Configuration profiles</a></li>
   <li><a href="#sleep">Sleep mode</a></li>
   <li><a href="#trouble">When something goes wrong</a></li>
   <li><a href="keyboard.html">Keyboard reference</a></li>
@@ -79,8 +81,14 @@
 <p>Vox finds a braille display by itself: HID braille displays (most displays made since 2018) plug in over USB or Bluetooth and need nothing else; older displays work through BRLTTY. The display shows the focused object with its surroundings (<q>Remember me chk ( )</q>, <q>Home lnk</q>), the line with the caret in a text field, and the line with the browse cursor on a web page. The cursor shows as dots 7 and 8, and selected text is underlined the same way. What Vox says is also shown for a few seconds.</p>
 <p>The display's pan keys move along the line and on to the next or previous line. A routing key moves the caret or the browse cursor to that cell; pressed again on a link or button, it activates it. Type on the braille keyboard as you would on a note taker: Space with dots for arrows, Tab, Escape and Vox commands. <kbd>Insert+Ctrl+T</kbd> switches the display between following the focus, the review cursor, or both. The Braille tab of Settings chooses the display, the braille table (contracted or not), the cursor and how much context to show. Contracted braille needs the optional liblouis component; without it Vox shows computer braille.</p>
 
+<h2 id="office">Office, Teams and other applications</h2>
+<p>Vox knows some applications well and adds keys of its own while they are in front, listed in the Applications section of the <a href="keyboard.html">keyboard reference</a>. In Word, <kbd>Insert+Alt</kbd> with H, T, L, C, R or S moves to the next heading, table, list, comment, tracked change or spelling error (with <kbd>Shift</kbd>, the previous one), and <kbd>Insert+Delete</kbd> says the page, line and column. In Excel each cell is read with its titles, formula and comment marks; <kbd>Insert+F2</kbd> reads the formula and <kbd>Insert+Shift+C</kbd> and <kbd>Insert+Shift+R</kbd> set the sheet's column and row titles. In Outlook the message list is read in the order you choose, <kbd>Insert+Alt+1</kbd> to <kbd>6</kbd> read the header fields and <kbd>Insert+Alt+8</kbd> today's appointments. PowerPoint says each new slide, Teams and Zoom say what their mute and camera keys changed, and File Explorer's details view is read with its columns. The Applications page of Settings has their options, and turns each off.</p>
+
 <h2 id="settings">Settings and your own keys</h2>
 <p><kbd>Insert+Ctrl+G</kbd> opens Settings. Every change applies at once; Cancel puts things back as they were. In Input gestures (Vox menu) you can add, change and remove the keys of any command; your keys are kept separately from the standard ones, so "Reset all to standard keys" always brings those back.</p>
+
+<h2 id="profiles">Configuration profiles</h2>
+<p>A profile is a set of settings used instead of your usual ones in an application, during Say All, or when you choose it: a faster voice in Outlook, more punctuation in Visual Studio Code, a slower rate for reading whole pages. <kbd>Insert+Ctrl+P</kbd> (or the Vox menu) opens the profiles: make one, then tick <q>Use in</q> the application that was in front, or <q>Use during Say All</q>, or press Activate to use it now. While a profile is in use, the settings you change go into it, so your usual settings stay as they were. Vox says the profile's name when it starts being used (an option on the General page of Settings).</p>
 
 <h2 id="sleep">Sleep mode</h2>
 <p>Some applications speak for themselves. <kbd>Insert+Shift+S</kbd> puts Vox to sleep for the application in front: Vox says nothing and passes every key to it, until you press <kbd>Insert+Shift+S</kbd> there again.</p>

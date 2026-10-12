@@ -122,6 +122,7 @@
     { "modifiers": "Insert",      "vkCode": 84,  "mode": "Any",    "command": "SayTitle" },
     { "modifiers": "Insert",      "vkCode": 49,  "mode": "Any",    "command": "ToggleInputHelp" },
     { "modifiers": "Insert|Ctrl", "vkCode": 71,  "mode": "Any",    "command": "OpenSettings" },
+    { "modifiers": "Insert|Ctrl", "vkCode": 80,  "mode": "Any",    "command": "OpenProfiles" },
     { "modifiers": "Insert|Ctrl", "vkCode": 84,  "mode": "Any",    "command": "CycleBrailleTether" },
     { "modifiers": "Insert",      "vkCode": 78,  "mode": "Any",    "command": "OpenVoxMenu" },
     { "modifiers": "Insert",      "vkCode": 83,  "mode": "Any",    "command": "TogglePauseSpeech" },

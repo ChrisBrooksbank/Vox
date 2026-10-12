@@ -1,0 +1,145 @@
+{
+  "comment": "Symbol names for es: they replace the English names (symbols-en.json); levels and pauses stay the English file's. Machine-translated: to be reviewed by a native speaker (docs/translating.md).",
+  "symbols": [
+    {
+      "symbol": "!",
+      "name": "exclamación"
+    },
+    {
+      "symbol": ".",
+      "name": "punto"
+    },
+    {
+      "symbol": ",",
+      "name": "coma"
+    },
+    {
+      "symbol": "?",
+      "name": "interrogación"
+    },
+    {
+      "symbol": "'",
+      "name": "apóstrofo"
+    },
+    {
+      "symbol": "\"",
+      "name": "comillas"
+    },
+    {
+      "symbol": "(",
+      "name": "abre paréntesis"
+    },
+    {
+      "symbol": ")",
+      "name": "cierra paréntesis"
+    },
+    {
+      "symbol": "[",
+      "name": "abre corchete"
+    },
+    {
+      "symbol": "]",
+      "name": "cierra corchete"
+    },
+    {
+      "symbol": "{",
+      "name": "abre llave"
+    },
+    {
+      "symbol": "}",
+      "name": "cierra llave"
+    },
+    {
+      "symbol": "-",
+      "name": "guion"
+    },
+    {
+      "symbol": ":",
+      "name": "dos puntos"
+    },
+    {
+      "symbol": ";",
+      "name": "punto y coma"
+    },
+    {
+      "symbol": "…",
+      "name": "puntos suspensivos"
+    },
+    {
+      "symbol": "#",
+      "name": "almohadilla"
+    },
+    {
+      "symbol": "$",
+      "name": "dólar"
+    },
+    {
+      "symbol": "%",
+      "name": "por ciento"
+    },
+    {
+      "symbol": "&",
+      "name": "y"
+    },
+    {
+      "symbol": "*",
+      "name": "asterisco"
+    },
+    {
+      "symbol": "+",
+      "name": "más"
+    },
+    {
+      "symbol": "/",
+      "name": "barra"
+    },
+    {
+      "symbol": "<",
+      "name": "menor que"
+    },
+    {
+      "symbol": "=",
+      "name": "igual"
+    },
+    {
+      "symbol": ">",
+      "name": "mayor que"
+    },
+    {
+      "symbol": "@",
+      "name": "arroba"
+    },
+    {
+      "symbol": "\\",
+      "name": "barra invertida"
+    },
+    {
+      "symbol": "^",
+      "name": "circunflejo"
+    },
+    {
+      "symbol": "_",
+      "name": "guion bajo"
+    },
+    {
+      "symbol": "|",
+      "name": "barra vertical"
+    },
+    {
+      "symbol": "~",
+      "name": "tilde"
+    },
+    {
+      "symbol": "•",
+      "name": "viñeta"
+    },
+    {
+      "symbol": "€",
+      "name": "euro"
+    },
+    {
+      "symbol": "£",
+      "name": "libra"
+    }
+  ]
+}
