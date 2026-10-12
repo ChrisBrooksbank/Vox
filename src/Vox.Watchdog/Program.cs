@@ -4,7 +4,9 @@ using Microsoft.Extensions.Logging;
 using Vox.Core.Lifecycle;
 
 // Vox.Watchdog: starts Vox.App and restarts it if it crashes (at most 3 times a minute). If Vox
-// keeps crashing it says so through SAPI directly, since there is no screen reader left to say it.
+// keeps crashing it says so through SAPI directly, since there is no screen reader left to say it,
+// and starts Narrator (or the screen reader trial mode stepped in for) so the user isn't left
+// without speech; the next Vox start says why (WatchdogFallback).
 // Usage: Vox.Watchdog [path to Vox.App.exe] [-- arguments for Vox.App]
 
 var separator = Array.IndexOf(args, "--");
@@ -24,13 +26,22 @@ if (!File.Exists(voxPath))
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
+var restartPolicy = new RestartPolicy();
+var fallback = new WatchdogFallback(
+    new Vox.Core.Trial.WindowsScreenReaderControl(logger),
+    Path.Combine(VoxPaths.UserData, Vox.Core.Trial.TrialRecord.FileName),
+    Path.Combine(VoxPaths.UserData, FallbackNotice.FileName),
+    logger);
 var supervisor = new VoxSupervisor(
     new ProcessLauncher(voxPath, voxArgs),
-    new RestartPolicy(),
+    restartPolicy,
     () =>
     {
-        using var synthesizer = new SpeechSynthesizer();
-        synthesizer.Speak(Vox.Core.Localization.VoxStrings.Get("Watchdog.CouldNotRestart"));
+        var choice = WatchdogFallback.Choose(Vox.Core.Trial.TrialRecord.Read(Path.Combine(VoxPaths.UserData, Vox.Core.Trial.TrialRecord.FileName)));
+        using (var synthesizer = new SpeechSynthesizer())
+            synthesizer.Speak(Vox.Core.Localization.VoxStrings.Format("Watchdog.StartingFallback", Vox.Core.Trial.TrialMode.Name(choice)));
+        // The first start, then each restart allowed, then the one that gave up
+        fallback.Run(restartPolicy.MaxRestarts + 1);
     },
     logger,
     startInSafeMode: RestartRequest.HasFlag(voxArgs, RunPolicy.SafeFlag));

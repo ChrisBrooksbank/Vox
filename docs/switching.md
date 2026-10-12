@@ -125,3 +125,8 @@ go back to my screen reader** in the Vox menu while a trial is on, starts that s
 and then quits Vox; when none was running it starts Narrator. Vox only quits once the other
 screen reader has started, so you are never left without speech. Not on the sign-in, lock and UAC
 screens.
+
+If Vox keeps crashing (Vox.Watchdog's limit: three restarts in a minute), the watchdog says so
+through Windows' own speech and starts the screen reader the trial stopped, or Narrator without a
+trial, unless another screen reader is already running; the trial then ends. The next time Vox
+starts it says what happened (from `fallback.json` in its settings folder, removed once said).

@@ -362,6 +362,10 @@ public sealed class ScreenReaderService : IHostedService
         VoxMenu.SafeMode = _runPolicy.SafeMode;
         if (_runPolicy.SafeMode && !_runPolicy.IsSecure)
             _speechQueue.Enqueue(new Utterance(VoxStrings.Get("AddOns.SafeModeStartup"), SpeechPriority.Normal));
+        // Vox.Watchdog started another screen reader after repeated crashes: say why, once
+        if (_runPolicy.AllowUserProfileAccess
+            && FallbackNotice.TakeMessage(Path.Combine(VoxPaths.UserData, FallbackNotice.FileName)) is { } fallbackMessage)
+            _speechQueue.Enqueue(new Utterance(fallbackMessage, SpeechPriority.Normal));
 
         // Said once: in a remote session the keys and audio go through the remote-desktop client
         if (_remoteSessions is not null)

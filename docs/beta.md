@@ -13,7 +13,8 @@ says how to join, what to test, and how to send a report we can act on.
    betas**. Vox then offers beta builds as well as releases, and always asks before it installs one
    ([Updates](updates.md)).
 3. Keep another screen reader you trust installed. A beta can have bugs that leave you without
-   speech; Vox.Watchdog restarts Vox after a crash, but you should always have a way back.
+   speech; Vox.Watchdog restarts Vox after a crash, and when Vox keeps crashing it starts Narrator
+   (or the screen reader trial mode stopped), but you should always have a way back.
 
 To leave the beta, set **Check for updates** back to **Releases**. Vox offers the next release when
 it is newer than the beta you have.

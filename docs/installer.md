@@ -12,7 +12,7 @@ to `C:\Program Files\Vox`, the secure location Windows requires before it grants
 - the `VoxService` Windows service (LocalSystem, automatic start), which reads the sign-in, lock
   and UAC screens;
 - a Start menu and a desktop shortcut to `Vox.Watchdog.exe` (which starts Vox and restarts it after
-  a crash). The Start menu shortcut has the hotkey **Ctrl+Alt+V**, so Vox can be started without
+  a crash; after repeated crashes it starts Narrator, or the screen reader trial mode stopped, instead). The Start menu shortcut has the hotkey **Ctrl+Alt+V**, so Vox can be started without
   seeing the screen;
 - with `STARTATLOGON=1`, a shortcut in the all-users Startup folder, so Vox starts at every sign-in.
 

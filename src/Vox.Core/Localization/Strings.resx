@@ -3420,6 +3420,18 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
     <value>Vox has stopped working and could not be restarted.</value>
     <comment>Said by the watchdog when Vox keeps crashing.</comment>
   </data>
+  <data name="Watchdog.StartingFallback" xml:space="preserve">
+    <value>Vox has stopped working and could not be restarted. Starting {0}.</value>
+    <comment>Said by the watchdog when Vox keeps crashing; {0} NVDA or Narrator</comment>
+  </data>
+  <data name="Watchdog.FallbackNotice" xml:space="preserve">
+    <value>Last time Vox stopped working {0} times in a row, so {1} was started in its place. If it happens again, try Restart with add-ons disabled in the Vox menu, and send the log to support.</value>
+    <comment>Said when Vox next starts; {0} the number of crashes, {1} NVDA or Narrator</comment>
+  </data>
+  <data name="Watchdog.FallbackFailedNotice" xml:space="preserve">
+    <value>Last time Vox stopped working {0} times in a row, and {1} could not be started in its place. If it happens again, try Restart with add-ons disabled in the Vox menu, and send the log to support.</value>
+    <comment>Said when Vox next starts; {0} the number of crashes, {1} NVDA or Narrator</comment>
+  </data>
   <data name="CommandSearch.SearchFor" xml:space="preserve">
     <value>Search for</value>
   </data>

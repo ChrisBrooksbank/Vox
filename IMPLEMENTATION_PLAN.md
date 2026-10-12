@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 4
-- Build iterations: 224
+- Build iterations: 225
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -36,7 +36,7 @@
 #### Safe trial (spec: switching.md)
 
 - [x] Add trial mode (wizard and `--trial`): detect and pause/stop a running NVDA or Narrator, and a key plus Vox menu item that quits Vox and restarts it; unit tests over fakes (spec: switching.md)
-- [ ] Make Vox.Watchdog start Narrator (or the screen reader trial mode recorded) after repeated crashes instead of leaving the user without speech, and say why on next start; unit tests (spec: switching.md)
+- [x] Make Vox.Watchdog start Narrator (or the screen reader trial mode recorded) after repeated crashes instead of leaving the user without speech, and say why on next start; unit tests (spec: switching.md)
 
 #### Proof of speed (spec: switching.md)
 
