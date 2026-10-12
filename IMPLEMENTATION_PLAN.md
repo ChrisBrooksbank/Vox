@@ -2,7 +2,7 @@
 
 ## Status
 
-- Planning iterations: 2
+- Planning iterations: 3
 - Build iterations: 212
 - Last updated: 2026-10-12
 
@@ -317,6 +317,41 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [ ] Detect a keyboard hook Windows removed and reinstall it (weakness 5) (spec: quality-engineering.md)
 - [ ] Make `dotnet publish` (the MSI's input) include `assets/config`, the sounds and the user guide (weakness 6) (spec: quality-engineering.md)
 - [ ] Require HTTPS for a custom `AiEndpoint` except loopback; refuse UNC `file:` catalogues and unchecked redirects in `NetworkGate` (weaknesses 7 and 8) (spec: quality-engineering.md)
+
+#### Add-on architecture hardening (spec: extensibility.md)
+
+Robustness first:
+
+- [ ] Time every `AddOnGuard` call: a call over its budget (pipeline ~50 ms, announcement filters ~10 ms) is logged by add-on id and counted as a failure; a call still running after ~2 s marks the add-on stopped, skips its pending calls and has a watchdog post `TurnOff`, so a hung add-on can't freeze the pipeline or speech thread; unit tests with an injectable clock (spec: extensibility.md)
+- [ ] `AddOnLoadContext.LoadUnmanagedDll`: check a native library's SHA-256 against the manifest and load it from a per-load temp copy, so the add-on's folder isn't locked and `InstallFiles` can replace it; native libraries can't be unloaded, so an add-on with native files reports "update needs a restart"; unit tests (spec: extensibility.md)
+- [ ] Verify unloading: keep a `WeakReference` to each add-on's load context, collect after `Unload` and log "add-on X did not unload" when it survives; a test loads the sample add-on, unloads it and checks the context is collected (spec: extensibility.md)
+- [ ] Add `CancellationToken Stopping` to `IAddOnHost`, cancelled before the add-on is disposed, so its background work stops on disable, remove, update or turn-off; sample add-on uses it; unit tests (spec: extensibility.md)
+
+API compatibility:
+
+- [ ] Add `Microsoft.CodeAnalysis.PublicApiAnalyzers` (`PublicAPI.Shipped.txt`/`Unshipped.txt`) to `Vox.Sdk` so CI fails on an unintended API change; document in `docs/addons.md` that add-on-implemented interfaces grow only through default interface members and new record members are `init` properties, not positional parameters (spec: extensibility.md)
+- [ ] `AddOnLoadContext.Load`: decide "Vox's copy wins" from the trusted platform assemblies list and Vox.App's own assemblies instead of `Default.Assemblies` (which depends on load timing); log when an add-on ships a newer version of a shared assembly than Vox's; unit tests (spec: extensibility.md)
+
+API surface:
+
+- [ ] Add read-only object access to the SDK (`IVoxObject`: name, role, value, bounds, parent, children, next/previous; focused and navigator objects from the host), run through `UIAThread` with its timeouts and never giving a password's value; sample add-on uses it; unit tests over `INavigatorObject` fakes; `VoxApi` 1.1 (spec: extensibility.md)
+- [ ] Give `CaretMovedEvent` the line, word and character at the caret (from `ITextDocument`; nothing for password fields) as `init` properties; unit tests (spec: extensibility.md)
+- [ ] Add output beyond speech to `IAddOnHost`: play an earcon, flash a braille message, show a text document under the review cursor (`ReviewCommands.ShowRecognizedAsync`), and run a Vox command by `NavigationCommand` name; unit tests (spec: extensibility.md)
+- [ ] Add an add-on settings model (toggle/number/choice fields like `SettingsPages`) shown as a page in the settings dialog, stored per add-on and layered by profiles and policy; unit tests (spec: extensibility.md)
+- [ ] Add per-add-on localized strings (a string table in the package resolved in `VoxStrings.Culture`, English fallback) for command names, descriptions and settings labels; unit tests (spec: extensibility.md)
+
+Integration:
+
+- [ ] Show add-on commands in the input gestures dialog (`GestureEditor`, under "Add-ons › name") and keep the user's rebinding in the user keymap, applied by `AddOnKeyLayer`; unit tests (spec: extensibility.md)
+- [ ] Log key conflicts where an add-on's key overrides a Vox key, and list them in the add-ons dialog; unit tests (spec: extensibility.md)
+- [ ] Add an optional `order` to the manifest for plug-ins and announcement filters (ties by id) and show the order in the add-ons dialog; unit tests (spec: extensibility.md)
+- [ ] Add `IAddOnHost.RequestReload()` so an add-on can change what it contributes (e.g. commands after a settings change) without the user disabling and enabling it; unit tests (spec: extensibility.md)
+- [ ] Rate-limit an add-on's `Interrupt`/`High` speech in `GuardedSpeech` so one add-on can't drown out Vox; unit tests (spec: extensibility.md)
+
+Isolation (longer term):
+
+- [ ] Document in `docs/security.md` and `docs/enterprise.md` that add-ons run in-process with full rights and bypass `NetworkGate`; add a Group Policy allowing only signed or catalogue add-ons (`AddOnTrust.Signed`/`Catalogue`), enforced by `AddOnManager` at install and load; unit tests (spec: extensibility.md)
+- [ ] Design (in `docs/addons.md`) out-of-process hosting for add-on speech engines and braille drivers over a local channel, keeping app modules in-process for latency (spec: extensibility.md)
 
 ## Completed
 
