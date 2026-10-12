@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    A sample Vox add-on (docs/addons.md). Its output folder (the assembly and addon.json) is the
+    package's content: README.md shows how to build and package it, as CI does.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Only the add-on's own files go in its package -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Vox.Sdk comes from Vox when the add-on is loaded: never ship a copy -->
+    <ProjectReference Include="..\..\src\Vox.Sdk\Vox.Sdk.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="addon.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

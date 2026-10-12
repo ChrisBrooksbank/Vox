@@ -14,13 +14,25 @@ public static class VoxExitCodes
     /// <summary>Another Vox instance is already running: don't restart.</summary>
     public const int AlreadyRunning = 2;
 
+    /// <summary>The user asked for a restart with add-ons disabled (safe mode).</summary>
+    public const int RestartSafe = 3;
+
+    /// <summary>The user asked for a restart with add-ons enabled (leaving safe mode).</summary>
+    public const int RestartNormal = 4;
+
     public static bool ShouldRestart(int exitCode) => exitCode is not (Normal or AlreadyRunning);
+
+    /// <summary>A restart the user asked for, which never counts against the crash limit.</summary>
+    public static bool IsRequestedRestart(int exitCode) => exitCode is RestartSafe or RestartNormal;
 }
 
 /// <summary>Starts a process (Vox.App in production).</summary>
 public interface IProcessLauncher
 {
     IRunningProcess Start();
+
+    /// <summary>Starts it in safe mode (add-ons disabled) or normally.</summary>
+    IRunningProcess Start(bool safeMode) => Start();
 }
 
 /// <summary>A started process the supervisor waits on.</summary>
@@ -73,8 +85,12 @@ public sealed class VoxSupervisor
     private readonly Action _onGiveUp;
     private readonly ILogger _logger;
 
-    public VoxSupervisor(IProcessLauncher launcher, RestartPolicy policy, Action onGiveUp, ILogger logger)
+    private readonly bool _startInSafeMode;
+
+    /// <param name="startInSafeMode">Start Vox in safe mode (the watchdog was given --safe for it).</param>
+    public VoxSupervisor(IProcessLauncher launcher, RestartPolicy policy, Action onGiveUp, ILogger logger, bool startInSafeMode = false)
     {
+        _startInSafeMode = startInSafeMode;
         _launcher = launcher;
         _policy = policy;
         _onGiveUp = onGiveUp;
@@ -84,10 +100,11 @@ public sealed class VoxSupervisor
     /// <summary>Supervises until Vox exits normally, the limit is reached, or cancellation. Returns Vox's last exit code.</summary>
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)
     {
+        bool safeMode = _startInSafeMode;
         while (true)
         {
             int exitCode;
-            using (var process = _launcher.Start())
+            using (var process = _launcher.Start(safeMode))
             {
                 try
                 {
@@ -97,6 +114,13 @@ public sealed class VoxSupervisor
                 {
                     return VoxExitCodes.Normal;
                 }
+            }
+
+            if (VoxExitCodes.IsRequestedRestart(exitCode))
+            {
+                safeMode = exitCode == VoxExitCodes.RestartSafe;
+                _logger.LogInformation("Vox asked to be restarted {Mode}", safeMode ? "in safe mode" : "normally");
+                continue;
             }
 
             if (!VoxExitCodes.ShouldRestart(exitCode))

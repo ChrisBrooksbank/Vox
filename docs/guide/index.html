@@ -31,6 +31,8 @@
   <li><a href="#settings">Settings and your own keys</a></li>
   <li><a href="#profiles">Configuration profiles</a></li>
   <li><a href="#sleep">Sleep mode</a></li>
+  <li><a href="#addons">Add-ons</a></li>
+  <li><a href="#remote">Remote access</a></li>
   <li><a href="#trouble">When something goes wrong</a></li>
   <li><a href="keyboard.html">Keyboard reference</a></li>
 </ul>
@@ -102,10 +104,18 @@
 <h2 id="sleep">Sleep mode</h2>
 <p>Some applications speak for themselves. <kbd>Insert+Shift+S</kbd> puts Vox to sleep for the application in front: Vox says nothing and passes every key to it, until you press <kbd>Insert+Shift+S</kbd> there again.</p>
 
+<h2 id="addons">Add-ons</h2>
+<p>Add-ons teach Vox about more applications and can add speech engines and braille displays. <b>Add-on store</b> in the Vox menu lists the add-ons Vox's catalogue offers: type in Search to find one, then Install (or Update; Update all updates every installed add-on that has a newer version). <b>Manage add-ons</b> lists those installed, with what each does and its keys; it turns them off and on, removes them, and installs one from a <code>.voxaddon</code> file. Vox asks before installing from a file, and warns when the add-on isn't signed by a publisher it knows: add-ons run with your permissions and can read your screen, so install only add-ons you trust.</p>
+<p>An add-on that keeps failing is turned off by Vox, which says so. If an add-on stops Vox working properly, choose <b>Restart with add-ons disabled</b> in the Vox menu: Vox starts again in safe mode, with no add-on loaded, so you can turn the culprit off or remove it, then choose Restart with add-ons enabled.</p>
+
+<h2 id="remote">Remote access</h2>
+<p>A trainer or a colleague with Vox can control your computer and hear what Vox says on it. On the computer to be controlled, choose <b>Remote access</b> in the Vox menu and Allow this computer to be controlled: Vox says a session code and puts it on the clipboard; give it to the other person. On theirs, Remote access, Control another computer, with your computer's address (or a relay server's, when the computers can't reach each other directly) and the code. Both computers say when the session starts.</p>
+<p>On the controlling computer <kbd>Insert+F11</kbd> switches between sending your keys to the other computer and using your own; what the other computer says is spoken on yours too. <kbd>Insert+Ctrl+F11</kbd> on either computer ends the session. The session is encrypted, and only someone with the code can connect.</p>
+
 <h2 id="trouble">When something goes wrong</h2>
 <ul>
   <li>If an application stops responding, Vox says so and keeps working everywhere else.</li>
-  <li>If Vox itself stops, it restarts on its own.</li>
+  <li>If Vox itself stops, it restarts on its own. If an add-on is the trouble, Restart with add-ons disabled (Vox menu) starts Vox without any.</li>
   <li><kbd>Insert+F1</kbd> says details of the focused control (useful in bug reports); the speech viewer in the Vox menu shows everything Vox says.</li>
   <li>Logs are in <code>%APPDATA%\Vox\logs</code>.</li>
 </ul>

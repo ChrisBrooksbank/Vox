@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.AddOns;
 using Vox.Core.Ai;
 using Vox.Core.AppModules;
 using Vox.Core.Audio;
@@ -13,6 +14,7 @@ using Vox.Core.Localization;
 using Vox.Core.Navigation;
 using Vox.Core.Ocr;
 using Vox.Core.Pipeline;
+using Vox.Core.Remote;
 using Vox.Core.Speech;
 
 namespace Vox.App;
@@ -61,6 +63,10 @@ public sealed class ScreenReaderService : IHostedService
     private readonly MouseCommands _mouseCommands;
     private readonly OcrCommands _ocr;
     private readonly AiCommands _ai;
+    private readonly AddOnManager _addOns;
+    private readonly AddOnCommands _addOnCommands;
+    private readonly RemoteAccessSession _remoteSession;
+    private readonly RemoteCommands _remoteCommands;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -143,9 +149,17 @@ public sealed class ScreenReaderService : IHostedService
         ProfileCommands profileCommands,
         OcrCommands ocr,
         AiCommands ai,
+        AddOnManager addOns,
+        AddOnCommands addOnCommands,
+        RemoteAccessSession remoteSession,
+        RemoteCommands remoteCommands,
         RunPolicy? runPolicy = null,
         RemoteSessionMonitor? remoteSessions = null)
     {
+        _addOns = addOns;
+        _addOnCommands = addOnCommands;
+        _remoteSession = remoteSession;
+        _remoteCommands = remoteCommands;
         _remoteSessions = remoteSessions;
         _profiles = profiles;
         _profileCommands = profileCommands;
@@ -248,11 +262,14 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusAnnouncementFilter = _browseModeController.ShouldAnnounceFocus;
         _eventPipeline.FocusContextProvider = FocusContext;
         _eventPipeline.ErrorMessageProvider = _browseModeController.ErrorMessageFor;
-        // The foreground application's module may drop events, change focus announcements and
-        // see every event once handled
-        _eventPipeline.EventFilter = _appModules.ShouldProcess;
-        _eventPipeline.FocusAnnouncementFormatter = _appModules.FormatFocusAnnouncement;
+        // The foreground application's module, then the add-ons' global plug-ins, may drop events,
+        // change focus announcements and see every event once handled
+        _eventPipeline.EventFilter = e => _appModules.ShouldProcess(e) && _addOns.ShouldProcess(e);
+        _eventPipeline.FocusAnnouncementFormatter = FormatFocusAnnouncement;
         _eventPipeline.EventProcessed += OnEventProcessed;
+        _eventPipeline.AddOnCommandReceived += OnAddOnCommandReceived;
+        // The active add-on app module's commands have keys only while it is active
+        _appModules.ActiveModuleChanged += OnActiveModuleChanged;
         // Configuration profiles follow the foreground application and Say All
         _appModules.ForegroundAppChanged += OnForegroundAppChanged;
         _sayAllController.ReadingChanged += OnSayAllReadingChanged;
@@ -294,6 +311,9 @@ public sealed class ScreenReaderService : IHostedService
         // Pick up a browser that already has focus
         TrackBackground(_documentTracker.OnFocusChangedAsync());
 
+        // Add-ons start on the pipeline thread, where they are called (none in safe mode)
+        _eventPipeline.Post(new PipelineWorkEvent(DateTimeOffset.UtcNow, LoadAddOns));
+
         // The daily update check, a while after startup so it never delays it
         _ = CheckForUpdatesLaterAsync(_lifetime.ApplicationStopping);
 
@@ -303,6 +323,10 @@ public sealed class ScreenReaderService : IHostedService
                 ? "Vox screen reader ready"
                 : "Vox screen reader ready, but keyboard commands are unavailable. Try running Vox as administrator.",
             SpeechPriority.Normal));
+
+        VoxMenu.SafeMode = _runPolicy.SafeMode;
+        if (_runPolicy.SafeMode && !_runPolicy.IsSecure)
+            _speechQueue.Enqueue(new Utterance(VoxStrings.Get("AddOns.SafeModeStartup"), SpeechPriority.Normal));
 
         // Said once: in a remote session the keys and audio go through the remote-desktop client
         if (_remoteSessions is not null)
@@ -377,10 +401,16 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.EventFilter = null;
         _eventPipeline.FocusAnnouncementFormatter = null;
         _eventPipeline.EventProcessed -= OnEventProcessed;
+        _eventPipeline.AddOnCommandReceived -= OnAddOnCommandReceived;
+        _appModules.ActiveModuleChanged -= OnActiveModuleChanged;
         _appModules.ForegroundAppChanged -= OnForegroundAppChanged;
         _sayAllController.ReadingChanged -= OnSayAllReadingChanged;
         _profiles.Switched -= OnProfileSwitched;
         _appModules.Stop();
+        // A remote session ends (keys held on this computer are released), then add-ons close
+        _remoteSession.Dispose();
+        try { _addOns.UnloadAll(); }
+        catch (Exception ex) { _logger.LogWarning(ex, "Add-ons failed to close"); }
         _review.BrowseTether = null;
         _ocr.BrowseTarget = null;
         _ai.BrowseTarget = null;
@@ -593,7 +623,8 @@ public sealed class ScreenReaderService : IHostedService
             && !_ai.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
             && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
-            && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command))
+            && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command)
+            && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -657,7 +688,28 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnMenuEventProcessed(object? sender, MenuEvent e) => _menuTracker.Handle(e.Kind);
 
-    private void OnEventProcessed(object? sender, ScreenReaderEvent e) => _appModules.OnEvent(e);
+    private void OnEventProcessed(object? sender, ScreenReaderEvent e)
+    {
+        _appModules.OnEvent(e);
+        _addOns.OnEvent(e);
+    }
+
+    /// <summary>The focus announcement as the active app module, then the add-ons' plug-ins, have it.</summary>
+    private string? FormatFocusAnnouncement(FocusChangedEvent focus, string announcement)
+    {
+        var text = _appModules.FormatFocusAnnouncement(focus, announcement);
+        return string.IsNullOrEmpty(text) ? text : _addOns.FormatFocusAnnouncement(focus, text);
+    }
+
+    private void OnAddOnCommandReceived(object? sender, AddOnCommandEvent e) => _addOnCommands.Run(e);
+
+    private void OnActiveModuleChanged(object? sender, Vox.Core.AppModules.IAppModule? module) => _addOns.RefreshKeys();
+
+    private void LoadAddOns()
+    {
+        try { _addOns.LoadAll(); }
+        catch (Exception ex) { _logger.LogError(ex, "Add-ons could not be loaded"); }
+    }
 
     private void OnForegroundAppChanged(object? sender, string? processName) => _profiles.SetForegroundApp(processName);
 

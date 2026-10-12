@@ -163,6 +163,9 @@ public class NetworkGateTests
         ["Vox.Core/Braille/Brltty/BrlttyDisplay.cs"] = "connects only after NetworkGate.MayConnect",
         ["Vox.Core/Ai/CloudImageDescriber.cs"] = "uses the HttpClient it is given (NetworkGate's); AiConsent refuses while the network is off",
         ["Vox.Core/Ai/LocalImageDescriber.cs"] = "uses the HttpClient it is given (NetworkGate's) and only ever a loopback address",
+        ["Vox.Core/AddOns/AddOnStore.cs"] = "uses the HttpClient it is given (NetworkGate's); a catalogue on this computer is read from disk",
+        ["Vox.Core/Remote/RemoteTransport.cs"] = "connects only after NetworkGate.MayConnect and listens only while RunPolicy.AllowNetwork",
+        ["Vox.Core/Remote/RemoteRelayServer.cs"] = "the relay server, run on its own by Vox.App --remote-relay only while RunPolicy.AllowNetwork",
     };
 
     private static string SourceDirectory =>
@@ -203,5 +206,20 @@ public class NetworkGateTests
         var brltty = SourceFiles().Single(f => f.File == "Vox.Core/Braille/Brltty/BrlttyDisplay.cs").Code;
 
         Assert.True(brltty.IndexOf("NetworkGate.MayConnect", StringComparison.Ordinal) < brltty.IndexOf("new TcpClient", StringComparison.Ordinal));
+        var remote = SourceFiles().Single(f => f.File == "Vox.Core/Remote/RemoteTransport.cs").Code;
+        Assert.True(remote.IndexOf("NetworkGate.MayConnect", StringComparison.Ordinal) < remote.IndexOf("new TcpClient", StringComparison.Ordinal));
+        Assert.True(remote.IndexOf("policy.AllowNetwork", StringComparison.Ordinal) < remote.IndexOf("new TcpListener", StringComparison.Ordinal));
+        var relay = SourceFiles().Single(f => f.File == "Vox.App/Program.cs").Code;
+        Assert.True(relay.IndexOf("policy.AllowNetwork", StringComparison.Ordinal) < relay.IndexOf("RemoteRelayServer(", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task RemoteAccess_ConnectsNowhere_WhileTheNetworkIsOff()
+    {
+        var transport = new Vox.Core.Remote.RemoteTransport(NetworkOff);
+
+        await Assert.ThrowsAsync<NetworkDisabledException>(() => transport.ConnectAsync("192.0.2.1", 6837, CancellationToken.None));
+        await Assert.ThrowsAsync<NetworkDisabledException>(() => transport.ListenAsync(0, CancellationToken.None));
+        await Assert.ThrowsAsync<NetworkDisabledException>(() => new Vox.Core.Remote.RemoteTransport(RunPolicy.Secure).ConnectAsync("192.0.2.1", 6837, CancellationToken.None));
     }
 }

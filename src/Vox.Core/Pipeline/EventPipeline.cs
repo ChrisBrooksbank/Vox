@@ -71,6 +71,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
     /// </summary>
     public event EventHandler<NavigationCommandEvent>? NavigationCommandReceived;
 
+    /// <summary>Raised when a key bound to an add-on's command is pressed.</summary>
+    public event EventHandler<AddOnCommandEvent>? AddOnCommandReceived;
+
     /// <summary>
     /// Raised when a FocusChangedEvent is processed by the pipeline (after coalescing).
     /// Subscribe to this for auto-mode-switching in NavigationManager.
@@ -254,8 +257,14 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
                 case InputHelpEvent inputHelp:
                     await _speechQueue.EnqueueAsync(new Utterance(
-                        InputHelp.Describe(inputHelp.Command, inputHelp.Modifiers, inputHelp.VkCode, inputHelp.IsKeypad, ScreenReaderKeyName()),
+                        inputHelp.AddOnCommand is { } helpCommand
+                            ? InputHelp.DescribeAddOnCommand(helpCommand, inputHelp.Modifiers, inputHelp.VkCode, inputHelp.IsKeypad, ScreenReaderKeyName())
+                            : InputHelp.Describe(inputHelp.Command, inputHelp.Modifiers, inputHelp.VkCode, inputHelp.IsKeypad, ScreenReaderKeyName()),
                         SpeechPriority.Interrupt), token).ConfigureAwait(false);
+                    break;
+
+                case AddOnCommandEvent addOnCommand:
+                    AddOnCommandReceived?.Invoke(this, addOnCommand);
                     break;
 
                 case TypingEchoEvent typingEcho:

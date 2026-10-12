@@ -288,5 +288,21 @@ public enum NavigationCommand
     /// <summary>Moves the browse cursor to where the page's main content starts (pressed again: the next suggestion).</summary>
     MoveToMainContent,
     /// <summary>Asks for the cloud AI provider's API key (Vox menu).</summary>
-    SetAiKey
+    SetAiKey,
+
+    // Add-ons
+    /// <summary>Opens the add-ons dialog: enable, disable, remove and install add-ons (Vox menu).</summary>
+    ManageAddOns,
+    /// <summary>Opens the add-on store: browse, search, install and update add-ons from Vox's signed catalogue (Vox menu).</summary>
+    GetAddOns,
+    /// <summary>Restarts Vox with add-ons turned off (safe mode), or with them on again when in safe mode (Vox menu).</summary>
+    RestartWithoutAddOns,
+
+    // Remote access
+    /// <summary>Opens the remote access dialog: let this computer be controlled, or control another one (Vox menu).</summary>
+    RemoteAccess,
+    /// <summary>While connected to another computer: switches between sending keys to it and using this one.</summary>
+    ToggleRemoteControl,
+    /// <summary>Ends the remote session.</summary>
+    DisconnectRemote
 }

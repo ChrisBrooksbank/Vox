@@ -276,6 +276,16 @@ public record VoxSettings
     public string AiLocalEndpoint { get; init; } = Ai.LocalImageDescriber.DefaultEndpoint;
     /// <summary>Say when a page has a CAPTCHA, and where its audio or accessible alternative is.</summary>
     public bool AnnounceCaptchas { get; init; } = true;
+    /// <summary>The add-on store's signed catalogue (https, or a file on this computer); null: Vox's own.</summary>
+    public string? AddOnCatalogueUrl { get; init; }
+    /// <summary>The port this computer waits on to be controlled directly (remote access).</summary>
+    public int RemotePort { get; init; } = Remote.RemoteEndpoint.DefaultPort;
+    /// <summary>Remote access goes through a relay server rather than directly.</summary>
+    public bool RemoteUseRelay { get; init; }
+    /// <summary>The relay server last used (host or host:port), or null.</summary>
+    public string? RemoteRelay { get; init; }
+    /// <summary>The computer last controlled directly (host or host:port), or null.</summary>
+    public string? RemoteAddress { get; init; }
 
     /// <summary>The braille display driver by id ("HID", "BRLTTY"); null: find a display automatically; "None": no braille.</summary>
     public string? BrailleDisplay { get; init; }

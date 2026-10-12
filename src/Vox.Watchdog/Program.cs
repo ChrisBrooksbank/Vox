@@ -32,16 +32,20 @@ var supervisor = new VoxSupervisor(
         using var synthesizer = new SpeechSynthesizer();
         synthesizer.Speak("Vox has stopped working and could not be restarted.");
     },
-    logger);
+    logger,
+    startInSafeMode: RestartRequest.HasFlag(voxArgs, RunPolicy.SafeFlag));
 
 return await supervisor.RunAsync(cts.Token);
 
 sealed class ProcessLauncher(string path, string[] arguments) : IProcessLauncher
 {
-    public IRunningProcess Start()
+    public IRunningProcess Start() => Start(safeMode: false);
+
+    // Vox.App is told it is supervised, so a restart it is asked for goes through its exit code
+    public IRunningProcess Start(bool safeMode)
     {
         var info = new ProcessStartInfo(path) { UseShellExecute = false };
-        foreach (var argument in arguments)
+        foreach (var argument in RestartRequest.ArgumentsFor(arguments, safeMode, supervised: true))
             info.ArgumentList.Add(argument);
         return new RunningProcess(Process.Start(info) ?? throw new InvalidOperationException($"Could not start {path}"));
     }

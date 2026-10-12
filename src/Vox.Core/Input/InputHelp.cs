@@ -22,6 +22,10 @@ public static class InputHelp
         return VoxStrings.Format("InputHelp.KeyAndCommand", key, info.Name, info.Description);
     }
 
+    /// <summary>What a key bound to an add-on's command does: the key, the command's name and its description.</summary>
+    public static string DescribeAddOnCommand(AddOnCommandRef command, KeyModifiers modifiers, int vkCode, bool isKeypad, string? screenReaderKey = null) =>
+        VoxStrings.Format("InputHelp.KeyAndCommand", KeyName(modifiers, vkCode, isKeypad, screenReaderKey), command.Name, command.Description);
+
     /// <summary>The name of the screen reader key chosen: "Insert" or "Caps Lock", in the language in use.</summary>
     public static string ScreenReaderKeyName(ModifierKey modifierKey) =>
         VoxStrings.Get(modifierKey == ModifierKey.CapsLock ? "Key.CapsLock" : "Key.Insert");

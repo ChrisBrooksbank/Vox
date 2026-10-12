@@ -19,6 +19,10 @@
     <PackageReference Include="System.Speech" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The public add-on API: Vox.Core implements it, add-ons see only it (docs/addons.md) -->
+    <ProjectReference Include="..\Vox.Sdk\Vox.Sdk.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Built-in fallback keymap, used when assets/config/default-keymap.json is missing or invalid -->
     <EmbeddedResource Include="..\..\assets\config\default-keymap.json" LogicalName="Vox.Core.default-keymap.json" />
     <EmbeddedResource Include="..\..\assets\config\laptop-keymap.json" LogicalName="Vox.Core.laptop-keymap.json" />

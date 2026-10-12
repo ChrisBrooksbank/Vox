@@ -21,6 +21,9 @@ public sealed class ProfileManager
         nameof(VoxSettings.AiCloudProvider), nameof(VoxSettings.AiModel), nameof(VoxSettings.AiEndpoint),
         nameof(VoxSettings.AiCloudConsent), nameof(VoxSettings.AiPrivateApps), nameof(VoxSettings.AiLocalModel),
         nameof(VoxSettings.AiLocalEndpoint),
+        // Where add-ons come from and how remote access connects are about the computer, not a profile
+        nameof(VoxSettings.AddOnCatalogueUrl), nameof(VoxSettings.RemotePort), nameof(VoxSettings.RemoteUseRelay),
+        nameof(VoxSettings.RemoteRelay), nameof(VoxSettings.RemoteAddress),
     };
 
     private readonly ProfileStore _store;

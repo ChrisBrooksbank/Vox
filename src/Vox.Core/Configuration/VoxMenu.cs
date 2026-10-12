@@ -24,12 +24,22 @@ public static class VoxMenu
         Item(NavigationCommand.RunTutorial),
         Item(NavigationCommand.CreatePortableCopy),
         Item(NavigationCommand.SetAiKey),
+        Item(NavigationCommand.ManageAddOns),
+        Item(NavigationCommand.GetAddOns),
+        Item(NavigationCommand.RemoteAccess),
         Item(NavigationCommand.CheckForUpdates),
         Item(NavigationCommand.RunSetup),
+        Item(NavigationCommand.RestartWithoutAddOns),
         Item(NavigationCommand.ExitVox),
     ];
 
-    private static VoxMenuItem Item(NavigationCommand command) => new(VoxStrings.Get($"VoxMenu.{command}"), command);
+    /// <summary>Vox started in safe mode: the restart entry turns add-ons back on (set at startup).</summary>
+    public static bool SafeMode { get; set; }
+
+    private static VoxMenuItem Item(NavigationCommand command) =>
+        command == NavigationCommand.RestartWithoutAddOns && SafeMode
+            ? new(VoxStrings.Get("VoxMenu.RestartWithAddOns"), command)
+            : new(VoxStrings.Get($"VoxMenu.{command}"), command);
 }
 
 /// <summary>Shows the Vox menu; the command chosen, or null.</summary>
