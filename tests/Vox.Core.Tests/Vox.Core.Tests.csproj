@@ -24,6 +24,10 @@
     <!-- Built first, never referenced: the add-on loader tests load it from SampleAddOn\ like an installed add-on -->
     <ProjectReference Include="..\..\samples\Vox.SampleAddOn\Vox.SampleAddOn.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Other screen readers' settings files the importers are tested over -->
+    <None Include="Switching\Samples\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
   <Target Name="CopySampleAddOn" AfterTargets="Build">
     <ItemGroup>
       <SampleAddOnFiles Include="$(MSBuildProjectDirectory)\..\..\samples\Vox.SampleAddOn\bin\$(Configuration)\$(TargetFramework)\Vox.SampleAddOn.dll;$(MSBuildProjectDirectory)\..\..\samples\Vox.SampleAddOn\bin\$(Configuration)\$(TargetFramework)\addon.json" />
