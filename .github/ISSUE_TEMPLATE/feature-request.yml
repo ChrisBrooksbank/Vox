@@ -1,0 +1,16 @@
+name: Suggestion
+description: Something Vox should do, or do differently.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+      description: What you want to be able to do, and where (which app or kind of web page).
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How you do it today
+      description: How you manage now, with Vox or another screen reader, and what makes it hard.

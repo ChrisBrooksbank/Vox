@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Vox beta programme
+    url: https://github.com/ChrisBrooksbank/Vox/blob/master/docs/beta.md
+    about: How to join the beta, what to test, and how to gather speech viewer output and developer info for a report.
+  - name: Security problem
+    url: https://github.com/ChrisBrooksbank/Vox/security/advisories/new
+    about: Please report security problems privately, not as an issue (docs/security.md).

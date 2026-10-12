@@ -209,7 +209,7 @@ modifier key. Press `Esc` to skip it. You can bring it back any time with
 }
 ```
 
-Logs go to `%APPDATA%\Vox\logs\`.
+Logs go to `%LOCALAPPDATA%\Vox\logs\`.
 
 ---
 
@@ -253,7 +253,8 @@ and the task checklist is in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 Screen readers are personal. Every user has habits, workarounds and pet peeves, and the best
 features come from people who use one all day. Bug reports, keymap ideas and pull requests are
-all welcome.
+all welcome. To test beta builds and report what Vox says, see the [beta programme](docs/beta.md);
+security problems go privately, as [docs/security.md](docs/security.md) explains.
 
 Before you open a PR:
 
