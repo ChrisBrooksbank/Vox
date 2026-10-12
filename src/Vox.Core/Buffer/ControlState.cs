@@ -44,14 +44,12 @@ public static class ControlState
     /// </summary>
     private static bool HasPopup(string? ariaProps)
     {
-        if (string.IsNullOrEmpty(ariaProps)) return false;
-        foreach (var segment in ariaProps.Split(';', ','))
+        var reader = new AriaPropertyReader(ariaProps);
+        while (reader.MoveNext())
         {
-            var sep = segment.IndexOf('=');
-            if (sep < 0) sep = segment.IndexOf(':');
-            if (sep <= 0 || !string.Equals(segment[..sep].Trim(), "haspopup", StringComparison.OrdinalIgnoreCase))
+            if (!reader.IsKey("haspopup"))
                 continue;
-            var value = segment[(sep + 1)..].Trim().ToLowerInvariant();
+            var value = reader.Value.ToString().ToLowerInvariant();
             return value is "true" or "1" or "yes" or "menu" or "listbox" or "tree" or "grid" or "dialog";
         }
         return false;
@@ -60,12 +58,10 @@ public static class ControlState
     /// <summary>True when <paramref name="key"/> appears in the ARIA properties at all (e.g. expanded=false).</summary>
     private static bool AriaPropertyPresent(string? ariaProps, string key)
     {
-        if (string.IsNullOrEmpty(ariaProps)) return false;
-        foreach (var segment in ariaProps.Split(';', ','))
+        var reader = new AriaPropertyReader(ariaProps);
+        while (reader.MoveNext())
         {
-            var sep = segment.IndexOf('=');
-            if (sep < 0) sep = segment.IndexOf(':');
-            if (sep > 0 && string.Equals(segment[..sep].Trim(), key, StringComparison.OrdinalIgnoreCase))
+            if (reader.IsKey(key))
                 return true;
         }
         return false;

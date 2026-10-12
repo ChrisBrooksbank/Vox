@@ -572,6 +572,11 @@ public class VBufferBuilderTests
     [InlineData("",                      "required",  false)]
     [InlineData("other=true",            "required",  false)]
     [InlineData("a=1;required=true;b=2", "required",  true)]
+    [InlineData(" Required : TRUE ",     "required",  true)]
+    [InlineData("haspopup:menu,required:yes", "required", true)]
+    [InlineData("junk;;required=true;",  "required",  true)]
+    [InlineData("required=false;required=true", "required", false)]
+    [InlineData("notrequired=true",      "required",  false)]
     public void ParseAriaPropertyBool_Variants(string props, string key, bool expected)
     {
         Assert.Equal(expected, VBufferBuilder.ParseAriaPropertyBool(props, key));
@@ -583,6 +588,8 @@ public class VBufferBuilderTests
     [InlineData("",             "level", 0)]
     [InlineData("other=5",      "level", 0)]
     [InlineData("a=1;level=2",  "level", 2)]
+    [InlineData(" Level : 5 ,", "level", 5)]
+    [InlineData("level=x;level=4", "level", 4)]
     public void ParseAriaPropertyInt_Variants(string props, string key, int expected)
     {
         Assert.Equal(expected, VBufferBuilder.ParseAriaPropertyInt(props, key));

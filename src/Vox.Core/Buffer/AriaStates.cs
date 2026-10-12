@@ -16,13 +16,11 @@ public static class AriaStates
     /// </summary>
     public static string? Value(string? ariaProps, string key)
     {
-        if (string.IsNullOrEmpty(ariaProps)) return null;
-        foreach (var segment in ariaProps.Split(';', ','))
+        var reader = new AriaPropertyReader(ariaProps);
+        while (reader.MoveNext())
         {
-            var sep = segment.IndexOf('=');
-            if (sep < 0) sep = segment.IndexOf(':');
-            if (sep > 0 && string.Equals(segment[..sep].Trim(), key, StringComparison.OrdinalIgnoreCase))
-                return segment[(sep + 1)..].Trim().ToLowerInvariant();
+            if (reader.IsKey(key))
+                return reader.Value.ToString().ToLowerInvariant();
         }
         return null;
     }

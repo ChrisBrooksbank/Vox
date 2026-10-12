@@ -78,7 +78,7 @@ public sealed class VBufferDocument
 
     // Fast lookup tables
     private readonly Dictionary<VBufferNode, TableModel> _tableModels;
-    private readonly Dictionary<string, VBufferNode> _byRuntimeId;
+    private readonly Dictionary<int[], VBufferNode> _byRuntimeId;
     private readonly VBufferNode[] _allNodesArray;
 
     /// <summary>Whether it was built with screen layout (see <see cref="VBufferBuilder.ScreenLayout"/>); updates keep it.</summary>
@@ -113,7 +113,7 @@ public sealed class VBufferDocument
         var frames = new List<VBufferNode>();
         var separators = new List<VBufferNode>();
         var embeddedObjects = new List<VBufferNode>();
-        _byRuntimeId = new Dictionary<string, VBufferNode>(allNodes.Count);
+        _byRuntimeId = new Dictionary<int[], VBufferNode>(allNodes.Count, RuntimeIdComparer.Instance);
 
         foreach (var node in allNodes)
         {
@@ -136,8 +136,7 @@ public sealed class VBufferDocument
             if (PageElements.IsSeparator(node)) separators.Add(node);
             if (PageElements.IsEmbeddedObject(node)) embeddedObjects.Add(node);
 
-            var key = RuntimeIdKey(node.UIARuntimeId);
-            _byRuntimeId[key] = node;
+            _byRuntimeId[node.UIARuntimeId] = node;
         }
 
         // An invalid entry's error message (aria-errormessage) is the text of other elements
@@ -249,8 +248,7 @@ public sealed class VBufferDocument
 
     public VBufferNode? FindByRuntimeId(int[] runtimeId)
     {
-        var key = RuntimeIdKey(runtimeId);
-        return _byRuntimeId.TryGetValue(key, out var node) ? node : null;
+        return _byRuntimeId.TryGetValue(runtimeId, out var node) ? node : null;
     }
 
     /// <summary>
@@ -349,6 +347,20 @@ public sealed class VBufferDocument
         node.IsRequired ||
         node.IsExpandable;
 
-    private static string RuntimeIdKey(int[] ids) =>
-        string.Join(",", ids);
+    /// <summary>Runtime IDs compared by their elements, so looking one up allocates nothing.</summary>
+    private sealed class RuntimeIdComparer : IEqualityComparer<int[]>
+    {
+        public static readonly RuntimeIdComparer Instance = new();
+
+        public bool Equals(int[]? x, int[]? y) =>
+            ReferenceEquals(x, y) || (x is not null && y is not null && x.AsSpan().SequenceEqual(y));
+
+        public int GetHashCode(int[] ids)
+        {
+            int hash = ids.Length;
+            foreach (var id in ids)
+                hash = unchecked(hash * 31 + id);
+            return hash;
+        }
+    }
 }

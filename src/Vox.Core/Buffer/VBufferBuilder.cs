@@ -244,18 +244,10 @@ public sealed class VBufferBuilder
     /// Inline means a leaf Text node, a link, or a highlight, insertion or deletion of inline nodes (UIA exposes no CSS display type, so this is a
     /// heuristic: block elements such as paragraphs and headings have children or a heading level).
     /// </summary>
-    internal static void JoinInlineRuns(IReadOnlyList<VBufferNode> nodes, StringBuilder flatText)
+    /// <param name="subtreeEnd">The nodes' <see cref="SubtreeTextEnds"/>, when already known.</param>
+    internal static void JoinInlineRuns(IReadOnlyList<VBufferNode> nodes, StringBuilder flatText, int[]? subtreeEnd = null)
     {
-        // Exclusive end of each node's whole subtree text (nodes are in pre-order, Ids = indices)
-        var subtreeEnd = new int[nodes.Count];
-        for (int i = nodes.Count - 1; i >= 0; i--)
-        {
-            var node = nodes[i];
-            int end = node.TextRange.End;
-            foreach (var child in node.Children)
-                end = Math.Max(end, subtreeEnd[child.Id]);
-            subtreeEnd[i] = end;
-        }
+        subtreeEnd ??= SubtreeTextEnds(nodes);
 
         foreach (var parent in nodes)
         {
@@ -281,6 +273,24 @@ public sealed class VBufferBuilder
                 previousInRun = child;
             }
         }
+    }
+
+    /// <summary>
+    /// The exclusive end of each node's whole subtree text, by Id, in one pass (nodes are in
+    /// pre-order with Ids = indices, so children come after their parent).
+    /// </summary>
+    internal static int[] SubtreeTextEnds(IReadOnlyList<VBufferNode> nodes)
+    {
+        var subtreeEnd = new int[nodes.Count];
+        for (int i = nodes.Count - 1; i >= 0; i--)
+        {
+            var node = nodes[i];
+            int end = node.TextRange.End;
+            foreach (var child in node.Children)
+                end = Math.Max(end, subtreeEnd[child.Id]);
+            subtreeEnd[i] = end;
+        }
+        return subtreeEnd;
     }
 
     private static bool IsInline(VBufferNode node) =>
@@ -484,40 +494,26 @@ public sealed class VBufferBuilder
 
     public static bool ParseAriaPropertyBool(string ariaProps, string key)
     {
-        if (string.IsNullOrEmpty(ariaProps)) return false;
-
         // Format: "key=value;key2=value2" or "key:value,key2:value2"
-        foreach (var segment in ariaProps.Split(';', ','))
+        var reader = new AriaPropertyReader(ariaProps);
+        while (reader.MoveNext())
         {
-            var sep = segment.IndexOf('=');
-            if (sep < 0) sep = segment.IndexOf(':');
-            if (sep < 0) continue;
-
-            var k = segment[..sep].Trim();
-            var v = segment[(sep + 1)..].Trim();
-
-            if (string.Equals(k, key, StringComparison.OrdinalIgnoreCase))
-                return v.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-                       v == "1" ||
-                       v.Equals("yes", StringComparison.OrdinalIgnoreCase);
+            if (!reader.IsKey(key))
+                continue;
+            var v = reader.Value;
+            return v.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                   v is "1" ||
+                   v.Equals("yes", StringComparison.OrdinalIgnoreCase);
         }
         return false;
     }
 
     public static int ParseAriaPropertyInt(string ariaProps, string key)
     {
-        if (string.IsNullOrEmpty(ariaProps)) return 0;
-
-        foreach (var segment in ariaProps.Split(';', ','))
+        var reader = new AriaPropertyReader(ariaProps);
+        while (reader.MoveNext())
         {
-            var sep = segment.IndexOf('=');
-            if (sep < 0) sep = segment.IndexOf(':');
-            if (sep < 0) continue;
-
-            var k = segment[..sep].Trim();
-            var v = segment[(sep + 1)..].Trim();
-
-            if (string.Equals(k, key, StringComparison.OrdinalIgnoreCase) && int.TryParse(v, out var result))
+            if (reader.IsKey(key) && int.TryParse(reader.Value, out var result))
                 return result;
         }
         return 0;
