@@ -1,0 +1,119 @@
+name: Screen reader bug report
+description: Vox said the wrong thing, said nothing, or didn't do what a key should. Written for screen reader users; every field is plain text.
+title: "[Bug]: "
+labels: [bug, beta]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing Vox. This form is a list of headings and text fields; press H to move between them in browse mode.
+        Please leave out anything private (passwords, messages, account numbers) from what you paste. See docs/beta.md for help gathering each item.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, and what Vox said or did instead of what you expected.
+      placeholder: |
+        I pressed H on a news page and Vox said "blank" instead of the heading text.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The keys you pressed, in order, starting from a place we can reach (a public web page address, or an app and its window).
+      placeholder: |
+        1. Open https://example.com in Edge.
+        2. Press H twice.
+        3. Press Insert+Up arrow.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What Vox should have said or done. If another screen reader does it well, tell us which one and what it says.
+    validations:
+      required: true
+
+  - type: textarea
+    id: speech
+    attributes:
+      label: Speech viewer output
+      description: |
+        What Vox said, word for word. Turn on the speech viewer (Insert+Shift+V, or the Vox menu, Insert+N) before you reproduce the problem and copy its text. Without sighted help, step back through what Vox said with Insert+Shift+F11 and press it twice quickly to copy each line, then paste the lines here in order.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: developer-info
+    attributes:
+      label: Developer info
+      description: |
+        Put focus on the control the problem is about and press Insert+F1. Vox reads the control's details and copies them to the clipboard; paste them here. If the problem is on a web page, include the page address.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Vox version
+      description: From Settings, Apps, Installed apps (the entry named Vox), or the installer's file name. Say "built from source" and the commit if you built it yourself.
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: channel
+    attributes:
+      label: Update channel
+      description: Vox settings (Insert+Ctrl+G), General, Check for updates.
+      options:
+        - Releases and betas
+        - Releases
+        - Never
+        - Don't know
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Press Windows+R, type winver and press Enter; the version and build are in the dialog's text.
+      placeholder: Windows 11 24H2, build 26100.2314
+    validations:
+      required: true
+
+  - type: input
+    id: app
+    attributes:
+      label: Application and version
+      description: The browser or app the problem happened in, with its version.
+      placeholder: Microsoft Edge 130.0.2849.56
+
+  - type: textarea
+    id: setup
+    attributes:
+      label: Your setup
+      description: |
+        Anything that may matter: speech engine and voice, braille display, keyboard layout (desktop or laptop), add-ons installed, whether it happens with add-ons turned off (Vox menu, Restart with add-ons disabled), other assistive technology running.
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: |
+        Optional. The newest file in %LOCALAPPDATA%\Vox\logs (type that into the Windows+R box), or the part of it from around the time of the problem. Vox never writes what you type or what it speaks to the log, but it does include window and application names; read it before you paste.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send
+      options:
+        - label: I removed anything private from the speech viewer output, developer info and log.
+          required: true

@@ -23,8 +23,8 @@ Keep Vox trustworthy as it grows: CI on Windows, end-to-end spoken-output tests,
 - [ ] Fault injection harness: hung UIA provider, provider throwing, browser crash, sleep/resume, session switch
 - [ ] 4-hour soak test: memory and handle counts stay flat
 - [ ] Logging review: typed characters and password fields never reach Serilog (test with a log sink)
-- [ ] Security review checklist for the keyboard hook, `uiAccess`, secure mode, update channel and add-ons (`docs/security.md`)
-- [ ] Beta programme docs: feedback channel, issue template for screen reader users (asks for speech viewer output and developer info)
+- [x] Security review checklist for the keyboard hook, `uiAccess`, secure mode, update channel and add-ons (`docs/security.md`)
+- [x] Beta programme docs: feedback channel, issue template for screen reader users (asks for speech viewer output and developer info)
 
 ## Acceptance Criteria
 
