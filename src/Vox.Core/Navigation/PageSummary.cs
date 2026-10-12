@@ -1,5 +1,6 @@
 using System.Globalization;
 using Vox.Core.Buffer;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -13,16 +14,26 @@ public static class PageSummary
     {
         var parts = new List<string>();
         var title = document.Root.Name.Trim();
-        parts.Add(title.Length > 0 ? title : "Untitled page");
+        parts.Add(title.Length > 0 ? title : VoxStrings.Get("PageDigest.Untitled"));
         if (LanguageName(document.Root.Language) is { } language)
-            parts.Add($"language {language}");
+            parts.Add(VoxStrings.Format("PageSummary.Language", language));
 
         int layoutTables = document.TableModels.Count(t => t.IsLayoutTable);
-        parts.Add(Count(document.Headings.Count, "heading"));
-        parts.Add(Count(document.Links.Count, "link"));
-        parts.Add(Count(document.Landmarks.Count, "landmark"));
-        parts.Add(Count(document.FormFields.Count, "form field"));
-        parts.Add(Count(Math.Max(0, document.Tables.Count - layoutTables), "table"));
+        int headings = document.Headings.Count;
+        parts.Add(Count(headings, VoxStrings.Get("PageSummary.NoHeadings"),
+            VoxStrings.Get("PageSummary.OneHeading"), VoxStrings.Format("PageSummary.Headings", headings)));
+        int links = document.Links.Count;
+        parts.Add(Count(links, VoxStrings.Get("PageSummary.NoLinks"),
+            VoxStrings.Get("PageSummary.OneLink"), VoxStrings.Format("PageSummary.Links", links)));
+        int landmarks = document.Landmarks.Count;
+        parts.Add(Count(landmarks, VoxStrings.Get("PageSummary.NoLandmarks"),
+            VoxStrings.Get("PageSummary.OneLandmark"), VoxStrings.Format("PageSummary.Landmarks", landmarks)));
+        int formFields = document.FormFields.Count;
+        parts.Add(Count(formFields, VoxStrings.Get("PageSummary.NoFormFields"),
+            VoxStrings.Get("PageSummary.OneFormField"), VoxStrings.Format("PageSummary.FormFields", formFields)));
+        int tables = Math.Max(0, document.Tables.Count - layoutTables);
+        parts.Add(Count(tables, VoxStrings.Get("PageSummary.NoTables"),
+            VoxStrings.Get("PageSummary.OneTable"), VoxStrings.Format("PageSummary.Tables", tables)));
         return string.Join(", ", parts);
     }
 
@@ -32,17 +43,17 @@ public static class PageSummary
         for (var n = node; n is not null; n = n.Parent)
         {
             if (n.IsLink)
-                return n.Value.Trim() is { Length: > 0 } url ? url : "Link has no address";
+                return n.Value.Trim() is { Length: > 0 } url ? url : VoxStrings.Get("PageSummary.LinkHasNoAddress");
         }
-        return "Not on a link";
+        return VoxStrings.Get("PageSummary.NotOnLink");
     }
 
-    private static string Count(int count, string noun) =>
+    private static string Count(int count, string none, string one, string many) =>
         count switch
         {
-            0 => $"no {noun}s",
-            1 => $"1 {noun}",
-            _ => $"{count} {noun}s",
+            0 => none,
+            1 => one,
+            _ => many,
         };
 
     private static string? LanguageName(string tag)

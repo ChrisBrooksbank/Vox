@@ -1,4 +1,5 @@
 using Vox.Core.Buffer;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -75,12 +76,20 @@ public static class OverlayDetector
     public static string Announcement(Overlay overlay, string key)
     {
         var kind = overlay.Kind == Dialog && overlay.Container.Name.Trim() is { Length: > 0 } name
-            ? $"Dialog, {name}"
-            : overlay.Kind;
+            ? VoxStrings.Format("Overlay.NamedDialog", name)
+            : KindName(overlay.Kind);
         return overlay.DismissButton is { } button
-            ? $"{kind}. {key} presses {button.Name.Trim()}"
+            ? VoxStrings.Format("Overlay.Announcement", kind, key, button.Name.Trim())
             : kind;
     }
+
+    /// <summary>The spoken name of an overlay kind (<see cref="CookieBanner"/> or <see cref="Dialog"/>).</summary>
+    public static string KindName(string kind) => kind switch
+    {
+        CookieBanner => VoxStrings.Get("Overlay.CookieBanner"),
+        Dialog => VoxStrings.Get("Overlay.Dialog"),
+        _ => kind,
+    };
 
     private static IEnumerable<VBufferNode> Candidates(VBufferDocument document) =>
         document.Buttons.Concat(document.Links).Where(n => n.Name.Length > 0);

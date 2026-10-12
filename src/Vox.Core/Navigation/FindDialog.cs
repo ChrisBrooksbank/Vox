@@ -1,4 +1,5 @@
 using System.Windows.Forms;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -55,13 +56,13 @@ public sealed class FindDialog : VoxDialog
 
     public FindDialog(IReadOnlyList<string> history, bool matchCase = false)
     {
-        Text = "Find";
+        Text = VoxStrings.Get("Find.Title");
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
-        AccessibleName = "Find";
+        AccessibleName = VoxStrings.Get("Find.Title");
         AccessibleRole = AccessibleRole.Dialog;
 
         var panel = new TableLayoutPanel
@@ -74,14 +75,14 @@ public sealed class FindDialog : VoxDialog
 
         panel.Controls.Add(new Label
         {
-            Text = "&Find what:",
+            Text = VoxStrings.Get("Find.FindWhatLabel"),
             AutoSize = true,
             Anchor = AnchorStyles.Left,
         }, 0, 0);
         _textBox = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDown,
-            AccessibleName = "Find what",
+            AccessibleName = VoxStrings.Get("Find.FindWhat"),
             Width = 300,
         };
         foreach (var text in history)
@@ -92,7 +93,7 @@ public sealed class FindDialog : VoxDialog
 
         _matchCaseBox = new CheckBox
         {
-            Text = "Match &case",
+            Text = VoxStrings.Get("Find.MatchCase"),
             AutoSize = true,
             Checked = matchCase,
         };
@@ -104,9 +105,9 @@ public sealed class FindDialog : VoxDialog
             FlowDirection = FlowDirection.LeftToRight,
             Anchor = AnchorStyles.Right,
         };
-        var findButton = new Button { Text = "Find", AutoSize = true };
+        var findButton = new Button { Text = VoxStrings.Get("Find.FindButton"), AutoSize = true };
         findButton.Click += OnFind;
-        var cancelButton = new Button { Text = "Cancel", AutoSize = true, DialogResult = DialogResult.Cancel };
+        var cancelButton = new Button { Text = VoxStrings.Get("Dialog.Cancel"), AutoSize = true, DialogResult = DialogResult.Cancel };
         buttons.Controls.Add(findButton);
         buttons.Controls.Add(cancelButton);
         panel.Controls.Add(buttons, 1, 2);

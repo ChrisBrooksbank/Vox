@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.Text;
 
 /// <summary>How text formatting is spoken (the Read formatting command).</summary>
@@ -13,20 +15,20 @@ public static class TextFormatting
         if (!string.IsNullOrEmpty(attributes.FontName))
             parts.Add(attributes.FontName);
         if (attributes.FontSize is { } size)
-            parts.Add($"{size:0.#} point");
+            parts.Add(VoxStrings.Format("Text.FontSize", size));
         if (attributes.IsBold == true)
-            parts.Add("bold");
+            parts.Add(VoxStrings.Get("Text.Bold"));
         if (attributes.IsItalic == true)
-            parts.Add("italic");
+            parts.Add(VoxStrings.Get("Text.Italic"));
         if (attributes.IsUnderline == true)
-            parts.Add("underlined");
+            parts.Add(VoxStrings.Get("Text.Underlined"));
         if (attributes.ForegroundColor is { } color && ColorName(color) is { } name)
             parts.Add(name);
         if (attributes.IsSpellingError)
-            parts.Add("misspelled");
+            parts.Add(VoxStrings.Get("Text.Misspelled"));
         if (attributes.IsGrammarError)
-            parts.Add("grammar error");
-        return parts.Count == 0 ? "No formatting information" : string.Join(", ", parts);
+            parts.Add(VoxStrings.Get("State.GrammarError"));
+        return parts.Count == 0 ? VoxStrings.Get("Text.NoFormatting") : string.Join(", ", parts);
     }
 
     private static readonly (string Name, int R, int G, int B)[] Colors =
@@ -43,6 +45,26 @@ public static class TextFormatting
         if (hex.Length != 7 || hex[0] != '#' || !int.TryParse(hex.AsSpan(1), System.Globalization.NumberStyles.HexNumber, null, out var rgb))
             return null;
         int r = (rgb >> 16) & 0xFF, g = (rgb >> 8) & 0xFF, b = rgb & 0xFF;
-        return Colors.MinBy(c => (c.R - r) * (c.R - r) + (c.G - g) * (c.G - g) + (c.B - b) * (c.B - b)).Name;
+        return SpokenColor(Colors.MinBy(c => (c.R - r) * (c.R - r) + (c.G - g) * (c.G - g) + (c.B - b) * (c.B - b)).Name);
     }
+
+    private static string SpokenColor(string name) => name switch
+    {
+        "black" => VoxStrings.Get("Text.Color.Black"),
+        "white" => VoxStrings.Get("Text.Color.White"),
+        "gray" => VoxStrings.Get("Text.Color.Gray"),
+        "red" => VoxStrings.Get("Text.Color.Red"),
+        "dark red" => VoxStrings.Get("Text.Color.DarkRed"),
+        "orange" => VoxStrings.Get("Text.Color.Orange"),
+        "yellow" => VoxStrings.Get("Text.Color.Yellow"),
+        "green" => VoxStrings.Get("Text.Color.Green"),
+        "dark green" => VoxStrings.Get("Text.Color.DarkGreen"),
+        "blue" => VoxStrings.Get("Text.Color.Blue"),
+        "dark blue" => VoxStrings.Get("Text.Color.DarkBlue"),
+        "light blue" => VoxStrings.Get("Text.Color.LightBlue"),
+        "purple" => VoxStrings.Get("Text.Color.Purple"),
+        "pink" => VoxStrings.Get("Text.Color.Pink"),
+        "brown" => VoxStrings.Get("Text.Color.Brown"),
+        _ => name,
+    };
 }

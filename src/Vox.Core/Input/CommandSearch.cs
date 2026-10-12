@@ -1,10 +1,13 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.Input;
 
 /// <summary>A command found by <see cref="CommandSearch"/>, with its keys as people read them.</summary>
 public sealed record CommandMatch(CommandInfo Command, IReadOnlyList<string> Keys)
 {
     public override string ToString() =>
-        $"{Command.Name}: {(Keys.Count == 0 ? "no key" : string.Join(", ", Keys))}";
+        VoxStrings.Format("CommandSearch.Match", Command.Name,
+            Keys.Count == 0 ? VoxStrings.Get("CommandSearch.NoKey") : string.Join(", ", Keys));
 }
 
 /// <summary>

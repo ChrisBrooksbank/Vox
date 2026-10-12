@@ -32,11 +32,11 @@ public static class PdfDocuments
             return null;
         string announcement;
         if (string.IsNullOrWhiteSpace(document.FlatText))
-            announcement = "PDF document with no text, probably a scanned image";
+            announcement = VoxStrings.Get("Pdf.NoText");
         else if (IsStructured(document))
-            return "PDF document";
+            return VoxStrings.Get("Pdf.Document");
         else
-            announcement = "Untagged PDF document: no headings or structure";
+            announcement = VoxStrings.Get("Pdf.Untagged");
         return recognizeKey is null ? announcement : $"{announcement}. {VoxStrings.Format("Ocr.PdfOffer", recognizeKey)}";
     }
 

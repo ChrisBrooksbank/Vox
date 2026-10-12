@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Vox.Core.Configuration;
+using Vox.Core.Localization;
 using Vox.Core.Pipeline;
 
 namespace Vox.Core.Input;
@@ -159,7 +160,7 @@ public sealed class TypingEchoHandler
         if (evt.VkCode == VK_RETURN && !altGr)
         {
             _pendingDeadKey = null;
-            HandleWordBoundary("Return", mode);
+            HandleWordBoundary(VoxStrings.Get("Typing.Return"), mode);
             return;
         }
 
@@ -185,7 +186,7 @@ public sealed class TypingEchoHandler
         // Space and punctuation end a word
         if (ch == ' ' || char.IsPunctuation(ch) || char.IsSymbol(ch))
         {
-            HandleWordBoundary(PasswordMode ? "star" : GetCharacterName(ch), mode);
+            HandleWordBoundary(PasswordMode ? VoxStrings.Get("Typing.Star") : GetCharacterName(ch), mode);
             return;
         }
 
@@ -193,7 +194,7 @@ public sealed class TypingEchoHandler
         {
             // Never reveal password characters, and never collect them into a word
             if (mode == TypingEchoMode.Characters || mode == TypingEchoMode.Both)
-                _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, "star", IsWord: false));
+                _pipeline.Post(new TypingEchoEvent(DateTimeOffset.UtcNow, VoxStrings.Get("Typing.Star"), IsWord: false));
             return;
         }
 
@@ -337,41 +338,41 @@ public sealed class TypingEchoHandler
     /// </summary>
     public static string GetCharacterName(char ch) => ch switch
     {
-        '\n' => "blank",
-        ' ' => "Space",
-        '\t' => "Tab",
-        '@' => "at",
-        '#' => "hash",
-        '$' => "dollar",
-        '%' => "percent",
-        '^' => "caret",
-        '&' => "ampersand",
-        '*' => "asterisk",
-        '(' => "open paren",
-        ')' => "close paren",
-        '!' => "exclamation",
-        '-' => "hyphen",
-        '_' => "underscore",
-        '=' => "equals",
-        '+' => "plus",
-        '[' => "open bracket",
-        ']' => "close bracket",
-        '{' => "open brace",
-        '}' => "close brace",
-        '\\' => "backslash",
-        '|' => "pipe",
-        ';' => "semicolon",
-        ':' => "colon",
-        '\'' => "apostrophe",
-        '"' => "quote",
-        ',' => "comma",
-        '.' => "period",
-        '<' => "less than",
-        '>' => "greater than",
-        '/' => "slash",
-        '?' => "question mark",
-        '`' => "backtick",
-        '~' => "tilde",
+        '\n' => VoxStrings.Get("Text.Blank"),
+        ' ' => VoxStrings.Get("Key.Space"),
+        '\t' => VoxStrings.Get("Key.Tab"),
+        '@' => VoxStrings.Get("Char.At"),
+        '#' => VoxStrings.Get("Char.Hash"),
+        '$' => VoxStrings.Get("Char.Dollar"),
+        '%' => VoxStrings.Get("Char.Percent"),
+        '^' => VoxStrings.Get("Char.Caret"),
+        '&' => VoxStrings.Get("Char.Ampersand"),
+        '*' => VoxStrings.Get("Char.Asterisk"),
+        '(' => VoxStrings.Get("Char.OpenParen"),
+        ')' => VoxStrings.Get("Char.CloseParen"),
+        '!' => VoxStrings.Get("Char.Exclamation"),
+        '-' => VoxStrings.Get("Char.Hyphen"),
+        '_' => VoxStrings.Get("Char.Underscore"),
+        '=' => VoxStrings.Get("Char.Equals"),
+        '+' => VoxStrings.Get("Char.Plus"),
+        '[' => VoxStrings.Get("Char.OpenBracket"),
+        ']' => VoxStrings.Get("Char.CloseBracket"),
+        '{' => VoxStrings.Get("Char.OpenBrace"),
+        '}' => VoxStrings.Get("Char.CloseBrace"),
+        '\\' => VoxStrings.Get("Char.Backslash"),
+        '|' => VoxStrings.Get("Char.Pipe"),
+        ';' => VoxStrings.Get("Char.Semicolon"),
+        ':' => VoxStrings.Get("Char.Colon"),
+        '\'' => VoxStrings.Get("Char.Apostrophe"),
+        '"' => VoxStrings.Get("Char.Quote"),
+        ',' => VoxStrings.Get("Char.Comma"),
+        '.' => VoxStrings.Get("Char.Period"),
+        '<' => VoxStrings.Get("Char.LessThan"),
+        '>' => VoxStrings.Get("Char.GreaterThan"),
+        '/' => VoxStrings.Get("Char.Slash"),
+        '?' => VoxStrings.Get("Char.QuestionMark"),
+        '`' => VoxStrings.Get("Char.Backtick"),
+        '~' => VoxStrings.Get("Char.Tilde"),
         _ => ch.ToString()
     };
 }

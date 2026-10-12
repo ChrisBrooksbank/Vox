@@ -1,4 +1,5 @@
 using Vox.Core.Buffer;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -17,15 +18,23 @@ namespace Vox.Core.Navigation;
 public sealed class ElementsListViewModel
 {
     /// <summary>The tabs' names, by index.</summary>
-    public static IReadOnlyList<string> TabNames { get; } =
-        ["Headings", "Links", "Landmarks", "Form Fields", "Buttons", "Tables"];
+    public static IReadOnlyList<string> TabNames =>
+    [
+        VoxStrings.Get("ElementsList.Headings"), VoxStrings.Get("ElementsList.Links"),
+        VoxStrings.Get("ElementsList.Landmarks"), VoxStrings.Get("ElementsList.FormFields"),
+        VoxStrings.Get("ElementsList.Buttons"), VoxStrings.Get("ElementsList.Tables"),
+    ];
 
     /// <summary>Index of the Form Fields tab, the one <see cref="FormFieldKind"/> applies to.</summary>
     public const int FormFieldsTab = 3;
 
     /// <summary>The form field kinds' names, by <see cref="ElementsFormFieldKind"/> value.</summary>
-    public static IReadOnlyList<string> FormFieldKindNames { get; } =
-        ["All", "Edits", "Combo boxes", "Check boxes", "Radio buttons"];
+    public static IReadOnlyList<string> FormFieldKindNames =>
+    [
+        VoxStrings.Get("ElementsList.AllFields"), VoxStrings.Get("ElementsList.Edits"),
+        VoxStrings.Get("ElementsList.ComboBoxes"), VoxStrings.Get("ElementsList.CheckBoxes"),
+        VoxStrings.Get("ElementsList.RadioButtons"),
+    ];
 
     // -------------------------------------------------------------------------
     // State
@@ -152,7 +161,7 @@ public sealed class ElementsListViewModel
         var name = !string.IsNullOrWhiteSpace(node.Name) ? node.Name : SubtreeText(node, flatText);
 
         if (node.IsHeading)
-            return $"H{node.HeadingLevel}: {name}";
+            return VoxStrings.Format("ElementsList.Heading", node.HeadingLevel, name);
 
         if (node.IsLandmark)
         {

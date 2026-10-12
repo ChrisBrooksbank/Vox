@@ -1,4 +1,5 @@
 using Vox.Core.Input;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Text;
 
@@ -14,14 +15,14 @@ public static class TextSpeech
         var trimmed = text.TrimEnd('\r', '\n');
         if (unit == TextUnit.Word)
             trimmed = trimmed.Trim();
-        return string.IsNullOrWhiteSpace(trimmed) ? (trimmed.Length > 0 && unit == TextUnit.Word ? "space" : "blank") : trimmed;
+        return string.IsNullOrWhiteSpace(trimmed) ? (trimmed.Length > 0 && unit == TextUnit.Word ? VoxStrings.Get("Text.Space") : VoxStrings.Get("Text.Blank")) : trimmed;
     }
 
     /// <summary>A single character's spoken name ("Space", "comma"); a line break or nothing is "blank".</summary>
     public static string ForCharacter(string text)
     {
         if (text.Length == 0 || text is "\r\n" or "\n" or "\r")
-            return "blank";
+            return VoxStrings.Get("Text.Blank");
         if (text.Length == 1)
             return TypingEchoHandler.GetCharacterName(text[0]);
         return text; // a surrogate pair

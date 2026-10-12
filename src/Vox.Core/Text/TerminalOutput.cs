@@ -1,3 +1,5 @@
+using Vox.Core.Localization;
+
 namespace Vox.Core.Text;
 
 /// <summary>
@@ -131,7 +133,7 @@ public sealed class TerminalSpeechThrottle
         if (_pending.Count == 0 || now < DueAt)
             return null;
         string text = _pending.Count > MaxLines
-            ? $"{_pending.Count} lines of output. {_pending[^1]}"
+            ? VoxStrings.Format("Text.TerminalLines", _pending.Count, _pending[^1])
             : string.Join("\n", _pending);
         _pending.Clear();
         _lastSpoken = now;

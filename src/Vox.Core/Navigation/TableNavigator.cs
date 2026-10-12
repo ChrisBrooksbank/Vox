@@ -1,5 +1,6 @@
 using Vox.Core.Buffer;
 using Vox.Core.Input;
+using Vox.Core.Localization;
 
 namespace Vox.Core.Navigation;
 
@@ -125,16 +126,16 @@ public sealed class TableNavigator
         {
             if (rowHeaders.Length > 0 && (entering || rowHeaders != _rowHeaders))
                 parts.Add(rowHeaders);
-            parts.Add($"row {t.Row + 1}");
+            parts.Add(VoxStrings.Format("TableNav.Row", t.Row + 1));
         }
         if (columnChanged)
         {
             if (columnHeaders.Length > 0 && (entering || columnHeaders != _columnHeaders))
                 parts.Add(columnHeaders);
-            parts.Add($"column {t.Column + 1}");
+            parts.Add(VoxStrings.Format("TableNav.Column", t.Column + 1));
         }
         var text = CellText(document, next.Node);
-        parts.Add(text.Length > 0 ? text : "blank");
+        parts.Add(text.Length > 0 ? text : VoxStrings.Get("Text.Blank"));
 
         _table = table;
         (_row, _column) = t;
@@ -145,34 +146,35 @@ public sealed class TableNavigator
 
     /// <summary>"table with 3 rows and 2 columns".</summary>
     public static string Dimensions(TableModel table) =>
-        $"table with {Count(table.RowCount, "row")} and {Count(table.ColumnCount, "column")}";
-
-    private static string Count(int n, string noun) => n == 1 ? $"1 {noun}" : $"{n} {noun}s";
+        VoxStrings.Format("TableNav.Dimensions",
+            table.RowCount == 1 ? VoxStrings.Get("TableNav.OneRow") : VoxStrings.Format("TableNav.Rows", table.RowCount),
+            table.ColumnCount == 1 ? VoxStrings.Get("TableNav.OneColumn") : VoxStrings.Format("TableNav.Columns", table.ColumnCount));
 
     /// <summary>The text of each distinct cell (a spanning cell once), skipping empty ones.</summary>
     private static string ReadLine(VBufferDocument document, IEnumerable<TableCell?> cells)
     {
         var texts = cells.OfType<TableCell>().Distinct()
             .Select(c => CellText(document, c.Node)).Where(s => s.Length > 0).ToList();
-        return texts.Count > 0 ? string.Join(", ", texts) : "blank";
+        return texts.Count > 0 ? string.Join(", ", texts) : VoxStrings.Get("Text.Blank");
     }
 
     /// <summary>Sets the row (or column) as the table's headers, or clears it when it already is.</summary>
     private string SetHeaders(VBufferDocument document, TableModel table, bool isRow, int index, int? current)
     {
         var key = TableKey(document, table);
-        var kind = isRow ? "column headers" : "row headers";
         // The headers said while moving are the new ones from the next move on
         _rowHeaders = _columnHeaders = string.Empty;
         if (current == index)
         {
             if (isRow) _headerStore.SetRow(key, null);
             else _headerStore.SetColumn(key, null);
-            return $"{kind} cleared";
+            return isRow ? VoxStrings.Get("TableNav.ColumnHeadersCleared") : VoxStrings.Get("TableNav.RowHeadersCleared");
         }
         if (isRow) _headerStore.SetRow(key, index);
         else _headerStore.SetColumn(key, index);
-        return $"{(isRow ? "row" : "column")} {index + 1} set as {kind}";
+        return isRow
+            ? VoxStrings.Format("TableNav.RowSetAsColumnHeaders", index + 1)
+            : VoxStrings.Format("TableNav.ColumnSetAsRowHeaders", index + 1);
     }
 
     // The same table across document updates is the same table node
