@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vox.Core.Configuration;
+using Vox.Core.Enterprise;
 
 namespace Vox.Core.Ai;
 
@@ -54,15 +55,35 @@ public sealed class CloudImageDescriber(HttpClient http, IOptionsMonitor<VoxSett
 
     public bool IsLocal => false;
 
-    public bool IsAvailable => settings.CurrentValue.AiCloudProvider != AiCloudProvider.None && keys.HasKey;
+    public bool IsAvailable => settings.CurrentValue.AiCloudProvider != AiCloudProvider.None && keys.HasKey && Endpoint is not null;
+
+    /// <summary>
+    /// The address requests go to (<c>AiEndpoint</c>, else Claude's), or null when the custom one
+    /// isn't HTTPS: the key and the screenshots never go over plain HTTP, except to this computer
+    /// (a local proxy).
+    /// </summary>
+    public string? Endpoint
+    {
+        get
+        {
+            if (settings.CurrentValue.AiEndpoint is not { Length: > 0 } configured || configured.Trim() is not { Length: > 0 } custom)
+                return DefaultClaudeEndpoint;
+            if (!Uri.TryCreate(custom, UriKind.Absolute, out var uri)
+                || !(uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && NetworkGate.IsLoopback(uri.Host))))
+                return null;
+            return custom.TrimEnd('/');
+        }
+    }
 
     /// <summary>The model requests go to.</summary>
     public string Model => settings.CurrentValue.AiModel is { Length: > 0 } model ? model.Trim() : DefaultClaudeModel;
 
     public async Task<string> DescribeAsync(AiRequest request, CancellationToken cancellationToken = default)
     {
-        if (!IsAvailable || keys.Read() is not { Length: > 0 } key)
+        if (settings.CurrentValue.AiCloudProvider == AiCloudProvider.None || !keys.HasKey || keys.Read() is not { Length: > 0 } key)
             throw new AiException(AiFailure.NotSetUp, "No cloud provider or key is set up");
+        if (Endpoint is null)
+            throw new AiException(AiFailure.NotSetUp, "The AI endpoint isn't HTTPS; nothing was sent");
 
         using var message = BuildClaudeRequest(request, key);
         HttpResponseMessage response;
@@ -130,12 +151,11 @@ public sealed class CloudImageDescriber(HttpClient http, IOptionsMonitor<VoxSett
             body["output_config"] = new JsonObject { ["effort"] = "low" };
         // A declined request is retried on the model Anthropic recommends (Claude API only, not a
         // custom endpoint)
-        var custom = settings.CurrentValue.AiEndpoint is { Length: > 0 } configured ? configured.Trim().TrimEnd('/') : null;
-        bool fallbacks = custom is null && FallbackModels.Contains(model);
+        var endpoint = Endpoint ?? throw new AiException(AiFailure.NotSetUp, "The AI endpoint isn't HTTPS; nothing was sent");
+        bool fallbacks = endpoint == DefaultClaudeEndpoint && FallbackModels.Contains(model);
         if (fallbacks)
             body["fallbacks"] = "default";
 
-        var endpoint = custom ?? DefaultClaudeEndpoint;
         var message = new HttpRequestMessage(HttpMethod.Post, $"{endpoint}/v1/messages")
         {
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),

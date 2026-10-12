@@ -135,8 +135,12 @@ public sealed class AddOnStore(HttpClient http, Func<Uri> catalogueUrl, AddOnTru
     public StoreAvailability Availability =>
         !policy.AllowAddOns ? StoreAvailability.AddOnsOff
         : !trust.HasKeys ? StoreAvailability.NoKey
-        : !policy.AllowNetwork && !catalogueUrl().IsFile && !Enterprise.NetworkGate.IsLoopback(catalogueUrl().Host) ? StoreAvailability.NetworkOff
+        : !MayReach(catalogueUrl()) ? StoreAvailability.NetworkOff
         : StoreAvailability.Available;
+
+    // A file on this computer is always readable; one on another (\\server\share) is the network
+    private bool MayReach(Uri url) =>
+        url.IsFile ? Enterprise.NetworkGate.MayRead(policy, url) : Enterprise.NetworkGate.MayConnect(policy, url.Host);
 
     /// <summary>The catalogue's entries; throws <see cref="AddOnStoreException"/> when it can't be fetched or its signature is wrong.</summary>
     public async Task<IReadOnlyList<CatalogueEntry>> FetchAsync(CancellationToken cancellationToken = default)
@@ -184,6 +188,8 @@ public sealed class AddOnStore(HttpClient http, Func<Uri> catalogueUrl, AddOnTru
             var url = new Uri(entry.Url);
             if (url.IsFile)
             {
+                if (!MayReach(url))
+                    throw new Enterprise.NetworkDisabledException(url.Host);
                 File.Copy(url.LocalPath, path);
             }
             else
@@ -224,10 +230,14 @@ public sealed class AddOnStore(HttpClient http, Func<Uri> catalogueUrl, AddOnTru
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { }
     }
 
-    private async Task<byte[]> ReadAsync(Uri url, CancellationToken cancellationToken) =>
-        url.IsFile
-            ? await File.ReadAllBytesAsync(url.LocalPath, cancellationToken).ConfigureAwait(false)
-            : await http.GetByteArrayAsync(url, cancellationToken).ConfigureAwait(false);
+    private async Task<byte[]> ReadAsync(Uri url, CancellationToken cancellationToken)
+    {
+        if (!url.IsFile)
+            return await http.GetByteArrayAsync(url, cancellationToken).ConfigureAwait(false);
+        if (!MayReach(url))
+            throw new Enterprise.NetworkDisabledException(url.Host);
+        return await File.ReadAllBytesAsync(url.LocalPath, cancellationToken).ConfigureAwait(false);
+    }
 }
 
 /// <summary>The store couldn't do what was asked.</summary>
