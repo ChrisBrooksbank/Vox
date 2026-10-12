@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 4
-- Build iterations: 227
+- Build iterations: 228
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -45,7 +45,7 @@
 
 #### Organisations (spec: switching.md)
 
-- [ ] Add `docs/organisations.md`: cost comparison method, deployment checklist (MSI properties, Group Policy, profiles, add-on trust, unattended settings import), conformance links and support (spec: switching.md)
+- [x] Add `docs/organisations.md`: cost comparison method, deployment checklist (MSI properties, Group Policy, profiles, add-on trust, unattended settings import), conformance links and support (spec: switching.md)
 
 ### Configuration & Settings (spec: first-run-experience.md)
 

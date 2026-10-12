@@ -44,6 +44,8 @@ coming from [NVDA](guide/nvda.html) and [JAWS](guide/jaws.html). Its source is i
 
 ## For organisations
 
+- [Vox for organisations](organisations.md): comparing the cost, a deployment checklist,
+  conformance and security material, and how support works.
 - [Deploying Vox in an organization](enterprise.md): silent install, machine defaults, Group
   Policy, and turning off the network, add-ons or AI.
 - [Updates](updates.md): how updates are checked, signed and installed.

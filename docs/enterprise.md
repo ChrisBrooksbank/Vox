@@ -1,5 +1,8 @@
 # Deploying Vox in an organization
 
+For the decision and the order of the steps (cost comparison, deployment checklist, conformance,
+support), start with [Vox for organisations](organisations.md).
+
 ## Silent install
 
 ```
