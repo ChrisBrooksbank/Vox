@@ -20,6 +20,7 @@ always have a way back. We'd love to hear how Vox works for you: see
 - [What Vox can do](#what-vox-can-do)
 - [Documentation](#documentation)
 - [Feedback and bug reports](#feedback-and-bug-reports)
+- [Code signing policy](#code-signing-policy)
 - [For developers](#for-developers)
 
 ## Install Vox
@@ -191,6 +192,22 @@ reports, ideas and pull requests are all welcome.
   to copy exactly what Vox said into a report, which is the most useful thing you can send.
 - **Security problems:** report them privately, as [docs/security.md](docs/security.md) explains,
   not as a public issue.
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
+[SignPath Foundation](https://signpath.org/).
+
+Only Vox's own programs and installer, built from this repository by the
+[Release workflow](.github/workflows/release.yml) on GitHub's servers, are signed.
+
+Team roles:
+
+- Committers and reviewers: [Chris Brooksbank](https://github.com/ChrisBrooksbank)
+- Approvers: [Chris Brooksbank](https://github.com/ChrisBrooksbank)
+
+Privacy: Vox sends nothing about you anywhere unless you use a feature that needs the network,
+and those are off or wait for you to start them. See the [privacy policy](docs/privacy.md).
 
 ## For developers
 

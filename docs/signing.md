@@ -32,3 +32,11 @@ An exe that asks for UI access without meeting 2 and 3 doesn't start at all. So:
 At startup Vox logs whether it has UI access (`UIAccess.IsGranted`).
 
 An EV code-signing certificate is recommended: it also avoids SmartScreen warnings on download.
+
+## Signing releases with SignPath
+
+Vox is applying for free open-source signing from the [SignPath Foundation](https://signpath.org/):
+the certificate belongs to SignPath Foundation (shown as the publisher), the private key stays
+with SignPath, and every release is approved by hand in SignPath before it is signed. The README's
+"Code signing policy" section and the [privacy policy](privacy.md) are part of that agreement; keep
+the team roles there up to date.

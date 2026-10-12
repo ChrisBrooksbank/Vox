@@ -21,6 +21,7 @@ comes with a keyboard reference that lists every command and its keys. Its sourc
 - [Remote access](remote.md): let someone control your computer and hear what Vox says, or control
   theirs.
 - [Remote Desktop and Citrix](remote-sessions.md): running Vox inside a remote session.
+- [Privacy policy](privacy.md): what Vox sends over the network, and when.
 - [Beta programme](beta.md): testing new versions, and how to send a useful bug report.
 
 ### Applications
