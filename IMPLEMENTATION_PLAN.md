@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 4
-- Build iterations: 228
+- Build iterations: 231
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -353,9 +353,9 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [ ] Create `%ProgramData%\Vox` in the installer writable only by administrators and SYSTEM; copy settings to the secure screens through Vox.Service (weakness 2) (spec: quality-engineering.md)
 - [ ] Run the secure-screen instance with a restricted token; use a global-namespace secure-instance mutex (weaknesses 3 and 11) (spec: quality-engineering.md)
 - [ ] Check the downloaded MSI's Authenticode signature and keep it unchangeable until msiexec has read it (weakness 4) (spec: quality-engineering.md)
-- [ ] Detect a keyboard hook Windows removed and reinstall it (weakness 5) (spec: quality-engineering.md)
-- [ ] Make `dotnet publish` (the MSI's input) include `assets/config`, the sounds and the user guide (weakness 6) (spec: quality-engineering.md)
-- [ ] Require HTTPS for a custom `AiEndpoint` except loopback; refuse UNC `file:` catalogues and unchecked redirects in `NetworkGate` (weaknesses 7 and 8) (spec: quality-engineering.md)
+- [x] Detect a keyboard hook Windows removed and reinstall it (weakness 5) (spec: quality-engineering.md)
+- [x] Make `dotnet publish` (the MSI's input) include `assets/config`, the sounds and the user guide (weakness 6) (spec: quality-engineering.md)
+- [x] Require HTTPS for a custom `AiEndpoint` except loopback; refuse UNC `file:` catalogues and unchecked redirects in `NetworkGate` (weaknesses 7 and 8) (spec: quality-engineering.md)
 
 #### Add-on architecture hardening (spec: extensibility.md)
 

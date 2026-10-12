@@ -41,7 +41,7 @@ and administrators (they control the install).
 
 - [ ] The low-level hook callback only decides and posts; it never blocks, allocates heavily, calls
       UIA or waits on a lock another thread can hold (`Input/KeyboardHook.cs`; budget under 1 ms).
-      Windows removes a slow hook without telling anyone.
+      Windows removes a slow hook without telling anyone; `HookHealth` notices and reinstalls it.
 - [ ] Keys Vox injects itself (`SendInput`, marked with Vox's extra-info value) are let through, so
       Vox can't loop on its own output.
 - [ ] If the suppression filter throws, the key passes: a bug must never eat the user's keyboard.
@@ -111,13 +111,16 @@ and administrators (they control the install).
 
 ### Network, remote access and AI
 
-- [ ] Every connection goes through `NetworkGate` (`NetworkGateTests.EveryNetworkUser_IsKnownAndGated`).
+- [ ] Every connection goes through `NetworkGate` (`NetworkGateTests.EveryNetworkUser_IsKnownAndGated`),
+      redirects included (the handler under the gate follows none), and so does a `file:` address on
+      another computer (`NetworkGate.MayRead`).
 - [ ] Remote access: codes come from `RandomNumberGenerator` (60 bits); the channel is ECDH P-256 with
       the code mixed in, AES-GCM with a counter per direction, and a frame cap (`SecureChannel`);
       wrong codes are delayed and limited; both computers say when control starts and ends.
 - [ ] AI: the key is stored with DPAPI and never logged; consent rules refuse password fields,
       `AiPrivateApps`, secure screens, `DisableAI` and the network being off (`AiConsent`); the local
-      describer talks to loopback addresses only.
+      describer talks to loopback addresses only; a custom cloud endpoint must be HTTPS (or this
+      computer).
 
 ### Logs and privacy
 
@@ -153,17 +156,23 @@ record here with its reason.
    which releases its lock while the UAC prompt is up, and the MSI's Authenticode signature isn't
    checked. Fix: check the signature, and download to a folder only the installing process can
    change, or keep a handle open until `msiexec` has started reading.
-5. **A dropped keyboard hook isn't noticed.** If Windows removes the hook (a callback over
-   `LowLevelHooksTimeout`), nothing reinstalls it, and Vox stops hearing keys until restarted.
-6. **The published folder may lack Vox's assets.** `Vox.App.csproj` copies `assets/config` and the
-   sounds into the build output only (`AfterTargets="Build"`), and the release workflow builds the
-   MSI from `dotnet publish` output. Check the MSI contains `assets\config` (keymaps fall back to
-   embedded copies, but the update and add-on keys don't) before the first release.
-7. **A custom `AiEndpoint` may be plain HTTP**, which would send the API key and screenshots in the
-   clear (`CloudImageDescriber`). Fix: require HTTPS except for loopback.
-8. **A `file:` add-on catalogue may be a UNC path** (`\\server\share`), which reaches the network
-   without `NetworkGate`. HTTP redirects are also followed below the gate. Fix: refuse UNC paths
-   when the network is off, and turn redirects off in the gated client or check each hop.
+5. ~~**A dropped keyboard hook isn't noticed.**~~ Fixed: when Windows reports input the hook hasn't
+   seen for 5 seconds, `HookHealth` has the hook inject one probe key it swallows (at most one every
+   30 seconds, none while the computer is idle or locked); a probe the hook doesn't see within a
+   second means Windows removed it, and it is installed again (the new hook before the old is
+   removed).
+6. ~~**The published folder may lack Vox's assets.**~~ Fixed: `PublishVoxAssets` copies `assets`
+   (config, keys, sounds) and the user guide into the publish folder the MSI and the portable zip
+   are made from, and the release workflow fails when the published folder lacks any of them
+   (including `update-key.pem` and `addon-key.pem` when the build has them).
+7. ~~**A custom `AiEndpoint` may be plain HTTP.**~~ Fixed: `CloudImageDescriber.Endpoint` is null
+   (the cloud describer unavailable, nothing sent) unless the address is HTTPS, or HTTP to this
+   computer.
+8. ~~**A `file:` add-on catalogue may be a UNC path, and redirects are followed below the gate.**~~
+   Fixed: a `file:` catalogue or package on another computer is read only after
+   `NetworkGate.MayRead` (refused while the network is off), and the gated client follows redirects
+   itself: only a GET's, each hop checked by the policy, never from HTTPS to HTTP, at most five, and
+   carrying no header of the first request but Accept.
 9. **Add-ons see what Vox says.** Announcement filters and add-on speech engines receive every
    utterance, including typing echo outside password fields and live-region text. That they must not
    log or send it is a rule in the SDK docs only. Users should be told this when installing an
