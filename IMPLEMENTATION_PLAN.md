@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 204
+- Build iterations: 211
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -295,13 +295,13 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Extensibility (spec: extensibility.md)
 
-- [ ] Add `Vox.Sdk` project with versioned public interfaces (app modules, global plug-ins, commands, announcement filters, speech engines, braille drivers) (spec: extensibility.md)
-- [ ] Add add-on manifest format and validation (id, version, API range, author, signature); unit tests (spec: extensibility.md)
-- [ ] Add `AddOnManager` (install, enable, disable, remove; collectible `AssemblyLoadContext` per add-on; version refusal with spoken reason); unit tests (spec: extensibility.md)
-- [ ] Add add-on fault isolation (disable after repeated exceptions) and safe mode (`--safe`, Vox menu restart); always off in secure mode; unit tests (spec: extensibility.md)
-- [ ] Add a sample add-on in `samples/` built in CI (spec: extensibility.md)
-- [ ] Add add-on store client over a signed catalogue (spec: extensibility.md)
-- [ ] Add remote access (encrypted connection, keys one way, speech/braille back, start/stop announcements) (spec: extensibility.md)
+- [x] Add `Vox.Sdk` project with versioned public interfaces (app modules, global plug-ins, commands, announcement filters, speech engines, braille drivers) (spec: extensibility.md)
+- [x] Add add-on manifest format and validation (id, version, API range, author, signature); unit tests (spec: extensibility.md)
+- [x] Add `AddOnManager` (install, enable, disable, remove; collectible `AssemblyLoadContext` per add-on; version refusal with spoken reason); unit tests (spec: extensibility.md)
+- [x] Add add-on fault isolation (disable after repeated exceptions) and safe mode (`--safe`, Vox menu restart); always off in secure mode; unit tests (spec: extensibility.md)
+- [x] Add a sample add-on in `samples/` built in CI (spec: extensibility.md)
+- [x] Add add-on store client over a signed catalogue (spec: extensibility.md)
+- [x] Add remote access (encrypted connection, keys one way, speech/braille back, start/stop announcements) (spec: extensibility.md)
 
 #### Release quality (spec: quality-engineering.md)
 
