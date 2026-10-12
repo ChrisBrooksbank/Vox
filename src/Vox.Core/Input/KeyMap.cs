@@ -366,8 +366,17 @@ public sealed class KeyMap
             ReadCommentHandling = JsonCommentHandling.Skip
         };
 
-        return JsonSerializer.Deserialize<KeyMapFile>(json, options)
+        var file = JsonSerializer.Deserialize<KeyMapFile>(json, options)
             ?? throw new InvalidOperationException("Failed to deserialize keymap JSON.");
+        // A hand-edited file may hold null entries or null values ("mode": null): read them as left out
+        file.Bindings = (file.Bindings ?? []).Where(entry => entry is not null).ToList();
+        foreach (var entry in file.Bindings)
+        {
+            entry.Modifiers ??= "None";
+            entry.Mode ??= "Any";
+            entry.Command ??= string.Empty;
+        }
+        return file;
     }
 
     /// <summary>A keymap of <paramref name="entries"/>; a later entry replaces an earlier one on the same key.</summary>
