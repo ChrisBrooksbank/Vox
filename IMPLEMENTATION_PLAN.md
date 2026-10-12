@@ -2,7 +2,7 @@
 
 ## Status
 
-- Planning iterations: 2
+- Planning iterations: 4
 - Build iterations: 212
 - Last updated: 2026-10-12
 
@@ -317,6 +317,80 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 - [ ] Detect a keyboard hook Windows removed and reinstall it (weakness 5) (spec: quality-engineering.md)
 - [ ] Make `dotnet publish` (the MSI's input) include `assets/config`, the sounds and the user guide (weakness 6) (spec: quality-engineering.md)
 - [ ] Require HTTPS for a custom `AiEndpoint` except loopback; refuse UNC `file:` catalogues and unchecked redirects in `NetworkGate` (weaknesses 7 and 8) (spec: quality-engineering.md)
+
+#### Add-on architecture hardening (spec: extensibility.md)
+
+Robustness first:
+
+- [ ] Time every `AddOnGuard` call: a call over its budget (pipeline ~50 ms, announcement filters ~10 ms) is logged by add-on id and counted as a failure; a call still running after ~2 s marks the add-on stopped, skips its pending calls and has a watchdog post `TurnOff`, so a hung add-on can't freeze the pipeline or speech thread; unit tests with an injectable clock (spec: extensibility.md)
+- [ ] `AddOnLoadContext.LoadUnmanagedDll`: check a native library's SHA-256 against the manifest and load it from a per-load temp copy, so the add-on's folder isn't locked and `InstallFiles` can replace it; native libraries can't be unloaded, so an add-on with native files reports "update needs a restart"; unit tests (spec: extensibility.md)
+- [ ] Verify unloading: keep a `WeakReference` to each add-on's load context, collect after `Unload` and log "add-on X did not unload" when it survives; a test loads the sample add-on, unloads it and checks the context is collected (spec: extensibility.md)
+- [ ] Add `CancellationToken Stopping` to `IAddOnHost`, cancelled before the add-on is disposed, so its background work stops on disable, remove, update or turn-off; sample add-on uses it; unit tests (spec: extensibility.md)
+
+API compatibility:
+
+- [ ] Add `Microsoft.CodeAnalysis.PublicApiAnalyzers` (`PublicAPI.Shipped.txt`/`Unshipped.txt`) to `Vox.Sdk` so CI fails on an unintended API change; document in `docs/addons.md` that add-on-implemented interfaces grow only through default interface members and new record members are `init` properties, not positional parameters (spec: extensibility.md)
+- [ ] `AddOnLoadContext.Load`: decide "Vox's copy wins" from the trusted platform assemblies list and Vox.App's own assemblies instead of `Default.Assemblies` (which depends on load timing); log when an add-on ships a newer version of a shared assembly than Vox's; unit tests (spec: extensibility.md)
+
+API surface:
+
+- [ ] Add read-only object access to the SDK (`IVoxObject`: name, role, value, bounds, parent, children, next/previous; focused and navigator objects from the host), run through `UIAThread` with its timeouts and never giving a password's value; sample add-on uses it; unit tests over `INavigatorObject` fakes; `VoxApi` 1.1 (spec: extensibility.md)
+- [ ] Give `CaretMovedEvent` the line, word and character at the caret (from `ITextDocument`; nothing for password fields) as `init` properties; unit tests (spec: extensibility.md)
+- [ ] Add output beyond speech to `IAddOnHost`: play an earcon, flash a braille message, show a text document under the review cursor (`ReviewCommands.ShowRecognizedAsync`), and run a Vox command by `NavigationCommand` name; unit tests (spec: extensibility.md)
+- [ ] Add an add-on settings model (toggle/number/choice fields like `SettingsPages`) shown as a page in the settings dialog, stored per add-on and layered by profiles and policy; unit tests (spec: extensibility.md)
+- [ ] Add per-add-on localized strings (a string table in the package resolved in `VoxStrings.Culture`, English fallback) for command names, descriptions and settings labels; unit tests (spec: extensibility.md)
+
+Integration:
+
+- [ ] Show add-on commands in the input gestures dialog (`GestureEditor`, under "Add-ons › name") and keep the user's rebinding in the user keymap, applied by `AddOnKeyLayer`; unit tests (spec: extensibility.md)
+- [ ] Log key conflicts where an add-on's key overrides a Vox key, and list them in the add-ons dialog; unit tests (spec: extensibility.md)
+- [ ] Add an optional `order` to the manifest for plug-ins and announcement filters (ties by id) and show the order in the add-ons dialog; unit tests (spec: extensibility.md)
+- [ ] Add `IAddOnHost.RequestReload()` so an add-on can change what it contributes (e.g. commands after a settings change) without the user disabling and enabling it; unit tests (spec: extensibility.md)
+- [ ] Rate-limit an add-on's `Interrupt`/`High` speech in `GuardedSpeech` so one add-on can't drown out Vox; unit tests (spec: extensibility.md)
+
+Isolation (longer term):
+
+- [ ] Document in `docs/security.md` and `docs/enterprise.md` that add-ons run in-process with full rights and bypass `NetworkGate`; add a Group Policy allowing only signed or catalogue add-ons (`AddOnTrust.Signed`/`Catalogue`), enforced by `AddOnManager` at install and load; unit tests (spec: extensibility.md)
+- [ ] Design (in `docs/addons.md`) out-of-process hosting for add-on speech engines and braille drivers over a local channel, keeping app modules in-process for latency (spec: extensibility.md)
+
+### Milestone F — "Easy to switch to"
+
+#### Bring your settings (spec: switching.md)
+
+- [ ] Add `NvdaSettingsImporter` reading `nvda.ini` (rate, pitch, volume, voice match, punctuation, capitals, typing echo, braille) into `VoxSettings`, with an `ImportReport` of what was brought over and skipped; unit tests over sample files (spec: switching.md)
+- [ ] Import NVDA `gestures.ini` bindings for commands Vox has into the user `keymap.json` and `speechDicts` dictionaries into `dictionaries/user.json` / `voices/<voice>.json` (unsupported regex entries reported as skipped); backups of replaced files; unit tests (spec: switching.md)
+- [ ] Add `JawsSettingsImporter` for the newest JAWS user settings folder: `.jkm` key assignments mapped to Vox commands, `.jdf` dictionary entries, rate/punctuation from `default.jcf`; unit tests over sample files (spec: switching.md)
+- [ ] Offer the import in the first-run wizard when NVDA or JAWS settings are found and from the Vox menu (not in secure mode); show the report as a reviewable document; add `Vox.App --import-settings nvda|jaws` for unattended deployment; unit tests (spec: switching.md)
+
+#### JAWS keyboard layout (spec: switching.md)
+
+- [ ] Add `KeyboardLayout.Jaws` with `assets/config/jaws-keymap.json` overlaid through `KeyMap.LoadLayout` (desktop and laptop variants) covering the common JAWS keys; copied and embedded like the other keymaps; tests for resolution, conflicts, and that the keyboard reference, tutorial and input help use its keys (spec: switching.md)
+- [ ] Add "Vox for JAWS users" and "Vox for NVDA users" pages to `docs/guide` mapping familiar keys and concepts (spec: switching.md)
+
+#### Custom labels and per-site settings (spec: switching.md)
+
+- [ ] Add custom labels: a command to label the element at the browse cursor or focus, stored per site by a stable element signature, applied by `VBufferBuilder` and focus announcements, with a dialog to edit/delete; `CommandCatalog` entry and key; not in secure mode; unit tests (signature survives updates) (spec: switching.md)
+- [ ] Add per-site settings (start mode, verbosity, screen layout, auto-dismiss overlays) layered above application profiles in `ProfileManager`, set from a dialog while browsing; unit tests (spec: switching.md)
+- [ ] Add label pack export/import and a label-pack add-on package type installable from the add-on store; unit tests (spec: switching.md)
+
+#### AI that fixes pages (spec: switching.md)
+
+- [ ] Add automatic labels: background local descriptions of unlabelled graphics and icon-only buttons after a load (cloud only with "allow" consent and not a private site), rate-limited, cached by image hash and site, applied as "described" custom labels; setting to turn off; never in secure mode or with `DisableAI`; unit tests (spec: switching.md)
+- [ ] Add "Ask the page": a question prompt answered from the buffer text (local first, cloud with consent), offering to move the browse cursor to an element the answer names (ids checked against the buffer); unit tests (spec: switching.md)
+
+#### Safe trial (spec: switching.md)
+
+- [ ] Add trial mode (wizard and `--trial`): detect and pause/stop a running NVDA or Narrator, and a key plus Vox menu item that quits Vox and restarts it; unit tests over fakes (spec: switching.md)
+- [ ] Make Vox.Watchdog start Narrator (or the screen reader trial mode recorded) after repeated crashes instead of leaving the user without speech, and say why on next start; unit tests (spec: switching.md)
+
+#### Proof of speed (spec: switching.md)
+
+- [ ] Record keypress-to-speech latency (p95) and time to first speech on large pages (corpus plus a 10,000-row table page) in the E2E runs; CI fails on a regression beyond a set margin (spec: switching.md)
+- [ ] Add `docs/performance.md` with Vox's figures, hardware, versions and a manual method for measuring NVDA and JAWS the same way (spec: switching.md)
+
+#### Organisations (spec: switching.md)
+
+- [ ] Add `docs/organisations.md`: cost comparison method, deployment checklist (MSI properties, Group Policy, profiles, add-on trust, unattended settings import), conformance links and support (spec: switching.md)
 
 ## Completed
 
