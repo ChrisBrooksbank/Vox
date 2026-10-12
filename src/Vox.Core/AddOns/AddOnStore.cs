@@ -15,14 +15,18 @@ public sealed record CatalogueEntry(
     [property: JsonPropertyName("url")] string Url,
     [property: JsonPropertyName("sha256")] string Sha256,
     [property: JsonPropertyName("description")] string? Description = null,
-    [property: JsonPropertyName("maxApiVersion")] string? MaxApiVersion = null)
+    [property: JsonPropertyName("maxApiVersion")] string? MaxApiVersion = null,
+    [property: JsonPropertyName("type")] string? Type = null)
 {
     /// <summary>As a manifest, for the compatibility check.</summary>
     public AddOnManifest AsManifest() => new()
     {
         Id = Id, Name = Name, Version = Version, Author = Author, Description = Description,
-        MinApiVersion = MinApiVersion, MaxApiVersion = MaxApiVersion,
+        MinApiVersion = MinApiVersion, MaxApiVersion = MaxApiVersion, Type = Type,
     };
+
+    /// <summary>A label pack (<see cref="AddOnManifest.LabelPackType"/>) rather than code.</summary>
+    public bool IsLabelPack => AsManifest().IsLabelPack;
 }
 
 /// <summary>A catalogue entry with what is installed of it.</summary>
@@ -60,10 +64,12 @@ public static class AddOnCatalogue
         {
             if (entry is null || !Uri.TryCreate(source, entry.Url, out var url))
                 throw new FormatException("A catalogue entry has no package address.");
+            // The package's own files aren't known yet: stand-ins check the rest
+            var standIn = entry.IsLabelPack ? Labels.LabelPack.FileName : "x.dll";
             var problems = entry.AsManifest() with
             {
-                EntryAssembly = "x.dll",
-                Files = new Dictionary<string, string> { ["x.dll"] = entry.Sha256 ?? string.Empty },
+                EntryAssembly = entry.IsLabelPack ? string.Empty : standIn,
+                Files = new Dictionary<string, string> { [standIn] = entry.Sha256 ?? string.Empty },
             };
             var wrong = problems.Problems();
             if (wrong.Count > 0)

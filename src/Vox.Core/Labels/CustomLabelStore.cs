@@ -5,7 +5,8 @@ using Microsoft.Extensions.Logging;
 namespace Vox.Core.Labels;
 
 /// <summary>
-/// The user's custom labels, kept in <c>%APPDATA%\Vox\labels.json</c> by site. Safe from any
+/// The user's custom labels, kept in <c>%APPDATA%\Vox\labels.json</c> by site, and those of the
+/// label-pack add-ons installed (<see cref="SetPack"/>), under the user's own. Safe from any
 /// thread: readers get an immutable snapshot. Without a file path (secure screens) there are no
 /// labels and none can be added.
 /// </summary>
@@ -27,6 +28,7 @@ public sealed class CustomLabelStore : ICustomLabels
     private readonly ILogger? _logger;
     private readonly object _lock = new();
     private IReadOnlyList<CustomLabel> _labels = [];
+    private IReadOnlyDictionary<string, IReadOnlyList<CustomLabel>> _packs = new Dictionary<string, IReadOnlyList<CustomLabel>>();
 
     public CustomLabelStore(string? path, ILogger<CustomLabelStore>? logger = null)
     {
@@ -42,7 +44,37 @@ public sealed class CustomLabelStore : ICustomLabels
     /// <summary>Raised after the labels change (on the thread that changed them).</summary>
     public event EventHandler? Changed;
 
-    /// <summary>Every label, by site.</summary>
+    /// <summary>The labels label-pack add-ons give, by add-on id.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<CustomLabel>> Packs
+    {
+        get { lock (_lock) return _packs; }
+    }
+
+    /// <summary>Uses the labels of the label-pack add-on <paramref name="id"/> (replacing what it gave before); not kept in the user's file.</summary>
+    public void SetPack(string id, IReadOnlyList<CustomLabel> labels)
+    {
+        if (_path is null)
+            return;
+        lock (_lock)
+            _packs = new Dictionary<string, IReadOnlyList<CustomLabel>>(_packs, StringComparer.Ordinal) { [id] = labels };
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Stops using the labels of the label-pack add-on <paramref name="id"/>.</summary>
+    public void RemovePack(string id)
+    {
+        lock (_lock)
+        {
+            if (!_packs.ContainsKey(id))
+                return;
+            var packs = new Dictionary<string, IReadOnlyList<CustomLabel>>(_packs, StringComparer.Ordinal);
+            packs.Remove(id);
+            _packs = packs;
+        }
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The user's own labels, by site.</summary>
     public IReadOnlyList<CustomLabel> All
     {
         get { lock (_lock) return _labels; }
@@ -54,12 +86,19 @@ public sealed class CustomLabelStore : ICustomLabels
             return null;
         var path = CustomLabelSites.PathOf(address);
         var labels = new Dictionary<string, (string Label, int PrefixLength)>(StringComparer.Ordinal);
-        foreach (var label in All)
+        IEnumerable<CustomLabel> packs, own;
+        lock (_lock)
+        {
+            packs = _packs.OrderBy(p => p.Key, StringComparer.Ordinal).SelectMany(p => p.Value);
+            own = _labels;
+        }
+        // The packs' first: the user's own labels win over theirs for the same element
+        foreach (var label in packs.Concat(own))
         {
             if (!string.Equals(label.Site, site, StringComparison.OrdinalIgnoreCase) || !CustomLabelSites.PathMatches(label.PathPrefix, path))
                 continue;
             int prefix = label.PathPrefix?.Length ?? 0;
-            if (!labels.TryGetValue(label.Signature, out var found) || prefix > found.PrefixLength)
+            if (!labels.TryGetValue(label.Signature, out var found) || prefix >= found.PrefixLength)
                 labels[label.Signature] = (label.Label, prefix);
         }
         return labels.Count == 0 ? null : new SiteLabels(site, labels.ToDictionary(l => l.Key, l => l.Value.Label, StringComparer.Ordinal));

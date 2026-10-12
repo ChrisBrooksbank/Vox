@@ -607,6 +607,16 @@ public static class ServiceRegistration
                     SpeechEngines = sp.GetRequiredService<SpeechEngineRegistry>(),
                     SelectedSpeechEngine = () => settings.CurrentValue.SpeechEngine,
                     Braille = sp.GetRequiredService<BrailleDisplayManager>(),
+                    // A label pack's labels apply to the page being browsed at once
+                    SetLabelPack = (id, labels) =>
+                    {
+                        var store = sp.GetRequiredService<CustomLabelStore>();
+                        if (labels is null)
+                            store.RemovePack(id);
+                        else
+                            store.SetPack(id, labels);
+                        sp.GetRequiredService<BrowseDocumentTracker>().RequestRecapture(null);
+                    },
                 },
                 loggers.CreateLogger,
                 sp.GetRequiredService<ILogger<AddOnManager>>());

@@ -97,6 +97,12 @@ of the page and the element itself being redrawn, but not a page redesign that c
 element's surroundings (label it again then). A label given with another label just before it
 depends on that one's text, as the text before it is part of its signature.
 
+Labels can be shared: Export site's labels in the custom labels dialog writes the selected
+label's site's labels as a `.voxlabels` label pack, and Import label pack adds a pack's labels
+(replacing yours for the same elements) when the dialog closes with OK. A pack can also be
+published as a label-pack add-on in the add-on store ([add-ons](addons.md#label-packs)); its
+labels apply while it is enabled, under your own.
+
 ## Settings for a web site
 
 Instead of a profile per browser, a site can have settings of its own (Vox menu, Settings for this

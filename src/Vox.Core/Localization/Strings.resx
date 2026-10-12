@@ -5062,9 +5062,6 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="Labels.NotSaved" xml:space="preserve">
     <value>The labels could not be saved</value>
   </data>
-  <data name="Labels.None" xml:space="preserve">
-    <value>No custom labels yet. Press the label key on a link, button or graphic to give it one.</value>
-  </data>
   <data name="Labels.Entry" xml:space="preserve">
     <value>{0}, {1}</value>
     <comment>{0}: the label; {1}: its site ("example.com/mail")</comment>
@@ -5087,6 +5084,31 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   </data>
   <data name="Labels.Dialog.Delete" xml:space="preserve">
     <value>&amp;Delete</value>
+  </data>
+  <data name="Labels.Dialog.Export" xml:space="preserve">
+    <value>E&amp;xport site's labels...</value>
+  </data>
+  <data name="Labels.Dialog.Import" xml:space="preserve">
+    <value>&amp;Import label pack...</value>
+  </data>
+  <data name="Labels.Dialog.Filter" xml:space="preserve">
+    <value>Vox label packs (*{0})|*{0}|All files (*.*)|*.*</value>
+    <comment>A file dialog filter; {0}: the extension (".voxlabels")</comment>
+  </data>
+  <data name="Labels.Dialog.NothingToExport" xml:space="preserve">
+    <value>Select a label of the site to export first.</value>
+  </data>
+  <data name="Labels.Dialog.Exported" xml:space="preserve">
+    <value>{0} labels for {1} exported.</value>
+  </data>
+  <data name="Labels.Dialog.Imported" xml:space="preserve">
+    <value>{0} labels imported for {1}. Choose OK to keep them.</value>
+  </data>
+  <data name="Labels.Dialog.Failed" xml:space="preserve">
+    <value>That didn't work: {0}</value>
+  </data>
+  <data name="Store.Details.LabelPack" xml:space="preserve">
+    <value>Label pack: custom labels for web sites</value>
   </data>
   <data name="Command.OpenSiteSettings.Name" xml:space="preserve">
     <value>Settings for this site</value>

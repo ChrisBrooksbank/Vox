@@ -50,6 +50,31 @@ public sealed class CustomLabelsEditor
         return true;
     }
 
+    /// <summary>
+    /// Adds <paramref name="labels"/> (an imported pack), each replacing the label for the same
+    /// element; how many there were.
+    /// </summary>
+    public int Merge(IReadOnlyCollection<CustomLabel> labels)
+    {
+        if (labels.Count == 0)
+            return 0;
+        _labels.RemoveAll(l => labels.Any(n => n.SameTarget(l)));
+        _labels.AddRange(labels);
+        Changed = true;
+        return labels.Count;
+    }
+
+    /// <summary>The site whose labels an export takes: the selected label's, else the current site, else null.</summary>
+    public string? ExportSite(int index) =>
+        index >= 0 && index < _labels.Count ? _labels[index].Site
+        : CurrentSite is not null && _labels.Any(l => SameSite(l, CurrentSite)) ? CurrentSite
+        : null;
+
+    /// <summary>The labels of <paramref name="site"/>, as they are now in the dialog.</summary>
+    public IReadOnlyList<CustomLabel> LabelsOf(string site) => _labels.Where(l => SameSite(l, site)).ToList();
+
+    private static bool SameSite(CustomLabel label, string site) => string.Equals(label.Site, site, StringComparison.OrdinalIgnoreCase);
+
     public bool Delete(int index)
     {
         if (index < 0 || index >= _labels.Count)

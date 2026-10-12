@@ -97,6 +97,27 @@ openssl genrsa -out private-key.pem 3072      # a signing key, once
 
 CI builds the sample and keeps `vox.sample.voxaddon` as a build artifact.
 
+### Label packs
+
+A label pack is an add-on with no code: custom labels for web sites ([custom labels](switching.md#custom-labels)).
+Its `addon.json` has `"type": "labels"` and no `entryAssembly`, and the package holds
+`labels.json` in the labels file's format:
+
+```json
+{ "sites": { "https://mail.example.com": [
+  { "signature": "id:send-button", "label": "Send" },
+  { "signature": "Button|toolbar>Document|compose", "label": "Attach file", "pathPrefix": "/mail" }
+] } }
+```
+
+Make one by exporting a site's labels from the custom labels dialog (Vox menu, Custom labels,
+Export site's labels: a `.voxlabels` file, which can also be imported there as it is), renaming it
+`labels.json` beside the manifest, and packing the folder with `--pack-addon` as above. It is
+signed, checked, listed in the catalogue (with `"type": "labels"`), installed, updated, disabled
+and removed like any add-on. While it is enabled its labels apply on their sites under the user's
+own (a label of the user's for the same element wins); disabling or removing it takes them back.
+`labels.json` is checked against the manifest's hash each time it is read.
+
 ## Loading
 
 Add-ons live in `%APPDATA%\Vox\addons\<id>\` (with `state.json` beside them: which are disabled

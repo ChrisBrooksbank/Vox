@@ -69,6 +69,8 @@ public sealed class AddOnIntegration
     /// <summary>The SpeechEngine setting, so an add-on's engine chosen there starts once it is added.</summary>
     public Func<string?> SelectedSpeechEngine { get; init; } = () => null;
     public BrailleDisplayManager? Braille { get; init; }
+    /// <summary>Gives custom labels a label-pack add-on's labels (by its id), or with null takes them back.</summary>
+    public Action<string, IReadOnlyList<Labels.CustomLabel>?> SetLabelPack { get; init; } = (_, _) => { };
 }
 
 /// <summary>
@@ -100,6 +102,8 @@ public sealed class AddOnManager
     private readonly object _lock = new();
     private readonly object _fileLock = new();
     private readonly Dictionary<string, Loaded> _loaded = new(StringComparer.Ordinal);
+    // Label packs in use: no code, just their labels (AddOnManifest.IsLabelPack)
+    private readonly Dictionary<string, AddOnManifest> _labelPacks = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (AddOnState State, string? Problem)> _notLoaded = new(StringComparer.Ordinal);
     private StateFile _state;
 
@@ -183,6 +187,8 @@ public sealed class AddOnManager
         {
             if (_loaded.TryGetValue(manifest.Id, out var loaded))
                 return new AddOnInfo(loaded.Manifest, AddOnState.Running, null, trust, publisher, loaded.CommandInfos());
+            if (_labelPacks.TryGetValue(manifest.Id, out var pack))
+                return new AddOnInfo(pack, AddOnState.Running, null, trust, publisher, []);
             var reason = AddOnCompatibility.Reason(manifest, VoxApi.Current);
             if (reason is not null)
                 return new AddOnInfo(manifest, AddOnState.Incompatible, reason, trust, publisher, []);
@@ -244,8 +250,15 @@ public sealed class AddOnManager
         }
         lock (_lock)
         {
-            if (_state.Disabled.Contains(id) || _state.TurnedOff.ContainsKey(id) || _loaded.ContainsKey(id))
+            if (_state.Disabled.Contains(id) || _state.TurnedOff.ContainsKey(id) || _loaded.ContainsKey(id) || _labelPacks.ContainsKey(id))
                 return;
+        }
+        if (manifest.IsLabelPack)
+        {
+            LoadLabelPack(folder, manifest);
+            if (publish)
+                Changed?.Invoke(this, EventArgs.Empty);
+            return;
         }
 
         ILoadedAddOn code;
@@ -277,6 +290,30 @@ public sealed class AddOnManager
         _logger.LogInformation("Add-on {AddOn} {Version} loaded", id, manifest.Version);
         if (publish)
             Publish();
+    }
+
+    /// <summary>Gives custom labels a label pack's labels (its file checked against the manifest again).</summary>
+    private void LoadLabelPack(string folder, AddOnManifest manifest)
+    {
+        IReadOnlyList<Labels.CustomLabel> labels;
+        try
+        {
+            var bytes = File.ReadAllBytes(Path.Combine(folder, Labels.LabelPack.FileName));
+            if (bytes.Length > Labels.LabelPack.MaxBytes || !manifest.Files.TryGetValue(Labels.LabelPack.FileName, out var hash)
+                || !AddOnPackage.HashMatches(bytes, hash))
+                throw new FormatException("The label pack's labels have changed since it was installed.");
+            using var reader = new StreamReader(new MemoryStream(bytes));
+            labels = Labels.LabelPack.Parse(reader.ReadToEnd());
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException)
+        {
+            _logger.LogWarning(ex, "Label pack {AddOn} could not be read", manifest.Id);
+            NotLoaded(manifest.Id, AddOnState.Failed, VoxStrings.Get("AddOns.Damaged"));
+            return;
+        }
+        lock (_lock) _labelPacks[manifest.Id] = manifest;
+        _integration.SetLabelPack(manifest.Id, labels);
+        _logger.LogInformation("Label pack {AddOn} {Version} in use: {Count} labels", manifest.Id, manifest.Version, labels.Count);
     }
 
     private void NotLoaded(string id, AddOnState state, string? problem)
@@ -364,11 +401,22 @@ public sealed class AddOnManager
     private void Unload(string id, bool publish)
     {
         Loaded? loaded;
+        bool labelPack;
         lock (_lock)
         {
+            labelPack = _labelPacks.Remove(id);
             if (!_loaded.Remove(id, out loaded))
-                return;
+                loaded = null;
         }
+        if (labelPack)
+        {
+            _integration.SetLabelPack(id, null);
+            _logger.LogInformation("Label pack {AddOn} no longer used", id);
+            if (publish)
+                Changed?.Invoke(this, EventArgs.Empty);
+        }
+        if (loaded is null)
+            return;
         // Out of Vox first, while the add-on still answers (an active module is deactivated, its
         // engine and display closed), then stopped and let go
         Publish();
@@ -400,7 +448,7 @@ public sealed class AddOnManager
     public void UnloadAll()
     {
         List<string> ids;
-        lock (_lock) ids = _loaded.Keys.ToList();
+        lock (_lock) ids = [.. _loaded.Keys, .. _labelPacks.Keys];
         foreach (var id in ids)
             Unload(id, publish: false);
     }

@@ -217,11 +217,18 @@ public sealed class CustomLabelCommandsTests : IDisposable
     }
 
     [Fact]
-    public async Task Manage_WithNoLabels_SaysSo()
+    public async Task Manage_WithNoLabels_StillOpens_ToImportAPack()
     {
-        Commands(Store()).TryHandle(NavigationCommand.ManageLabels);
+        var store = Store();
+        _presenter.Edit = editor =>
+        {
+            editor.Merge([new CustomLabel("https://mail.example.com", "id:send", "Send")]);
+            return editor.Labels;
+        };
 
-        await WaitFor(() => Said("No custom labels yet"), "none said");
-        Assert.Null(_presenter.Shown);
+        Commands(store).TryHandle(NavigationCommand.ManageLabels);
+
+        await WaitFor(() => store.All.Count == 1, "imported labels kept");
+        Assert.NotNull(_presenter.Shown);
     }
 }

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 4
-- Build iterations: 220
+- Build iterations: 221
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -26,7 +26,7 @@
 
 - [x] Add custom labels: a command to label the element at the browse cursor or focus, stored per site by a stable element signature, applied by `VBufferBuilder` and focus announcements, with a dialog to edit/delete; `CommandCatalog` entry and key; not in secure mode; unit tests (signature survives updates) (spec: switching.md)
 - [x] Add per-site settings (start mode, verbosity, screen layout, auto-dismiss overlays) layered above application profiles in `ProfileManager`, set from a dialog while browsing; unit tests (spec: switching.md)
-- [ ] Add label pack export/import and a label-pack add-on package type installable from the add-on store; unit tests (spec: switching.md)
+- [x] Add label pack export/import and a label-pack add-on package type installable from the add-on store; unit tests (spec: switching.md)
 
 #### AI that fixes pages (spec: switching.md)
 

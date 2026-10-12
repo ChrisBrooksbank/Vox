@@ -97,11 +97,6 @@ public sealed class CustomLabelCommands(
             Say(VoxStrings.Get("Labels.NotHere"));
             return;
         }
-        if (store.All.Count == 0)
-        {
-            Say(VoxStrings.Get("Labels.None"));
-            return;
-        }
         if (browse.BeginOwnDialog())
             _ = ManageAsync(new CustomLabelsEditor(store.All, CustomLabelSites.SiteOf(browse.CurrentAddress)));
     }
