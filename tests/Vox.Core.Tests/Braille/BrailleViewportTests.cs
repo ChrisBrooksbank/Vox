@@ -57,6 +57,18 @@ public class BrailleViewportTests
     }
 
     [Fact]
+    public void Show_CursorOnBlanksPanningSkips_StillShowsTheCursor()
+    {
+        // "hello " | "world" on 6 cells: panning right skips the blanks at 6 and 7
+        var viewport = Viewport();
+
+        viewport.Show(Edit("hello   world", 7), 6, Options);
+
+        Assert.Equal(7, viewport.WindowStart);
+        Assert.Equal(0, viewport.CursorCellInWindow);
+    }
+
+    [Fact]
     public void Pan_RightThenLeft_GoesThroughTheSameWindows()
     {
         var viewport = Viewport();

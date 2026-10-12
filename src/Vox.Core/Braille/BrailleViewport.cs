@@ -223,7 +223,11 @@ public sealed class BrailleViewport
                     return cell;
                 return start;
             }
-            start = SkipBlanks(end);
+            var next = SkipBlanks(end);
+            // The cursor on a blank panning skips (between two windows): a window starting at it
+            if (cell < next)
+                return cell;
+            start = next;
         }
     }
 
