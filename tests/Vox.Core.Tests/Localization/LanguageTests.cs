@@ -76,3 +76,59 @@ public class LanguageTests
         Assert.Equal("de", field.Set(new VoxSettings(), "de").Language);
     }
 }
+
+public class TranslationTests
+{
+    private static string RepoPath(params string[] parts) =>
+        Path.Combine([AppContext.BaseDirectory, "..", "..", "..", "..", "..", .. parts]);
+
+    private static Dictionary<string, string> Read(string file) =>
+        System.Xml.Linq.XDocument.Load(RepoPath("src", "Vox.Core", "Localization", file)).Root!.Elements("data")
+            .ToDictionary(d => (string)d.Attribute("name")!, d => (string)d.Element("value")!);
+
+    public static TheoryData<string> Languages() => [.. VoxLanguages.All.Select(l => l.Code).Where(c => c != "en")];
+
+    [Theory]
+    [MemberData(nameof(Languages))]
+    public void Translation_HasOnlyEnglishNames_WithTheSamePlaceholders(string language)
+    {
+        var english = Read("Strings.resx");
+        var translated = Read($"Strings.{language}.resx");
+
+        Assert.NotEmpty(translated);
+        foreach (var (name, value) in translated)
+        {
+            Assert.True(english.ContainsKey(name), $"{language}: {name} isn't an English string");
+            var placeholders = System.Text.RegularExpressions.Regex.Matches(english[name], @"\{\d+\}").Select(m => m.Value).Order();
+            Assert.Equal(placeholders, System.Text.RegularExpressions.Regex.Matches(value, @"\{\d+\}").Select(m => m.Value).Order());
+        }
+    }
+
+    /// <summary>The resources in one culture, for the current async flow only (the global language is left alone).</summary>
+    private sealed class CultureLocalizer(string culture) : Microsoft.Extensions.Localization.IStringLocalizer
+    {
+        private readonly System.Globalization.CultureInfo _culture = System.Globalization.CultureInfo.GetCultureInfo(culture);
+
+        public Microsoft.Extensions.Localization.LocalizedString this[string name] =>
+            new(name, VoxStrings.Resources.GetString(name, _culture) ?? name, VoxStrings.Resources.GetString(name, _culture) is null);
+
+        public Microsoft.Extensions.Localization.LocalizedString this[string name, params object[] arguments] =>
+            new(name, string.Format(_culture, this[name].Value, arguments));
+
+        public IEnumerable<Microsoft.Extensions.Localization.LocalizedString> GetAllStrings(bool includeParentCultures) => [];
+    }
+
+    [Fact]
+    public void Announcements_AreSpokenInTheLanguageSet()
+    {
+        using (VoxStrings.Use(new CultureLocalizer("fr")))
+        {
+            Assert.Equal("bouton", Vox.Core.Navigation.ControlTypeNames.ToSpoken("Button"));
+            Assert.Equal("Fermer", VoxStrings.Get("Dialog.Close"));
+            // Not translated yet: English
+            Assert.Equal(VoxStrings.Resources.GetString("Wizard.RerunKey", System.Globalization.CultureInfo.InvariantCulture), VoxStrings.Get("Wizard.RerunKey"));
+        }
+        using (VoxStrings.Use(new CultureLocalizer("ja-JP")))
+            Assert.Equal("ボタン", Vox.Core.Navigation.ControlTypeNames.ToSpoken("Button"));
+    }
+}
