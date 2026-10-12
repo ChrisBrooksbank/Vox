@@ -116,7 +116,7 @@ crashes; without the watchdog Vox starts the next instance itself (`--restarted`
 old one to close).
 
 **Never on the secure screens**, and not when the organization's `DisableAddOns` policy is set
-(`docs/enterprise.md`): no add-on is listed, loaded or installed there.
+([Deploying Vox in an organization](enterprise.md)): no add-on is listed, loaded or installed there.
 
 ## The add-on store
 

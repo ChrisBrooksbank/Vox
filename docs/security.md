@@ -57,7 +57,7 @@ and administrators (they control the install).
 ### UI access and the installed files
 
 - [ ] Only builds signed with the release certificate embed `app.uiaccess.manifest`; development
-      builds use `app.manifest` (`uiAccess="false"`) (`docs/signing.md`).
+      builds use `app.manifest` (`uiAccess="false"`) ([Signing Vox and UI access](signing.md)).
 - [ ] The installer puts Vox under Program Files, per machine, and sets no write permission for users
       on it (`installer/Vox.Installer/Package.wxs`).
 - [ ] Every process Vox starts is started with a full path or an `ArgumentList` (no command line
@@ -82,7 +82,7 @@ and administrators (they control the install).
 - [ ] The secure instance runs only while the input desktop is Winlogon (`SecureDesktopActivation`).
 - [ ] Recognised, typed and spoken text from the secure screens is never logged.
 
-### Update channel (`Updates/`, `docs/updates.md`)
+### Update channel (`Updates/`, [Updates](updates.md))
 
 - [ ] The feed is trusted only when its RSA-SHA256 signature verifies against
       `assets/config/update-key.pem`; with no key file Vox never checks.
@@ -94,7 +94,7 @@ and administrators (they control the install).
 - [ ] Policy (`DisableUpdates`, `DisableNetwork`, `UpdateChannel`) and secure mode turn checks off.
 - [ ] The release key (`release-key.pem`) is kept offline, never in the repository or CI logs.
 
-### Add-ons (`AddOns/`, `docs/addons.md`)
+### Add-ons (`AddOns/`, [Add-ons](addons.md))
 
 - [ ] A package is installed only if every file's SHA-256 matches its manifest, no file is unlisted
       or listed twice, and no path leaves the add-on's folder (`AddOnPackage`; extraction re-checks

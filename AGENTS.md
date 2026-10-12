@@ -43,6 +43,7 @@ dotnet build && dotnet test           # Build + test = must both pass
 - `src/Vox.Sdk/` - Public add-on API (no reference to Vox.Core); `samples/Vox.SampleAddOn/` uses it
 - `tests/Vox.Core.Tests/` - Unit tests (xUnit)
 - `assets/config/` - Default settings, desktop and laptop keymap JSON
+- `docs/` - Guides, indexed in `docs/README.md` (users start at `docs/install.md`); `docs/reviews/` keeps the old bug-fix plans
 
 ## Important Notes
 

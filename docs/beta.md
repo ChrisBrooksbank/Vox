@@ -6,11 +6,12 @@ says how to join, what to test, and how to send a report we can act on.
 
 ## Joining
 
-1. Install Vox from the installer (`docs/installer.md`). Install it under Program Files, as the
-   installer does by default: that is what lets Vox read elevated windows (`docs/signing.md`).
+1. Install Vox with the installer, as [Installing Vox](install.md) describes. The installer puts it
+   under Program Files, which is what lets Vox read elevated windows
+   ([Signing Vox and UI access](signing.md)).
 2. Open the settings (Insert+Ctrl+G), General, and set **Check for updates** to **Releases and
    betas**. Vox then offers beta builds as well as releases, and always asks before it installs one
-   (`docs/updates.md`).
+   ([Updates](updates.md)).
 3. Keep another screen reader you trust installed. A beta can have bugs that leave you without
    speech; Vox.Watchdog restarts Vox after a crash, but you should always have a way back.
 
@@ -25,7 +26,7 @@ about:
 - web pages that read wrongly or not at all in browse mode (Edge, Chrome, Firefox);
 - forms, menus, dialogs and editors that stay in or out of focus mode when they shouldn't;
 - desktop apps, including Word, Excel, Outlook, Teams, Explorer and Settings;
-- braille displays (`docs/braille.md`);
+- braille displays ([Braille](braille.md));
 - anything Vox says too much, too little, too late, or twice.
 
 Each beta's release notes (in the update feed and on the release page) say what changed and
@@ -37,7 +38,7 @@ Feedback goes to the repository's issues: <https://github.com/ChrisBrooksbank/Vo
 Pick **Screen reader bug report**. The form is a list of headings and plain text fields, so press H
 to move from one to the next. For ideas rather than bugs, pick **Suggestion**.
 
-Security problems are the exception: report them privately (`docs/security.md`), not as an issue.
+Security problems are the exception: report them privately ([Security review](security.md)), not as an issue.
 
 A good report lets us hear what you heard. The form asks for these:
 
@@ -96,8 +97,8 @@ what you paste into it, and issues are public, so read before you send:
   report was reproduced.
 - Ask for the speech viewer output before guessing: most "Vox says the wrong thing" reports are
   found from it alone.
-- Turn a reproduced web report into a page in the test corpus (`tests/pages/`, `docs/e2e.md`) and a
+- Turn a reproduced web report into a page in the test corpus (`tests/pages/`, [End-to-end tests](e2e.md)) and a
   transcript test, so the fix stays fixed.
-- Before a beta is offered: CI green, the end-to-end suite and soak test run (`docs/e2e.md`), the
-  benchmarks compared with the last release (`docs/benchmarks.md`), and the security checklist
-  (`docs/security.md`) walked for anything the release changed.
+- Before a beta is offered: CI green, the end-to-end suite and soak test run ([End-to-end tests](e2e.md)), the
+  benchmarks compared with the last release ([Benchmarks](benchmarks.md)), and the security checklist
+  ([Security review](security.md)) walked for anything the release changed.

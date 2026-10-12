@@ -11,7 +11,7 @@ Vox can describe pictures, answer questions about what is on the screen and summ
 | Insert+Ctrl+I | Summarise the page being browsed (browse mode). |
 | Insert+Ctrl+M | Move to where the page's main content starts; press again for the next suggestion (browse mode). |
 
-Vox says "Describing image", "Thinking" or "Summarizing" and plays the progress sound every couple of seconds until the answer comes. Pressing the same key again cancels ("Cancelled"), and so does Ctrl (stop speech). The answer is spoken and put under the review cursor, like recognised text (`docs/ocr.md`): the review keys read it again line by line, word by word or character by character, and a braille display shows it. The review cursor goes back to what it was reviewing when focus, the caret, the review mode or the browse cursor moves.
+Vox says "Describing image", "Thinking" or "Summarizing" and plays the progress sound every couple of seconds until the answer comes. Pressing the same key again cancels ("Cancelled"), and so does Ctrl (stop speech). The answer is spoken and put under the review cursor, like recognised text ([Text recognition (OCR)](ocr.md)): the review keys read it again line by line, word by word or character by character, and a braille display shows it. The review cursor goes back to what it was reviewing when focus, the caret, the review mode or the browse cursor moves.
 
 The same picture, question and page are answered from memory the second time (for this session only), so pressing Insert+G twice on the same image doesn't ask again.
 
@@ -53,7 +53,7 @@ Whatever the settings say:
 - **Password fields**: Insert+G on a password field, or a question while the focus is in one, sends nothing ("Password fields are never sent").
 - **Private applications**: windows of the applications in `AiPrivateApps` (process names; KeePass, KeePassXC, 1Password and Bitwarden by default) are never sent to the cloud.
 - **The sign-in, lock and UAC screens**: no AI at all, local or cloud.
-- **Organization policy**: `DisableAI` turns every AI feature off; `DisableNetwork` leaves only a model on this computer (`docs/enterprise.md`).
+- **Organization policy**: `DisableAI` turns every AI feature off; `DisableNetwork` leaves only a model on this computer ([Deploying Vox in an organization](enterprise.md)).
 
 Only the area being described is captured, when you press the key. Pictures, questions and answers stay in memory; they are never written to disk or the log.
 

@@ -5,6 +5,8 @@
     one has the Ctrl+Alt+V hotkey,
   - STARTATLOGON=1: a shortcut in the all-users Startup folder, so Vox starts at sign-in.
   - DESKTOPSHORTCUT=0: no desktop shortcut; INSTALLSERVICE=0: no secure-screen service.
+  - The last page's "Start Vox now" check box (checked) starts Vox when setup closes, so someone
+    who installed it with another screen reader hears Vox straight away.
   - UPDATECHANNEL, KEYBOARDLAYOUT, MODIFIERKEY, VERBOSITY, SPEECHRATE, LANGUAGE: the computer's
     default settings, written to HKLM\Software\Vox\Defaults (MachineSettings; a property not
     given writes an empty value, which Vox ignores). Users can still change them; to enforce
@@ -87,6 +89,16 @@
       <RegistryValue Root="HKLM" Key="Software\Vox" Name="MachineDefaults" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
-    <ui:WixUI Id="WixUI_Minimal" />
+    <!-- Started as the user from the UI sequence, so Vox isn't elevated -->
+    <CustomAction Id="StartVox" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]Vox.Watchdog.exe&quot;" Return="asyncNoWait" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Start Vox now (press Ctrl+Alt+V to start it later)" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <UI>
+      <ui:WixUI Id="WixUI_Minimal" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="StartVox"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+    </UI>
   </Package>
 </Wix>

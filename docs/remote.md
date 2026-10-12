@@ -59,5 +59,5 @@ be worked out from it) and encrypted frames: it can't read, change or join the s
 ## What it can't do
 
 - Keys are sent with `SendInput`, so they don't reach elevated windows unless the controlled Vox
-  has UI access (`docs/signing.md`), nor the secure desktop (Ctrl+Alt+Del, UAC prompts).
+  has UI access ([Signing Vox and UI access](signing.md)), nor the secure desktop (Ctrl+Alt+Del, UAC prompts).
 - Braille on the controlled side follows its own display; without one, only speech comes back.
