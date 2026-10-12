@@ -960,6 +960,8 @@ public sealed class BrowseModeController
         _documentFocusedRuntimeId = null;
         _focusOutsideDocument = false;
         _cursorFollowedFocusTo = null;
+        // The site's own settings apply from its page's first announcements
+        UpdateSite();
 
         if (document is null)
         {
@@ -1019,8 +1021,15 @@ public sealed class BrowseModeController
         AnnounceOverlay(document);
         AnnounceCaptcha(document);
 
-        // A web application (an editor, VS Code, Teams) is used through its own keys
-        if (fresh && DocumentModes.Initial(document, processName, _settings.CurrentValue.AppDefaultModes) == InteractionMode.Focus)
+        // A web application (an editor, VS Code, Teams) is used through its own keys; a site can
+        // say which mode its pages start in
+        var startMode = _settings.CurrentValue.WebStartMode switch
+        {
+            WebStartMode.Browse => InteractionMode.Browse,
+            WebStartMode.Focus => InteractionMode.Focus,
+            _ => DocumentModes.Initial(document, processName, _settings.CurrentValue.AppDefaultModes),
+        };
+        if (fresh && startMode == InteractionMode.Focus)
             _navigationManager.SwitchTo(InteractionMode.Focus, "web application", announce: false);
     }
 
@@ -1228,8 +1237,29 @@ public sealed class BrowseModeController
     // Helpers
     // -------------------------------------------------------------------------
 
+    /// <summary>
+    /// The web site whose page is being browsed ("https://example.com"; null when none, or the
+    /// focus is outside the page). Pipeline thread.
+    /// </summary>
+    public string? CurrentSite { get; private set; }
+
+    /// <summary>Raised when <see cref="CurrentSite"/> changes (for its site settings), on the pipeline thread.</summary>
+    public event EventHandler<string?>? SiteChanged;
+
+    private void UpdateSite()
+    {
+        var site = _quickNavHandler.CurrentDocument is { } document && !_focusOutsideDocument
+            ? Labels.CustomLabelSites.SiteOf(document.Root.Value)
+            : null;
+        if (string.Equals(site, CurrentSite, StringComparison.OrdinalIgnoreCase))
+            return;
+        CurrentSite = site;
+        SiteChanged?.Invoke(this, site);
+    }
+
     private void UpdateDocumentActive()
     {
+        UpdateSite();
         bool active = _quickNavHandler.CurrentDocument is not null && !_modalOpen && !_focusOutsideDocument;
         if (active == _documentActive)
             return;
@@ -1408,6 +1438,14 @@ public sealed class BrowseModeController
             return;
         }
         _announcedOverlay = id;
+        // Rejected straight away when asked for (a site setting, mostly); a dialog never is
+        if (_settings.CurrentValue.AutoDismissOverlays && overlay!.Kind == OverlayDetector.CookieBanner && overlay.DismissButton is { } button)
+        {
+            _speechQueue.Enqueue(new Utterance(
+                VoxStrings.Format("Overlay.AutoDismissed", OverlayDetector.KindName(overlay.Kind), button.Name.Trim()), SpeechPriority.Normal));
+            _ = ActivateAsync(button);
+            return;
+        }
         _speechQueue.Enqueue(new Utterance(OverlayDetector.Announcement(overlay!, DismissOverlayKey), SpeechPriority.Normal));
     }
 

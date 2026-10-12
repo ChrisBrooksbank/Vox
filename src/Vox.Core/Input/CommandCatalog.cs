@@ -140,7 +140,7 @@ public static class CommandCatalog
             NavigationCommand.RunSetup, NavigationCommand.Quit, NavigationCommand.OpenProfiles, NavigationCommand.SetAiKey,
             NavigationCommand.ManageAddOns, NavigationCommand.GetAddOns, NavigationCommand.RestartWithoutAddOns,
             NavigationCommand.RemoteAccess, NavigationCommand.ToggleRemoteControl, NavigationCommand.DisconnectRemote,
-            NavigationCommand.ImportSettings, NavigationCommand.ManageLabels);
+            NavigationCommand.ImportSettings, NavigationCommand.ManageLabels, NavigationCommand.OpenSiteSettings);
         // Application modules: only while their application is in the foreground
         Add(CommandCategory.Applications,
             NavigationCommand.ExcelReadFormula, NavigationCommand.ExcelReadComment, NavigationCommand.ExcelSetColumnTitles,

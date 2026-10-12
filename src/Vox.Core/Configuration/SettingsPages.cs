@@ -172,6 +172,8 @@ public static class SettingsPages
         new NumberField(L("Setting.MaxLineLength"), 0, 1000, 10, s => s.MaxLineLength, (s, v) => s with { MaxLineLength = v }),
         new ToggleField(L("Setting.AnnounceVisitedLinks"), s => s.AnnounceVisitedLinks, (s, v) => s with { AnnounceVisitedLinks = v }),
         new ToggleField(L("Setting.ExpandAbbreviations"), s => s.ExpandAbbreviations, (s, v) => s with { ExpandAbbreviations = v }),
+        Choice(L("Setting.WebStartMode"), s => s.WebStartMode, (s, v) => s with { WebStartMode = v }),
+        new ToggleField(L("Setting.AutoDismissOverlays"), s => s.AutoDismissOverlays, (s, v) => s with { AutoDismissOverlays = v }),
     ]);
 
     public static SettingsPage DocumentFormatting() => new(L("SettingsPage.DocumentFormatting"),

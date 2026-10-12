@@ -9,6 +9,15 @@ public enum VerbosityLevel
     Advanced
 }
 
+/// <summary>The mode a newly loaded web page starts in.</summary>
+public enum WebStartMode
+{
+    /// <summary>Focus mode for web applications (and <see cref="VoxSettings.AppDefaultModes"/>), else Browse mode.</summary>
+    Automatic,
+    Browse,
+    Focus
+}
+
 public enum TypingEchoMode
 {
     None,
@@ -229,6 +238,10 @@ public record VoxSettings
     /// (true), or puts every element on a line of its own (false).
     /// </summary>
     public bool ScreenLayout { get; init; } = true;
+    /// <summary>The mode a newly loaded web page starts in (mostly set for a site, see <see cref="SiteSettings"/>).</summary>
+    public WebStartMode WebStartMode { get; init; } = WebStartMode.Automatic;
+    /// <summary>Press a cookie banner's Reject or Close button as soon as the page shows one (never a dialog's).</summary>
+    public bool AutoDismissOverlays { get; init; }
     public ModifierKey ModifierKey { get; init; } = ModifierKey.Insert;
     /// <summary>Desktop (numeric keypad) or laptop key bindings.</summary>
     public KeyboardLayout KeyboardLayout { get; init; } = KeyboardLayout.Desktop;

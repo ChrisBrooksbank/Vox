@@ -33,6 +33,8 @@
   "AnnounceVisitedLinks": true,
   "ExpandAbbreviations": false,
   "ScreenLayout": true,
+  "WebStartMode": "Automatic",
+  "AutoDismissOverlays": false,
   "ModifierKey": "Insert",
   "KeyboardLayout": "Desktop",
   "MaxLineLength": 100,

@@ -96,3 +96,10 @@ and the last three words of text before it. So a label survives reloads, updates
 of the page and the element itself being redrawn, but not a page redesign that changes the
 element's surroundings (label it again then). A label given with another label just before it
 depends on that one's text, as the text before it is part of its signature.
+
+## Settings for a web site
+
+Instead of a profile per browser, a site can have settings of its own (Vox menu, Settings for this
+site, while browsing it): the mode its pages start in, verbosity, screen layout and rejecting
+cookie banners automatically. They are laid over the application's profile while the site's
+pages have focus; see [configuration profiles](profiles.md#settings-for-a-web-site).

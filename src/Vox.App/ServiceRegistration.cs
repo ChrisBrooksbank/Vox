@@ -63,9 +63,10 @@ public static class ServiceRegistration
         services.AddSingleton<ProfileManager>(sp =>
         {
             var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
-            var profiles = new ProfileManager(new ProfileStore(
-                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? ProfileStore.DefaultDirectory : null,
-                sp.GetRequiredService<ILogger<ProfileStore>>()));
+            bool keep = policy.AllowSettingsWrites && policy.AllowUserProfileAccess;
+            var profiles = new ProfileManager(
+                new ProfileStore(keep ? ProfileStore.DefaultDirectory : null, sp.GetRequiredService<ILogger<ProfileStore>>()),
+                new SiteSettingsStore(keep ? Path.Combine(VoxPaths.UserData, SiteSettingsStore.FileName) : null, sp.GetRequiredService<ILogger<SiteSettingsStore>>()));
             sp.GetRequiredService<SettingsMonitor>().AttachProfiles(profiles);
             return profiles;
         });
@@ -82,6 +83,16 @@ public static class ServiceRegistration
                 sp.GetRequiredService<SpeechQueue>(),
                 sp.GetRequiredService<ILogger<ProfileCommands>>());
         });
+        // Settings for the web site being browsed, laid over the application's profile
+        services.AddSingleton<ISiteSettingsPresenter, SiteSettingsPresenter>();
+        services.AddSingleton<SiteSettingsCommands>(sp => new SiteSettingsCommands(
+            sp.GetRequiredService<ProfileManager>(),
+            sp.GetRequiredService<ISiteSettingsPresenter>(),
+            sp.GetRequiredService<SettingsMonitor>(),
+            sp.GetRequiredService<BrowseModeController>(),
+            sp.GetRequiredService<IEventSink>(),
+            sp.GetRequiredService<ILogger<SiteSettingsCommands>>(),
+            sp.GetRequiredService<SpeechQueue>()));
         services.AddSingleton<IOptionsMonitor<VoxSettings>>(sp => sp.GetRequiredService<SettingsMonitor>());
 
         // Strings: every IStringLocalizer<T> reads Localization/Strings.resx in the Language setting

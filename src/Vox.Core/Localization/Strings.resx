@@ -1860,6 +1860,12 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="Setting.ExpandAbbreviations" xml:space="preserve">
     <value>Say what &amp;abbreviations stand for</value>
   </data>
+  <data name="Setting.WebStartMode" xml:space="preserve">
+    <value>&amp;Pages start in</value>
+  </data>
+  <data name="Setting.AutoDismissOverlays" xml:space="preserve">
+    <value>&amp;Reject cookie banners automatically</value>
+  </data>
   <data name="Setting.SpellingErrors" xml:space="preserve">
     <value>&amp;Spelling errors</value>
   </data>
@@ -2063,6 +2069,15 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   </data>
   <data name="Choice.VerbosityLevel.Advanced" xml:space="preserve">
     <value>Advanced</value>
+  </data>
+  <data name="Choice.WebStartMode.Automatic" xml:space="preserve">
+    <value>Browse mode, focus mode for web applications</value>
+  </data>
+  <data name="Choice.WebStartMode.Browse" xml:space="preserve">
+    <value>Browse mode</value>
+  </data>
+  <data name="Choice.WebStartMode.Focus" xml:space="preserve">
+    <value>Focus mode</value>
   </data>
   <data name="Choice.ProgressReporting.Every10Percent" xml:space="preserve">
     <value>Say every 10 percent</value>
@@ -4428,6 +4443,10 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
     <value>{0} has no reject or close button</value>
     <comment>{0}: the overlay kind (Cookie banner or Dialog)</comment>
   </data>
+  <data name="Overlay.AutoDismissed" xml:space="preserve">
+    <value>{0} rejected: pressed {1}</value>
+    <comment>{0}: the overlay kind ("Cookie banner"); {1}: the button's name</comment>
+  </data>
   <data name="Find.NotFound" xml:space="preserve">
     <value>{0} not found</value>
     <comment>{0}: the text searched for</comment>
@@ -5068,6 +5087,46 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   </data>
   <data name="Labels.Dialog.Delete" xml:space="preserve">
     <value>&amp;Delete</value>
+  </data>
+  <data name="Command.OpenSiteSettings.Name" xml:space="preserve">
+    <value>Settings for this site</value>
+  </data>
+  <data name="Command.OpenSiteSettings.Description" xml:space="preserve">
+    <value>Sets, for the web site being browsed, the mode its pages start in, verbosity, screen layout and whether cookie banners are rejected automatically.</value>
+  </data>
+  <data name="VoxMenu.OpenSiteSettings" xml:space="preserve">
+    <value>Settings for t&amp;his site...</value>
+  </data>
+  <data name="SiteSettings.NotHere" xml:space="preserve">
+    <value>Site settings are not available here</value>
+  </data>
+  <data name="SiteSettings.NoSite" xml:space="preserve">
+    <value>Open a web page first: site settings are for the site being browsed</value>
+  </data>
+  <data name="SiteSettings.Title" xml:space="preserve">
+    <value>Settings for {0}</value>
+    <comment>{0}: the site ("example.com")</comment>
+  </data>
+  <data name="SiteSettings.Saved" xml:space="preserve">
+    <value>Settings for {0} saved</value>
+    <comment>{0}: the site ("example.com")</comment>
+  </data>
+  <data name="SiteSettings.Cleared" xml:space="preserve">
+    <value>{0} uses your usual settings</value>
+    <comment>{0}: the site ("example.com")</comment>
+  </data>
+  <data name="SiteSettings.NotSaved" xml:space="preserve">
+    <value>The site settings could not be saved</value>
+  </data>
+  <data name="SiteSettings.Usual" xml:space="preserve">
+    <value>As usual ({0})</value>
+    <comment>The choice that sets nothing for the site; {0}: what the usual setting is now</comment>
+  </data>
+  <data name="SiteSettings.On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="SiteSettings.Off" xml:space="preserve">
+    <value>Off</value>
   </data>
   <data name="Import.Source.Nvda" xml:space="preserve">
     <value>NVDA</value>

@@ -314,5 +314,9 @@ public enum NavigationCommand
     /// <summary>Gives the link, control or graphic at the browse cursor (or the focused one) a label of your own, kept for its site.</summary>
     LabelElement,
     /// <summary>Opens the custom labels dialog: change or delete labels.</summary>
-    ManageLabels
+    ManageLabels,
+
+    // Per-site settings
+    /// <summary>Opens the settings of the web site being browsed (start mode, verbosity, screen layout, cookie banners).</summary>
+    OpenSiteSettings
 }

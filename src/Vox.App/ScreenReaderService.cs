@@ -69,6 +69,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly RemoteCommands _remoteCommands;
     private readonly Vox.Core.Switching.SettingsImportCommands _importCommands;
     private readonly Vox.Core.Labels.CustomLabelCommands _labelCommands;
+    private readonly SiteSettingsCommands _siteSettingsCommands;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -157,6 +158,7 @@ public sealed class ScreenReaderService : IHostedService
         RemoteCommands remoteCommands,
         Vox.Core.Switching.SettingsImportCommands importCommands,
         Vox.Core.Labels.CustomLabelCommands labelCommands,
+        SiteSettingsCommands siteSettingsCommands,
         RunPolicy? runPolicy = null,
         RemoteSessionMonitor? remoteSessions = null)
     {
@@ -166,6 +168,7 @@ public sealed class ScreenReaderService : IHostedService
         _remoteCommands = remoteCommands;
         _importCommands = importCommands;
         _labelCommands = labelCommands;
+        _siteSettingsCommands = siteSettingsCommands;
         _remoteSessions = remoteSessions;
         _profiles = profiles;
         _profileCommands = profileCommands;
@@ -281,6 +284,8 @@ public sealed class ScreenReaderService : IHostedService
         _appModules.ForegroundAppChanged += OnForegroundAppChanged;
         _sayAllController.ReadingChanged += OnSayAllReadingChanged;
         _profiles.Switched += OnProfileSwitched;
+        // ... and the web site being browsed has its own settings over them
+        _browseModeController.SiteChanged += OnSiteChanged;
         // In browse mode the review cursor reviews the virtual buffer
         _review.BrowseTether = _browseModeController.ReviewTether;
         // While browsing, text recognition reads the graphic at the cursor or the page
@@ -413,6 +418,7 @@ public sealed class ScreenReaderService : IHostedService
         _appModules.ForegroundAppChanged -= OnForegroundAppChanged;
         _sayAllController.ReadingChanged -= OnSayAllReadingChanged;
         _profiles.Switched -= OnProfileSwitched;
+        _browseModeController.SiteChanged -= OnSiteChanged;
         _appModules.Stop();
         // A remote session ends (keys held on this computer are released), then add-ons close
         _remoteSession.Dispose();
@@ -632,7 +638,8 @@ public sealed class ScreenReaderService : IHostedService
             && !_sleepMode.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
             && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command)
             && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command)
-            && !_importCommands.TryHandle(e.Command) && !_labelCommands.TryHandle(e.Command))
+            && !_importCommands.TryHandle(e.Command) && !_labelCommands.TryHandle(e.Command)
+            && !_siteSettingsCommands.TryHandle(e.Command))
             _browseModeController.HandleCommand(e.Command);
     }
 
@@ -722,6 +729,8 @@ public sealed class ScreenReaderService : IHostedService
     private void OnForegroundAppChanged(object? sender, string? processName) => _profiles.SetForegroundApp(processName);
 
     private void OnSayAllReadingChanged(object? sender, bool reading) => _profiles.SetSayAll(reading);
+
+    private void OnSiteChanged(object? sender, string? site) => _profiles.SetSite(site);
 
     private void OnProfileSwitched(object? sender, string? profile)
     {
