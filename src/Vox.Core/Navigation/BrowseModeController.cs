@@ -1687,7 +1687,8 @@ public sealed class BrowseModeController
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to activate {Node}", node);
+            // Not the node itself: its name is page text, which never goes to the log
+            _logger.LogWarning(ex, "Failed to activate a {ControlType} element", node.ControlType);
             _audioCuePlayer.Play("error");
         }
     }

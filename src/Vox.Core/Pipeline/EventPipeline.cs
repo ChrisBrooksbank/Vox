@@ -281,7 +281,7 @@ public sealed class EventPipeline : IEventSink, IDisposable
                     break;
 
                 case NotificationEvent notification:
-                    _logger.LogDebug("Notification: {Text}", notification.NotificationText);
+                    _logger.LogDebug("Notification ({Length} characters)", notification.NotificationText?.Length ?? 0);
                     await HandleNotificationAsync(notification, token).ConfigureAwait(false);
                     break;
 

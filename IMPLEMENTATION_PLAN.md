@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 2
-- Build iterations: 211
+- Build iterations: 212
 - Last updated: 2026-10-12
 
 ## Tasks
@@ -305,8 +305,18 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Release quality (spec: quality-engineering.md)
 
-- [ ] Add `docs/security.md` review checklist (keyboard hook, `uiAccess`, secure mode, update channel, add-ons) (spec: quality-engineering.md)
-- [ ] Add beta programme docs and a screen-reader-user issue template asking for speech viewer output and developer info (spec: quality-engineering.md)
+- [x] Add `docs/security.md` review checklist (keyboard hook, `uiAccess`, secure mode, update channel, add-ons) (spec: quality-engineering.md)
+- [x] Add beta programme docs and a screen-reader-user issue template asking for speech viewer output and developer info (spec: quality-engineering.md)
+
+#### Security hardening (spec: quality-engineering.md; docs/security.md "Known weaknesses")
+
+- [ ] With UI access, load only add-ons whose signature is checked at load time (native libraries hashed too) and optional components from a folder only administrators can write (weakness 1) (spec: quality-engineering.md)
+- [ ] Create `%ProgramData%\Vox` in the installer writable only by administrators and SYSTEM; copy settings to the secure screens through Vox.Service (weakness 2) (spec: quality-engineering.md)
+- [ ] Run the secure-screen instance with a restricted token; use a global-namespace secure-instance mutex (weaknesses 3 and 11) (spec: quality-engineering.md)
+- [ ] Check the downloaded MSI's Authenticode signature and keep it unchangeable until msiexec has read it (weakness 4) (spec: quality-engineering.md)
+- [ ] Detect a keyboard hook Windows removed and reinstall it (weakness 5) (spec: quality-engineering.md)
+- [ ] Make `dotnet publish` (the MSI's input) include `assets/config`, the sounds and the user guide (weakness 6) (spec: quality-engineering.md)
+- [ ] Require HTTPS for a custom `AiEndpoint` except loopback; refuse UNC `file:` catalogues and unchecked redirects in `NetworkGate` (weaknesses 7 and 8) (spec: quality-engineering.md)
 
 ## Completed
 
