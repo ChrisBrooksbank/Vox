@@ -24,7 +24,7 @@ public sealed class SampleAddOn : IAddOn, IDisposable
         });
 
         // Support for one application
-        host.AddAppModule(new NotepadModule(host.Speech));
+        host.AddAppModule(new NotepadModule(host));
 
         // A step every utterance goes through
         host.AddAnnouncementFilter(new AbbreviationFilter());
@@ -39,7 +39,7 @@ public sealed class SampleAddOn : IAddOn, IDisposable
 }
 
 /// <summary>Notepad: Insert+Alt+F12 says how many words the text has.</summary>
-public sealed class NotepadModule(ISpeechOutput speech) : AppModule
+public sealed class NotepadModule(IAddOnHost host) : AppModule
 {
     private string? _text;
 
@@ -70,8 +70,20 @@ public sealed class NotepadModule(ISpeechOutput speech) : AppModule
 
     private void CountWords()
     {
-        var words = (_text ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
-        speech.Speak(words == 1 ? "1 word" : $"{words} words", SpeechPriority.Interrupt);
+        var text = _text ?? string.Empty;
+        var stopping = host.Stopping;
+        // A long text takes a while to count: never on the pipeline thread (Vox would wait), and
+        // given the add-on's Stopping token so the work ends when the add-on is turned off
+        _ = Task.Run(() =>
+        {
+            var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+            stopping.ThrowIfCancellationRequested();
+            host.RunOnPipeline(() =>
+            {
+                if (!stopping.IsCancellationRequested)
+                    host.Speech.Speak(words == 1 ? "1 word" : $"{words} words", SpeechPriority.Interrupt);
+            });
+        }, stopping);
     }
 }
 

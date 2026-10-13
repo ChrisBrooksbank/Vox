@@ -15,7 +15,7 @@ a minor version only adds; a major version may change or remove.
 | Type | What it is |
 |---|---|
 | `IAddOn` | The entry point: one public class with a parameterless constructor. `Initialize(IAddOnHost)` is called once, on the pipeline thread; implement `IDisposable` to clean up when the add-on is turned off. |
-| `IAddOnHost` | What Vox gives the add-on: `AddCommand`, `AddAppModule`, `AddGlobalPlugin`, `AddAnnouncementFilter`, `AddSpeechEngine`, `AddBrailleDriver` (only during `Initialize`), and `Speech`, `Logger`, `DataDirectory`, `ForegroundProcessName`, `RunOnPipeline` (any time). |
+| `IAddOnHost` | What Vox gives the add-on: `AddCommand`, `AddAppModule`, `AddGlobalPlugin`, `AddAnnouncementFilter`, `AddSpeechEngine`, `AddBrailleDriver` (only during `Initialize`), and `Speech`, `Logger`, `DataDirectory`, `ForegroundProcessName`, `RunOnPipeline`, `Stopping` (any time; `Stopping`, since API 1.1, is cancelled when the add-on is disabled, removed, updated, turned off or Vox closes, before it is disposed — pass it to background work). |
 | `AddOnCommand` | A command with a name and description (said by input help and listed in the add-ons dialog) and `KeyGesture`s (`KeyGesture.Parse("VoxKey+Shift+J")`, with a `GestureMode` of Any, Browse or Focus). |
 | `IAppModule` / `AppModule` | Support for an application, chosen by its process name. Its `Commands` have keys only while it is active; it can change or silence focus announcements (`FormatFocusAnnouncement`), drop events (`ShouldProcess`) and see every handled event (`OnEvent`). An add-on's module comes before Vox's own for the same application; turning it off in the Applications settings (`DisabledAppModules`, by its id) gives the application back to Vox's. |
 | `IGlobalPlugin` / `GlobalPlugin` | Like an app module, for every application, after the active module. |
@@ -30,10 +30,16 @@ them), and anything on the secure screens (add-ons never load there).
 
 Every call Vox makes into an add-on is **guarded**: an exception is logged and that call skipped
 (a filter that throws leaves the text as it was; a module that throws formatting an announcement
-leaves Vox's). An add-on that throws 5 times within a minute is **turned off**: Vox unloads it,
-says "<name> was turned off because it kept failing", and remembers it (`state.json`) until the
-user turns it on again (or installs a new version). Don't block the thread you're called on:
-start slow work on a task and come back with `host.RunOnPipeline`.
+leaves Vox's). Every call is **timed** too: one that takes longer than its budget — 50 ms on the
+pipeline thread, 10 ms for an announcement filter on the speech thread, 500 ms for `Initialize` —
+is logged and counts like an exception. An add-on that fails 5 times within a minute is **turned
+off**: Vox unloads it, says "<name> was turned off because it kept failing", and remembers it
+(`state.json`) until the user turns it on again (or installs a new version). A call still running
+after 2 seconds means the add-on has **stopped responding**: a watchdog stops it at once (its
+other calls are skipped and the result of that call is ignored) and it is turned off the same
+way, with "<name> was turned off because it stopped responding", as soon as the call returns.
+Don't block the thread you're called on: start slow work on a task and come back with
+`host.RunOnPipeline`.
 
 Key precedence: the active add-on module's keys, then every add-on's global commands, then Vox's
 own app module and keymap. While input help is on, add-on keys are described like Vox's.
@@ -127,7 +133,11 @@ and removal). `AddOnManager` loads each enabled, compatible add-on in its own **
 never locked and an update can replace them while the old version runs; `Vox.Sdk` and
 `Microsoft.Extensions.Logging.Abstractions` always resolve to Vox's own copies. Disabling, removing
 or updating an add-on takes everything it added back out of Vox (keys, modules, plug-ins, filters,
-its engine and display), disposes it, and unloads its context, without restarting Vox.
+its engine and display), cancels its `Stopping` token, disposes it, and unloads its context,
+without restarting Vox. Two seconds later Vox checks the context was collected and logs "add-on
+<id> did not unload" when something still refers to the add-on's code (a thread it started, a
+timer it never stopped, an event it subscribed to and never left): it then stays in memory,
+doing nothing, until Vox restarts. Stop your work when `Stopping` is cancelled to avoid that.
 
 **Safe mode.** `Vox.App --safe` (or the Vox menu's "Restart with add-ons disabled") starts Vox
 with no add-on loaded; they can still be turned off or removed, to get rid of the one causing
@@ -150,7 +160,7 @@ Update, and Update all. The catalogue is `catalogue.json` with `catalogue.json.s
 ```json
 { "addons": [ {
   "id": "vox.sample", "name": "Vox sample add-on", "version": "1.0.0", "author": "The Vox project",
-  "minApiVersion": "1.0", "maxApiVersion": "1.0", "description": "…",
+  "minApiVersion": "1.1", "maxApiVersion": "1.1", "description": "…",
   "url": "packages/vox.sample-1.0.0.voxaddon", "sha256": "<sha-256 of the package>"
 } ] }
 ```

@@ -99,6 +99,7 @@ public sealed class AddOnManager
     private readonly Func<string, ILogger> _loggerFor;
     private readonly ILogger _logger;
     private readonly TimeProvider _time;
+    private readonly AddOnWatchdog _watchdog;
     private readonly object _lock = new();
     private readonly object _fileLock = new();
     private readonly Dictionary<string, Loaded> _loaded = new(StringComparer.Ordinal);
@@ -129,8 +130,13 @@ public sealed class AddOnManager
         _loggerFor = loggerFor ?? (_ => NullLogger.Instance);
         _logger = (ILogger?)logger ?? NullLogger.Instance;
         _time = time ?? TimeProvider.System;
+        _watchdog = new AddOnWatchdog(_time);
+        Unloads = new AddOnUnloadVerifier(_logger, _time);
         _state = ReadState();
     }
+
+    /// <summary>Checks unloaded add-ons' code leaves memory (logs those that don't).</summary>
+    public AddOnUnloadVerifier Unloads { get; }
 
     /// <summary>Where add-ons are installed (null on the secure screens).</summary>
     public string? Directory => _directory;
@@ -272,19 +278,22 @@ public sealed class AddOnManager
 
         var logger = _loggerFor($"AddOn.{id}");
         var guard = new AddOnGuard(id, _logger, OnRepeatedFailure, _time);
+        _watchdog.Watch(guard);
         var host = new AddOnHost(id, () => Path.Combine(_directory!, DataFolderName, id), logger,
             new GuardedSpeech(_integration, guard), _integration.ForegroundProcessName,
             work => _integration.Post(() => guard.Run(work, "running work on the pipeline")));
-        if (!guard.Run(() => code.Instance.Initialize(host), "starting"))
+        if (!guard.Run(() => code.Instance.Initialize(host), "starting", AddOnGuard.StartBudget))
         {
             guard.Stop();
+            _watchdog.Forget(guard);
+            host.Stop();
             TryDispose(code.Instance, guard);
             code.Unload();
             NotLoaded(id, AddOnState.Failed, VoxStrings.Get("AddOns.StartFailed"));
             return;
         }
         host.Seal();
-        var loaded = new Loaded(manifest, folder, code, guard, host.Contributions);
+        var loaded = new Loaded(manifest, folder, code, guard, host);
         lock (_lock) _loaded[id] = loaded;
         Register(loaded);
         _logger.LogInformation("Add-on {AddOn} {Version} loaded", id, manifest.Version);
@@ -398,7 +407,8 @@ public sealed class AddOnManager
 
     // ---- Unloading ----------------------------------------------------------------------------
 
-    private void Unload(string id, bool publish)
+    // verify: check its code leaves memory (not when Vox is closing anyway)
+    private void Unload(string id, bool publish, bool verify = true)
     {
         Loaded? loaded;
         bool labelPack;
@@ -420,6 +430,8 @@ public sealed class AddOnManager
         // Out of Vox first, while the add-on still answers (an active module is deactivated, its
         // engine and display closed), then stopped and let go
         Publish();
+        // Its background work is told to stop before its engine, display and the add-on are closed
+        loaded.Host.Stop();
         foreach (var engine in loaded.EngineIds)
             _integration.SpeechEngines?.Remove(engine);
         foreach (var driver in loaded.Drivers)
@@ -429,8 +441,12 @@ public sealed class AddOnManager
         }
         TryDispose(loaded.Code.Instance, loaded.Guard);
         loaded.Guard.Stop();
+        _watchdog.Forget(loaded.Guard);
+        var context = loaded.Code.LoadContext;
         loaded.Code.Unload();
         _logger.LogInformation("Add-on {AddOn} unloaded", id);
+        if (context is not null && verify)
+            Unloads.Track(id, context);
         if (publish)
             Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -450,13 +466,15 @@ public sealed class AddOnManager
         List<string> ids;
         lock (_lock) ids = [.. _loaded.Keys, .. _labelPacks.Keys];
         foreach (var id in ids)
-            Unload(id, publish: false);
+            Unload(id, publish: false, verify: false);
     }
 
-    private void OnRepeatedFailure(AddOnGuard guard) => _integration.Post(() => TurnOff(guard.AddOnId));
+    // Posted, never run here: the watchdog calls this from its timer while the add-on may still
+    // hold the pipeline thread, and TurnOff then runs once that call returns
+    private void OnRepeatedFailure(AddOnGuard guard) => _integration.Post(() => TurnOff(guard.AddOnId, guard.HasHung));
 
-    /// <summary>Turns off an add-on that kept failing, and says so (pipeline thread).</summary>
-    public void TurnOff(string id)
+    /// <summary>Turns off an add-on that kept failing (or stopped responding), and says so (pipeline thread).</summary>
+    public void TurnOff(string id, bool stoppedResponding = false)
     {
         string name;
         lock (_lock)
@@ -465,7 +483,7 @@ public sealed class AddOnManager
                 return;
             name = loaded.Manifest.Name;
         }
-        var reason = VoxStrings.Format("AddOns.TurnedOff", name);
+        var reason = VoxStrings.Format(stoppedResponding ? "AddOns.StoppedResponding" : "AddOns.TurnedOff", name);
         lock (_lock) _state = _state with { TurnedOff = new(_state.TurnedOff) { [id] = reason } };
         SaveState();
         Unload(id, publish: true);
@@ -741,20 +759,22 @@ public sealed class AddOnManager
 
     private sealed class Loaded
     {
-        public Loaded(AddOnManifest manifest, string folder, ILoadedAddOn code, AddOnGuard guard, AddOnContributions contributions)
+        public Loaded(AddOnManifest manifest, string folder, ILoadedAddOn code, AddOnGuard guard, AddOnHost host)
         {
             Manifest = manifest;
             Folder = folder;
             Code = code;
             Guard = guard;
-            Contributions = contributions;
-            Modules = contributions.AppModules.Select(m => new AddOnAppModule(m, guard)).ToList();
+            Host = host;
+            Contributions = host.Contributions;
+            Modules = Contributions.AppModules.Select(m => new AddOnAppModule(m, guard)).ToList();
         }
 
         public AddOnManifest Manifest { get; }
         public string Folder { get; }
         public ILoadedAddOn Code { get; }
         public AddOnGuard Guard { get; }
+        public AddOnHost Host { get; }
         public AddOnContributions Contributions { get; }
         public List<AddOnAppModule> Modules { get; }
         public List<string> EngineIds { get; } = [];

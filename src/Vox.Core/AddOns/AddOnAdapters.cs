@@ -119,7 +119,7 @@ public sealed class AddOnTextRule(Func<IReadOnlyList<GuardedFilter>> filters) : 
         foreach (var (filter, guard) in current)
         {
             var input = text;
-            text = guard.Call(() => filter.Filter(input, info) ?? input, input, "filtering speech");
+            text = guard.Call(() => filter.Filter(input, info) ?? input, input, "filtering speech", AddOnGuard.FilterBudget);
         }
         return text;
     }

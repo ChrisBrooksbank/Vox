@@ -17,6 +17,7 @@ public sealed class AddOnContributions
 /// <summary>
 /// The <see cref="IAddOnHost"/> one add-on is given: it collects what the add-on adds while it
 /// starts (then <see cref="Seal"/> closes it) and passes speech, logging and pipeline work on.
+/// <see cref="Stop"/> cancels <see cref="Stopping"/> before the add-on is disposed.
 /// </summary>
 internal sealed class AddOnHost(
     string addOnId,
@@ -26,6 +27,7 @@ internal sealed class AddOnHost(
     Func<string?> foregroundProcessName,
     Action<Action> post) : IAddOnHost
 {
+    private readonly CancellationTokenSource _stopping = new();
     private bool _sealed;
 
     public AddOnContributions Contributions { get; } = new();
@@ -35,6 +37,7 @@ internal sealed class AddOnHost(
     public ILogger Logger => logger;
     public ISpeechOutput Speech => speech;
     public string? ForegroundProcessName => foregroundProcessName();
+    public CancellationToken Stopping => _stopping.Token;
 
     public string DataDirectory
     {
@@ -47,6 +50,18 @@ internal sealed class AddOnHost(
     }
 
     public void Seal() => _sealed = true;
+
+    /// <summary>
+    /// Cancels <see cref="Stopping"/> (once), running the add-on's callbacks on this thread; one that
+    /// throws is logged, the rest still run.
+    /// </summary>
+    public void Stop()
+    {
+        if (_stopping.IsCancellationRequested)
+            return;
+        try { _stopping.Cancel(throwOnFirstException: false); }
+        catch (AggregateException ex) { logger.LogError(ex, "Add-on {AddOn} failed stopping its work", addOnId); }
+    }
 
     public void AddCommand(AddOnCommand command)
     {

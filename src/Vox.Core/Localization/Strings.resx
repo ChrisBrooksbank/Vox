@@ -2995,6 +2995,9 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="AddOns.TurnedOff" xml:space="preserve">
     <value>{0} was turned off because it kept failing.</value>
   </data>
+  <data name="AddOns.StoppedResponding" xml:space="preserve">
+    <value>{0} was turned off because it stopped responding.</value>
+  </data>
   <data name="AddOns.CatalogueMismatch" xml:space="preserve">
     <value>The download is not the one Vox's add-on catalogue lists.</value>
   </data>

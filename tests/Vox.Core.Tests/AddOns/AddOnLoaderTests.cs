@@ -6,6 +6,7 @@ using Vox.Core.Input;
 using Vox.Core.Lifecycle;
 using Vox.Core.Pipeline;
 using Vox.Core.Speech;
+using Vox.Core.Tests.TestSupport;
 using Vox.Sdk;
 using Xunit;
 using CoreAppModule = Vox.Core.AppModules.IAppModule;
@@ -85,6 +86,45 @@ public class AddOnLoaderTests : IDisposable
         }
 
         Assert.False(context.IsAlive, "the add-on's load context is still alive after unloading");
+    }
+
+    [Fact]
+    public void TheManager_ChecksADisabledAddOnLeavesMemory()
+    {
+        var time = new ManualTimeProvider();
+        var verified = new List<(string Id, bool Unloaded)>();
+        var manager = LoadAndDisableTheSample(time);
+        manager.Unloads.Verified += (id, unloaded) => verified.Add((id, unloaded));
+
+        time.Advance(AddOnUnloadVerifier.Delay);
+
+        Assert.Equal([("vox.sample", true)], verified);
+        Assert.Equal(0, time.ActiveTimers);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private AddOnManager LoadAndDisableTheSample(ManualTimeProvider time)
+    {
+        var manager = new AddOnManager(_files.AddOnsDirectory, RunPolicy.Normal, new AssemblyAddOnLoader(), AddOnTrustStore.Empty, time: time);
+        manager.InstallFiles(manager.CheckPackage(SamplePackage()));
+        manager.LoadAll();
+        Assert.Equal(AddOnState.Running, Assert.Single(manager.List()).State);
+        manager.Disable("vox.sample");
+        return manager;
+    }
+
+    [Fact]
+    public void AnAddOnStillReferredTo_IsLoggedAsNotUnloaded()
+    {
+        var logger = new CapturingLogger<AddOnUnloadVerifier>();
+        var verifier = new AddOnUnloadVerifier(logger);
+        var held = new object();
+
+        Assert.False(verifier.Verify("com.example.leaky", new WeakReference(held)));
+
+        Assert.Contains("did not unload", logger.AllText);
+        Assert.Contains("com.example.leaky", logger.AllText);
+        GC.KeepAlive(held);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

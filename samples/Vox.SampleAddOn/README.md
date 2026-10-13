@@ -4,7 +4,8 @@ A small add-on that shows each part of the add-on API (`src/Vox.Sdk`, documented
 [docs/addons.md](../../docs/addons.md)):
 
 - a global command with a key: **Insert+Ctrl+F12** says hello and how many times focus moved;
-- an app module for Notepad with its own command: **Insert+Alt+F12** says how many words the text has;
+- an app module for Notepad with its own command: **Insert+Alt+F12** says how many words the text has
+  (counted on a background task given the host's `Stopping` token, then said through `RunOnPipeline`);
 - an announcement filter that says "e.g." as "for example";
 - a global plug-in that counts focus changes.
 
