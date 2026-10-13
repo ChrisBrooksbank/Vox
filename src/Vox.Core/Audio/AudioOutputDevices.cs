@@ -33,23 +33,35 @@ public static class AudioOutputDevices
     /// </summary>
     public static IDisposable Open(ISampleProvider source, string? deviceName)
     {
+        WasapiOut? wasapi = null;
         try
         {
             using var enumerator = new MMDeviceEnumerator();
             var device = Choose(enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active).ToList(), deviceName)
                 ?? enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-            var output = new WasapiOut(device, AudioClientShareMode.Shared, useEventSync: true, LatencyMs);
-            output.Init(source);
-            output.Play();
-            return output;
+            wasapi = new WasapiOut(device, AudioClientShareMode.Shared, useEventSync: true, LatencyMs);
+            wasapi.Init(source);
+            wasapi.Play();
+            return wasapi;
         }
         catch
         {
+            // The audio client and its event handle, when Init or Play failed after it was made
+            try { wasapi?.Dispose(); } catch { /* already broken */ }
+
             // No WASAPI (or the device vanished): the classic path
             var output = new WaveOutEvent { DesiredLatency = 100 };
-            output.Init(source);
-            output.Play();
-            return output;
+            try
+            {
+                output.Init(source);
+                output.Play();
+                return output;
+            }
+            catch
+            {
+                output.Dispose();
+                throw;
+            }
         }
     }
 

@@ -81,7 +81,16 @@ public sealed class EspeakNative : IEspeakApi
             if (_instance is not null)
                 return _instance;
             var library = NativeLibrary.Load(Path.Combine(directory, EspeakComponent.LibraryFileName));
-            _instance = new EspeakNative(library, directory);
+            try
+            {
+                _instance = new EspeakNative(library, directory);
+            }
+            catch
+            {
+                // Not initialized (a missing export, no data): each later attempt loads it again
+                NativeLibrary.Free(library);
+                throw;
+            }
             return _instance;
         }
     }

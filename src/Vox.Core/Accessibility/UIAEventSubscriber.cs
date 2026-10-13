@@ -187,18 +187,7 @@ public sealed class UIAEventSubscriber :
 
         if (_documentScope is not null)
         {
-            try
-            {
-                automation.RemoveStructureChangedEventHandler(_documentScope, this);
-                automation.RemovePropertyChangedEventHandler(_documentScope, this);
-                automation.RemoveAutomationEventHandler(UIA_SelectionItem_ElementSelectedEventId, _documentScope, this);
-                automation.RemoveAutomationEventHandler(UIA_AsyncContentLoadedEventId, _documentScope, this);
-            }
-            catch (Exception ex)
-            {
-                // The old document may already be gone
-                _logger.LogDebug(ex, "Error removing document-scoped UIA handlers");
-            }
+            RemoveDocumentHandlers(automation, _documentScope);
             _documentScope = null;
         }
 
@@ -227,7 +216,28 @@ public sealed class UIAEventSubscriber :
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to subscribe to document structure events");
+            // Handlers added before the failure would otherwise stay registered (and keep
+            // reporting a document Vox has moved on from) until shutdown
+            RemoveDocumentHandlers(automation, documentRoot);
         }
+    }
+
+    /// <summary>
+    /// Removes the document-scoped handlers from <paramref name="scope"/>, each on its own, so one
+    /// that fails (the document may already be gone, or it was never added) doesn't leave the rest.
+    /// </summary>
+    private void RemoveDocumentHandlers(IUIAutomation automation, IUIAutomationElement scope)
+    {
+        TryRemove(() => automation.RemoveStructureChangedEventHandler(scope, this), "structure");
+        TryRemove(() => automation.RemovePropertyChangedEventHandler(scope, this), "property");
+        TryRemove(() => automation.RemoveAutomationEventHandler(UIA_SelectionItem_ElementSelectedEventId, scope, this), "selection");
+        TryRemove(() => automation.RemoveAutomationEventHandler(UIA_AsyncContentLoadedEventId, scope, this), "content loaded");
+    }
+
+    private void TryRemove(Action remove, string handler)
+    {
+        try { remove(); }
+        catch (Exception ex) { _logger.LogDebug(ex, "Error removing the document's {Handler} handler", handler); }
     }
 
     /// <summary>
@@ -276,6 +286,8 @@ public sealed class UIAEventSubscriber :
             catch (Exception ex)
             {
                 _logger.LogDebug(ex, "Could not subscribe to caret and text changes of the focused element");
+                // The caret handler may have been added before the text handler failed
+                RemoveTextHandlers(automation, focused);
             }
         });
     }
@@ -374,17 +386,17 @@ public sealed class UIAEventSubscriber :
         _focusedTextKind = FocusedTextKind.None;
         _focusedIsTerminal = false;
         if (_textScope is null) return;
-        try
-        {
-            automation.RemoveAutomationEventHandler(UIA_Text_TextSelectionChangedEventId, _textScope, this);
-            automation.RemoveAutomationEventHandler(UIA_Text_TextChangedEventId, _textScope, this);
-        }
-        catch (Exception ex)
-        {
-            // The element may already be gone
-            _logger.LogDebug(ex, "Error removing caret and text handlers");
-        }
+        RemoveTextHandlers(automation, _textScope);
         _textScope = null;
+    }
+
+    /// <summary>Removes the caret and text handlers from <paramref name="scope"/>, each on its own (the element may already be gone).</summary>
+    private void RemoveTextHandlers(IUIAutomation automation, IUIAutomationElement scope)
+    {
+        try { automation.RemoveAutomationEventHandler(UIA_Text_TextSelectionChangedEventId, scope, this); }
+        catch (Exception ex) { _logger.LogDebug(ex, "Error removing the caret handler"); }
+        try { automation.RemoveAutomationEventHandler(UIA_Text_TextChangedEventId, scope, this); }
+        catch (Exception ex) { _logger.LogDebug(ex, "Error removing the text handler"); }
     }
 
     // -------------------------------------------------------------------------
