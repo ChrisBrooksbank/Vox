@@ -202,7 +202,7 @@ public sealed class AddOnBrailleDriver : IBrailleDisplayDriver
     public bool IsConnected => _guard.Call(() => _driver.IsConnected, false, "reporting its display");
     public int CellCount => _guard.Call(() => _driver.CellCount, 0, "reporting its cells");
 
-    public bool TryConnect() => _guard.Call(_driver.TryConnect, false, "connecting a braille display");
+    public bool TryConnect() => _guard.Call(_driver.TryConnect, false, "connecting a braille display", AddOnGuard.ConnectBudget);
     public void Disconnect() => _guard.Cleanup(_driver.Disconnect, "disconnecting a braille display");
     public void Write(ReadOnlyMemory<byte> cells, int? cursorPosition) => _guard.Run(() => _driver.Write(cells, cursorPosition), "writing braille");
 

@@ -6,13 +6,14 @@ namespace Vox.Core.AddOns;
 /// Every call Vox makes into one add-on goes through its guard: an exception is caught and logged
 /// and the call's fallback used, so a broken add-on can't take Vox down or silence it. Every call is
 /// timed too: one that takes longer than its budget (<see cref="PipelineBudget"/>, or
-/// <see cref="FilterBudget"/> for announcement filters on the speech thread) is logged and counted
-/// like an exception. An add-on that fails <see cref="MaxFailures"/> times within <see cref="Window"/>
+/// <see cref="FilterBudget"/> for announcement filters on the speech thread, <see cref="ConnectBudget"/>
+/// for connecting a braille display) is logged and counted like an exception. An add-on that fails <see cref="MaxFailures"/> times within <see cref="Window"/>
 /// is stopped: from then on its calls are skipped, and <c>onRepeatedFailure</c> (once) has the
 /// manager turn it off and tell the user. A call still running after <see cref="HangLimit"/> stops
 /// the add-on the same way when <see cref="CheckForHang"/> (the <see cref="AddOnWatchdog"/>) finds
-/// it (<see cref="HasHung"/>). Thread-safe: filters are called on the speech thread, the rest on the
-/// pipeline thread, <see cref="CheckForHang"/> on the watchdog's timer.
+/// it (<see cref="HasHung"/>). Thread-safe: filters are called on the speech thread, braille drivers'
+/// connects on the display manager's timer, the rest on the pipeline thread, <see cref="CheckForHang"/>
+/// on the watchdog's timer.
 /// </summary>
 public sealed class AddOnGuard
 {
@@ -27,6 +28,14 @@ public sealed class AddOnGuard
 
     /// <summary>How long starting an add-on may take before it counts as a failure.</summary>
     public static readonly TimeSpan StartBudget = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>
+    /// How long connecting a braille display may take (<c>IBrailleDriver.TryConnect</c>: "within
+    /// about a second"; the display manager's scan timer, not the pipeline thread, calls it every
+    /// few seconds while no display is connected, so the pipeline's budget would soon turn off a
+    /// driver that probes its ports).
+    /// </summary>
+    public static readonly TimeSpan ConnectBudget = TimeSpan.FromSeconds(1);
 
     /// <summary>A call still running this long means the add-on has stopped responding.</summary>
     public static readonly TimeSpan HangLimit = TimeSpan.FromSeconds(2);

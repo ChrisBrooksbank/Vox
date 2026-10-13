@@ -53,6 +53,55 @@ public class AddOnGuardTests
     }
 
     [Fact]
+    public void ConnectingADisplay_HasALongerBudget()
+    {
+        var guard = Guard();
+
+        var connected = guard.Call(() =>
+        {
+            _time.Advance(TimeSpan.FromMilliseconds(800));
+            return true;
+        }, false, "connecting a braille display", AddOnGuard.ConnectBudget);
+
+        Assert.True(connected);
+        Assert.Equal(0, guard.RecentFailures);
+    }
+
+    [Fact]
+    public void ADriverThatTakesAWhileToLookForItsDisplay_IsNotTurnedOffByTheScans()
+    {
+        var guard = Guard();
+        var driver = new AddOnBrailleDriver(new SlowBrailleDriver(_time), guard);
+
+        // The display manager tries every few seconds while no display is connected
+        for (int i = 0; i < AddOnGuard.MaxFailures * 2; i++)
+            Assert.False(driver.TryConnect());
+
+        Assert.Equal(0, guard.RecentFailures);
+        Assert.False(guard.IsStopped);
+        Assert.Empty(_turnedOff);
+    }
+
+    // Probes its ports for 300 ms and finds nothing
+    private sealed class SlowBrailleDriver(ManualTimeProvider time) : Vox.Sdk.IBrailleDriver
+    {
+        public string Id => "Slow";
+        public string Name => "Slow display";
+        public bool IsConnected => false;
+        public int CellCount => 0;
+        public bool TryConnect()
+        {
+            time.Advance(TimeSpan.FromMilliseconds(300));
+            return false;
+        }
+        public void Disconnect() { }
+        public void Write(ReadOnlyMemory<byte> cells, int? cursorPosition) { }
+        public event EventHandler<Vox.Sdk.BrailleKeysEventArgs>? KeysPressed { add { } remove { } }
+        public event EventHandler? Disconnected { add { } remove { } }
+        public void Dispose() { }
+    }
+
+    [Fact]
     public void RepeatedlySlowCalls_TurnTheAddOnOff()
     {
         var guard = Guard();
