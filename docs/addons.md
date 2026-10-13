@@ -30,10 +30,16 @@ them), and anything on the secure screens (add-ons never load there).
 
 Every call Vox makes into an add-on is **guarded**: an exception is logged and that call skipped
 (a filter that throws leaves the text as it was; a module that throws formatting an announcement
-leaves Vox's). An add-on that throws 5 times within a minute is **turned off**: Vox unloads it,
-says "<name> was turned off because it kept failing", and remembers it (`state.json`) until the
-user turns it on again (or installs a new version). Don't block the thread you're called on:
-start slow work on a task and come back with `host.RunOnPipeline`.
+leaves Vox's). Every call is **timed** too: one that takes longer than its budget — 50 ms on the
+pipeline thread, 10 ms for an announcement filter on the speech thread, 500 ms for `Initialize` —
+is logged and counts like an exception. An add-on that fails 5 times within a minute is **turned
+off**: Vox unloads it, says "<name> was turned off because it kept failing", and remembers it
+(`state.json`) until the user turns it on again (or installs a new version). A call still running
+after 2 seconds means the add-on has **stopped responding**: a watchdog stops it at once (its
+other calls are skipped and the result of that call is ignored) and it is turned off the same
+way, with "<name> was turned off because it stopped responding", as soon as the call returns.
+Don't block the thread you're called on: start slow work on a task and come back with
+`host.RunOnPipeline`.
 
 Key precedence: the active add-on module's keys, then every add-on's global commands, then Vox's
 own app module and keymap. While input help is on, add-on keys are described like Vox's.

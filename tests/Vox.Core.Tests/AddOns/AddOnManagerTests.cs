@@ -175,6 +175,35 @@ public class AddOnManagerTests : IDisposable
     }
 
     [Fact]
+    public void AnAddOnThatHangs_IsTurnedOffOnceTheCallReturns_AndTheUserIsTold()
+    {
+        var time = new ManualTimeProvider();
+        var posted = new Queue<Action>();
+        var integration = new AddOnIntegration
+        {
+            Speak = (text, priority) => _said.Add((text, priority)),
+            SetKeyLayer = layer => _keys = layer,
+            Post = posted.Enqueue,
+        };
+        // The command holds the pipeline thread long enough for the watchdog's timer to fire
+        _loader.Set("com.example.test", () => new FakeAddOn(host =>
+            host.AddCommand(Command("stuck", () => time.Advance(TimeSpan.FromSeconds(3))))));
+        var manager = Manager(integration: integration, time: time);
+        Install(manager);
+        manager.LoadAll();
+
+        manager.RunCommand(_keys!.Bindings[0].Command);
+        while (posted.TryDequeue(out var work))
+            work();
+
+        var info = Assert.Single(manager.List());
+        Assert.Equal(AddOnState.TurnedOff, info.State);
+        Assert.True(_loader.Loaded[0].Unloaded);
+        Assert.Contains(_said, s => s.Text.Contains("stopped responding"));
+        Assert.Equal(0, time.ActiveTimers);
+    }
+
+    [Fact]
     public void AnAddOnThatFailsToStart_IsUnloaded_AndReportedAsFailed()
     {
         _loader.Set("com.example.test", () => new FakeAddOn(_ => throw new InvalidOperationException("no")));

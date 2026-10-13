@@ -99,6 +99,7 @@ public sealed class AddOnManager
     private readonly Func<string, ILogger> _loggerFor;
     private readonly ILogger _logger;
     private readonly TimeProvider _time;
+    private readonly AddOnWatchdog _watchdog;
     private readonly object _lock = new();
     private readonly object _fileLock = new();
     private readonly Dictionary<string, Loaded> _loaded = new(StringComparer.Ordinal);
@@ -129,6 +130,7 @@ public sealed class AddOnManager
         _loggerFor = loggerFor ?? (_ => NullLogger.Instance);
         _logger = (ILogger?)logger ?? NullLogger.Instance;
         _time = time ?? TimeProvider.System;
+        _watchdog = new AddOnWatchdog(_time);
         _state = ReadState();
     }
 
@@ -272,12 +274,14 @@ public sealed class AddOnManager
 
         var logger = _loggerFor($"AddOn.{id}");
         var guard = new AddOnGuard(id, _logger, OnRepeatedFailure, _time);
+        _watchdog.Watch(guard);
         var host = new AddOnHost(id, () => Path.Combine(_directory!, DataFolderName, id), logger,
             new GuardedSpeech(_integration, guard), _integration.ForegroundProcessName,
             work => _integration.Post(() => guard.Run(work, "running work on the pipeline")));
-        if (!guard.Run(() => code.Instance.Initialize(host), "starting"))
+        if (!guard.Run(() => code.Instance.Initialize(host), "starting", AddOnGuard.StartBudget))
         {
             guard.Stop();
+            _watchdog.Forget(guard);
             TryDispose(code.Instance, guard);
             code.Unload();
             NotLoaded(id, AddOnState.Failed, VoxStrings.Get("AddOns.StartFailed"));
@@ -429,6 +433,7 @@ public sealed class AddOnManager
         }
         TryDispose(loaded.Code.Instance, loaded.Guard);
         loaded.Guard.Stop();
+        _watchdog.Forget(loaded.Guard);
         loaded.Code.Unload();
         _logger.LogInformation("Add-on {AddOn} unloaded", id);
         if (publish)
@@ -453,10 +458,12 @@ public sealed class AddOnManager
             Unload(id, publish: false);
     }
 
-    private void OnRepeatedFailure(AddOnGuard guard) => _integration.Post(() => TurnOff(guard.AddOnId));
+    // Posted, never run here: the watchdog calls this from its timer while the add-on may still
+    // hold the pipeline thread, and TurnOff then runs once that call returns
+    private void OnRepeatedFailure(AddOnGuard guard) => _integration.Post(() => TurnOff(guard.AddOnId, guard.HasHung));
 
-    /// <summary>Turns off an add-on that kept failing, and says so (pipeline thread).</summary>
-    public void TurnOff(string id)
+    /// <summary>Turns off an add-on that kept failing (or stopped responding), and says so (pipeline thread).</summary>
+    public void TurnOff(string id, bool stoppedResponding = false)
     {
         string name;
         lock (_lock)
@@ -465,7 +472,7 @@ public sealed class AddOnManager
                 return;
             name = loaded.Manifest.Name;
         }
-        var reason = VoxStrings.Format("AddOns.TurnedOff", name);
+        var reason = VoxStrings.Format(stoppedResponding ? "AddOns.StoppedResponding" : "AddOns.TurnedOff", name);
         lock (_lock) _state = _state with { TurnedOff = new(_state.TurnedOff) { [id] = reason } };
         SaveState();
         Unload(id, publish: true);
