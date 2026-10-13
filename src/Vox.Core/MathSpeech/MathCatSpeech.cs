@@ -61,7 +61,16 @@ public sealed class MathCatSpeech : IMathSpeech
             if (_instance is not null)
                 return _instance;
             var library = NativeLibrary.Load(Path.Combine(directory, MathCatComponent.LibraryFileName));
-            _instance = new MathCatSpeech(library, directory, logger);
+            try
+            {
+                _instance = new MathCatSpeech(library, directory, logger);
+            }
+            catch
+            {
+                // A missing export (another version): each later attempt loads it again
+                NativeLibrary.Free(library);
+                throw;
+            }
             return _instance;
         }
     }

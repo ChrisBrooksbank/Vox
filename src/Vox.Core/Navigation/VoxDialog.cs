@@ -86,17 +86,43 @@ public abstract class VoxDialog : Form
             Activate();
         }
 
-        var timer = new System.Windows.Forms.Timer { Interval = ActivationTimeoutMs };
-        timer.Tick += (_, _) =>
+        _activationTimer?.Dispose();
+        _activationTimer = new System.Windows.Forms.Timer { Interval = ActivationTimeoutMs };
+        _activationTimer.Tick += (_, _) =>
         {
-            timer.Dispose();
+            StopActivationTimer();
             if (!_activated && Visible)
             {
                 DialogResult = DialogResult.Cancel;
                 Close();
             }
         };
-        timer.Start();
+        _activationTimer.Start();
+    }
+
+    // A running WinForms timer roots itself (and, through its handler, this dialog) until it is
+    // stopped; a dialog closed before it ticks, whose thread then ends, would never release it
+    private System.Windows.Forms.Timer? _activationTimer;
+
+    private void StopActivationTimer()
+    {
+        var timer = _activationTimer;
+        _activationTimer = null;
+        timer?.Stop();
+        timer?.Dispose();
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        StopActivationTimer();
+        base.OnFormClosed(e);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            StopActivationTimer();
+        base.Dispose(disposing);
     }
 
     protected override void OnActivated(EventArgs e)

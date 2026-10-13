@@ -157,6 +157,13 @@ public sealed class RemoteAccessSession : IDisposable
                 await Task.Delay(TimeSpan.FromSeconds(3), token).ConfigureAwait(false);
                 continue;
             }
+            catch
+            {
+                // Cancelled (Disconnect while the handshake was running) or another failure: the
+                // connection is closed here, as on the controlling side, not left to the finalizer
+                await stream.DisposeAsync().ConfigureAwait(false);
+                throw;
+            }
             await RunAsync(channel, token).ConfigureAwait(false);
             return;
         }

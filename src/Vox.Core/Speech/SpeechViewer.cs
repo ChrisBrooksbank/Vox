@@ -72,6 +72,8 @@ public sealed class SpeechViewer : IDisposable
         private const int WS_EX_TOOLWINDOW = 0x00000080;
         private readonly SpeechHistory _history;
         private readonly TextBox _text;
+        // Controls don't own a font assigned to them: it is disposed with the form
+        private readonly System.Drawing.Font _font = new("Segoe UI", 11);
 
         public ViewerForm(SpeechHistory history)
         {
@@ -89,7 +91,7 @@ public sealed class SpeechViewer : IDisposable
                 ReadOnly = true,
                 ScrollBars = ScrollBars.Vertical,
                 Dock = DockStyle.Fill,
-                Font = new System.Drawing.Font("Segoe UI", 11),
+                Font = _font,
                 TabStop = false,
             };
             Controls.Add(_text);
@@ -123,6 +125,13 @@ public sealed class SpeechViewer : IDisposable
         {
             _history.Added -= OnAdded;
             base.OnFormClosed(e);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (disposing)
+                _font.Dispose();
         }
     }
 }
