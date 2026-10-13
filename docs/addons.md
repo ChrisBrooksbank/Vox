@@ -31,7 +31,8 @@ them), and anything on the secure screens (add-ons never load there).
 Every call Vox makes into an add-on is **guarded**: an exception is logged and that call skipped
 (a filter that throws leaves the text as it was; a module that throws formatting an announcement
 leaves Vox's). Every call is **timed** too: one that takes longer than its budget — 50 ms on the
-pipeline thread, 10 ms for an announcement filter on the speech thread, 500 ms for `Initialize` —
+pipeline thread, 10 ms for an announcement filter on the speech thread, 500 ms for `Initialize`,
+1 second for a braille driver's `TryConnect` —
 is logged and counts like an exception. An add-on that fails 5 times within a minute is **turned
 off**: Vox unloads it, says "<name> was turned off because it kept failing", and remembers it
 (`state.json`) until the user turns it on again (or installs a new version). A call still running

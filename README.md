@@ -153,7 +153,9 @@ and Vox asks before anything is sent.
 
 **Sign-in screens and safety.** Vox reads the Windows sign-in, lock and "allow changes" (UAC)
 screens. It restarts itself if it crashes, and says "not responding" instead of hanging when an
-application stops responding. It never logs what you type. There is no telemetry.
+application stops responding. If Windows quietly disconnects Vox from the keyboard, Vox notices and
+reconnects. An add-on that keeps failing or stops responding is turned off, and Vox tells you. It
+never logs what you type. There is no telemetry.
 
 **Yours to adjust.** A settings dialog, a voice settings ring (Insert+Ctrl+arrows) and your own key
 bindings. Configuration profiles change settings per application or during Say All. Sleep mode
@@ -213,7 +215,7 @@ and those are off or wait for you to start them. See the [privacy policy](docs/p
 
 Vox is written in C# on .NET 9. It uses UI Automation to read Windows, and keeps a virtual buffer
 model for web pages. It has a single ordered event pipeline and a priority speech queue. The core
-logic sits behind interfaces and is covered by nearly 3,000 unit tests that need no screen,
+logic sits behind interfaces and is covered by over 3,000 unit tests that need no screen,
 voice or browser.
 
 ```powershell
