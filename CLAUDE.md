@@ -85,6 +85,7 @@ BrowseDocumentTracker (UIA thread: DocumentChanged / SubtreeChanged) ───�
 - Prefer `IUIAutomationCacheRequest` for batching UIA property reads
 - All UIA interop goes in `Vox.Core/Accessibility/`
 - Speech engine abstracted behind `ISpeechEngine`; input behind `IKeyboardHook`
+- `docs/technical/` explains this architecture for human readers, with Mermaid diagrams; when a change makes one of its pages wrong, update the page too
 - Keybindings belong in `assets/config/default-keymap.json` (NVDA conventions, Insert as modifier), not hardcoded; every `NavigationCommand` needs a name, description and category in `CommandCatalog` (the one source for help, the gestures dialog and the guide; a test enforces it)
 
 ## Critical Constraints
