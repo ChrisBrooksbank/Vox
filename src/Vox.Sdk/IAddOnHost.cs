@@ -53,6 +53,13 @@ public interface IAddOnHost
 
     /// <summary>Runs <paramref name="work"/> on Vox's pipeline thread, where app modules and plug-ins are called.</summary>
     void RunOnPipeline(Action work);
+
+    /// <summary>
+    /// Cancelled when the add-on is being stopped (disabled, removed, updated, turned off for failing,
+    /// or Vox is closing), before it is disposed: pass it to background work so that work ends with
+    /// the add-on. Since API 1.1.
+    /// </summary>
+    CancellationToken Stopping { get; }
 }
 
 /// <summary>How urgently something is said.</summary>

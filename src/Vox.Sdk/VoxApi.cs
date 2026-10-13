@@ -8,7 +8,7 @@ namespace Vox.Sdk;
 public static class VoxApi
 {
     /// <summary>The API version of the running Vox (major.minor).</summary>
-    public static Version Current { get; } = new(1, 0);
+    public static Version Current { get; } = new(1, 1);
 }
 
 /// <summary>

@@ -204,6 +204,87 @@ public class AddOnManagerTests : IDisposable
     }
 
     [Fact]
+    public void Stopping_IsCancelledWhenTheAddOnIsDisabled_BeforeItIsDisposed()
+    {
+        FakeAddOn? addOn = null;
+        bool? disposedWhenStopped = null;
+        _loader.Set("com.example.test", () => addOn = new FakeAddOn(host =>
+            host.Stopping.Register(() => disposedWhenStopped = addOn!.Disposed)));
+        var manager = Manager();
+        Install(manager);
+        manager.LoadAll();
+        var stopping = addOn!.Host!.Stopping;
+        Assert.False(stopping.IsCancellationRequested);
+
+        manager.Disable("com.example.test");
+
+        Assert.True(stopping.IsCancellationRequested);
+        Assert.False(disposedWhenStopped);
+        Assert.True(addOn.Disposed);
+    }
+
+    [Fact]
+    public void Stopping_IsCancelledForEveryWayAnAddOnStops()
+    {
+        var hosts = new List<IAddOnHost>();
+        _loader.Set("com.example.test", () => new FakeAddOn(host =>
+        {
+            hosts.Add(host);
+            host.AddCommand(Command("broken", () => throw new InvalidOperationException("bug")));
+        }));
+        var manager = Manager();
+        Install(manager);
+        manager.LoadAll();
+
+        // Turned off for failing
+        for (int i = 0; i < AddOnGuard.MaxFailures; i++)
+            manager.RunCommand(_keys!.Bindings[0].Command);
+        Assert.True(hosts[0].Stopping.IsCancellationRequested);
+
+        // Vox closing
+        manager.Enable("com.example.test");
+        Assert.False(hosts[1].Stopping.IsCancellationRequested);
+        manager.UnloadAll();
+        Assert.True(hosts[1].Stopping.IsCancellationRequested);
+    }
+
+    [Fact]
+    public void Stopping_IsCancelledWhenAnAddOnFailsToStart()
+    {
+        IAddOnHost? started = null;
+        _loader.Set("com.example.test", () => new FakeAddOn(host =>
+        {
+            started = host;
+            throw new InvalidOperationException("no");
+        }));
+        var manager = Manager();
+        Install(manager);
+
+        manager.LoadAll();
+
+        Assert.True(started!.Stopping.IsCancellationRequested);
+    }
+
+    [Fact]
+    public void AStoppingCallbackThatThrows_DoesntStopTheUnload()
+    {
+        bool secondRan = false;
+        _loader.Set("com.example.test", () => new FakeAddOn(host =>
+        {
+            host.Stopping.Register(() => secondRan = true);
+            host.Stopping.Register(() => throw new InvalidOperationException("bug"));
+        }));
+        var manager = Manager();
+        Install(manager);
+        manager.LoadAll();
+
+        manager.Disable("com.example.test");
+
+        Assert.True(secondRan);
+        Assert.True(_loader.Loaded[0].Unloaded);
+    }
+
+    [Fact]
     public void AnAddOnThatFailsToStart_IsUnloaded_AndReportedAsFailed()
     {
         _loader.Set("com.example.test", () => new FakeAddOn(_ => throw new InvalidOperationException("no")));

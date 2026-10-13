@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 4
-- Build iterations: 232
+- Build iterations: 233
 - Last updated: 2026-10-13
 
 ## Tasks
@@ -364,7 +364,7 @@ Robustness first:
 - [x] Time every `AddOnGuard` call: a call over its budget (pipeline ~50 ms, announcement filters ~10 ms) is logged by add-on id and counted as a failure; a call still running after ~2 s marks the add-on stopped, skips its pending calls and has a watchdog post `TurnOff`, so a hung add-on can't freeze the pipeline or speech thread; unit tests with an injectable clock (spec: extensibility.md)
 - [ ] `AddOnLoadContext.LoadUnmanagedDll`: check a native library's SHA-256 against the manifest and load it from a per-load temp copy, so the add-on's folder isn't locked and `InstallFiles` can replace it; native libraries can't be unloaded, so an add-on with native files reports "update needs a restart"; unit tests (spec: extensibility.md)
 - [ ] Verify unloading: keep a `WeakReference` to each add-on's load context, collect after `Unload` and log "add-on X did not unload" when it survives; a test loads the sample add-on, unloads it and checks the context is collected (spec: extensibility.md)
-- [ ] Add `CancellationToken Stopping` to `IAddOnHost`, cancelled before the add-on is disposed, so its background work stops on disable, remove, update or turn-off; sample add-on uses it; unit tests (spec: extensibility.md)
+- [x] Add `CancellationToken Stopping` to `IAddOnHost`, cancelled before the add-on is disposed, so its background work stops on disable, remove, update or turn-off; sample add-on uses it; unit tests (spec: extensibility.md)
 
 API compatibility:
 

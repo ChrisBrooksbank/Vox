@@ -282,13 +282,14 @@ public sealed class AddOnManager
         {
             guard.Stop();
             _watchdog.Forget(guard);
+            host.Stop();
             TryDispose(code.Instance, guard);
             code.Unload();
             NotLoaded(id, AddOnState.Failed, VoxStrings.Get("AddOns.StartFailed"));
             return;
         }
         host.Seal();
-        var loaded = new Loaded(manifest, folder, code, guard, host.Contributions);
+        var loaded = new Loaded(manifest, folder, code, guard, host);
         lock (_lock) _loaded[id] = loaded;
         Register(loaded);
         _logger.LogInformation("Add-on {AddOn} {Version} loaded", id, manifest.Version);
@@ -424,6 +425,8 @@ public sealed class AddOnManager
         // Out of Vox first, while the add-on still answers (an active module is deactivated, its
         // engine and display closed), then stopped and let go
         Publish();
+        // Its background work is told to stop before its engine, display and the add-on are closed
+        loaded.Host.Stop();
         foreach (var engine in loaded.EngineIds)
             _integration.SpeechEngines?.Remove(engine);
         foreach (var driver in loaded.Drivers)
@@ -748,20 +751,22 @@ public sealed class AddOnManager
 
     private sealed class Loaded
     {
-        public Loaded(AddOnManifest manifest, string folder, ILoadedAddOn code, AddOnGuard guard, AddOnContributions contributions)
+        public Loaded(AddOnManifest manifest, string folder, ILoadedAddOn code, AddOnGuard guard, AddOnHost host)
         {
             Manifest = manifest;
             Folder = folder;
             Code = code;
             Guard = guard;
-            Contributions = contributions;
-            Modules = contributions.AppModules.Select(m => new AddOnAppModule(m, guard)).ToList();
+            Host = host;
+            Contributions = host.Contributions;
+            Modules = Contributions.AppModules.Select(m => new AddOnAppModule(m, guard)).ToList();
         }
 
         public AddOnManifest Manifest { get; }
         public string Folder { get; }
         public ILoadedAddOn Code { get; }
         public AddOnGuard Guard { get; }
+        public AddOnHost Host { get; }
         public AddOnContributions Contributions { get; }
         public List<AddOnAppModule> Modules { get; }
         public List<string> EngineIds { get; } = [];

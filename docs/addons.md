@@ -15,7 +15,7 @@ a minor version only adds; a major version may change or remove.
 | Type | What it is |
 |---|---|
 | `IAddOn` | The entry point: one public class with a parameterless constructor. `Initialize(IAddOnHost)` is called once, on the pipeline thread; implement `IDisposable` to clean up when the add-on is turned off. |
-| `IAddOnHost` | What Vox gives the add-on: `AddCommand`, `AddAppModule`, `AddGlobalPlugin`, `AddAnnouncementFilter`, `AddSpeechEngine`, `AddBrailleDriver` (only during `Initialize`), and `Speech`, `Logger`, `DataDirectory`, `ForegroundProcessName`, `RunOnPipeline` (any time). |
+| `IAddOnHost` | What Vox gives the add-on: `AddCommand`, `AddAppModule`, `AddGlobalPlugin`, `AddAnnouncementFilter`, `AddSpeechEngine`, `AddBrailleDriver` (only during `Initialize`), and `Speech`, `Logger`, `DataDirectory`, `ForegroundProcessName`, `RunOnPipeline`, `Stopping` (any time; `Stopping`, since API 1.1, is cancelled when the add-on is disabled, removed, updated, turned off or Vox closes, before it is disposed — pass it to background work). |
 | `AddOnCommand` | A command with a name and description (said by input help and listed in the add-ons dialog) and `KeyGesture`s (`KeyGesture.Parse("VoxKey+Shift+J")`, with a `GestureMode` of Any, Browse or Focus). |
 | `IAppModule` / `AppModule` | Support for an application, chosen by its process name. Its `Commands` have keys only while it is active; it can change or silence focus announcements (`FormatFocusAnnouncement`), drop events (`ShouldProcess`) and see every handled event (`OnEvent`). An add-on's module comes before Vox's own for the same application; turning it off in the Applications settings (`DisabledAppModules`, by its id) gives the application back to Vox's. |
 | `IGlobalPlugin` / `GlobalPlugin` | Like an app module, for every application, after the active module. |
@@ -156,7 +156,7 @@ Update, and Update all. The catalogue is `catalogue.json` with `catalogue.json.s
 ```json
 { "addons": [ {
   "id": "vox.sample", "name": "Vox sample add-on", "version": "1.0.0", "author": "The Vox project",
-  "minApiVersion": "1.0", "maxApiVersion": "1.0", "description": "…",
+  "minApiVersion": "1.1", "maxApiVersion": "1.1", "description": "…",
   "url": "packages/vox.sample-1.0.0.voxaddon", "sha256": "<sha-256 of the package>"
 } ] }
 ```
