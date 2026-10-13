@@ -53,6 +53,9 @@ coming from [NVDA](guide/nvda.html) and [JAWS](guide/jaws.html). Its source is i
 
 ## For developers and maintainers
 
+- [Technical documentation](technical/README.md): how Vox works inside, with diagrams: the
+  event pipeline and threads, keyboard input, UI Automation, the virtual buffer, speech,
+  braille, settings and policy, extensibility and testing.
 - [Installer and portable copy](installer.md): building `Vox.msi` and the portable zip, and the
   Release workflow.
 - [Signing Vox and UI access](signing.md): why signed builds can read elevated windows.
@@ -66,7 +69,7 @@ coming from [NVDA](guide/nvda.html) and [JAWS](guide/jaws.html). Its source is i
   is reviewed against.
 - [Static review rounds](reviews/README.md): the bug-fix plans from earlier code reviews, kept
   for reference.
-- The architecture is described in [CLAUDE.md](../CLAUDE.md). The roadmap is in
+- The architecture is also summarised on one page in [CLAUDE.md](../CLAUDE.md). The roadmap is in
   [PLAN.md](../PLAN.md) and [COMMERCIAL_PARITY_PLAN.md](../COMMERCIAL_PARITY_PLAN.md).
 
 ## Background

@@ -181,6 +181,7 @@ need:
   [Teams](docs/apps/teams.md), [File Explorer](docs/apps/explorer.md),
   [developer tools, Zoom and Acrobat](docs/apps/developer-tools.md)
 - [Text recognition](docs/ocr.md) and [AI descriptions](docs/ai.md)
+- For developers: the [technical documentation](docs/technical/README.md)
 
 ## Feedback and bug reports
 
@@ -240,7 +241,12 @@ rules:
 
 These pages explain the code:
 
-- [CLAUDE.md](CLAUDE.md): the architecture in depth (event flow, threading, every subsystem).
+- **[Technical documentation](docs/technical/README.md)**: how Vox works inside, with diagrams.
+  It covers the projects and processes, the event pipeline and threads, keyboard input, UI
+  Automation, the virtual buffer, speech, braille, settings and policy, extensibility and
+  testing.
+- [CLAUDE.md](CLAUDE.md): the same architecture as one dense reference page, kept up to date
+  with every change.
 - [docs/README.md](docs/README.md#for-developers-and-maintainers): building the installer,
   signing, updates, add-ons, end-to-end tests, benchmarks, translating, and the security
   checklist.
