@@ -131,8 +131,12 @@ public sealed class AddOnManager
         _logger = (ILogger?)logger ?? NullLogger.Instance;
         _time = time ?? TimeProvider.System;
         _watchdog = new AddOnWatchdog(_time);
+        Unloads = new AddOnUnloadVerifier(_logger, _time);
         _state = ReadState();
     }
+
+    /// <summary>Checks unloaded add-ons' code leaves memory (logs those that don't).</summary>
+    public AddOnUnloadVerifier Unloads { get; }
 
     /// <summary>Where add-ons are installed (null on the secure screens).</summary>
     public string? Directory => _directory;
@@ -403,7 +407,8 @@ public sealed class AddOnManager
 
     // ---- Unloading ----------------------------------------------------------------------------
 
-    private void Unload(string id, bool publish)
+    // verify: check its code leaves memory (not when Vox is closing anyway)
+    private void Unload(string id, bool publish, bool verify = true)
     {
         Loaded? loaded;
         bool labelPack;
@@ -437,8 +442,11 @@ public sealed class AddOnManager
         TryDispose(loaded.Code.Instance, loaded.Guard);
         loaded.Guard.Stop();
         _watchdog.Forget(loaded.Guard);
+        var context = loaded.Code.LoadContext;
         loaded.Code.Unload();
         _logger.LogInformation("Add-on {AddOn} unloaded", id);
+        if (context is not null && verify)
+            Unloads.Track(id, context);
         if (publish)
             Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -458,7 +466,7 @@ public sealed class AddOnManager
         List<string> ids;
         lock (_lock) ids = [.. _loaded.Keys, .. _labelPacks.Keys];
         foreach (var id in ids)
-            Unload(id, publish: false);
+            Unload(id, publish: false, verify: false);
     }
 
     // Posted, never run here: the watchdog calls this from its timer while the add-on may still

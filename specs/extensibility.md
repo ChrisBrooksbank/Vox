@@ -29,7 +29,7 @@ Robustness:
 
 - [x] Every call into an add-on is timed: one over its budget (pipeline thread ~50 ms, announcement filters on the speech thread ~10 ms) is logged by add-on id and counts as a failure; one still running after ~2 s stops the add-on (its pending calls are skipped) and a watchdog turns it off with a notice, so a hung add-on never freezes the pipeline or speech
 - [ ] Native libraries an add-on ships are checked against the manifest's SHA-256 like its assemblies, and loaded from a per-load temporary copy so the add-on's folder is never locked and can be updated; since native code can't be unloaded, an add-on with native files says its update takes effect after a restart
-- [ ] Unloading is verified: an add-on whose load context is still alive after unloading and a collection is logged ("did not unload")
+- [x] Unloading is verified: an add-on whose load context is still alive after unloading and a collection is logged ("did not unload")
 - [x] `IAddOnHost.Stopping` (a `CancellationToken`) is cancelled before an add-on is disposed (disable, remove, update, turn-off, shutdown), so its background work stops
 
 API compatibility:

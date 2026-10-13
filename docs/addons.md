@@ -133,7 +133,11 @@ and removal). `AddOnManager` loads each enabled, compatible add-on in its own **
 never locked and an update can replace them while the old version runs; `Vox.Sdk` and
 `Microsoft.Extensions.Logging.Abstractions` always resolve to Vox's own copies. Disabling, removing
 or updating an add-on takes everything it added back out of Vox (keys, modules, plug-ins, filters,
-its engine and display), disposes it, and unloads its context, without restarting Vox.
+its engine and display), cancels its `Stopping` token, disposes it, and unloads its context,
+without restarting Vox. Two seconds later Vox checks the context was collected and logs "add-on
+<id> did not unload" when something still refers to the add-on's code (a thread it started, a
+timer it never stopped, an event it subscribed to and never left): it then stays in memory,
+doing nothing, until Vox restarts. Stop your work when `Stopping` is cancelled to avoid that.
 
 **Safe mode.** `Vox.App --safe` (or the Vox menu's "Restart with add-ons disabled") starts Vox
 with no add-on loaded; they can still be turned off or removed, to get rid of the one causing

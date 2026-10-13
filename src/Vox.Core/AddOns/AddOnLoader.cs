@@ -12,6 +12,9 @@ public interface ILoadedAddOn
 
     /// <summary>Lets the add-on's code go (its load context is unloaded once nothing refers to it).</summary>
     void Unload();
+
+    /// <summary>The add-on's load context, weakly held, to check it is collected after <see cref="Unload"/>; null when there is none.</summary>
+    WeakReference? LoadContext => null;
 }
 
 /// <summary>Loads an installed add-on's code (tests use a fake that hands out objects).</summary>
@@ -69,6 +72,8 @@ public sealed class AssemblyAddOnLoader : IAddOnLoader
     {
         private IAddOn? _instance = instance;
         private AddOnLoadContext? _context = context;
+
+        public WeakReference LoadContext { get; } = new(context);
 
         public IAddOn Instance => _instance ?? throw new ObjectDisposedException("add-on");
 
