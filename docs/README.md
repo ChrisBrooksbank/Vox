@@ -10,6 +10,9 @@ coming from [NVDA](guide/nvda.html) and [JAWS](guide/jaws.html). Its source is i
 
 ## Using Vox
 
+- [Which screen reader should you use?](choosing-a-screen-reader.md): JAWS, NVDA, Narrator, the
+  magnifier suites and Vox compared, what users wish their screen reader did, and whether to
+  switch.
 - [Installing Vox](install.md): download, install, first start, updating, uninstalling and the
   portable copy, with the keys for every step.
 - [Your own keys](keymap.md): change or remove any of Vox's key bindings.
