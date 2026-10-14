@@ -173,6 +173,8 @@ All the guides are listed in the **[documentation index](docs/README.md)**. The 
 need:
 
 - [Installing Vox](docs/install.md)
+- [Which screen reader should you use?](docs/choosing-a-screen-reader.md): Vox compared with
+  JAWS, NVDA and Narrator, honestly
 - The user guide, in the Vox menu (**Insert+N**, User guide). Its source is [docs/guide](docs/guide/index.html)
 - [Changing your keys](docs/keymap.md) and [configuration profiles](docs/profiles.md)
 - [Braille displays](docs/braille.md)
