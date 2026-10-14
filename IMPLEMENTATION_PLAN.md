@@ -2,9 +2,9 @@
 
 ## Status
 
-- Planning iterations: 4
+- Planning iterations: 5
 - Build iterations: 234
-- Last updated: 2026-10-13
+- Last updated: 2026-10-14
 
 ## Tasks
 
@@ -391,6 +391,54 @@ Isolation (longer term):
 
 - [ ] Document in `docs/security.md` and `docs/enterprise.md` that add-ons run in-process with full rights and bypass `NetworkGate`; add a Group Policy allowing only signed or catalogue add-ons (`AddOnTrust.Signed`/`Catalogue`), enforced by `AddOnManager` at install and load; unit tests (spec: extensibility.md)
 - [ ] Design (in `docs/addons.md`) out-of-process hosting for add-on speech engines and braille drivers over a local channel, keeping app modules in-process for latency (spec: extensibility.md)
+
+### Milestone G — "What users ask for"
+
+From the community research behind `docs/choosing-a-screen-reader.md`: features users of JAWS, NVDA and Narrator keep asking for that Vox doesn't have yet. Prerequisite outside the checklist: a touch-screen Windows 11 device for the touch tasks, and a low-vision tester for the magnifier.
+
+#### Speech on demand (spec: community-requests.md)
+
+- [ ] Add `Utterance.OnDemand` and a speech-on-demand gate in `SpeechQueue` beside `IsMuted` that drops every utterance not marked on demand; mark reporting commands in `CommandCatalog` (time, title, current line/word/character, focus, read window, Say All, status bar, navigator object, selection, page summary) and have their speech carry the mark; a test that every command has a decision; unit tests (spec: community-requests.md)
+- [ ] Add the `ToggleSpeechOnDemand` command with a key in the desktop, laptop and JAWS layouts, a Vox menu item, a `SpeechOnDemand` setting that profiles can set (so it can turn on in Teams or Zoom), a cue and spoken state on change; braille unchanged; keyboard reference and guide updated; unit tests (spec: community-requests.md)
+
+#### Screen curtain (spec: community-requests.md)
+
+- [ ] Add a screen curtain (`IScreenCurtain`, `WindowsScreenCurtain` over `MagSetFullscreenColorEffect` with a black matrix): toggle key, Vox menu item, optional at start-up with a spoken warning, removed on exit and by Vox.Watchdog after a crash; unit tests over a fake (spec: community-requests.md)
+
+#### Magnifier (spec: community-requests.md)
+
+- [ ] Add `MagnifierViewport` (pure: zoom 1×–16×, centre on a rectangle, clamp to the virtual screen across monitors, pan) and `IMagnifier` with `WindowsFullScreenMagnifier` over `MagInitialize`/`MagSetFullscreenTransform` on its own thread; refuse to start while Windows Magnifier runs; unit tests for the viewport (spec: community-requests.md)
+- [ ] Add magnifier tracking: follow focus, caret, browse cursor element (`BrowseDocumentTracker.ElementBoundsAsync`), review cursor and mouse, each with a setting, keyboard moves winning over the mouse for a short time, smooth or instant; unit tests over fakes and an injectable clock (spec: community-requests.md)
+- [ ] Add magnifier colour filters (inverted, greyscale, inverted greyscale, yellow on black) through `MagSetFullscreenColorEffect`; the screen curtain wins over the magnifier and says so; unit tests over a fake (spec: community-requests.md)
+- [ ] Add magnifier commands and keys (on/off, zoom in/out, next filter, pan), a Magnifier settings page, profile settings and a `DisableMagnifier` policy; not in secure mode; `CommandCatalog` entries; unit tests (spec: community-requests.md)
+- [ ] Add docked and lens views in a magnifier window (Magnification control), moved and resized from the keyboard; unit tests for layout (spec: community-requests.md)
+- [ ] Offer the magnifier in the first-run wizard and add `docs/magnifier.md` and a guide page (spec: community-requests.md)
+
+#### Meetings and the clipboard (spec: community-requests.md)
+
+- [ ] Add a `ToggleMicrophone` command: in Teams and Zoom press the app's mute button through `IWindowButtonSource`, in Teams or Google Meet in a browser the page's mute button through the buffer, else toggle the default capture device's mute through Core Audio (`IAudioEndpointVolume`, behind an interface); say the new state; unit tests over fakes (spec: community-requests.md)
+- [ ] Add clipboard announcements: after Ctrl+X/C/V (passed through) in text fields, browse mode and Explorer, when the clipboard sequence number changed, say "cut", "copied" or "pasted" with a few words or a file count; `ClipboardAnnouncements` setting; never a password field's text; unit tests (spec: community-requests.md)
+
+#### Web markup (spec: community-requests.md)
+
+- [ ] Read definition lists (`dl`/`dt`/`dd`, role term/definition) as lists of terms and definitions in the buffer, with `L`/`I` quick navigation and list announcements; add a test page to `tests/pages/`; unit tests (spec: community-requests.md)
+- [ ] Support `aria-controls` beyond combo boxes: say "controls" on focus at Intermediate verbosity and add a command to move the browse cursor to the controlled element; unit tests (spec: community-requests.md)
+- [ ] Don't read a dialog's content twice when it opens (merge the focus announcement with the overlay announcement when the description repeats it); test page and unit tests (spec: community-requests.md)
+
+#### AI guidance (spec: community-requests.md)
+
+- [ ] Add "Guide me": a prompt for a task on the current page, answered as short numbered steps naming elements by text and role (never colour or position) with an uncertainty note, each step offering to move the browse cursor to its element (`BrowseModeController.GoToElement`), the prompt telling the model Vox's keys and the browser; local first, cloud with consent; unit tests over a fake describer (spec: community-requests.md)
+
+#### Firefox through IAccessible2 (spec: community-requests.md; docs/firefox.md)
+
+- [ ] Add `Vox.NativeHelper` (C++/CLI) with the IA2 proxy/stub and a COM-free snapshot of a Firefox document's IA2 tree (roles, `xml-roles`, `level`, ARIA states, relations, text attributes); build in CI (spec: community-requests.md)
+- [ ] Add an `IVBufferElement` provider over the IA2 snapshot, chosen for documents in a Firefox window, so landmarks, ARIA states, visited links, described-by/error-message and `lang` work as in Chromium; update `docs/firefox.md`; unit tests over a fake snapshot (spec: community-requests.md)
+- [ ] Post Firefox IA2 live-region and text-attribute events to the pipeline like UIA's; unit tests (spec: community-requests.md)
+
+#### Touch (spec: community-requests.md)
+
+- [ ] Design touch support in `docs/technical/` (touch input capture with UI access, explore by touch, gestures, a touch keymap in the keymap format, interaction with the magnifier) (spec: community-requests.md)
+- [ ] Implement touch exploration and gestures per the design: explore, double-tap to activate, flicks for objects and browse-mode headings/links/form fields, two-finger tap to stop speech; unit tests over a fake touch source (spec: community-requests.md)
 
 ## Completed
 
