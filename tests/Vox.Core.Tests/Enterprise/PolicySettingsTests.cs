@@ -52,6 +52,21 @@ public class PolicySettingsTests
     }
 
     [Fact]
+    public void DisableMagnifier_TurnsOnlyTheMagnifierOff()
+    {
+        var policy = PolicySettings.Read(new FakeRegistry().User(PolicySettings.DisableMagnifierValue, 1));
+        var run = policy.Restrict(RunPolicy.Normal);
+
+        Assert.True(policy.DisableMagnifier);
+        Assert.False(policy.IsEmpty);
+        Assert.Contains("magnifier off", policy.Describe());
+        Assert.False(run.AllowMagnifier);
+        Assert.True(run.AllowAi);
+        Assert.True(RunPolicy.Normal.AllowMagnifier);
+        Assert.False(RunPolicy.Secure.AllowMagnifier);
+    }
+
+    [Fact]
     public void Restrict_NeverLoosensTheSecureScreens()
     {
         var run = PolicySettings.Read(new FakeRegistry().Machine(PolicySettings.DisableNetworkValue, 0)).Restrict(RunPolicy.Secure);

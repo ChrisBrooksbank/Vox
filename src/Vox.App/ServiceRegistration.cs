@@ -260,6 +260,24 @@ public static class ServiceRegistration
         services.AddSingleton<MouseTracker>(sp => ActivatorUtilities.CreateInstance<MouseTracker>(sp,
             new Action<VoxSettings>(sp.GetRequiredService<SettingsMonitor>().UpdateSettings)));
         services.AddSingleton<IStartupRegistration, RunKeyStartupRegistration>();
+        // The magnifier: the Magnification API on its own thread; never on secure screens or with
+        // the DisableMagnifier policy (the controller says so)
+        services.AddSingleton<Vox.Core.Magnifier.IMagnifier>(sp =>
+            new Vox.Core.Magnifier.WindowsMagnifier(sp.GetRequiredService<ILogger<Vox.Core.Magnifier.WindowsMagnifier>>()));
+        services.AddSingleton<Vox.Core.Magnifier.IDisplayLayout, Vox.Core.Magnifier.WindowsDisplayLayout>();
+        services.AddSingleton<Vox.Core.Magnifier.MagnifierController>(sp =>
+        {
+            var queue = sp.GetRequiredService<SpeechQueue>();
+            return new Vox.Core.Magnifier.MagnifierController(
+                sp.GetRequiredService<Vox.Core.Magnifier.IMagnifier>(),
+                sp.GetRequiredService<Vox.Core.Magnifier.IDisplayLayout>(),
+                sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+                sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+                text => queue.Enqueue(new Utterance(text, SpeechPriority.Interrupt)),
+                sp.GetRequiredService<ILogger<Vox.Core.Magnifier.MagnifierController>>(),
+                sp.GetService<RunPolicy>() ?? RunPolicy.Normal,
+                sp.GetRequiredService<IAudioCuePlayer>());
+        });
         // Remote Desktop / Citrix: said at startup; some audio settings are off remotely
         services.AddSingleton<IRemoteSessionProbe, Win32RemoteSessionProbe>();
         services.AddSingleton<RemoteSessionMonitor>();
@@ -331,7 +349,9 @@ public static class ServiceRegistration
                 // NVDA's or JAWS's settings are offered when found (never on secure screens)
                 policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? sp.GetRequiredService<SettingsImportCommands>() : null,
                 // ... and trial mode when NVDA or Narrator is running
-                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? sp.GetRequiredService<Vox.Core.Trial.TrialMode>() : null);
+                policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? sp.GetRequiredService<Vox.Core.Trial.TrialMode>() : null,
+                // ... and the magnifier, where it may be used
+                policy.AllowMagnifier ? sp.GetRequiredService<Vox.Core.Magnifier.MagnifierController>() : null);
         });
         // Trial mode: NVDA or Narrator stopped while Vox is tried, back with one key; none on secure screens
         services.AddSingleton<Vox.Core.Trial.IScreenReaderControl>(sp =>
@@ -733,8 +753,10 @@ public static class ServiceRegistration
                 : _ => new ComputerBrailleTranslator()));
 
         // Hosted services: ScreenReaderService first, so its pipeline handlers run before braille's
+        // and the magnifier's (the browse cursor has moved by then)
         services.AddHostedService<ScreenReaderService>();
         services.AddHostedService<BrailleService>();
+        services.AddHostedService<MagnifierService>();
     }
 
     /// <summary>The key <paramref name="command"/> is on in the dispatcher's keymap ("Insert+F11"), or the command's name.</summary>

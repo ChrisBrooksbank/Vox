@@ -194,6 +194,21 @@ public sealed class UIATextRange : ITextRange
         return (new UIATextRange(clone, _automation), moved);
     }
 
+    public Ocr.ScreenRect? GetBounds()
+    {
+        var range = Native;
+        if (IsDegenerate)
+        {
+            range = Native.Clone();
+            range.ExpandToEnclosingUnit(Interop.UIAutomationClient.TextUnit.TextUnit_Character);
+        }
+        // Left, top, width, height for each line the range is on: the first line's is where it starts
+        if (range.GetBoundingRectangles() is not double[] { Length: >= 4 } rects)
+            return null;
+        var rect = new Ocr.ScreenRect((int)rects[0], (int)rects[1], (int)Math.Ceiling(rects[2]), (int)Math.Ceiling(rects[3]));
+        return rect.IsEmpty ? null : rect;
+    }
+
     public bool Select()
     {
         Native.Select();

@@ -177,6 +177,18 @@
     { "modifiers": "Insert|Shift", "vkCode": 83, "mode": "Any",    "command": "ToggleSleepMode" },
     { "modifiers": "Insert",      "vkCode": 81,  "mode": "Any",    "command": "Quit" },
     { "modifiers": "Insert|Ctrl", "vkCode": 83,  "mode": "Any",    "command": "RunSetup" },
-    { "modifiers": "Insert|Ctrl", "vkCode": 115, "mode": "Any",    "command": "ReturnToScreenReader" }
+    { "modifiers": "Insert|Ctrl", "vkCode": 115, "mode": "Any",    "command": "ReturnToScreenReader" },
+    { "modifiers": "Insert|Alt",  "vkCode": 90,  "mode": "Any",    "command": "ToggleMagnifier" },
+    { "modifiers": "Insert|Alt",  "vkCode": 187, "mode": "Any",    "command": "MagnifierZoomIn" },
+    { "modifiers": "Insert|Alt",  "vkCode": 189, "mode": "Any",    "command": "MagnifierZoomOut" },
+    { "modifiers": "Insert|Alt",  "vkCode": 70,  "mode": "Any",    "command": "MagnifierNextFilter" },
+    { "modifiers": "Insert|Alt|Shift", "vkCode": 90,  "mode": "Any", "command": "MagnifierNextView" },
+    { "modifiers": "Insert|Alt|Shift", "vkCode": 68,  "mode": "Any", "command": "MagnifierMoveView" },
+    { "modifiers": "Insert|Alt|Shift", "vkCode": 187, "mode": "Any", "command": "MagnifierViewLarger" },
+    { "modifiers": "Insert|Alt|Shift", "vkCode": 189, "mode": "Any", "command": "MagnifierViewSmaller" },
+    { "modifiers": "Insert|Alt|Shift", "vkCode": 37,  "mode": "Any", "command": "MagnifierPanLeft" },
+    { "modifiers": "Insert|Alt|Shift", "vkCode": 39,  "mode": "Any", "command": "MagnifierPanRight" },
+    { "modifiers": "Insert|Alt|Shift", "vkCode": 38,  "mode": "Any", "command": "MagnifierPanUp" },
+    { "modifiers": "Insert|Alt|Shift", "vkCode": 40,  "mode": "Any", "command": "MagnifierPanDown" }
   ]
 }

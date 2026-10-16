@@ -20,6 +20,8 @@
       <string id="DisableAddOns_Help">When enabled, Vox loads no optional components or add-ons (eSpeak NG, MathCAT, liblouis).</string>
       <string id="DisableAI">Turn off AI features</string>
       <string id="DisableAI_Help">When enabled, Vox offers no AI features (image descriptions, explanations), local or online.</string>
+      <string id="DisableMagnifier">Turn off the magnifier</string>
+      <string id="DisableMagnifier_Help">When enabled, Vox's magnifier can't be turned on (Windows Magnifier is not affected).</string>
       <string id="StartAtLogon">Start Vox at sign-in</string>
       <string id="StartAtLogon_Help">Enabled: Vox starts when users sign in, and they can't turn it off. Disabled: it never does.</string>
       <string id="LockSettings">Lock all settings</string>

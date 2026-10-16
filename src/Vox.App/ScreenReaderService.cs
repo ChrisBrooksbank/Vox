@@ -72,6 +72,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SiteSettingsCommands _siteSettingsCommands;
     private readonly Vox.Core.Labels.AutomaticLabeler? _automaticLabels;
     private readonly Vox.Core.Trial.TrialMode? _trial;
+    private readonly Vox.Core.Magnifier.MagnifierController? _magnifier;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -164,8 +165,10 @@ public sealed class ScreenReaderService : IHostedService
         RunPolicy? runPolicy = null,
         RemoteSessionMonitor? remoteSessions = null,
         Vox.Core.Labels.AutomaticLabeler? automaticLabels = null,
-        Vox.Core.Trial.TrialMode? trial = null)
+        Vox.Core.Trial.TrialMode? trial = null,
+        Vox.Core.Magnifier.MagnifierController? magnifier = null)
     {
+        _magnifier = magnifier;
         _trial = trial;
         _automaticLabels = automaticLabels;
         _addOns = addOns;
@@ -237,6 +240,10 @@ public sealed class ScreenReaderService : IHostedService
 
         // Install the low-level keyboard hook (needed before wizard for key input)
         bool hookInstalled = TryInstallKeyboardHook();
+
+        // The wizard's magnifier question names the key that turns it on and off
+        if (_magnifier is not null)
+            _magnifier.ToggleKeyName = () => KeyNameFor(NavigationCommand.ToggleMagnifier) ?? string.Empty;
 
         // Trial mode (--trial): the other screen reader stops before Vox starts talking
         if (_trial is not null)
@@ -671,7 +678,8 @@ public sealed class ScreenReaderService : IHostedService
             && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command)
             && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command)
             && !_importCommands.TryHandle(e.Command) && !_labelCommands.TryHandle(e.Command)
-            && !_siteSettingsCommands.TryHandle(e.Command) && !(_trial?.TryHandle(e.Command) ?? false))
+            && !_siteSettingsCommands.TryHandle(e.Command) && !(_trial?.TryHandle(e.Command) ?? false)
+            && !(_magnifier?.TryHandle(e.Command) ?? false))
             _browseModeController.HandleCommand(e.Command);
     }
 

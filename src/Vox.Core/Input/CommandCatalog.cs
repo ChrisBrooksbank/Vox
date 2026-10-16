@@ -13,6 +13,7 @@ public enum CommandCategory
     ObjectNavigation,
     Review,
     Mouse,
+    Magnifier,
     Speech,
     Braille,
     /// <summary>Commands of one application's module (Word, Excel, ...), only while it is in the foreground.</summary>
@@ -123,6 +124,11 @@ public static class CommandCatalog
         Add(CommandCategory.Mouse,
             NavigationCommand.ToggleMouseTracking, NavigationCommand.RouteMouseToNavigator,
             NavigationCommand.MouseLeftClick, NavigationCommand.MouseRightClick, NavigationCommand.ToggleLeftMouseLock);
+        Add(CommandCategory.Magnifier,
+            NavigationCommand.ToggleMagnifier, NavigationCommand.MagnifierZoomIn, NavigationCommand.MagnifierZoomOut,
+            NavigationCommand.MagnifierNextFilter, NavigationCommand.MagnifierNextView, NavigationCommand.MagnifierMoveView,
+            NavigationCommand.MagnifierViewLarger, NavigationCommand.MagnifierViewSmaller, NavigationCommand.MagnifierPanLeft,
+            NavigationCommand.MagnifierPanRight, NavigationCommand.MagnifierPanUp, NavigationCommand.MagnifierPanDown);
         Add(CommandCategory.Speech,
             NavigationCommand.StopSpeech, NavigationCommand.SettingsRingPrevious, NavigationCommand.SettingsRingNext,
             NavigationCommand.SettingsRingIncrease, NavigationCommand.SettingsRingDecrease,

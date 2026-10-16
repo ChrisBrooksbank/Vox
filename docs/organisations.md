@@ -49,7 +49,7 @@ the pilot: trial mode stops it while Vox is tried and brings it back with one ke
    from them and can change them ([How settings are layered](enterprise.md#how-settings-are-layered)).
 4. **Apply Group Policy** with `installer/policy/Vox.admx` and `Vox.adml`
    ([Group Policy](enterprise.md#group-policy)): decide on `DisableNetwork`, `DisableUpdates` or
-   `UpdateChannel`, `DisableAddOns`, `DisableAI`, `StartAtLogon`, `LockSettings` and
+   `UpdateChannel`, `DisableAddOns`, `DisableAI`, `DisableMagnifier`, `StartAtLogon`, `LockSettings` and
    `SettingsLocation` (Local for shared or kiosk computers), and enforce individual settings under
    `Software\Policies\Vox\Settings`. AI deserves a decision of its own: what may be sent to a cloud
    provider is set by `AiCloudConsent`, and `AiPrivateApps` and `AiPrivateSites` list applications

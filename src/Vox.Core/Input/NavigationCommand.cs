@@ -326,5 +326,31 @@ public enum NavigationCommand
 
     // Safe trial
     /// <summary>Trial mode: quits Vox and starts the screen reader it stepped in for (NVDA, or Narrator) again.</summary>
-    ReturnToScreenReader
+    ReturnToScreenReader,
+
+    // Magnifier
+    /// <summary>Turns the magnifier on or off.</summary>
+    ToggleMagnifier,
+    /// <summary>Magnifies more (turns the magnifier on when it is off).</summary>
+    MagnifierZoomIn,
+    /// <summary>Magnifies less.</summary>
+    MagnifierZoomOut,
+    /// <summary>Switches to the next colour filter: inverted, greyscale, inverted greyscale, yellow on black, none.</summary>
+    MagnifierNextFilter,
+    /// <summary>Switches to the next view: full screen, docked, lens.</summary>
+    MagnifierNextView,
+    /// <summary>Moves the docked view to the next edge of the screen.</summary>
+    MagnifierMoveView,
+    /// <summary>Makes the docked view or the lens larger.</summary>
+    MagnifierViewLarger,
+    /// <summary>Makes the docked view or the lens smaller.</summary>
+    MagnifierViewSmaller,
+    /// <summary>Moves the magnified view left.</summary>
+    MagnifierPanLeft,
+    /// <summary>Moves the magnified view right.</summary>
+    MagnifierPanRight,
+    /// <summary>Moves the magnified view up.</summary>
+    MagnifierPanUp,
+    /// <summary>Moves the magnified view down.</summary>
+    MagnifierPanDown
 }

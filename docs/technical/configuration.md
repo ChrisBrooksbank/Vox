@@ -86,9 +86,9 @@ write settings or touch the user profile.
 
 | Mode | What it does |
 | --- | --- |
-| Secure (`--secure`) | Never writes settings or touches the user profile, the network, add-ons or AI. No user keymap, dictionaries or labels. |
+| Secure (`--secure`) | Never writes settings or touches the user profile, the network, add-ons or AI. No user keymap, dictionaries or labels. No magnifier. |
 | Safe (`--safe`) | Loads no add-ons. `RestartRequest` restarts into or out of it, through exit codes under the watchdog. |
-| Normal | Everything, unless Group Policy turns it off (`DisableNetwork`, `DisableAddOns`, `DisableAI`). |
+| Normal | Everything, unless Group Policy turns it off (`DisableNetwork`, `DisableAddOns`, `DisableAI`, `DisableMagnifier`). |
 
 Never log typed text or field values; `SensitiveTextLoggingTests` checks this.
 

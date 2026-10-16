@@ -61,6 +61,13 @@
       <enabledValue><decimal value="1" /></enabledValue>
       <disabledValue><decimal value="0" /></disabledValue>
     </policy>
+    <policy name="DisableMagnifier" class="Both" displayName="$(string.DisableMagnifier)" explainText="$(string.DisableMagnifier_Help)"
+            key="Software\Policies\Vox" valueName="DisableMagnifier">
+      <parentCategory ref="Vox" />
+      <supportedOn ref="SUPPORTED_Vox" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
     <policy name="StartAtLogon" class="Both" displayName="$(string.StartAtLogon)" explainText="$(string.StartAtLogon_Help)"
             key="Software\Policies\Vox" valueName="StartAtLogon">
       <parentCategory ref="Vox" />

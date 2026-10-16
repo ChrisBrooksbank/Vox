@@ -36,6 +36,7 @@ public sealed class UIAProvider : IDisposable
     internal const int UIA_AcceleratorKeyPropertyId = 30006;
     internal const int UIA_AutomationIdPropertyId = 30011;
     internal const int UIA_AccessKeyPropertyId = 30007;
+    internal const int UIA_BoundingRectanglePropertyId = 30001;
     internal const int UIA_PositionInSetPropertyId = 30152;
     internal const int UIA_SizeOfSetPropertyId = 30153;
     internal const int UIA_LevelPropertyId = 30154;
@@ -120,6 +121,8 @@ public sealed class UIAProvider : IDisposable
             _cacheRequest.AddProperty(UIA_LevelPropertyId);
             _cacheRequest.AddProperty(UIA_AcceleratorKeyPropertyId);
             _cacheRequest.AddProperty(UIA_AccessKeyPropertyId);
+            // Where the focus is, for the magnifier
+            _cacheRequest.AddProperty(UIA_BoundingRectanglePropertyId);
             AddStateProperties(_cacheRequest);
 
             _subtreeCacheRequest = CreateSubtreeRequest(_automation);

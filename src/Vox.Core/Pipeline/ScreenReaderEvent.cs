@@ -36,7 +36,9 @@ public record FocusChangedEvent(
     string? Current = null,
     string? Sort = null,
     string? RoleDescription = null,
-    bool HasDetails = false
+    bool HasDetails = false,
+    // Where the object is on screen (null: not known), for the magnifier to follow
+    Ocr.ScreenRect? Bounds = null
 ) : ScreenReaderEvent(Timestamp);
 
 public record NavigationEvent(

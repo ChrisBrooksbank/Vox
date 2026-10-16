@@ -17,7 +17,7 @@ public enum SettingsLocation
 /// What the organization's Group Policy says (<c>Software\Policies\Vox</c> in HKLM, then HKCU;
 /// the computer's policy wins over the user's). Set with the ADMX templates in installer/policy
 /// (docs/enterprise.md). Policies override settings and lock them, so the settings dialog shows
-/// them as set by the organization, and switch whole capabilities off (network, add-ons, AI)
+/// them as set by the organization, and switch whole capabilities off (network, add-ons, AI, the magnifier)
 /// through <see cref="RunPolicy"/>. Read once at startup.
 /// </summary>
 public sealed class PolicySettings
@@ -32,6 +32,7 @@ public sealed class PolicySettings
     public const string UpdateChannelValue = "UpdateChannel";
     public const string DisableAddOnsValue = "DisableAddOns";
     public const string DisableAiValue = "DisableAI";
+    public const string DisableMagnifierValue = "DisableMagnifier";
     public const string StartAtLogonValue = "StartAtLogon";
     public const string LockSettingsValue = "LockSettings";
     public const string SettingsLocationValue = "SettingsLocation";
@@ -40,7 +41,7 @@ public sealed class PolicySettings
     public static readonly IReadOnlyList<string> ValueNames =
     [
         DisableNetworkValue, DisableUpdatesValue, UpdateChannelValue, DisableAddOnsValue, DisableAiValue,
-        StartAtLogonValue, LockSettingsValue, SettingsLocationValue,
+        DisableMagnifierValue, StartAtLogonValue, LockSettingsValue, SettingsLocationValue,
     ];
 
     /// <summary>No policy set.</summary>
@@ -49,8 +50,9 @@ public sealed class PolicySettings
     private readonly IReadOnlyDictionary<string, object?> _enforced;
 
     private PolicySettings(IReadOnlyDictionary<string, object?> enforced, bool disableNetwork, bool disableAddOns,
-        bool disableAi, bool lockAll, SettingsLocation? location, IReadOnlyList<string> problems)
+        bool disableAi, bool lockAll, SettingsLocation? location, IReadOnlyList<string> problems, bool disableMagnifier = false)
     {
+        DisableMagnifier = disableMagnifier;
         _enforced = enforced;
         DisableNetwork = disableNetwork;
         DisableAddOns = disableAddOns;
@@ -69,6 +71,9 @@ public sealed class PolicySettings
     /// <summary>No AI features (image descriptions, explanations), local or not.</summary>
     public bool DisableAi { get; }
 
+    /// <summary>No magnifier: its keys, settings and wizard step say it is off.</summary>
+    public bool DisableMagnifier { get; }
+
     /// <summary>People can't change any setting.</summary>
     public bool LockAllSettings { get; }
 
@@ -82,7 +87,7 @@ public sealed class PolicySettings
     public IReadOnlyDictionary<string, object?> EnforcedSettings => _enforced;
 
     /// <summary>True when no policy is set.</summary>
-    public bool IsEmpty => _enforced.Count == 0 && !DisableNetwork && !DisableAddOns && !DisableAi && !LockAllSettings && SettingsLocation is null;
+    public bool IsEmpty => _enforced.Count == 0 && !DisableNetwork && !DisableAddOns && !DisableAi && !DisableMagnifier && !LockAllSettings && SettingsLocation is null;
 
     /// <summary>Whether people may not change <paramref name="settingName"/>.</summary>
     public bool IsLocked(string settingName) =>
@@ -117,6 +122,7 @@ public sealed class PolicySettings
         NetworkOffByPolicy = policy.NetworkOffByPolicy || DisableNetwork,
         AddOnsOffByPolicy = policy.AddOnsOffByPolicy || DisableAddOns,
         AiOffByPolicy = policy.AiOffByPolicy || DisableAi,
+        MagnifierOffByPolicy = policy.MagnifierOffByPolicy || DisableMagnifier,
     };
 
     /// <summary>One line for the log.</summary>
@@ -128,6 +134,7 @@ public sealed class PolicySettings
         if (DisableNetwork) parts.Add("network off");
         if (DisableAddOns) parts.Add("add-ons off");
         if (DisableAi) parts.Add("AI off");
+        if (DisableMagnifier) parts.Add("magnifier off");
         if (LockAllSettings) parts.Add("all settings locked");
         if (SettingsLocation is { } location) parts.Add($"settings kept {location.ToString().ToLowerInvariant()}");
         if (_enforced.Count > 0)
@@ -173,7 +180,8 @@ public sealed class PolicySettings
         }
 
         return new PolicySettings(enforced, disableNetwork, Flag(values, DisableAddOnsValue, problems),
-            Flag(values, DisableAiValue, problems), Flag(values, LockSettingsValue, problems), location, problems);
+            Flag(values, DisableAiValue, problems), Flag(values, LockSettingsValue, problems), location, problems,
+            Flag(values, DisableMagnifierValue, problems));
     }
 
     private static Dictionary<string, object> Merge(IRegistryReader registry, string key, bool includeUser)

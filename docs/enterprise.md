@@ -52,6 +52,7 @@ Store) and `installer/policy/en-US/Vox.adml` to its `en-US` folder. The policies
 | Update channel | `UpdateChannel` = Stable/Beta/Off | Forced; users can't change it |
 | Turn off optional components and add-ons | `DisableAddOns` = 1 | eSpeak NG, MathCAT and liblouis aren't loaded; no add-on is loaded, installed or offered by the store ([Add-ons](addons.md)) |
 | Turn off AI features | `DisableAI` = 1 | No image descriptions or explanations |
+| Turn off the magnifier | `DisableMagnifier` = 1 | Vox's magnifier can't be turned on; its keys say so ([Magnifier](magnifier.md)). Windows Magnifier is not affected |
 | Start Vox at sign-in | `StartAtLogon` = 1/0 | Forced on or off |
 | Lock all settings | `LockSettings` = 1 | No setting can be changed; the settings dialog shows them as set by the organization |
 | Where user settings are kept | `SettingsLocation` = Roaming/Local | See below |

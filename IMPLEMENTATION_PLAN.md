@@ -3,8 +3,8 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 234
-- Last updated: 2026-10-14
+- Build iterations: 240
+- Last updated: 2026-10-16
 
 ## Tasks
 
@@ -407,12 +407,12 @@ From the community research behind `docs/choosing-a-screen-reader.md`: features 
 
 #### Magnifier (spec: community-requests.md)
 
-- [ ] Add `MagnifierViewport` (pure: zoom 1×–16×, centre on a rectangle, clamp to the virtual screen across monitors, pan) and `IMagnifier` with `WindowsFullScreenMagnifier` over `MagInitialize`/`MagSetFullscreenTransform` on its own thread; refuse to start while Windows Magnifier runs; unit tests for the viewport (spec: community-requests.md)
-- [ ] Add magnifier tracking: follow focus, caret, browse cursor element (`BrowseDocumentTracker.ElementBoundsAsync`), review cursor and mouse, each with a setting, keyboard moves winning over the mouse for a short time, smooth or instant; unit tests over fakes and an injectable clock (spec: community-requests.md)
-- [ ] Add magnifier colour filters (inverted, greyscale, inverted greyscale, yellow on black) through `MagSetFullscreenColorEffect`; the screen curtain wins over the magnifier and says so; unit tests over a fake (spec: community-requests.md)
-- [ ] Add magnifier commands and keys (on/off, zoom in/out, next filter, pan), a Magnifier settings page, profile settings and a `DisableMagnifier` policy; not in secure mode; `CommandCatalog` entries; unit tests (spec: community-requests.md)
-- [ ] Add docked and lens views in a magnifier window (Magnification control), moved and resized from the keyboard; unit tests for layout (spec: community-requests.md)
-- [ ] Offer the magnifier in the first-run wizard and add `docs/magnifier.md` and a guide page (spec: community-requests.md)
+- [x] Add `MagnifierViewport` (pure: zoom 1×–16×, centre on a rectangle, clamp to the virtual screen across monitors, pan) and `IMagnifier` with `WindowsMagnifier` over `MagInitialize`/`MagSetFullscreenTransform` on its own thread; refuse to start while Windows Magnifier runs; unit tests for the viewport (spec: community-requests.md)
+- [x] Add magnifier tracking: follow focus, caret, browse cursor element (`BrowseDocumentTracker.ElementBoundsAsync`), review cursor and mouse, each with a setting, keyboard moves winning over the mouse for a short time, smooth or instant; unit tests over fakes and an injectable clock (spec: community-requests.md)
+- [x] Add magnifier colour filters (inverted, greyscale, inverted greyscale, yellow on black) through `MagSetFullscreenColorEffect`; the screen curtain wins over the magnifier and says so; unit tests over a fake (spec: community-requests.md)
+- [x] Add magnifier commands and keys (on/off, zoom in/out, next filter, pan), a Magnifier settings page, profile settings and a `DisableMagnifier` policy; not in secure mode; `CommandCatalog` entries; unit tests (spec: community-requests.md)
+- [x] Add docked and lens views in a magnifier window (Magnification control), moved and resized from the keyboard; unit tests for layout (spec: community-requests.md)
+- [x] Offer the magnifier in the first-run wizard and add `docs/magnifier.md` and a guide page (spec: community-requests.md)
 
 #### Meetings and the clipboard (spec: community-requests.md)
 

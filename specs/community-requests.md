@@ -34,12 +34,12 @@ AI guidance through tasks, and touch. Follows Milestone F (Milestone G).
 
 ### Magnifier
 
-- [ ] Full-screen magnification through the Windows Magnification API (`MagSetFullscreenTransform`), 1× to 16×, in steps; pure viewport maths (`MagnifierViewport`: zoom, offsets, clamping to the virtual screen, multiple monitors) unit-tested
-- [ ] Tracking: the view follows the focus, the caret, the browse cursor's element, the review cursor and the mouse, with a setting per source, a priority order (newest keyboard-driven move wins over the mouse for a short time) and smooth or instant movement
-- [ ] Colour filters through `MagSetFullscreenColorEffect`: inverted, greyscale, inverted greyscale and high-contrast yellow on black; smoothing on or off
-- [ ] Docked and lens views in a magnifier window (Magnification control), moved and sized from the keyboard
-- [ ] Commands and keys (on/off, zoom in/out, next filter, view, pan), a settings page, profile settings, policy to turn it off; refuses to start alongside Windows Magnifier and says so; not in secure mode at first
-- [ ] Offered in the first-run wizard ("Do you use magnification?"); `docs/magnifier.md`
+- [x] Full-screen magnification through the Windows Magnification API (`MagSetFullscreenTransform`), 1× to 16×, in steps; pure viewport maths (`MagnifierViewport`: zoom, offsets, clamping to the virtual screen, multiple monitors) unit-tested
+- [x] Tracking: the view follows the focus, the caret, the browse cursor's element, the review cursor and the mouse, with a setting per source, a priority order (newest keyboard-driven move wins over the mouse for a short time) and smooth or instant movement
+- [x] Colour filters through `MagSetFullscreenColorEffect`: inverted, greyscale, inverted greyscale and high-contrast yellow on black; smoothing on or off
+- [x] Docked and lens views in a magnifier window (Magnification control), moved and sized from the keyboard
+- [x] Commands and keys (on/off, zoom in/out, next filter, view, pan), a settings page, profile settings, policy to turn it off; refuses to start alongside Windows Magnifier and says so; not in secure mode at first
+- [x] Offered in the first-run wizard ("Do you use magnification?"); `docs/magnifier.md`
 
 ### Screen curtain
 

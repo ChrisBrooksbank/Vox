@@ -39,7 +39,7 @@ sample add-on, reference only `Vox.Sdk`.
 | --- | --- |
 | `src/Vox.Sdk` | The public add-on API (`IAddOn`, `IAddOnHost`, `AddOnCommand`, `IAppModule`, ...). It references nothing of Vox, so add-ons don't depend on Vox's internals. See [add-ons](../addons.md). |
 | `src/Vox.Core` | Everything that can be tested: input, the pipeline, UIA, the buffer, speech, braille, settings, add-ons. Nearly all code lives here. |
-| `src/Vox.App` | The screen reader. `Program.cs` reads the arguments, `ServiceRegistration` builds the DI container, and `ScreenReaderService` and `BrailleService` connect the components. It is also the command-line tool for packing add-ons, signing catalogues, the remote relay and settings import. |
+| `src/Vox.App` | The screen reader. `Program.cs` reads the arguments, `ServiceRegistration` builds the DI container, and `ScreenReaderService`, `BrailleService` and `MagnifierService` connect the components. It is also the command-line tool for packing add-ons, signing catalogues, the remote relay and settings import. |
 | `src/Vox.Watchdog` | Starts `Vox.App` and restarts it after a crash, at most 3 times a minute. Past that it says so through SAPI and starts Narrator, or the screen reader trial mode replaced (`WatchdogFallback`). |
 | `src/Vox.Service` | A Windows service that keeps a secure-mode `Vox.App --secure` on the Winlogon desktop, so the sign-in, lock and UAC screens are read. |
 | `tests/Vox.Core.Tests` | The unit tests. Their folders mirror `src/Vox.Core`. |
@@ -92,6 +92,7 @@ sequenceDiagram
     participant H as Generic host
     participant S as ScreenReaderService
     participant B as BrailleService
+    participant M as MagnifierService
     P->>P: Tool switches (--pack-addon, --keyboard-reference, ...) exit early
     P->>P: RunPolicy from args, then Group Policy
     P->>P: Serilog, single-instance mutex
@@ -103,13 +104,15 @@ sequenceDiagram
     S->>S: Subscribe to UIA events
     S->>S: Wire pipeline events to BrowseModeController and BrowseDocumentTracker
     H->>B: StartAsync (not in secure mode)
+    H->>M: StartAsync (not in secure mode or with DisableMagnifier)
 ```
 
 In words: `Program.cs` handles the tool switches, builds the run policy, sets up logging and the
 single-instance mutex, then starts the .NET generic host. `ScreenReaderService` starts UIA and
 speech, applies settings, installs the keyboard hook, runs the first-run wizard when needed, and
 only then subscribes to UIA events, so focus speech can't interrupt the wizard. `BrailleService`
-starts after it.
+and `MagnifierService` start after it, so their pipeline handlers see the browse cursor already
+moved.
 
 `ScreenReaderService` only connects components. Navigation logic lives in
 `BrowseModeController` in `Vox.Core`, where it is unit-tested. New components are registered in
@@ -128,6 +131,7 @@ starts after it.
 | `Speech/` | `SpeechQueue`, the text rules, `SpeechEngineRegistry` and the engines. |
 | `Audio/` | Earcons (`AudioCuePlayer`), the audio output device and ducking. |
 | `Braille/` | Braille drivers, translators, `BrailleController`, `BraillePresenter`. |
+| `Magnifier/` | `MagnifierController`, `MagnifierViewport`, `MagnifierFeed`, `WindowsMagnifier` (the Magnification API). |
 | `Configuration/` | `VoxSettings`, `SettingsManager`, profiles, the settings dialog, the Vox menu, the first-run wizard. |
 | `Enterprise/` | Machine defaults, Group Policy, `NetworkGate`. |
 | `Lifecycle/` | `RunPolicy`, `VoxPaths`, restarts, the watchdog supervisor, secure screens, sleep mode. |

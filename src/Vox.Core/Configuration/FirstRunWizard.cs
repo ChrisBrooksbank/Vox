@@ -19,6 +19,7 @@ namespace Vox.Core.Configuration;
 ///   4. Verbosity — 1=Beginner, 2=Intermediate, 3=Advanced
 ///   5. Keyboard layout — 1=Desktop, 2=Laptop (which also makes CapsLock the modifier)
 ///   6. Modifier key — 1=Insert, 2=CapsLock
+///      (then, when the magnifier may be used: 1 turns it on, Enter goes on without)
 ///   7. Tutorial — practice H, K, Enter, Insert+Space
 ///   8. Completion — "Press Insert+F1 for help anytime"
 /// </summary>
@@ -47,6 +48,8 @@ public sealed class FirstRunWizard
     private ImportReport? _importReport;
     // Offers trial mode when NVDA or Narrator is running (none: not offered)
     private readonly Trial.ITrialOffer? _trialOffer;
+    // Offers the magnifier (none: not offered, e.g. on secure screens or with the DisableMagnifier policy)
+    private readonly Magnifier.IMagnifierOffer? _magnifierOffer;
 
     /// <summary>
     /// Whether the wizard is waiting for a key now. Keys pressed while it isn't are not its own
@@ -62,8 +65,10 @@ public sealed class FirstRunWizard
         ILogger<FirstRunWizard> logger,
         Func<GestureEditor>? lessonKeys = null,
         ISettingsImportOffer? importOffer = null,
-        Trial.ITrialOffer? trialOffer = null)
+        Trial.ITrialOffer? trialOffer = null,
+        Magnifier.IMagnifierOffer? magnifierOffer = null)
     {
+        _magnifierOffer = magnifierOffer;
         _trialOffer = trialOffer;
         _lessonKeys = lessonKeys;
         _importOffer = importOffer;
@@ -127,6 +132,9 @@ public sealed class FirstRunWizard
 
             // Step 6: Modifier key
             settings = await RunModifierKeyStepAsync(settings, cancellationToken);
+
+            // "Do you use magnification?"
+            settings = await RunMagnifierStepAsync(settings, cancellationToken);
 
             // Step 7: Tutorial
             await RunTutorialStepAsync(settings, cancellationToken);
@@ -326,6 +334,40 @@ public sealed class FirstRunWizard
         _importReport = report;
         await SpeakAsync(VoxStrings.Format("Wizard.ImportDone", report.Imported.Count, report.Skipped.Count), cancellationToken);
         return _settingsMonitor.CurrentValue;
+    }
+
+    private async Task<VoxSettings> RunMagnifierStepAsync(VoxSettings settings, CancellationToken cancellationToken)
+    {
+        if (_magnifierOffer is null || settings.MagnifierEnabled)
+            return settings;
+        var key = await PromptAsync(VoxStrings.Format("Wizard.MagnifierPrompt", _magnifierOffer.ToggleKey), cancellationToken);
+        while (true)
+        {
+            if (key.VkCode == VirtualKeys.Return)
+                return settings;
+            if (key.VkCode is VirtualKeys.D1 or VirtualKeys.NumPad1)
+                break;
+            key = await WaitForKeyDownAsync(cancellationToken);
+        }
+        string? refusal;
+        try
+        {
+            refusal = _magnifierOffer.TurnOn();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "The magnifier could not be turned on");
+            refusal = VoxStrings.Get("Magnifier.Unavailable");
+        }
+        if (refusal is not null)
+        {
+            await SpeakAsync(refusal, cancellationToken);
+            return settings;
+        }
+        settings = settings with { MagnifierEnabled = true };
+        _settingsMonitor.UpdateSettings(settings);
+        await SpeakAsync(VoxStrings.Format("Wizard.MagnifierOn", _magnifierOffer.ToggleKey), cancellationToken);
+        return settings;
     }
 
     private async Task<VoxSettings> RunSpeechRateStepAsync(VoxSettings settings, CancellationToken cancellationToken)
