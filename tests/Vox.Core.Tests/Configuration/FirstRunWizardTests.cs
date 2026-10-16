@@ -769,4 +769,89 @@ public class FirstRunWizardTests : IDisposable
         Assert.Equal(0, offer.Begun);
         Assert.True(monitor.CurrentValue.FirstRunCompleted);
     }
+
+    // -------------------------------------------------------------------------
+    // Magnifier
+    // -------------------------------------------------------------------------
+
+    private sealed class FakeMagnifierOffer(string? refusal = null) : Vox.Core.Magnifier.IMagnifierOffer
+    {
+        public int TurnedOn { get; private set; }
+        public string ToggleKey => "Insert+Alt+Z";
+        public string? TurnOn()
+        {
+            TurnedOn++;
+            return refusal;
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_OneAtTheMagnifierQuestion_TurnsItOnAndKeepsIt()
+    {
+        var (wizard, hook, engine, monitor, manager) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var offer = new FakeMagnifierOffer();
+        var spoken = new List<string>();
+        engine.Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Callback<Utterance, CancellationToken>((u, _) => { lock (spoken) spoken.Add(u.Text); })
+            .Returns(Task.CompletedTask);
+        wizard = new FirstRunWizard(engine.Object, manager, monitor, hook, NullLogger<FirstRunWizard>.Instance, magnifierOffer: offer);
+
+        var wizardTask = wizard.RunAsync();
+        // Welcome, rate, voice, verbosity, layout, modifier
+        for (int i = 0; i < 6; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x31); // 1: magnifier on
+        await WaitUntilWaitingAsync(wizard, wizardTask);
+        Assert.Equal(1, offer.TurnedOn);
+        lock (spoken)
+            Assert.Contains(spoken, t => t.StartsWith("Do you use magnification?") && t.Contains("Insert+Alt+Z"));
+
+        for (int i = 0; i < 10 && !wizardTask.IsCompleted; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(monitor.CurrentValue.MagnifierEnabled);
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+    }
+
+    [Fact]
+    public async Task RunAsync_MagnifierCannotStart_SaysWhyAndLeavesItOff()
+    {
+        var (wizard, hook, engine, monitor, manager) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var offer = new FakeMagnifierOffer("Windows Magnifier is running.");
+        var spoken = new List<string>();
+        engine.Setup(e => e.SpeakAsync(It.IsAny<Utterance>(), It.IsAny<CancellationToken>()))
+            .Callback<Utterance, CancellationToken>((u, _) => { lock (spoken) spoken.Add(u.Text); })
+            .Returns(Task.CompletedTask);
+        wizard = new FirstRunWizard(engine.Object, manager, monitor, hook, NullLogger<FirstRunWizard>.Instance, magnifierOffer: offer);
+
+        var wizardTask = wizard.RunAsync();
+        for (int i = 0; i < 6; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await PressAsync(wizard, wizardTask, hook, 0x31);
+        await WaitUntilWaitingAsync(wizard, wizardTask);
+        lock (spoken)
+            Assert.Contains("Windows Magnifier is running.", spoken);
+
+        for (int i = 0; i < 10 && !wizardTask.IsCompleted; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.False(monitor.CurrentValue.MagnifierEnabled);
+    }
+
+    [Fact]
+    public async Task RunAsync_EnterAtTheMagnifierQuestion_GoesOnWithoutIt()
+    {
+        var (wizard, hook, engine, monitor, manager) = CreateWizard(new VoxSettings { FirstRunCompleted = false });
+        var offer = new FakeMagnifierOffer();
+        wizard = new FirstRunWizard(engine.Object, manager, monitor, hook, NullLogger<FirstRunWizard>.Instance, magnifierOffer: offer);
+
+        var wizardTask = wizard.RunAsync();
+        for (int i = 0; i < 14 && !wizardTask.IsCompleted; i++)
+            await PressAsync(wizard, wizardTask, hook, 0x0D);
+        await wizardTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(0, offer.TurnedOn);
+        Assert.False(monitor.CurrentValue.MagnifierEnabled);
+        Assert.True(monitor.CurrentValue.FirstRunCompleted);
+    }
 }

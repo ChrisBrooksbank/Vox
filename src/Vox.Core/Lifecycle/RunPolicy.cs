@@ -4,9 +4,9 @@ namespace Vox.Core.Lifecycle;
 /// What this Vox instance may do. Normally everything; in secure mode (<c>--secure</c>, started
 /// by Vox.Service on the sign-in, lock and UAC screens, where anyone at the keyboard can reach
 /// it) nothing that could expose or change a user's data or the machine: no settings writes,
-/// no add-ons, no network or AI, no user-profile access, no setup wizard. Components check the
+/// no add-ons, no network or AI, no magnifier, no user-profile access, no setup wizard. Components check the
 /// relevant switch before doing such things. An organization's policy can also switch the network,
-/// add-ons and AI off (<see cref="Enterprise.PolicySettings.Restrict"/>).
+/// add-ons, AI and the magnifier off (<see cref="Enterprise.PolicySettings.Restrict"/>).
 /// </summary>
 public sealed record RunPolicy(bool IsSecure)
 {
@@ -27,6 +27,8 @@ public sealed record RunPolicy(bool IsSecure)
     public bool AddOnsOffByPolicy { get; init; }
     /// <summary>The organization's policy turned AI off (DisableAI).</summary>
     public bool AiOffByPolicy { get; init; }
+    /// <summary>The organization's policy turned the magnifier off (DisableMagnifier).</summary>
+    public bool MagnifierOffByPolicy { get; init; }
     /// <summary>
     /// Safe mode (<see cref="SafeFlag"/>, or the Vox menu's "Restart with add-ons disabled"): no
     /// add-on is loaded, though they can still be managed (to remove the one causing trouble).
@@ -43,6 +45,8 @@ public sealed record RunPolicy(bool IsSecure)
     /// </summary>
     public bool AllowNetwork => !IsSecure && !NetworkOffByPolicy;
     public bool AllowAi => !IsSecure && !AiOffByPolicy;
+    /// <summary>Whether the magnifier may be used (not on the secure screens for now).</summary>
+    public bool AllowMagnifier => !IsSecure && !MagnifierOffByPolicy;
     public bool AllowUserProfileAccess => !IsSecure;
     public bool AllowSetupWizard => !IsSecure;
 

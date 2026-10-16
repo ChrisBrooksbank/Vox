@@ -39,6 +39,50 @@ public static class Win32Caret
         return (start, end);
     }
 
+    /// <summary>
+    /// Where the system caret of the foreground thread is on screen, in physical pixels (as UI
+    /// Automation reports positions), or null when there is no caret. Edit controls, Chromium,
+    /// Office and most other applications keep a system caret, shown or not, for magnifiers.
+    /// </summary>
+    public static Ocr.ScreenRect? GetCaretBounds()
+    {
+        var foreground = GetForegroundWindow();
+        if (foreground == IntPtr.Zero)
+            return null;
+        uint thread = GetWindowThreadProcessId(foreground, out _);
+        var info = new GUITHREADINFO { cbSize = Marshal.SizeOf<GUITHREADINFO>() };
+        if (!GetGUIThreadInfo(thread, ref info) || info.hwndCaret == IntPtr.Zero)
+            return null;
+        var previous = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+        try
+        {
+            var topLeft = new POINT { X = info.rcCaret.Left, Y = info.rcCaret.Top };
+            var bottomRight = new POINT { X = info.rcCaret.Right, Y = info.rcCaret.Bottom };
+            if (!ClientToScreen(info.hwndCaret, ref topLeft) || !ClientToScreen(info.hwndCaret, ref bottomRight))
+                return null;
+            // A caret is often 1 pixel wide or less: still somewhere to show
+            var rect = Ocr.ScreenRect.FromEdges(topLeft.X, topLeft.Y, Math.Max(bottomRight.X, topLeft.X + 1), Math.Max(bottomRight.Y, topLeft.Y + 1));
+            return rect;
+        }
+        finally
+        {
+            if (previous != IntPtr.Zero)
+                SetThreadDpiAwarenessContext(previous);
+        }
+    }
+
+    private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new(-4);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X, Y; }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ClientToScreen(IntPtr hwnd, ref POINT point);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT { public int Left, Top, Right, Bottom; }
 

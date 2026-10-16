@@ -124,7 +124,7 @@ public sealed class ReviewCommands
 
     /// <summary>
     /// Called on the UIA thread after each review command with the review cursor's position, so
-    /// braille can show its line.
+    /// braille can show its line and the magnifier can follow it (each adds its own handler).
     /// </summary>
     public Action<ITextRange>? PositionShown { get; set; }
 

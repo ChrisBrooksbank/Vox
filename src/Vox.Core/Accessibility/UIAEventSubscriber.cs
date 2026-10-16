@@ -479,8 +479,24 @@ public sealed class UIAEventSubscriber :
             Current: Vox.Core.Buffer.AriaStates.Current(ariaProps),
             Sort: Vox.Core.Buffer.AriaStates.Sort(ariaProps),
             RoleDescription: UIAElementSnapshot.ReadRoleDescription(element, controlType, ariaRole ?? string.Empty),
-            HasDetails: UIAElementSnapshot.ReadHasDetails(element)
+            HasDetails: UIAElementSnapshot.ReadHasDetails(element),
+            Bounds: ReadCachedBounds(element)
         );
+    }
+
+    /// <summary>An element's cached bounding rectangle, or null when it has none or it wasn't cached.</summary>
+    private static Ocr.ScreenRect? ReadCachedBounds(IUIAutomationElement element)
+    {
+        try
+        {
+            var bounds = element.CachedBoundingRectangle;
+            var rect = Ocr.ScreenRect.FromEdges(bounds.left, bounds.top, bounds.right, bounds.bottom);
+            return rect.IsEmpty ? null : rect;
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     // -------------------------------------------------------------------------

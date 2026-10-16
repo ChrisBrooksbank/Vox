@@ -60,7 +60,7 @@ public static class SettingsPages
 {
     /// <param name="ocrLanguages">The languages Windows can recognise text in (BCP 47 tags).</param>
     public static IReadOnlyList<SettingsPage> All(SpeechOptions speech, AudioOptions audio, IReadOnlyList<string>? ocrLanguages = null) =>
-        [General(), Speech(speech), Braille(), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Review(ocrLanguages), Ai(), Applications()];
+        [General(), Speech(speech), Braille(), Verbosity(), BrowseMode(), DocumentFormatting(), AudioCues(audio), Keyboard(), Mouse(), Magnifier(), Review(ocrLanguages), Ai(), Applications()];
 
     /// <summary>Settings no page shows: edited elsewhere (sleep mode's key, the wizard) or not by people.</summary>
     public static readonly IReadOnlySet<string> NotOnAnyPage = new HashSet<string>
@@ -207,6 +207,30 @@ public static class SettingsPages
     [
         new ToggleField(L("Setting.MouseTracking"), s => s.MouseTracking, (s, v) => s with { MouseTracking = v }),
         Choice(L("Setting.MouseTextUnit"), s => s.MouseTextUnit, (s, v) => s with { MouseTextUnit = v }),
+    ]);
+
+    public static SettingsPage Magnifier() => new(L("SettingsPage.Magnifier"),
+    [
+        new ToggleField(L("Setting.MagnifierEnabled"), s => s.MagnifierEnabled, (s, v) => s with { MagnifierEnabled = v }),
+        new ChoiceField(L("Setting.MagnifierZoomPercent"),
+            global::Vox.Core.Magnifier.MagnifierZoom.StepsPercent.Select(p => new SettingChoice(global::Vox.Core.Magnifier.MagnifierZoom.Describe(p), (object?)p)).ToList(),
+            s => s.MagnifierZoomPercent, (s, v) => v is int percent ? s with { MagnifierZoomPercent = percent } : s),
+        Choice(L("Setting.MagnifierView"), s => s.MagnifierView, (s, v) => s with { MagnifierView = v }),
+        Choice(L("Setting.MagnifierDockEdge"), s => s.MagnifierDockEdge, (s, v) => s with { MagnifierDockEdge = v }),
+        new NumberField(L("Setting.MagnifierDockedSizePercent"), global::Vox.Core.Magnifier.MagnifierLayout.MinSizePercent,
+            global::Vox.Core.Magnifier.MagnifierLayout.MaxSizePercent, global::Vox.Core.Magnifier.MagnifierLayout.SizeStepPercent,
+            s => s.MagnifierDockedSizePercent, (s, v) => s with { MagnifierDockedSizePercent = v }),
+        new NumberField(L("Setting.MagnifierLensSizePercent"), global::Vox.Core.Magnifier.MagnifierLayout.MinSizePercent,
+            global::Vox.Core.Magnifier.MagnifierLayout.MaxSizePercent, global::Vox.Core.Magnifier.MagnifierLayout.SizeStepPercent,
+            s => s.MagnifierLensSizePercent, (s, v) => s with { MagnifierLensSizePercent = v }),
+        Choice(L("Setting.MagnifierColorFilter"), s => s.MagnifierColorFilter, (s, v) => s with { MagnifierColorFilter = v }),
+        new ToggleField(L("Setting.MagnifierSmoothing"), s => s.MagnifierSmoothing, (s, v) => s with { MagnifierSmoothing = v }),
+        new ToggleField(L("Setting.MagnifierSmoothTracking"), s => s.MagnifierSmoothTracking, (s, v) => s with { MagnifierSmoothTracking = v }),
+        new ToggleField(L("Setting.MagnifierFollowFocus"), s => s.MagnifierFollowFocus, (s, v) => s with { MagnifierFollowFocus = v }),
+        new ToggleField(L("Setting.MagnifierFollowCaret"), s => s.MagnifierFollowCaret, (s, v) => s with { MagnifierFollowCaret = v }),
+        new ToggleField(L("Setting.MagnifierFollowBrowseCursor"), s => s.MagnifierFollowBrowseCursor, (s, v) => s with { MagnifierFollowBrowseCursor = v }),
+        new ToggleField(L("Setting.MagnifierFollowReviewCursor"), s => s.MagnifierFollowReviewCursor, (s, v) => s with { MagnifierFollowReviewCursor = v }),
+        new ToggleField(L("Setting.MagnifierFollowMouse"), s => s.MagnifierFollowMouse, (s, v) => s with { MagnifierFollowMouse = v }),
     ]);
 
     public static SettingsPage Review(IReadOnlyList<string>? ocrLanguages = null) => new(L("SettingsPage.Review"),

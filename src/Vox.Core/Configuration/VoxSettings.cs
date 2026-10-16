@@ -276,6 +276,34 @@ public record VoxSettings
     public bool MouseTracking { get; init; } = false;
     /// <summary>What mouse tracking reports: the object, or the line or word of text under the pointer.</summary>
     public MouseTextUnit MouseTextUnit { get; init; } = MouseTextUnit.Line;
+    /// <summary>The magnifier is on (and comes on when Vox starts).</summary>
+    public bool MagnifierEnabled { get; init; }
+    /// <summary>How much the magnifier enlarges, as a percentage (100 = 1×, up to 1600 = 16×).</summary>
+    public int MagnifierZoomPercent { get; init; } = 200;
+    /// <summary>Full screen, a docked window along an edge, or a lens that moves with what is followed.</summary>
+    public Magnifier.MagnifierView MagnifierView { get; init; } = Magnifier.MagnifierView.FullScreen;
+    /// <summary>The edge of the screen the docked view sits along.</summary>
+    public Magnifier.MagnifierDockEdge MagnifierDockEdge { get; init; } = Magnifier.MagnifierDockEdge.Top;
+    /// <summary>How deep the docked view is, as a percentage of the screen.</summary>
+    public int MagnifierDockedSizePercent { get; init; } = 30;
+    /// <summary>How large the lens is, as a percentage of the screen's width and height.</summary>
+    public int MagnifierLensSizePercent { get; init; } = 30;
+    /// <summary>The magnifier's colour filter (inverted, greyscale, yellow on black).</summary>
+    public Magnifier.MagnifierColorFilter MagnifierColorFilter { get; init; } = Magnifier.MagnifierColorFilter.None;
+    /// <summary>Smooth the edges of magnified text and pictures.</summary>
+    public bool MagnifierSmoothing { get; init; } = true;
+    /// <summary>The magnified view glides to what it follows rather than jumping there.</summary>
+    public bool MagnifierSmoothTracking { get; init; } = true;
+    /// <summary>The magnifier follows the focus.</summary>
+    public bool MagnifierFollowFocus { get; init; } = true;
+    /// <summary>The magnifier follows the caret in text.</summary>
+    public bool MagnifierFollowCaret { get; init; } = true;
+    /// <summary>The magnifier follows the browse cursor on web pages.</summary>
+    public bool MagnifierFollowBrowseCursor { get; init; } = true;
+    /// <summary>The magnifier follows the review cursor.</summary>
+    public bool MagnifierFollowReviewCursor { get; init; } = true;
+    /// <summary>The magnifier follows the mouse pointer (keyboard moves win for a moment).</summary>
+    public bool MagnifierFollowMouse { get; init; } = true;
     /// <summary>
     /// The language text recognition reads (a BCP 47 tag, "en-US", "fr"); null: Vox's language,
     /// else the Windows user's languages. Windows must have that language's OCR feature.

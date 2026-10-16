@@ -85,6 +85,12 @@ public interface ITextRange
     /// when the text can't be selected this way (a value-only edit, the virtual buffer).
     /// </summary>
     bool Select() => false;
+
+    /// <summary>
+    /// Where the range is on screen (a degenerate range: the character after it), or null when
+    /// that isn't known (text that isn't on screen, the virtual buffer).
+    /// </summary>
+    Ocr.ScreenRect? GetBounds() => null;
 }
 
 /// <summary>

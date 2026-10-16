@@ -22,7 +22,7 @@ public class SettingsPagesTests
     {
         var pages = SettingsPages.All(Options(), Audio);
 
-        Assert.Equal(["General", "Speech", "Braille", "Verbosity", "Browse mode", "Document formatting", "Audio cues", "Keyboard", "Mouse", "Review", "AI", "Applications"],
+        Assert.Equal(["General", "Speech", "Braille", "Verbosity", "Browse mode", "Document formatting", "Audio cues", "Keyboard", "Mouse", "Magnifier", "Review", "AI", "Applications"],
             pages.Select(p => p.Title));
         foreach (var page in pages)
             Assert.Equal(page.Fields.Count, page.Fields.Select(f => f.Label).Distinct().Count());

@@ -67,7 +67,7 @@ public sealed class BrailleService : IHostedService
         _navigation.ModeChanged += OnBrowseEvent;
         _browse.DocumentActiveChanged += OnBrowseEvent;
         _focusedText.DocumentRead = _feed.TextRead;
-        _review.PositionShown = _feed.ReviewMoved;
+        _review.PositionShown += _feed.ReviewMoved;
         _speechQueue.UtteranceQueued += OnUtteranceQueued;
         _controller.TetherChanged += OnTetherChanged;
         _displays.Start();
@@ -90,7 +90,7 @@ public sealed class BrailleService : IHostedService
         _navigation.ModeChanged -= OnBrowseEvent;
         _browse.DocumentActiveChanged -= OnBrowseEvent;
         _focusedText.DocumentRead = null;
-        _review.PositionShown = null;
+        _review.PositionShown -= _feed.ReviewMoved;
         _speechQueue.UtteranceQueued -= OnUtteranceQueued;
         _controller.TetherChanged -= OnTetherChanged;
         // Leaves BRLTTY's tty mode and closes the HID device

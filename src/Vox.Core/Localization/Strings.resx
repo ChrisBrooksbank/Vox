@@ -5350,4 +5350,211 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
     <value>{0} is running. To try Vox safely, press 1: {0} stops now, and {1} quits Vox and starts {0} again. Or press Enter to go on with both running.</value>
     <comment>{0} NVDA or Narrator, {1} the return key</comment>
   </data>
+  <data name="CommandCategory.Magnifier" xml:space="preserve">
+    <value>Magnifier</value>
+  </data>
+  <data name="Command.ToggleMagnifier.Name" xml:space="preserve">
+    <value>Magnifier on or off</value>
+  </data>
+  <data name="Command.ToggleMagnifier.Description" xml:space="preserve">
+    <value>Turns the magnifier on or off.</value>
+  </data>
+  <data name="Command.MagnifierZoomIn.Name" xml:space="preserve">
+    <value>Zoom in</value>
+  </data>
+  <data name="Command.MagnifierZoomIn.Description" xml:space="preserve">
+    <value>Magnifies more, up to 16 times; turns the magnifier on when it is off.</value>
+  </data>
+  <data name="Command.MagnifierZoomOut.Name" xml:space="preserve">
+    <value>Zoom out</value>
+  </data>
+  <data name="Command.MagnifierZoomOut.Description" xml:space="preserve">
+    <value>Magnifies less, down to 1 time.</value>
+  </data>
+  <data name="Command.MagnifierNextFilter.Name" xml:space="preserve">
+    <value>Next colour filter</value>
+  </data>
+  <data name="Command.MagnifierNextFilter.Description" xml:space="preserve">
+    <value>Switches the magnifier's colours: inverted, greyscale, inverted greyscale, yellow on black, or none.</value>
+  </data>
+  <data name="Command.MagnifierNextView.Name" xml:space="preserve">
+    <value>Next magnifier view</value>
+  </data>
+  <data name="Command.MagnifierNextView.Description" xml:space="preserve">
+    <value>Switches the magnifier between full screen, a docked window and a lens.</value>
+  </data>
+  <data name="Command.MagnifierMoveView.Name" xml:space="preserve">
+    <value>Move docked view</value>
+  </data>
+  <data name="Command.MagnifierMoveView.Description" xml:space="preserve">
+    <value>Moves the docked magnifier window to the next edge of the screen.</value>
+  </data>
+  <data name="Command.MagnifierViewLarger.Name" xml:space="preserve">
+    <value>Larger magnifier window</value>
+  </data>
+  <data name="Command.MagnifierViewLarger.Description" xml:space="preserve">
+    <value>Makes the docked window or the lens larger.</value>
+  </data>
+  <data name="Command.MagnifierViewSmaller.Name" xml:space="preserve">
+    <value>Smaller magnifier window</value>
+  </data>
+  <data name="Command.MagnifierViewSmaller.Description" xml:space="preserve">
+    <value>Makes the docked window or the lens smaller.</value>
+  </data>
+  <data name="Command.MagnifierPanLeft.Name" xml:space="preserve">
+    <value>Pan left</value>
+  </data>
+  <data name="Command.MagnifierPanLeft.Description" xml:space="preserve">
+    <value>Moves the magnified view left.</value>
+  </data>
+  <data name="Command.MagnifierPanRight.Name" xml:space="preserve">
+    <value>Pan right</value>
+  </data>
+  <data name="Command.MagnifierPanRight.Description" xml:space="preserve">
+    <value>Moves the magnified view right.</value>
+  </data>
+  <data name="Command.MagnifierPanUp.Name" xml:space="preserve">
+    <value>Pan up</value>
+  </data>
+  <data name="Command.MagnifierPanUp.Description" xml:space="preserve">
+    <value>Moves the magnified view up.</value>
+  </data>
+  <data name="Command.MagnifierPanDown.Name" xml:space="preserve">
+    <value>Pan down</value>
+  </data>
+  <data name="Command.MagnifierPanDown.Description" xml:space="preserve">
+    <value>Moves the magnified view down.</value>
+  </data>
+  <data name="Magnifier.Zoom" xml:space="preserve">
+    <value>{0} times</value>
+    <comment>{0} the zoom factor, e.g. 2.5</comment>
+  </data>
+  <data name="Magnifier.On" xml:space="preserve">
+    <value>Magnifier on, {0}</value>
+    <comment>{0} the zoom, e.g. "2 times"</comment>
+  </data>
+  <data name="Magnifier.Off" xml:space="preserve">
+    <value>Magnifier off</value>
+  </data>
+  <data name="Magnifier.CurtainWins" xml:space="preserve">
+    <value>Screen curtain on, so the magnifier is off while it is</value>
+  </data>
+  <data name="Magnifier.CurtainOn" xml:space="preserve">
+    <value>The screen curtain is on; the magnifier can't be used with it</value>
+  </data>
+  <data name="Magnifier.SetWhileOff" xml:space="preserve">
+    <value>{0}, when the magnifier is on</value>
+    <comment>{0} the view or colour filter just chosen</comment>
+  </data>
+  <data name="Magnifier.OnlyDockedMoves" xml:space="preserve">
+    <value>Only the docked view moves; pan to move the others</value>
+  </data>
+  <data name="Magnifier.FullScreenSize" xml:space="preserve">
+    <value>The full screen view is always the whole screen</value>
+  </data>
+  <data name="Magnifier.Size" xml:space="preserve">
+    <value>{0} percent</value>
+    <comment>{0} the docked window's or lens's size</comment>
+  </data>
+  <data name="Magnifier.NotOnSecureScreens" xml:space="preserve">
+    <value>The magnifier isn't available on this screen</value>
+  </data>
+  <data name="Magnifier.OffByPolicy" xml:space="preserve">
+    <value>Your organization has turned the magnifier off</value>
+  </data>
+  <data name="Magnifier.WindowsMagnifierRunning" xml:space="preserve">
+    <value>Windows Magnifier is running. Close it with Windows+Escape to use Vox's magnifier.</value>
+  </data>
+  <data name="Magnifier.Unavailable" xml:space="preserve">
+    <value>The magnifier couldn't start</value>
+  </data>
+  <data name="SettingsPage.Magnifier" xml:space="preserve">
+    <value>Magnifier</value>
+  </data>
+  <data name="Setting.MagnifierEnabled" xml:space="preserve">
+    <value>&amp;Magnifier on</value>
+  </data>
+  <data name="Setting.MagnifierZoomPercent" xml:space="preserve">
+    <value>&amp;Zoom</value>
+  </data>
+  <data name="Setting.MagnifierView" xml:space="preserve">
+    <value>&amp;View</value>
+  </data>
+  <data name="Setting.MagnifierDockEdge" xml:space="preserve">
+    <value>&amp;Docked view's edge</value>
+  </data>
+  <data name="Setting.MagnifierDockedSizePercent" xml:space="preserve">
+    <value>Docked view si&amp;ze (percent of the screen)</value>
+  </data>
+  <data name="Setting.MagnifierLensSizePercent" xml:space="preserve">
+    <value>&amp;Lens size (percent of the screen)</value>
+  </data>
+  <data name="Setting.MagnifierColorFilter" xml:space="preserve">
+    <value>&amp;Colour filter</value>
+  </data>
+  <data name="Setting.MagnifierSmoothing" xml:space="preserve">
+    <value>Smooth &amp;edges of magnified text</value>
+  </data>
+  <data name="Setting.MagnifierSmoothTracking" xml:space="preserve">
+    <value>&amp;Glide to what is followed (off: jump)</value>
+  </data>
+  <data name="Setting.MagnifierFollowFocus" xml:space="preserve">
+    <value>Follow the &amp;focus</value>
+  </data>
+  <data name="Setting.MagnifierFollowCaret" xml:space="preserve">
+    <value>Follow the &amp;caret</value>
+  </data>
+  <data name="Setting.MagnifierFollowBrowseCursor" xml:space="preserve">
+    <value>Follow the &amp;browse cursor</value>
+  </data>
+  <data name="Setting.MagnifierFollowReviewCursor" xml:space="preserve">
+    <value>Follow the &amp;review cursor</value>
+  </data>
+  <data name="Setting.MagnifierFollowMouse" xml:space="preserve">
+    <value>Follow the m&amp;ouse</value>
+  </data>
+  <data name="Choice.MagnifierColorFilter.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Choice.MagnifierColorFilter.Inverted" xml:space="preserve">
+    <value>Inverted colours</value>
+  </data>
+  <data name="Choice.MagnifierColorFilter.Greyscale" xml:space="preserve">
+    <value>Greyscale</value>
+  </data>
+  <data name="Choice.MagnifierColorFilter.InvertedGreyscale" xml:space="preserve">
+    <value>Inverted greyscale</value>
+  </data>
+  <data name="Choice.MagnifierColorFilter.YellowOnBlack" xml:space="preserve">
+    <value>Yellow on black</value>
+  </data>
+  <data name="Choice.MagnifierView.FullScreen" xml:space="preserve">
+    <value>Full screen</value>
+  </data>
+  <data name="Choice.MagnifierView.Docked" xml:space="preserve">
+    <value>Docked</value>
+  </data>
+  <data name="Choice.MagnifierView.Lens" xml:space="preserve">
+    <value>Lens</value>
+  </data>
+  <data name="Choice.MagnifierDockEdge.Top" xml:space="preserve">
+    <value>Top</value>
+  </data>
+  <data name="Choice.MagnifierDockEdge.Bottom" xml:space="preserve">
+    <value>Bottom</value>
+  </data>
+  <data name="Choice.MagnifierDockEdge.Left" xml:space="preserve">
+    <value>Left</value>
+  </data>
+  <data name="Choice.MagnifierDockEdge.Right" xml:space="preserve">
+    <value>Right</value>
+  </data>
+  <data name="Wizard.MagnifierPrompt" xml:space="preserve">
+    <value>Do you use magnification? Press 1 to turn on Vox's magnifier, which enlarges the screen and follows the focus, or press Enter to go on without it. {0} turns it on and off at any time.</value>
+    <comment>{0} the magnifier's on/off key</comment>
+  </data>
+  <data name="Wizard.MagnifierOn" xml:space="preserve">
+    <value>Magnifier on. {0} turns it off; the Magnifier tab of the settings sets the zoom and what it follows.</value>
+    <comment>{0} the magnifier's on/off key</comment>
+  </data>
 </root>

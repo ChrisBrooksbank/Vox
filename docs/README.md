@@ -18,6 +18,8 @@ coming from [NVDA](guide/nvda.html) and [JAWS](guide/jaws.html). Its source is i
 - [Your own keys](keymap.md): change or remove any of Vox's key bindings.
 - [Configuration profiles](profiles.md): different settings per application or during Say All.
 - [Firefox](firefox.md): what works in Firefox, and what doesn't yet.
+- [Magnifier](magnifier.md): enlarge the screen up to 16 times, following the focus, caret, browse
+  cursor and mouse, with colour filters and docked and lens views.
 - [Text recognition (OCR)](ocr.md): read text in pictures, scanned PDFs and inaccessible
   applications.
 - [AI descriptions](ai.md): optional image descriptions, questions about the screen and page
