@@ -32,6 +32,16 @@ public class TableNavigatorTests
     }
 
     [Fact]
+    public void Move_FromTheTableItself_EntersAtItsFirstCell()
+    {
+        var (doc, model) = Scores();
+        var result = _navigator.Handle(doc, model.Table, NavigationCommand.TableNextColumn);
+
+        Assert.False(result.NotInTable);
+        Assert.Same(model.CellAt(0, 1), result.Cell);
+    }
+
+    [Fact]
     public void Move_EnteringATable_SaysItsDimensionsAndPosition()
     {
         var (doc, model) = Scores();

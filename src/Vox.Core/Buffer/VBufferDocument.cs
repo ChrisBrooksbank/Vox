@@ -187,16 +187,22 @@ public sealed class VBufferDocument
 
     /// <summary>
     /// The innermost table whose cell contains a node (the node itself when it is a cell), with
-    /// that cell; null when the node isn't in a table cell.
+    /// that cell. A node inside a table but outside its cells (the table itself, its caption, as
+    /// after T) stands for the table's first cell; null when the node isn't in a table.
     /// </summary>
     public (TableModel Table, TableCell Cell)? FindTableCell(VBufferNode? node)
     {
+        (TableModel, TableCell)? outsideCells = null;
         for (var n = node; n is not null; n = n.Parent)
         {
-            if (_tableModels.TryGetValue(n, out var model) && model.CellContaining(node!) is { } cell)
+            if (!_tableModels.TryGetValue(n, out var model))
+                continue;
+            if (model.CellContaining(node!) is { } cell)
                 return (model, cell);
+            // Keep looking outward for an enclosing table whose cell holds this one
+            outsideCells ??= model.CellAt(0, 0) is { } first ? (model, first) : null;
         }
-        return null;
+        return outsideCells;
     }
 
     /// <summary>
