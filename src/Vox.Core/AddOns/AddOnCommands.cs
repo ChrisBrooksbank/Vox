@@ -172,6 +172,8 @@ public sealed class AddOnCommands : IAddOnActions
         text.AppendLine(VoxStrings.Format("AddOns.Details.Title", m.Name, m.Version));
         text.AppendLine(VoxStrings.Format("AddOns.Details.Author", m.Author));
         text.AppendLine(VoxStrings.Format("AddOns.Details.State", StateName(addOn.State)));
+        if (m.Order is { } order)
+            text.AppendLine(VoxStrings.Format("AddOns.Details.Order", order));
         if (addOn.Problem is { } problem)
             text.AppendLine(problem);
         text.AppendLine(TrustText(addOn.Trust, addOn.Publisher));

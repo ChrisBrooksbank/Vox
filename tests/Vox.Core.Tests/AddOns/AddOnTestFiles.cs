@@ -23,7 +23,7 @@ internal sealed class AddOnTestFiles : IDisposable
 
     /// <summary>A source folder with addon.json for <paramref name="id"/> and the given files.</summary>
     public string Source(string id = "com.example.test", string version = "1.0.0", string minApi = "1.0",
-        IDictionary<string, string>? files = null, string? maxApi = null)
+        IDictionary<string, string>? files = null, string? maxApi = null, int? order = null)
     {
         var folder = PathOf("src-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(folder);
@@ -37,7 +37,7 @@ internal sealed class AddOnTestFiles : IDisposable
         var manifest = new Dictionary<string, object?>
         {
             ["id"] = id, ["name"] = $"Add-on {id}", ["version"] = version, ["author"] = "Example",
-            ["minApiVersion"] = minApi, ["maxApiVersion"] = maxApi, ["entryAssembly"] = files.Keys.First(f => f.EndsWith(".dll")),
+            ["minApiVersion"] = minApi, ["maxApiVersion"] = maxApi, ["order"] = order, ["entryAssembly"] = files.Keys.First(f => f.EndsWith(".dll")),
         };
         File.WriteAllText(Path.Combine(folder, AddOnManifest.FileName), JsonSerializer.Serialize(manifest));
         return folder;

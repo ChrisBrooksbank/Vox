@@ -32,6 +32,8 @@ public sealed partial record AddOnManifest
     [JsonPropertyName("type")] public string? Type { get; init; }
     /// <summary>The assembly with the <c>Vox.Sdk.IAddOn</c> class, at the package's root (none for a label pack).</summary>
     [JsonPropertyName("entryAssembly")] public string EntryAssembly { get; init; } = string.Empty;
+    /// <summary>Where its plug-ins and announcement filters come among the add-ons' (lowest first, ties by id); null: 0.</summary>
+    [JsonPropertyName("order")] public int? Order { get; init; }
     /// <summary>A page about the add-on (https), if any.</summary>
     [JsonPropertyName("url")] public string? Url { get; init; }
     /// <summary>Every file of the package but the manifest, signature and key: its path ('/' separated) and SHA-256 (hex).</summary>
@@ -84,6 +86,8 @@ public sealed partial record AddOnManifest
             problems.Add($"minApiVersion '{MinApiVersion}' must be major.minor (1.0).");
         else if (MaxApiVersion is not null && (!IsVersion(MaxApiVersion, 2, 2) || MaxApi < MinApi))
             problems.Add($"maxApiVersion '{MaxApiVersion}' must be major.minor, not below minApiVersion.");
+        if (Order is < -1000 or > 1000)
+            problems.Add("The order must be between -1000 and 1000.");
         if (Url is not null && (!Uri.TryCreate(Url, UriKind.Absolute, out var url) || url.Scheme != Uri.UriSchemeHttps))
             problems.Add("The url must be an https address.");
         if (Files is null || Files.Count == 0)

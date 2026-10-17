@@ -50,6 +50,13 @@ public class AddOnManifestTests
         Assert.NotEmpty((Valid() with { Version = version }).Problems());
 
     [Fact]
+    public void TheOrder_IsOptional_AndLimited()
+    {
+        Assert.Empty((Valid() with { Order = -5 }).Problems());
+        Assert.NotEmpty((Valid() with { Order = 1001 }).Problems());
+    }
+
+    [Fact]
     public void TheApiRange_MustBeMajorMinor_AndInOrder()
     {
         Assert.NotEmpty(Valid(min: "1").Problems());

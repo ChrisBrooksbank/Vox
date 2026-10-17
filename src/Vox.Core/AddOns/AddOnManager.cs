@@ -414,8 +414,9 @@ public sealed class AddOnManager
     {
         List<Loaded> running;
         lock (_lock) running = _loaded.Values.OrderBy(l => l.Manifest.Id, StringComparer.Ordinal).ToList();
-        _filters = running.SelectMany(l => l.Contributions.AnnouncementFilters.Select(f => new GuardedFilter(f, l.Guard))).ToList();
-        _plugins = running.SelectMany(l => l.Contributions.GlobalPlugins.Select(p => new GuardedPlugin(p, l.Guard))).ToList();
+        var ordered = running.OrderBy(l => l.Manifest.Order ?? 0).ToList(); // stable: ties stay by id
+        _filters = ordered.SelectMany(l => l.Contributions.AnnouncementFilters.Select(f => new GuardedFilter(f, l.Guard))).ToList();
+        _plugins = ordered.SelectMany(l => l.Contributions.GlobalPlugins.Select(p => new GuardedPlugin(p, l.Guard))).ToList();
         _integration.SetAppModules(running.SelectMany(l => l.Modules).ToList());
         RefreshKeys();
         Changed?.Invoke(this, EventArgs.Empty);

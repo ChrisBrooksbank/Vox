@@ -39,9 +39,9 @@ public class AddOnManagerTests : IDisposable
         new(_files.AddOnsDirectory, policy ?? RunPolicy.Normal, _loader, AddOnTrustStore.Empty, integration ?? Integration(), time: time);
 
     /// <summary>Installs an add-on's files through the manager, as the add-ons dialog does.</summary>
-    private void Install(AddOnManager manager, string id = "com.example.test", string version = "1.0.0", string minApi = "1.0")
+    private void Install(AddOnManager manager, string id = "com.example.test", string version = "1.0.0", string minApi = "1.0", int? order = null)
     {
-        var check = manager.CheckPackage(_files.Package(_files.Source(id, version, minApi)));
+        var check = manager.CheckPackage(_files.Package(_files.Source(id, version, minApi, order: order)));
         manager.InstallFiles(check);
     }
 
@@ -433,6 +433,23 @@ public class AddOnManagerTests : IDisposable
 
         Assert.Equal("Fruit, for example apples", spoken);
         Assert.Equal(2, manager.Filters.Count);
+    }
+
+    [Fact]
+    public void AnnouncementFilters_RunInManifestOrder_TiesById()
+    {
+        _loader.Set("com.example.a", () => new FakeAddOn(host => host.AddAnnouncementFilter(new LambdaFilter(t => t + "A"))));
+        _loader.Set("com.example.b", () => new FakeAddOn(host => host.AddAnnouncementFilter(new LambdaFilter(t => t + "B"))));
+        _loader.Set("com.example.c", () => new FakeAddOn(host => host.AddAnnouncementFilter(new LambdaFilter(t => t + "C"))));
+        var manager = Manager();
+        Install(manager, "com.example.a", order: 5);
+        Install(manager, "com.example.b");
+        Install(manager, "com.example.c", order: -1);
+        manager.LoadAll();
+
+        var spoken = new AddOnTextRule(() => manager.Filters).Apply("x", new Utterance("x", Core.Speech.SpeechPriority.Normal));
+
+        Assert.Equal("xCBA", spoken);
     }
 
     [Fact]

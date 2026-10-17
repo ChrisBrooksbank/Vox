@@ -3037,6 +3037,9 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="AddOns.Details.Author" xml:space="preserve">
     <value>By {0}</value>
   </data>
+  <data name="AddOns.Details.Order" xml:space="preserve">
+    <value>Order {0}: plug-ins and announcement filters run in order, lowest first</value>
+  </data>
   <data name="AddOns.Details.State" xml:space="preserve">
     <value>State: {0}</value>
   </data>
