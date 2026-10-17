@@ -24,14 +24,28 @@ public static class PageElements
         "embeddedobject", "pluginobject", "application", "audio", "video"
     };
 
-    /// <summary>A list (not a list box, tree or menu), by control type or ARIA role.</summary>
+    // A definition list (dl) is a list of terms (dt) and definitions (dd); Chromium and Firefox
+    // expose them as description-list / term / definition roles.
+    private static readonly HashSet<string> DefinitionListRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "description-list", "descriptionlist", "description list", "definition-list", "definition list", "dl"
+    };
+
+    private static readonly HashSet<string> DefinitionItemRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "term", "definition", "description-term", "description-details", "dt", "dd"
+    };
+
+    /// <summary>A list (not a list box, tree or menu; a definition list is one), by control type or ARIA role.</summary>
     public static bool IsList(VBufferNode node) =>
-        (Is(node.ControlType, "List") || Is(node.AriaRole, "list") || Is(node.AriaRole, "directory"))
+        (Is(node.ControlType, "List") || Is(node.AriaRole, "list") || Is(node.AriaRole, "directory")
+            || DefinitionListRoles.Contains(node.AriaRole?.Trim() ?? string.Empty))
         && !FormControls.IsFormField(node.ControlType, node.AriaRole);
 
-    /// <summary>A list item (not a list box option or tree item), by control type or ARIA role.</summary>
+    /// <summary>A list item (not a list box option or tree item; a term or definition is one), by control type or ARIA role.</summary>
     public static bool IsListItem(VBufferNode node) =>
-        (Is(node.ControlType, "ListItem") || Is(node.AriaRole, "listitem"))
+        (Is(node.ControlType, "ListItem") || Is(node.AriaRole, "listitem")
+            || DefinitionItemRoles.Contains(node.AriaRole?.Trim() ?? string.Empty))
         && !FormControls.IsFormField(node.ControlType, node.AriaRole);
 
     /// <summary>An image or other graphic, by control type or ARIA role.</summary>

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 264
+- Build iterations: 265
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -421,7 +421,7 @@ From the community research behind `docs/choosing-a-screen-reader.md`: features 
 
 #### Web markup (spec: community-requests.md)
 
-- [ ] Read definition lists (`dl`/`dt`/`dd`, role term/definition) as lists of terms and definitions in the buffer, with `L`/`I` quick navigation and list announcements; add a test page to `tests/pages/`; unit tests (spec: community-requests.md)
+- [x] Read definition lists (`dl`/`dt`/`dd`, role term/definition) as lists of terms and definitions in the buffer, with `L`/`I` quick navigation and list announcements; add a test page to `tests/pages/`; unit tests (spec: community-requests.md)
 - [ ] Support `aria-controls` beyond combo boxes: say "controls" on focus at Intermediate verbosity and add a command to move the browse cursor to the controlled element; unit tests (spec: community-requests.md)
 - [ ] Don't read a dialog's content twice when it opens (merge the focus announcement with the overlay announcement when the description repeats it); test page and unit tests (spec: community-requests.md)
 

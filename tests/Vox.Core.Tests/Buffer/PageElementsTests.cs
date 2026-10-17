@@ -14,6 +14,7 @@ public class PageElementsTests
     [InlineData("Group", "list", true)]
     [InlineData("List", "listbox", false)]
     [InlineData("Tree", "tree", false)]
+    [InlineData("Group", "description-list", true)]
     [InlineData("Text", "", false)]
     public void IsList_ExcludesListBoxesAndTrees(string controlType, string ariaRole, bool expected) =>
         Assert.Equal(expected, PageElements.IsList(Node(controlType, ariaRole)));
@@ -23,6 +24,8 @@ public class PageElementsTests
     [InlineData("ListItem", "listitem", true)]
     [InlineData("ListItem", "option", false)]
     [InlineData("TreeItem", "treeitem", false)]
+    [InlineData("Text", "term", true)]
+    [InlineData("Text", "definition", true)]
     public void IsListItem_ExcludesOptions(string controlType, string ariaRole, bool expected) =>
         Assert.Equal(expected, PageElements.IsListItem(Node(controlType, ariaRole)));
 

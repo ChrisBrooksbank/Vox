@@ -16,6 +16,7 @@
     { "file": "dialogs.html", "title": "Dialogs", "covers": ["modal dialog element", "aria-modal alertdialog", "focus return"] },
     { "file": "cookie-banner.html", "title": "Cookie banner", "covers": ["cookie banner detection", "Insert+Shift+D"] },
     { "file": "annotations.html", "title": "Annotations, figures and abbreviations", "covers": ["insertions, deletions and highlights", "abbreviations", "figures", "clickable elements", "language switching"] },
+    { "file": "definition-lists.html", "title": "Definition lists", "covers": ["dl, dt and dd", "list announcements", "L and I quick navigation"] },
     { "file": "math.html", "title": "Math", "covers": ["inline and block MathML", "MathCAT"] },
     { "file": "long-page.html", "title": "Long page", "covers": ["about 10,000 elements", "staged build", "performance"] },
     { "file": "large-table.html", "title": "Large table", "covers": ["a data table of 10,000 rows", "row headers", "time to first speech", "keypress latency"] }
