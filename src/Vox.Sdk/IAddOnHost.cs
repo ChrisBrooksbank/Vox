@@ -98,6 +98,13 @@ public interface IAddOnHost
     /// default before anyone changes it, null for an unknown id. Read it when needed, not once. Since API 1.1.
     /// </summary>
     string? GetSetting(string id) => null;
+
+    /// <summary>
+    /// The text for <paramref name="key"/> from the add-on's string table (<c>strings/&lt;culture&gt;.json</c>
+    /// in its package) in Vox's language, else English, else the key itself. Command names, descriptions
+    /// and setting labels written as <c>"@key"</c> are looked up the same way. Since API 1.1.
+    /// </summary>
+    string GetString(string key) => key;
 }
 
 /// <summary>How urgently something is said.</summary>

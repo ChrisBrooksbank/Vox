@@ -52,6 +52,14 @@ Don't block the thread you're called on: start slow work on a task and come back
 Key precedence: the active add-on module's keys, then every add-on's global commands, then Vox's
 own app module and keymap. While input help is on, add-on keys are described like Vox's.
 
+### Translating an add-on
+
+Put flat JSON files of key to text in the package as `strings/<culture>.json` (`en.json`, `fr.json`,
+`pt-BR.json`); they are listed in the manifest like any file. Write a command's name or description,
+or a setting's label or a choice's text, as `"@key"`: Vox looks it up in its language (the full
+culture, then the language), then in `en.json`, and shows the key itself when nothing has it
+(`"@@text"` is the literal `@text`). `host.GetString("key")` does the same for your own text.
+
 ## Packages and the manifest
 
 A package is a zip (`.voxaddon`) with `addon.json` at its root, every file it lists, and

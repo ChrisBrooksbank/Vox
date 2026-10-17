@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 251
+- Build iterations: 252
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -377,7 +377,7 @@ API surface:
 - [x] Give `CaretMovedEvent` the line, word and character at the caret (from `ITextDocument`; nothing for password fields) as `init` properties; unit tests (spec: extensibility.md)
 - [x] Add output beyond speech to `IAddOnHost`: play an earcon, flash a braille message, show a text document under the review cursor (`ReviewCommands.ShowRecognizedAsync`), and run a Vox command by `NavigationCommand` name; unit tests (spec: extensibility.md)
 - [x] Add an add-on settings model (toggle/number/choice fields like `SettingsPages`) shown as a page in the settings dialog, stored per add-on and layered by profiles and policy; unit tests (spec: extensibility.md)
-- [ ] Add per-add-on localized strings (a string table in the package resolved in `VoxStrings.Culture`, English fallback) for command names, descriptions and settings labels; unit tests (spec: extensibility.md)
+- [x] Add per-add-on localized strings (a string table in the package resolved in `VoxStrings.Culture`, English fallback) for command names, descriptions and settings labels; unit tests (spec: extensibility.md)
 
 Integration:
 

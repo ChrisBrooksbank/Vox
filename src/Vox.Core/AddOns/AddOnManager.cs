@@ -184,7 +184,7 @@ public sealed class AddOnManager
         lock (_lock) running = [.. _loaded.Values];
         return running.Where(l => l.Contributions.Settings.Count > 0)
             .OrderBy(l => l.Manifest.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(l => AddOnSettingsModel.Page(l.Manifest.Name, l.Manifest.Id, l.Contributions.Settings))
+            .Select(l => AddOnSettingsModel.Page(l.Manifest.Name, l.Manifest.Id, l.Contributions.Settings, l.Host.Strings))
             .ToList();
     }
 
@@ -314,7 +314,10 @@ public sealed class AddOnManager
         var host = new AddOnHost(id, () => Path.Combine(_directory!, DataFolderName, id), logger,
             new GuardedSpeech(_integration, guard), _integration.ForegroundProcessName,
             work => _integration.Post(() => guard.Run(work, "running work on the pipeline")),
-            _integration.Objects, _integration);
+            _integration.Objects, _integration)
+        {
+            Strings = AddOnStrings.Load(folder, manifest, (file, ex) => _logger.LogWarning(ex, "Add-on {AddOn}: {File} not used", id, file)),
+        };
         if (!guard.Run(() => code.Instance.Initialize(host), "starting", AddOnGuard.StartBudget))
         {
             guard.Stop();
@@ -434,7 +437,7 @@ public sealed class AddOnManager
     private static IEnumerable<(KeyGesture, AddOnCommandRef)> Gestures(Loaded loaded, AddOnCommand command, string? moduleId)
     {
         var reference = new AddOnCommandRef(loaded.Manifest.Id, moduleId is null ? command.Id : $"{moduleId}/{command.Id}",
-            command.Name, command.Description ?? string.Empty);
+            loaded.Host.Strings.Resolve(command.Name), loaded.Host.Strings.Resolve(command.Description ?? string.Empty));
         return loaded.Guard.Call(() => command.Gestures.ToList(), [], "listing a command's keys").Select(g => (g, reference));
     }
 
@@ -816,9 +819,9 @@ public sealed class AddOnManager
         public List<AddOnBrailleDriver> Drivers { get; } = [];
 
         public IReadOnlyList<AddOnCommandInfo> CommandInfos() =>
-            Contributions.Commands.Select(c => new AddOnCommandInfo(c.Name, c.Description ?? string.Empty, c.Gestures))
+            Contributions.Commands.Select(c => new AddOnCommandInfo(Host.Strings.Resolve(c.Name), Host.Strings.Resolve(c.Description ?? string.Empty), c.Gestures))
                 .Concat(Modules.SelectMany(m => m.Commands.Select(c =>
-                    new AddOnCommandInfo($"{c.Name} ({m.Name})", c.Description ?? string.Empty, c.Gestures))))
+                    new AddOnCommandInfo($"{Host.Strings.Resolve(c.Name)} ({m.Name})", Host.Strings.Resolve(c.Description ?? string.Empty), c.Gestures))))
                 .ToList();
     }
 

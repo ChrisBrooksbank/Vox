@@ -66,3 +66,4 @@ Vox.Sdk.AddOnChoice.Value.get -> string!
 Vox.Sdk.AddOnChoice.Value.init -> void
 Vox.Sdk.IAddOnHost.AddSettings(System.Collections.Generic.IReadOnlyList<Vox.Sdk.AddOnSetting!>! settings) -> void
 Vox.Sdk.IAddOnHost.GetSetting(string! id) -> string?
+Vox.Sdk.IAddOnHost.GetString(string! key) -> string!

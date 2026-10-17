@@ -52,6 +52,11 @@ public sealed class AddOnHost(
         }
     }
 
+    /// <summary>The add-on's string table (set before it starts).</summary>
+    public AddOnStrings Strings { get; init; } = AddOnStrings.Empty;
+
+    public string GetString(string key) => Strings.Lookup(key) ?? key;
+
     public Task<IVoxObject?> GetFocusedObjectAsync() => ReadObjectAsync(o => o.GetFocused());
 
     public Task<IVoxObject?> GetNavigatorObjectAsync() => ReadObjectAsync(o => o.GetNavigator());

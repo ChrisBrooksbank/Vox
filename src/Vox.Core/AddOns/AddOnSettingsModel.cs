@@ -38,8 +38,21 @@ public static class AddOnSettingsModel
     }
 
     /// <summary>The add-on's page of the settings dialog.</summary>
-    public static SettingsPage Page(string title, string addOnId, IReadOnlyList<AddOnSetting> declared) =>
-        new(title, declared.Select(s => Field(addOnId, s)).ToList());
+    public static SettingsPage Page(string title, string addOnId, IReadOnlyList<AddOnSetting> declared, AddOnStrings? strings = null) =>
+        new(title, declared.Select(s => Field(addOnId, Localize(s, strings ?? AddOnStrings.Empty))).ToList());
+
+    /// <summary><paramref name="setting"/> with its label (and a choice's texts) looked up in <paramref name="strings"/>.</summary>
+    private static AddOnSetting Localize(AddOnSetting setting, AddOnStrings strings) => setting switch
+    {
+        AddOnChoiceSetting choice => choice with
+        {
+            Label = strings.Resolve(choice.Label),
+            Choices = choice.Choices.Select(c => c with { Text = strings.Resolve(c.Text) }).ToList(),
+        },
+        AddOnToggleSetting toggle => toggle with { Label = strings.Resolve(toggle.Label) },
+        AddOnNumberSetting number => number with { Label = strings.Resolve(number.Label) },
+        _ => setting,
+    };
 
     private static SettingField Field(string addOnId, AddOnSetting setting) => setting switch
     {
