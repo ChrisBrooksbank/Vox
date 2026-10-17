@@ -201,6 +201,11 @@ public record VoxSettings
     public Dictionary<string, InteractionMode> AppDefaultModes { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>App modules (by id: "word", "excel", ...) turned off: their applications are read like any other.</summary>
     public List<string> DisabledAppModules { get; init; } = [];
+    /// <summary>
+    /// What add-ons' settings are set to: add-on id, then setting id, then the value as text
+    /// (<see cref="AddOns.AddOnSettingsModel"/>). Only what was changed is kept.
+    /// </summary>
+    public Dictionary<string, Dictionary<string, string>> AddOnSettings { get; init; } = new(StringComparer.Ordinal);
     /// <summary>Say a configuration profile's name when an application or a hand choice switches to it.</summary>
     public bool AnnounceProfileSwitches { get; init; } = true;
     /// <summary>Excel: say "has formula" for a cell with a formula.</summary>

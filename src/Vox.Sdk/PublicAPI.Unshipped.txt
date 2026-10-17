@@ -32,3 +32,37 @@ Vox.Sdk.VoxRect.VoxRect() -> void
 Vox.Sdk.VoxRect.VoxRect(int Left, int Top, int Width, int Height) -> void
 Vox.Sdk.VoxRect.Width.get -> int
 Vox.Sdk.VoxRect.Width.init -> void
+Vox.Sdk.AddOnSetting
+Vox.Sdk.AddOnSetting.AddOnSetting(string! Id, string! Label) -> void
+Vox.Sdk.AddOnSetting.Id.get -> string!
+Vox.Sdk.AddOnSetting.Id.init -> void
+Vox.Sdk.AddOnSetting.Label.get -> string!
+Vox.Sdk.AddOnSetting.Label.init -> void
+Vox.Sdk.AddOnToggleSetting
+Vox.Sdk.AddOnToggleSetting.AddOnToggleSetting(string! Id, string! Label) -> void
+Vox.Sdk.AddOnToggleSetting.Default.get -> bool
+Vox.Sdk.AddOnToggleSetting.Default.init -> void
+Vox.Sdk.AddOnNumberSetting
+Vox.Sdk.AddOnNumberSetting.AddOnNumberSetting(string! Id, string! Label) -> void
+Vox.Sdk.AddOnNumberSetting.Default.get -> int
+Vox.Sdk.AddOnNumberSetting.Default.init -> void
+Vox.Sdk.AddOnNumberSetting.Max.get -> int
+Vox.Sdk.AddOnNumberSetting.Max.init -> void
+Vox.Sdk.AddOnNumberSetting.Min.get -> int
+Vox.Sdk.AddOnNumberSetting.Min.init -> void
+Vox.Sdk.AddOnNumberSetting.Step.get -> int
+Vox.Sdk.AddOnNumberSetting.Step.init -> void
+Vox.Sdk.AddOnChoiceSetting
+Vox.Sdk.AddOnChoiceSetting.AddOnChoiceSetting(string! Id, string! Label) -> void
+Vox.Sdk.AddOnChoiceSetting.Choices.get -> System.Collections.Generic.IReadOnlyList<Vox.Sdk.AddOnChoice!>!
+Vox.Sdk.AddOnChoiceSetting.Choices.init -> void
+Vox.Sdk.AddOnChoiceSetting.Default.get -> string?
+Vox.Sdk.AddOnChoiceSetting.Default.init -> void
+Vox.Sdk.AddOnChoice
+Vox.Sdk.AddOnChoice.AddOnChoice(string! Value, string! Text) -> void
+Vox.Sdk.AddOnChoice.Text.get -> string!
+Vox.Sdk.AddOnChoice.Text.init -> void
+Vox.Sdk.AddOnChoice.Value.get -> string!
+Vox.Sdk.AddOnChoice.Value.init -> void
+Vox.Sdk.IAddOnHost.AddSettings(System.Collections.Generic.IReadOnlyList<Vox.Sdk.AddOnSetting!>! settings) -> void
+Vox.Sdk.IAddOnHost.GetSetting(string! id) -> string?

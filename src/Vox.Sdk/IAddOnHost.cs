@@ -85,6 +85,19 @@ public interface IAddOnHost
     /// add-on (Quit). Since API 1.1.
     /// </summary>
     bool RunCommand(string commandName) => false;
+
+    /// <summary>
+    /// The add-on's settings, shown as its page in the settings dialog (named for the add-on). Only
+    /// from <see cref="IAddOn.Initialize"/>. Since API 1.1.
+    /// </summary>
+    void AddSettings(IReadOnlyList<AddOnSetting> settings) { }
+
+    /// <summary>
+    /// The current value of one of the add-on's settings as text (<c>"true"</c>/<c>"false"</c>, digits,
+    /// or the chosen value), with the user's profiles and the organization's policy applied; its
+    /// default before anyone changes it, null for an unknown id. Read it when needed, not once. Since API 1.1.
+    /// </summary>
+    string? GetSetting(string id) => null;
 }
 
 /// <summary>How urgently something is said.</summary>

@@ -76,6 +76,8 @@ public sealed class AddOnIntegration
     /// <summary>Gives the key dispatcher the add-on commands' keys.</summary>
     public Action<AddOnKeyLayer?> SetKeyLayer { get; init; } = _ => { };
     public SpeechEngineRegistry? SpeechEngines { get; init; }
+    /// <summary>Vox's settings as they apply now (profiles and policy included), where add-ons' settings are kept.</summary>
+    public Func<Configuration.VoxSettings> CurrentSettings { get; init; } = () => new Configuration.VoxSettings();
     /// <summary>The SpeechEngine setting, so an add-on's engine chosen there starts once it is added.</summary>
     public Func<string?> SelectedSpeechEngine { get; init; } = () => null;
     public BrailleDisplayManager? Braille { get; init; }
@@ -175,6 +177,17 @@ public sealed class AddOnManager
     // ---- Listing ----------------------------------------------------------------------------
 
     /// <summary>The installed add-ons, by name.</summary>
+    /// <summary>A page of the settings dialog for each running add-on that declared settings.</summary>
+    public IReadOnlyList<Configuration.SettingsPage> SettingsPages()
+    {
+        List<Loaded> running;
+        lock (_lock) running = [.. _loaded.Values];
+        return running.Where(l => l.Contributions.Settings.Count > 0)
+            .OrderBy(l => l.Manifest.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(l => AddOnSettingsModel.Page(l.Manifest.Name, l.Manifest.Id, l.Contributions.Settings))
+            .ToList();
+    }
+
     public IReadOnlyList<AddOnInfo> List()
     {
         if (_directory is null || !System.IO.Directory.Exists(_directory))

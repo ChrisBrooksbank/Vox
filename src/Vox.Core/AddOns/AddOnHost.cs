@@ -12,6 +12,7 @@ public sealed class AddOnContributions
     public List<IAnnouncementFilter> AnnouncementFilters { get; } = [];
     public List<SpeechEngineRegistration> SpeechEngines { get; } = [];
     public List<IBrailleDriver> BrailleDrivers { get; } = [];
+    public List<AddOnSetting> Settings { get; } = [];
 }
 
 /// <summary>
@@ -123,6 +124,27 @@ public sealed class AddOnHost(
             throw new ArgumentException($"There is already a command '{command.Id}'.", nameof(command));
         Contributions.Commands.Add(command);
     }
+
+    public void AddSettings(IReadOnlyList<AddOnSetting> settings)
+    {
+        Open();
+        ArgumentNullException.ThrowIfNull(settings);
+        foreach (var setting in settings)
+        {
+            if (setting is null || string.IsNullOrWhiteSpace(setting.Id) || string.IsNullOrWhiteSpace(setting.Label))
+                throw new ArgumentException("A setting needs an id and a label.", nameof(settings));
+            if (setting is AddOnChoiceSetting { Choices.Count: 0 })
+                throw new ArgumentException($"The setting '{setting.Id}' has no choices.", nameof(settings));
+            if (setting is not (AddOnToggleSetting or AddOnNumberSetting or AddOnChoiceSetting))
+                throw new ArgumentException($"The setting '{setting.Id}' is not a toggle, number or choice.", nameof(settings));
+            if (Contributions.Settings.Any(s => s.Id == setting.Id) || settings.Count(s => s?.Id == setting.Id) > 1)
+                throw new ArgumentException($"There is already a setting '{setting.Id}'.", nameof(settings));
+        }
+        Contributions.Settings.AddRange(settings);
+    }
+
+    public string? GetSetting(string id) =>
+        output is null ? null : AddOnSettingsModel.Value(output.CurrentSettings(), addOnId, Contributions.Settings, id);
 
     public void AddAppModule(Sdk.IAppModule module)
     {

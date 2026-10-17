@@ -74,6 +74,8 @@ public static class SettingsPages
         // access remembers what its own dialog was given (docs/remote.md)
         nameof(VoxSettings.AddOnCatalogueUrl), nameof(VoxSettings.RemotePort), nameof(VoxSettings.RemoteUseRelay),
         nameof(VoxSettings.RemoteRelay), nameof(VoxSettings.RemoteAddress),
+        // Each running add-on adds its own page (AddOns.AddOnSettingsModel)
+        nameof(VoxSettings.AddOnSettings),
     };
 
     /// <summary>Vox's app modules, by id, with the names the Applications page shows (product names, not translated).</summary>

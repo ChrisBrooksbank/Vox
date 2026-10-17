@@ -574,7 +574,8 @@ public static class ServiceRegistration
                 gestures,
                 sp.GetRequiredService<IVoxMenuPresenter>(),
                 sp.GetRequiredService<IPortableCopyPresenter>(),
-                sp.GetRequiredService<PolicySettings>());
+                sp.GetRequiredService<PolicySettings>(),
+                () => sp.GetRequiredService<AddOnManager>().SettingsPages());
         });
 
         // App modules: Vox's support for particular applications, chosen by the foreground
@@ -664,6 +665,7 @@ public static class ServiceRegistration
                         sp.GetRequiredService<INavigatorObjectSource>(), sp.GetRequiredService<ObjectNavigationCommands>()),
                     SpeechEngines = sp.GetRequiredService<SpeechEngineRegistry>(),
                     SelectedSpeechEngine = () => settings.CurrentValue.SpeechEngine,
+                    CurrentSettings = () => settings.CurrentValue,
                     Braille = sp.GetRequiredService<BrailleDisplayManager>(),
                     // A label pack's labels apply to the page being browsed at once
                     SetLabelPack = (id, labels) =>

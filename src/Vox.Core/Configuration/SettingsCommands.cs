@@ -38,7 +38,8 @@ public sealed class SettingsCommands(
     GestureSetup? gestures = null,
     IVoxMenuPresenter? menu = null,
     IPortableCopyPresenter? portable = null,
-    Enterprise.PolicySettings? policy = null)
+    Enterprise.PolicySettings? policy = null,
+    Func<IReadOnlyList<SettingsPage>>? addOnPages = null)
 {
     public bool TryHandle(NavigationCommand command)
     {
@@ -133,7 +134,7 @@ public sealed class SettingsCommands(
             var speechOptions = new SpeechOptions(speech.Engines, speech.GetAvailableVoices(), speech.MaxRateWpm, speech.Capabilities);
             var audioOptions = new AudioOptions(OutputDevices(), EarconSchemes());
             // Settings the organization's policy sets are shown, but can't be changed
-            var pages = SettingsPages.WithPolicy(SettingsPages.All(speechOptions, audioOptions, Ocr.WindowsOcrEngine.Languages()),
+            var pages = SettingsPages.WithPolicy([.. SettingsPages.All(speechOptions, audioOptions, Ocr.WindowsOcrEngine.Languages()), .. addOnPages?.Invoke() ?? []],
                 policy ?? Enterprise.PolicySettings.None, settings.CurrentValue);
             await presenter.ShowAsync(() => settings.CurrentValue, pages, updateSettings).ConfigureAwait(false);
         }
