@@ -41,7 +41,7 @@ API compatibility:
 API surface (`VoxApi` 1.1):
 
 - [ ] Read-only objects (`IVoxObject`: name, role, value, bounds, parent, children, next/previous), the focused and navigator objects from the host; read on the UIA thread with its timeouts; never a password's value
-- [ ] `CaretMovedEvent` carries the line, word and character at the caret (none for password fields)
+- [x] `CaretMovedEvent` carries the line, word and character at the caret (none for password fields)
 - [ ] Output beyond speech: play an earcon, flash a braille message, show a text under the review cursor, run a Vox command by name
 - [ ] Add-on settings: fields (toggle, number, choice) shown as the add-on's page in the settings dialog, stored per add-on, layered by profiles and lockable by policy
 - [ ] Add-on strings: a string table in the package, read in Vox's language with English as fallback, for command names, descriptions and settings labels

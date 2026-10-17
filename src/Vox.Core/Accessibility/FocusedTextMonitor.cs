@@ -73,7 +73,47 @@ public sealed class FocusedTextMonitor : IFocusedTextReader
     /// <summary>How long after a focus change the new control's text is first read (time for the subscriber to find it).</summary>
     public TimeSpan PrimeDelay { get; init; } = TimeSpan.FromMilliseconds(150);
 
-    public Task HandleCaretMovedAsync(CaretMovedEvent e) => EvaluateAsync(_caretTracker.OnCaretMoved, "reading the caret");
+    /// <summary>
+    /// Called on the UIA thread with the caret event completed with the line, word and character at
+    /// the caret (none for a password field), each time a caret move was read.
+    /// </summary>
+    public Action<CaretMovedEvent>? CaretTextRead { get; set; }
+
+    public Task HandleCaretMovedAsync(CaretMovedEvent e) => EvaluateAsync(document =>
+    {
+        var speech = _caretTracker.OnCaretMoved(document);
+        PublishCaretText(e, document);
+        return speech;
+    }, "reading the caret");
+
+    private void PublishCaretText(CaretMovedEvent e, ITextDocument document)
+    {
+        if (CaretTextRead is not { } observer)
+            return;
+        try
+        {
+            observer(CaretText(e, document, _source.IsPassword));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error passing on the caret text");
+        }
+    }
+
+    /// <summary><paramref name="e"/> with the line, word and character at the caret of <paramref name="document"/>; none for a password.</summary>
+    public static CaretMovedEvent CaretText(CaretMovedEvent e, ITextDocument document, bool isPassword)
+    {
+        if (isPassword || document.GetCaret() is not { } caret)
+            return e with { TextRead = true };
+        string Unit(TextUnit unit) => caret.ExpandToEnclosingUnit(unit).GetText(TextCaretTracker.MaxSpokenLength);
+        return e with
+        {
+            TextRead = true,
+            Line = Unit(TextUnit.Line),
+            Word = Unit(TextUnit.Word),
+            Character = Unit(TextUnit.Character),
+        };
+    }
 
     public Task HandleTextEditedAsync(TextEditedEvent e) => EvaluateAsync(_caretTracker.OnTextChanged, "reading a text change");
 

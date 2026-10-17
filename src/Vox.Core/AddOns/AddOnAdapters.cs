@@ -26,7 +26,14 @@ public static class SdkEvents
         ForegroundWindowChangedEvent window => new ForegroundWindowEvent(window.Timestamp, window.Title, window.ProcessId),
         Pipeline.NotificationEvent { NotificationText: { } text } notification => new Sdk.NotificationEvent(notification.Timestamp, text, notification.ActivityId),
         LiveRegionChangedEvent live => new LiveRegionEvent(live.Timestamp, live.Text, live.Politeness == LiveRegionPoliteness.Assertive),
-        Pipeline.CaretMovedEvent caret => new Sdk.CaretMovedEvent(caret.Timestamp),
+        // Only once the text was read (FocusedTextMonitor.CaretTextRead); the bare event isn't passed on
+        Pipeline.CaretMovedEvent { TextRead: false } => null,
+        Pipeline.CaretMovedEvent caret => new Sdk.CaretMovedEvent(caret.Timestamp)
+        {
+            Line = caret.Line,
+            Word = caret.Word,
+            Character = caret.Character,
+        },
         TextEditedEvent edited => new TextChangedEvent(edited.Timestamp),
         RawKeyEvent or TypingEchoEvent or InputHelpEvent or NavigationCommandEvent or AddOnCommandEvent or PipelineWorkEvent => null,
         _ => new OtherEvent(evt.Timestamp, evt.GetType().Name.Replace("Event", string.Empty)),

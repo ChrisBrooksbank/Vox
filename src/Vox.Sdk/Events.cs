@@ -23,7 +23,17 @@ public sealed record NotificationEvent(DateTimeOffset Timestamp, string Text, st
 public sealed record LiveRegionEvent(DateTimeOffset Timestamp, string Text, bool IsAssertive) : VoxEvent(Timestamp);
 
 /// <summary>The caret or selection moved in the focused text control.</summary>
-public sealed record CaretMovedEvent(DateTimeOffset Timestamp) : VoxEvent(Timestamp);
+public sealed record CaretMovedEvent(DateTimeOffset Timestamp) : VoxEvent(Timestamp)
+{
+    /// <summary>The line at the caret; null for a password field.</summary>
+    public string? Line { get; init; }
+
+    /// <summary>The word at the caret; null for a password field.</summary>
+    public string? Word { get; init; }
+
+    /// <summary>The character at the caret; null for a password field.</summary>
+    public string? Character { get; init; }
+}
 
 /// <summary>The focused text control's text changed.</summary>
 public sealed record TextChangedEvent(DateTimeOffset Timestamp) : VoxEvent(Timestamp);

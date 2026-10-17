@@ -290,6 +290,9 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.PropertyChangedProcessed += OnPropertyChangedProcessed;
         _eventPipeline.ElementSelectedProcessed += OnElementSelectedProcessed;
         _eventPipeline.CaretMovedProcessed += OnCaretMovedProcessed;
+        // Read on the UIA thread; add-ons are called on the pipeline thread
+        _focusedTextMonitor.CaretTextRead = caret =>
+            _eventPipeline.Post(new PipelineWorkEvent(DateTimeOffset.UtcNow, () => _addOns.OnEvent(caret)));
         _eventPipeline.TextEditedProcessed += OnTextEditedProcessed;
         _eventPipeline.ForegroundWindowChangedProcessed += OnForegroundWindowChangedProcessed;
         _eventPipeline.ProgressChangedProcessed += OnProgressChangedProcessed;

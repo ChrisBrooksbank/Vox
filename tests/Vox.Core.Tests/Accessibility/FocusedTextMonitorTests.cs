@@ -59,6 +59,55 @@ public class FocusedTextMonitorTests : IDisposable
     }
 
     [Fact]
+    public void CaretText_GivesLineWordAndCharacterAtTheCaret()
+    {
+        var document = new StringTextDocument("first\nsecond line", caret: 8);
+
+        var e = FocusedTextMonitor.CaretText(new CaretMovedEvent(DateTimeOffset.UtcNow, [1]), document, isPassword: false);
+
+        Assert.True(e.TextRead);
+        Assert.Contains("second line", e.Line);
+        Assert.Equal("second", e.Word?.Trim());
+        Assert.Equal("c", e.Character);
+    }
+
+    [Fact]
+    public void CaretText_PasswordField_GivesNoText()
+    {
+        var document = new StringTextDocument("secret", caret: 2);
+
+        var e = FocusedTextMonitor.CaretText(new CaretMovedEvent(DateTimeOffset.UtcNow, [1]), document, isPassword: true);
+
+        Assert.True(e.TextRead);
+        Assert.Null(e.Line);
+        Assert.Null(e.Word);
+        Assert.Null(e.Character);
+    }
+
+    [Fact]
+    public async Task CaretMoved_PassesTheEventWithTextToTheObserver()
+    {
+        _source.Document = new StringTextDocument("hello world", caret: 6);
+        var seen = new TaskCompletionSource<CaretMovedEvent>();
+        _monitor.CaretTextRead = seen.SetResult;
+
+        await _monitor.HandleCaretMovedAsync(new CaretMovedEvent(DateTimeOffset.UtcNow, [1]));
+
+        var e = await seen.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal("w", e.Character);
+    }
+
+    [Fact]
+    public void AddOns_AreGivenOnlyCaretEventsThatCarryText()
+    {
+        var bare = new CaretMovedEvent(DateTimeOffset.UtcNow, [1]);
+        Assert.Null(Vox.Core.AddOns.SdkEvents.From(bare));
+
+        var read = Vox.Core.AddOns.SdkEvents.From(bare with { TextRead = true, Line = "a line" });
+        Assert.Equal("a line", Assert.IsType<Vox.Sdk.CaretMovedEvent>(read).Line);
+    }
+
+    [Fact]
     public async Task ValueOnlyControl_ReadsAfterTheCaretKeyWithoutAnyCaretEvent()
     {
         _source.RaisesCaretEvents = false;

@@ -18,6 +18,9 @@ public interface IFocusedTextSource
     /// <summary>The focused control's text document, or null. Call on the source's thread.</summary>
     ITextDocument? GetFocusedDocument();
 
+    /// <summary>Whether the focused control is a password field (its text is never given to add-ons). Call on the source's thread.</summary>
+    bool IsPassword => false;
+
     /// <summary>Whether the focused control is a terminal (its output is read as it appears).</summary>
     bool IsTerminal => false;
 

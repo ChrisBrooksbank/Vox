@@ -246,7 +246,23 @@ public record AppNotRespondingEvent(
 public record CaretMovedEvent(
     DateTimeOffset Timestamp,
     int[] RuntimeId
-) : ScreenReaderEvent(Timestamp);
+) : ScreenReaderEvent(Timestamp)
+{
+    /// <summary>
+    /// True when the line, word and character below were read from the control (they are null for
+    /// a password field). Add-ons are given only events that carry them.
+    /// </summary>
+    public bool TextRead { get; init; }
+
+    /// <summary>The line at the caret; null for a password field.</summary>
+    public string? Line { get; init; }
+
+    /// <summary>The word at the caret; null for a password field.</summary>
+    public string? Word { get; init; }
+
+    /// <summary>The character at the caret; null for a password field.</summary>
+    public string? Character { get; init; }
+}
 
 /// <summary>
 /// The text of the focused text control changed (UIA TextChanged).

@@ -1,4 +1,10 @@
 #nullable enable
+Vox.Sdk.CaretMovedEvent.Character.get -> string?
+Vox.Sdk.CaretMovedEvent.Character.init -> void
+Vox.Sdk.CaretMovedEvent.Line.get -> string?
+Vox.Sdk.CaretMovedEvent.Line.init -> void
+Vox.Sdk.CaretMovedEvent.Word.get -> string?
+Vox.Sdk.CaretMovedEvent.Word.init -> void
 Vox.Sdk.IAddOnHost.GetFocusedObjectAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
 Vox.Sdk.IAddOnHost.GetNavigatorObjectAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
 Vox.Sdk.IVoxObject

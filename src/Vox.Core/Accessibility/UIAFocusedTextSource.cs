@@ -27,6 +27,15 @@ public sealed class UIAFocusedTextSource : IFocusedTextSource
 
     public bool IsTerminal => _subscriber.FocusedIsTerminal;
 
+    public bool IsPassword
+    {
+        get
+        {
+            try { return _subscriber.FocusedTextElement is { } element && element.CurrentIsPassword != 0; }
+            catch { return true; } // unknown: treat as private
+        }
+    }
+
     public IReadOnlyList<string>? GetVisibleLines()
     {
         var element = _subscriber.FocusedTextElement;
