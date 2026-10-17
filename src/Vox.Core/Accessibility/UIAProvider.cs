@@ -82,6 +82,24 @@ public sealed class UIAProvider : IDisposable
     /// </summary>
     public async Task InitializeAsync()
     {
+        // UIA can refuse for a moment right after a previous instance in this process shut down
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await InitializeOnceAsync().ConfigureAwait(false);
+                return;
+            }
+            catch (System.Runtime.InteropServices.COMException ex) when (attempt < 3)
+            {
+                _logger.LogWarning(ex, "UIA initialization failed (attempt {Attempt}); retrying", attempt);
+                await Task.Delay(250).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task InitializeOnceAsync()
+    {
         await _uiaThread.RunAsync(() =>
         {
             _logger.LogDebug("Creating CUIAutomation8 on STA thread");

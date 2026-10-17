@@ -655,12 +655,56 @@ public sealed class UIAEventSubscriber :
         // Cleared regions are posted too: the monitor must see the region go empty, or the same
         // message set again afterwards would look like a duplicate
         {
-            _eventSink.Post(new LiveRegionChangedEvent(
+            PostUnlessBrowserUi(sender, new LiveRegionChangedEvent(
                 Timestamp: DateTimeOffset.UtcNow,
                 Text: text ?? string.Empty,
                 Politeness: politeness,
                 SourceId: sourceId
             ));
+        }
+    }
+
+    /// <summary>
+    /// Posts <paramref name="e"/> unless <paramref name="sender"/> is a browser's own interface:
+    /// Edge's toolbar announces things ("Send feedback button removed from toolbar") that are not
+    /// the page. The check walks up the tree, which must not happen inside a UIA callback, so it
+    /// runs on the UIA thread; if it can't be made the event is posted.
+    /// </summary>
+    private void PostUnlessBrowserUi(IUIAutomationElement sender, ScreenReaderEvent e)
+    {
+        _ = _uiaThread.RunAsync(() => IsChromiumBrowserUi(sender)).ContinueWith(
+            t => { if (t.Status != TaskStatus.RanToCompletion || !t.Result) _eventSink.Post(e); },
+            TaskScheduler.Default);
+    }
+
+    private const int UIA_DocumentControlTypeId = 50030;
+    private const int MaxLiveRegionAncestors = 64;
+
+    /// <summary>
+    /// True for a Chromium element with no web Document above it, such as Edge's toolbar
+    /// ("Send feedback button removed from toolbar"). Any failure counts as page content.
+    /// </summary>
+    private bool IsChromiumBrowserUi(IUIAutomationElement sender)
+    {
+        try
+        {
+            if (TryGetValue(sender, () => sender.CurrentFrameworkId, "") != "Chrome")
+                return false;
+
+            var walker = _uiaProvider.Automation.ControlViewWalker;
+            var element = sender;
+            for (var i = 0; i < MaxLiveRegionAncestors && element is not null; i++)
+            {
+                if (TryGetValue(element, () => element.CurrentControlType) == UIA_DocumentControlTypeId)
+                    return false;
+                element = walker.GetParentElement(element);
+            }
+            return element is null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not tell whether a live region is page content");
+            return false;
         }
     }
 
@@ -717,7 +761,7 @@ public sealed class UIAEventSubscriber :
         try
         {
             var senderProcess = TryGetValue(sender, () => sender.CachedProcessId, -1);
-            _eventSink.Post(new NotificationEvent(
+            PostUnlessBrowserUi(sender, new NotificationEvent(
                 Timestamp: DateTimeOffset.UtcNow,
                 ActivityId: activityId,
                 NotificationText: displayString,
