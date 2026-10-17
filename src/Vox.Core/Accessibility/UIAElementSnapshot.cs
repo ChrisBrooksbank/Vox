@@ -256,20 +256,22 @@ public sealed class UIAElementSnapshot : IVBufferElement
     /// <summary>True when a LegacyIAccessible state value marks a visited link.</summary>
     public static bool IsTraversed(int legacyState) => (legacyState & STATE_SYSTEM_TRAVERSED) != 0;
 
+
     /// <summary>
-    /// A cached int property, or null when the element doesn't support it (UIA returns its
-    /// "not supported" sentinel object instead of an int).
+    /// A cached int property, or null when the element doesn't support it. Read with
+    /// ignoreDefaultValue: otherwise UIA hands back the property's default (ToggleState
+    /// indeterminate, IsDataValidForForm false) and every element looks mixed and invalid.
     /// </summary>
     internal static int? ReadCachedInt(IUIAutomationElement element, int propertyId) =>
-        Try(() => element.GetCachedPropertyValue(propertyId)) is int value ? value : null;
+        Try(() => element.GetCachedPropertyValueEx(propertyId, 1)) is int value ? value : null;
 
     /// <summary>A cached int array property (AnnotationTypes), or empty when not supported.</summary>
     internal static int[] ReadCachedIntArray(IUIAutomationElement element, int propertyId) =>
-        Try(() => element.GetCachedPropertyValue(propertyId)) is int[] values ? values : [];
+        Try(() => element.GetCachedPropertyValueEx(propertyId, 1)) is int[] values ? values : [];
 
     /// <summary>A cached bool property, or null when not supported.</summary>
     internal static bool? ReadCachedBool(IUIAutomationElement element, int propertyId) =>
-        Try(() => element.GetCachedPropertyValue(propertyId)) is bool value ? value : null;
+        Try(() => element.GetCachedPropertyValueEx(propertyId, 1)) is bool value ? value : null;
 
     /// <summary>Converts the cached UIA HeadingLevel property to 1-9, or 0 when not a heading.</summary>
     internal static int ReadHeadingLevel(IUIAutomationElement element)
