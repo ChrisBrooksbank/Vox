@@ -1,0 +1,203 @@
+#nullable enable
+abstract Vox.Sdk.AppModule.Id.get -> string!
+abstract Vox.Sdk.AppModule.Name.get -> string!
+abstract Vox.Sdk.AppModule.ProcessNames.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+override Vox.Sdk.KeyGesture.ToString() -> string!
+static Vox.Sdk.KeyGesture.Parse(string! text, Vox.Sdk.GestureMode mode = Vox.Sdk.GestureMode.Any) -> Vox.Sdk.KeyGesture
+static Vox.Sdk.KeyGesture.TryParse(string? text, out Vox.Sdk.KeyGesture gesture, Vox.Sdk.GestureMode mode = Vox.Sdk.GestureMode.Any) -> bool
+static Vox.Sdk.VoxApi.Current.get -> System.Version!
+virtual Vox.Sdk.AppModule.Commands.get -> System.Collections.Generic.IReadOnlyList<Vox.Sdk.AddOnCommand!>!
+virtual Vox.Sdk.AppModule.FormatFocusAnnouncement(Vox.Sdk.FocusInfo! focus, string! announcement) -> string?
+virtual Vox.Sdk.AppModule.OnActivated(Vox.Sdk.AppInfo! app) -> void
+virtual Vox.Sdk.AppModule.OnDeactivated() -> void
+virtual Vox.Sdk.AppModule.OnEvent(Vox.Sdk.VoxEvent! evt) -> void
+virtual Vox.Sdk.AppModule.ShouldProcess(Vox.Sdk.VoxEvent! evt) -> bool
+virtual Vox.Sdk.GlobalPlugin.FormatFocusAnnouncement(Vox.Sdk.FocusInfo! focus, string! announcement) -> string?
+virtual Vox.Sdk.GlobalPlugin.OnEvent(Vox.Sdk.VoxEvent! evt) -> void
+virtual Vox.Sdk.GlobalPlugin.ShouldProcess(Vox.Sdk.VoxEvent! evt) -> bool
+Vox.Sdk.AddOnCommand
+Vox.Sdk.AddOnCommand.AddOnCommand(string! Id, string! Name, string! Description, System.Action! Run) -> void
+Vox.Sdk.AddOnCommand.Description.get -> string!
+Vox.Sdk.AddOnCommand.Description.init -> void
+Vox.Sdk.AddOnCommand.Gestures.get -> System.Collections.Generic.IReadOnlyList<Vox.Sdk.KeyGesture>!
+Vox.Sdk.AddOnCommand.Gestures.init -> void
+Vox.Sdk.AddOnCommand.Id.get -> string!
+Vox.Sdk.AddOnCommand.Id.init -> void
+Vox.Sdk.AddOnCommand.Name.get -> string!
+Vox.Sdk.AddOnCommand.Name.init -> void
+Vox.Sdk.AddOnCommand.Run.get -> System.Action!
+Vox.Sdk.AddOnCommand.Run.init -> void
+Vox.Sdk.AnnouncementInfo
+Vox.Sdk.AnnouncementInfo.AnnouncementInfo(Vox.Sdk.SpeechPriority Priority, string? Language) -> void
+Vox.Sdk.AnnouncementInfo.Language.get -> string?
+Vox.Sdk.AnnouncementInfo.Language.init -> void
+Vox.Sdk.AnnouncementInfo.Priority.get -> Vox.Sdk.SpeechPriority
+Vox.Sdk.AnnouncementInfo.Priority.init -> void
+Vox.Sdk.AppInfo
+Vox.Sdk.AppInfo.AppInfo(int ProcessId, string! ProcessName, nint WindowHandle) -> void
+Vox.Sdk.AppInfo.ProcessId.get -> int
+Vox.Sdk.AppInfo.ProcessId.init -> void
+Vox.Sdk.AppInfo.ProcessName.get -> string!
+Vox.Sdk.AppInfo.ProcessName.init -> void
+Vox.Sdk.AppInfo.WindowHandle.get -> nint
+Vox.Sdk.AppInfo.WindowHandle.init -> void
+Vox.Sdk.AppModule
+Vox.Sdk.AppModule.App.get -> Vox.Sdk.AppInfo?
+Vox.Sdk.AppModule.AppModule() -> void
+Vox.Sdk.BrailleKeysEventArgs
+Vox.Sdk.BrailleKeysEventArgs.BrailleKeysEventArgs(System.Collections.Generic.IReadOnlyList<string!>! Keys, int? RoutingCell = null) -> void
+Vox.Sdk.BrailleKeysEventArgs.Keys.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Vox.Sdk.BrailleKeysEventArgs.Keys.init -> void
+Vox.Sdk.BrailleKeysEventArgs.RoutingCell.get -> int?
+Vox.Sdk.BrailleKeysEventArgs.RoutingCell.init -> void
+Vox.Sdk.CaretMovedEvent
+Vox.Sdk.CaretMovedEvent.CaretMovedEvent(System.DateTimeOffset Timestamp) -> void
+Vox.Sdk.FocusEvent
+Vox.Sdk.FocusEvent.Focus.get -> Vox.Sdk.FocusInfo!
+Vox.Sdk.FocusEvent.Focus.init -> void
+Vox.Sdk.FocusEvent.FocusEvent(System.DateTimeOffset Timestamp, Vox.Sdk.FocusInfo! Focus) -> void
+Vox.Sdk.FocusInfo
+Vox.Sdk.FocusInfo.ControlType.get -> string!
+Vox.Sdk.FocusInfo.ControlType.init -> void
+Vox.Sdk.FocusInfo.Description.get -> string?
+Vox.Sdk.FocusInfo.Description.init -> void
+Vox.Sdk.FocusInfo.FocusInfo(string! Name, string! ControlType, string? Role = null, string? Value = null, string? Description = null, bool IsPassword = false) -> void
+Vox.Sdk.FocusInfo.IsPassword.get -> bool
+Vox.Sdk.FocusInfo.IsPassword.init -> void
+Vox.Sdk.FocusInfo.Name.get -> string!
+Vox.Sdk.FocusInfo.Name.init -> void
+Vox.Sdk.FocusInfo.Role.get -> string?
+Vox.Sdk.FocusInfo.Role.init -> void
+Vox.Sdk.FocusInfo.Value.get -> string?
+Vox.Sdk.FocusInfo.Value.init -> void
+Vox.Sdk.ForegroundWindowEvent
+Vox.Sdk.ForegroundWindowEvent.ForegroundWindowEvent(System.DateTimeOffset Timestamp, string! Title, int ProcessId) -> void
+Vox.Sdk.ForegroundWindowEvent.ProcessId.get -> int
+Vox.Sdk.ForegroundWindowEvent.ProcessId.init -> void
+Vox.Sdk.ForegroundWindowEvent.Title.get -> string!
+Vox.Sdk.ForegroundWindowEvent.Title.init -> void
+Vox.Sdk.GestureMode
+Vox.Sdk.GestureMode.Any = 0 -> Vox.Sdk.GestureMode
+Vox.Sdk.GestureMode.Browse = 1 -> Vox.Sdk.GestureMode
+Vox.Sdk.GestureMode.Focus = 2 -> Vox.Sdk.GestureMode
+Vox.Sdk.GestureModifiers
+Vox.Sdk.GestureModifiers.Alt = 4 -> Vox.Sdk.GestureModifiers
+Vox.Sdk.GestureModifiers.Ctrl = 2 -> Vox.Sdk.GestureModifiers
+Vox.Sdk.GestureModifiers.None = 0 -> Vox.Sdk.GestureModifiers
+Vox.Sdk.GestureModifiers.Shift = 1 -> Vox.Sdk.GestureModifiers
+Vox.Sdk.GestureModifiers.VoxKey = 8 -> Vox.Sdk.GestureModifiers
+Vox.Sdk.GlobalPlugin
+Vox.Sdk.GlobalPlugin.GlobalPlugin() -> void
+Vox.Sdk.IAddOn
+Vox.Sdk.IAddOn.Initialize(Vox.Sdk.IAddOnHost! host) -> void
+Vox.Sdk.IAddOnHost
+Vox.Sdk.IAddOnHost.AddAnnouncementFilter(Vox.Sdk.IAnnouncementFilter! filter) -> void
+Vox.Sdk.IAddOnHost.AddAppModule(Vox.Sdk.IAppModule! module) -> void
+Vox.Sdk.IAddOnHost.AddBrailleDriver(Vox.Sdk.IBrailleDriver! driver) -> void
+Vox.Sdk.IAddOnHost.AddCommand(Vox.Sdk.AddOnCommand! command) -> void
+Vox.Sdk.IAddOnHost.AddGlobalPlugin(Vox.Sdk.IGlobalPlugin! plugin) -> void
+Vox.Sdk.IAddOnHost.AddOnId.get -> string!
+Vox.Sdk.IAddOnHost.AddSpeechEngine(Vox.Sdk.SpeechEngineRegistration! engine) -> void
+Vox.Sdk.IAddOnHost.ApiVersion.get -> System.Version!
+Vox.Sdk.IAddOnHost.DataDirectory.get -> string!
+Vox.Sdk.IAddOnHost.ForegroundProcessName.get -> string?
+Vox.Sdk.IAddOnHost.Logger.get -> Microsoft.Extensions.Logging.ILogger!
+Vox.Sdk.IAddOnHost.RunOnPipeline(System.Action! work) -> void
+Vox.Sdk.IAddOnHost.Speech.get -> Vox.Sdk.ISpeechOutput!
+Vox.Sdk.IAddOnHost.Stopping.get -> System.Threading.CancellationToken
+Vox.Sdk.IAnnouncementFilter
+Vox.Sdk.IAnnouncementFilter.Filter(string! text, Vox.Sdk.AnnouncementInfo! info) -> string?
+Vox.Sdk.IAppModule
+Vox.Sdk.IAppModule.Commands.get -> System.Collections.Generic.IReadOnlyList<Vox.Sdk.AddOnCommand!>!
+Vox.Sdk.IAppModule.FormatFocusAnnouncement(Vox.Sdk.FocusInfo! focus, string! announcement) -> string?
+Vox.Sdk.IAppModule.Id.get -> string!
+Vox.Sdk.IAppModule.Name.get -> string!
+Vox.Sdk.IAppModule.OnActivated(Vox.Sdk.AppInfo! app) -> void
+Vox.Sdk.IAppModule.OnDeactivated() -> void
+Vox.Sdk.IAppModule.OnEvent(Vox.Sdk.VoxEvent! evt) -> void
+Vox.Sdk.IAppModule.ProcessNames.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+Vox.Sdk.IAppModule.ShouldProcess(Vox.Sdk.VoxEvent! evt) -> bool
+Vox.Sdk.IBrailleDriver
+Vox.Sdk.IBrailleDriver.CellCount.get -> int
+Vox.Sdk.IBrailleDriver.Disconnect() -> void
+Vox.Sdk.IBrailleDriver.Disconnected -> System.EventHandler?
+Vox.Sdk.IBrailleDriver.Id.get -> string!
+Vox.Sdk.IBrailleDriver.IsConnected.get -> bool
+Vox.Sdk.IBrailleDriver.KeysPressed -> System.EventHandler<Vox.Sdk.BrailleKeysEventArgs!>?
+Vox.Sdk.IBrailleDriver.Name.get -> string!
+Vox.Sdk.IBrailleDriver.TryConnect() -> bool
+Vox.Sdk.IBrailleDriver.Write(System.ReadOnlyMemory<byte> cells, int? cursorPosition) -> void
+Vox.Sdk.IGlobalPlugin
+Vox.Sdk.IGlobalPlugin.FormatFocusAnnouncement(Vox.Sdk.FocusInfo! focus, string! announcement) -> string?
+Vox.Sdk.IGlobalPlugin.OnEvent(Vox.Sdk.VoxEvent! evt) -> void
+Vox.Sdk.IGlobalPlugin.ShouldProcess(Vox.Sdk.VoxEvent! evt) -> bool
+Vox.Sdk.ISpeechEngine
+Vox.Sdk.ISpeechEngine.Cancel() -> void
+Vox.Sdk.ISpeechEngine.GetVoices() -> System.Collections.Generic.IReadOnlyList<Vox.Sdk.VoiceInfo!>!
+Vox.Sdk.ISpeechEngine.IsSpeaking.get -> bool
+Vox.Sdk.ISpeechEngine.MaxRateWpm.get -> int
+Vox.Sdk.ISpeechEngine.SetPitch(int pitch) -> void
+Vox.Sdk.ISpeechEngine.SetRate(int wordsPerMinute) -> void
+Vox.Sdk.ISpeechEngine.SetVoice(string! voiceName) -> void
+Vox.Sdk.ISpeechEngine.SetVolume(int volume) -> void
+Vox.Sdk.ISpeechEngine.SpeakAsync(string! text, Vox.Sdk.SpeakOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Vox.Sdk.ISpeechOutput
+Vox.Sdk.ISpeechOutput.Speak(string! text, Vox.Sdk.SpeechPriority priority = Vox.Sdk.SpeechPriority.Normal) -> void
+Vox.Sdk.ISpeechOutput.StopSpeaking() -> void
+Vox.Sdk.KeyGesture
+Vox.Sdk.KeyGesture.KeyGesture() -> void
+Vox.Sdk.KeyGesture.KeyGesture(Vox.Sdk.GestureModifiers Modifiers, int VirtualKey, Vox.Sdk.GestureMode Mode = Vox.Sdk.GestureMode.Any) -> void
+Vox.Sdk.KeyGesture.Mode.get -> Vox.Sdk.GestureMode
+Vox.Sdk.KeyGesture.Mode.init -> void
+Vox.Sdk.KeyGesture.Modifiers.get -> Vox.Sdk.GestureModifiers
+Vox.Sdk.KeyGesture.Modifiers.init -> void
+Vox.Sdk.KeyGesture.VirtualKey.get -> int
+Vox.Sdk.KeyGesture.VirtualKey.init -> void
+Vox.Sdk.LiveRegionEvent
+Vox.Sdk.LiveRegionEvent.IsAssertive.get -> bool
+Vox.Sdk.LiveRegionEvent.IsAssertive.init -> void
+Vox.Sdk.LiveRegionEvent.LiveRegionEvent(System.DateTimeOffset Timestamp, string! Text, bool IsAssertive) -> void
+Vox.Sdk.LiveRegionEvent.Text.get -> string!
+Vox.Sdk.LiveRegionEvent.Text.init -> void
+Vox.Sdk.NotificationEvent
+Vox.Sdk.NotificationEvent.ActivityId.get -> string?
+Vox.Sdk.NotificationEvent.ActivityId.init -> void
+Vox.Sdk.NotificationEvent.NotificationEvent(System.DateTimeOffset Timestamp, string! Text, string? ActivityId) -> void
+Vox.Sdk.NotificationEvent.Text.get -> string!
+Vox.Sdk.NotificationEvent.Text.init -> void
+Vox.Sdk.OtherEvent
+Vox.Sdk.OtherEvent.Kind.get -> string!
+Vox.Sdk.OtherEvent.Kind.init -> void
+Vox.Sdk.OtherEvent.OtherEvent(System.DateTimeOffset Timestamp, string! Kind) -> void
+Vox.Sdk.SpeakOptions
+Vox.Sdk.SpeakOptions.PitchOffset.get -> int
+Vox.Sdk.SpeakOptions.PitchOffset.init -> void
+Vox.Sdk.SpeakOptions.SpeakOptions(string? Voice = null, int PitchOffset = 0) -> void
+Vox.Sdk.SpeakOptions.Voice.get -> string?
+Vox.Sdk.SpeakOptions.Voice.init -> void
+Vox.Sdk.SpeechEngineRegistration
+Vox.Sdk.SpeechEngineRegistration.Create.get -> System.Func<Vox.Sdk.ISpeechEngine!>!
+Vox.Sdk.SpeechEngineRegistration.Create.init -> void
+Vox.Sdk.SpeechEngineRegistration.Id.get -> string!
+Vox.Sdk.SpeechEngineRegistration.Id.init -> void
+Vox.Sdk.SpeechEngineRegistration.Name.get -> string!
+Vox.Sdk.SpeechEngineRegistration.Name.init -> void
+Vox.Sdk.SpeechEngineRegistration.SpeechEngineRegistration(string! Id, string! Name, System.Func<Vox.Sdk.ISpeechEngine!>! Create) -> void
+Vox.Sdk.SpeechPriority
+Vox.Sdk.SpeechPriority.High = 1 -> Vox.Sdk.SpeechPriority
+Vox.Sdk.SpeechPriority.Interrupt = 0 -> Vox.Sdk.SpeechPriority
+Vox.Sdk.SpeechPriority.Low = 3 -> Vox.Sdk.SpeechPriority
+Vox.Sdk.SpeechPriority.Normal = 2 -> Vox.Sdk.SpeechPriority
+Vox.Sdk.TextChangedEvent
+Vox.Sdk.TextChangedEvent.TextChangedEvent(System.DateTimeOffset Timestamp) -> void
+Vox.Sdk.VoiceInfo
+Vox.Sdk.VoiceInfo.Language.get -> string!
+Vox.Sdk.VoiceInfo.Language.init -> void
+Vox.Sdk.VoiceInfo.Name.get -> string!
+Vox.Sdk.VoiceInfo.Name.init -> void
+Vox.Sdk.VoiceInfo.VoiceInfo(string! Name, string! Language) -> void
+Vox.Sdk.VoxApi
+Vox.Sdk.VoxEvent
+Vox.Sdk.VoxEvent.Timestamp.get -> System.DateTimeOffset
+Vox.Sdk.VoxEvent.Timestamp.init -> void
+Vox.Sdk.VoxEvent.VoxEvent(System.DateTimeOffset Timestamp) -> void

@@ -12,6 +12,13 @@ from the Vox menu (Manage add-ons, or the Add-on store). The sample in
 internals can change without breaking add-ons. Its version is `VoxApi.Current` (major.minor):
 a minor version only adds; a major version may change or remove.
 
+The public API is tracked with `Microsoft.CodeAnalysis.PublicApiAnalyzers`: `src/Vox.Sdk/PublicAPI.Shipped.txt`
+lists the released API and `PublicAPI.Unshipped.txt` what the next release adds, so an unintended
+change fails the build (RS0016/RS0017/RS0050 are errors in CI). Within a major version, interfaces that
+add-ons implement (`IAddOn`, `IAppModule`, `IGlobalPlugin`, …) grow only through default interface
+members, and new record members are `init` properties, not positional parameters. When a release
+ships, move the unshipped lines into the shipped file.
+
 | Type | What it is |
 |---|---|
 | `IAddOn` | The entry point: one public class with a parameterless constructor. `Initialize(IAddOnHost)` is called once, on the pipeline thread; implement `IDisposable` to clean up when the add-on is turned off. |
