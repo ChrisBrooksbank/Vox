@@ -65,6 +65,14 @@ public class MouseTrackerTests : IDisposable
         _uiaThread.Dispose();
     }
 
+    [Fact]
+    public void Dispose_CalledTwice_DoesNotThrow()
+    {
+        _tracker.Start();
+        _tracker.Dispose();
+        _tracker.Dispose();
+    }
+
     private static FocusChangedEvent Object(string name, string controlType, int id) =>
         new(DateTimeOffset.UtcNow, name, controlType, RuntimeId: [42, id]);
 

@@ -90,6 +90,7 @@ public sealed class MouseTracker : IDisposable
     private readonly ILogger<MouseTracker> _logger;
     private readonly Func<DateTimeOffset> _clock;
     private readonly CancellationTokenSource _stop = new();
+    private int _disposed;
     private Task? _loop;
 
     // Touched only by the polling loop (one tick at a time)
@@ -228,6 +229,9 @@ public sealed class MouseTracker : IDisposable
 
     public void Dispose()
     {
+        // The host and the app's own shutdown can both dispose it
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
         _stop.Cancel();
         try { _loop?.Wait(TimeSpan.FromSeconds(3)); }
         catch (AggregateException) { }
