@@ -17,6 +17,8 @@ $env:VOX_E2E = "1"
 dotnet test tests/Vox.E2E.Tests
 ```
 
+`tools/run-e2e.ps1 [filter]` does the same and is the safer way to run them: it stops a `testhost` left by an interrupted run (which locks `Vox.Core.dll`, so the next build fails and the tests would run against the old binary), stops if the build fails, and writes the full output to a log, printing a summary. Don't pipe a run into `head` or `Select-Object -First`: that abandons the test host mid-run. A corpus run takes several minutes.
+
 Without `VOX_E2E=1` (for example on CI, which has no interactive desktop for them) the tests are skipped.
 
 ## Writing one
