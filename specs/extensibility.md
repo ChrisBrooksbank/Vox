@@ -45,7 +45,7 @@ API surface (`VoxApi` 1.1):
 - [ ] Output beyond speech: play an earcon, flash a braille message, show a text under the review cursor, run a Vox command by name
 - [ ] Add-on settings: fields (toggle, number, choice) shown as the add-on's page in the settings dialog, stored per add-on, layered by profiles and lockable by policy
 - [ ] Add-on strings: a string table in the package, read in Vox's language with English as fallback, for command names, descriptions and settings labels
-- [ ] `IAddOnHost.RequestReload()` reloads the add-on so it can change what it adds (commands after a settings change)
+- [x] `IAddOnHost.RequestReload()` reloads the add-on so it can change what it adds (commands after a settings change)
 
 Integration:
 

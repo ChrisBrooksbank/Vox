@@ -105,6 +105,13 @@ public interface IAddOnHost
     /// and setting labels written as <c>"@key"</c> are looked up the same way. Since API 1.1.
     /// </summary>
     string GetString(string key) => key;
+
+    /// <summary>
+    /// Asks Vox to stop and start the add-on again, so <see cref="IAddOn.Initialize"/> runs once more and
+    /// it can add something different (for example commands after a settings change). It happens soon,
+    /// not during this call; several requests before then make one reload. Since API 1.1.
+    /// </summary>
+    void RequestReload() { }
 }
 
 /// <summary>How urgently something is said.</summary>

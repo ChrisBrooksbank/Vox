@@ -249,6 +249,73 @@ public class AddOnManagerTests : IDisposable
     }
 
     [Fact]
+    public void RequestReload_StartsTheAddOnAgain_SoItCanAddDifferentCommands()
+    {
+        int starts = 0;
+        IAddOnHost? first = null;
+        _loader.Set("com.example.test", () => new FakeAddOn(host =>
+        {
+            starts++;
+            first ??= host;
+            host.AddCommand(Command(starts == 1 ? "before" : "after", () => { }));
+        }));
+        var manager = Manager();
+        Install(manager);
+        manager.LoadAll();
+
+        first!.RequestReload();
+
+        Assert.Equal(2, starts);
+        Assert.True(first.Stopping.IsCancellationRequested);
+        Assert.Equal("Command after", Assert.Single(Assert.Single(manager.List()).Commands).Name);
+    }
+
+    [Fact]
+    public void RequestReload_ManyRequestsBeforeItRuns_MakeOneReload()
+    {
+        int starts = 0;
+        IAddOnHost? host = null;
+        var queued = new List<Action>();
+        _loader.Set("com.example.test", () => new FakeAddOn(h => { starts++; host = h; }));
+        var integration = Integration();
+        var deferred = new AddOnIntegration
+        {
+            Speak = integration.Speak, SetKeyLayer = integration.SetKeyLayer, SetAppModules = integration.SetAppModules,
+            ActiveAppModule = integration.ActiveAppModule, SelectedSpeechEngine = integration.SelectedSpeechEngine,
+            Post = queued.Add,
+        };
+        var manager = Manager(integration: deferred);
+        Install(manager);
+        manager.LoadAll();
+
+        host!.RequestReload();
+        host.RequestReload();
+        host.RequestReload();
+        Assert.Equal(1, starts);
+        foreach (var work in queued.ToList())
+            work();
+
+        Assert.Equal(2, starts);
+    }
+
+    [Fact]
+    public void RequestReload_AfterTheAddOnStopped_DoesNothing()
+    {
+        int starts = 0;
+        IAddOnHost? host = null;
+        _loader.Set("com.example.test", () => new FakeAddOn(h => { starts++; host = h; }));
+        var manager = Manager();
+        Install(manager);
+        manager.LoadAll();
+        manager.Disable("com.example.test");
+
+        host!.RequestReload();
+
+        Assert.Equal(1, starts);
+        Assert.Equal(AddOnState.Disabled, Assert.Single(manager.List()).State);
+    }
+
+    [Fact]
     public void Stopping_IsCancelledWhenAnAddOnFailsToStart()
     {
         IAddOnHost? started = null;

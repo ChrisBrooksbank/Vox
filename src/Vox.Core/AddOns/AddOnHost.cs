@@ -28,10 +28,12 @@ public sealed class AddOnHost(
     Func<string?> foregroundProcessName,
     Action<Action> post,
     IAddOnObjectSource? objects = null,
-    AddOnIntegration? output = null) : IAddOnHost
+    AddOnIntegration? output = null,
+    Action? reload = null) : IAddOnHost
 {
     private readonly CancellationTokenSource _stopping = new();
     private bool _sealed;
+    private int _reloadPending;
 
     public AddOnContributions Contributions { get; } = new();
 
@@ -103,6 +105,18 @@ public sealed class AddOnHost(
             return false;
         output.RunCommand(command);
         return true;
+    }
+
+    public void RequestReload()
+    {
+        if (reload is null || _stopping.IsCancellationRequested || Interlocked.Exchange(ref _reloadPending, 1) == 1)
+            return;
+        post(() =>
+        {
+            Interlocked.Exchange(ref _reloadPending, 0);
+            if (!_stopping.IsCancellationRequested)
+                reload();
+        });
     }
 
     public void Seal() => _sealed = true;

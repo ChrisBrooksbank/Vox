@@ -320,7 +320,7 @@ public sealed class AddOnManager
         var host = new AddOnHost(id, () => Path.Combine(_directory!, DataFolderName, id), logger,
             new GuardedSpeech(_integration, guard), _integration.ForegroundProcessName,
             work => _integration.Post(() => guard.Run(work, "running work on the pipeline")),
-            _integration.Objects, _integration)
+            _integration.Objects, _integration, () => Reload(id))
         {
             Strings = AddOnStrings.Load(folder, manifest, (file, ex) => _logger.LogWarning(ex, "Add-on {AddOn}: {File} not used", id, file)),
         };
