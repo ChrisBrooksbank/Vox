@@ -81,6 +81,12 @@ public interface IVBufferElement
     /// <summary>True when it has extended details elsewhere on the page (aria-details; UIA DescribedBy).</summary>
     bool HasDetails => false;
 
+    /// <summary>
+    /// Runtime IDs of the elements it controls (aria-controls; UIA ControllerFor of a control
+    /// that is not invalid), empty when none.
+    /// </summary>
+    IReadOnlyList<int[]> ControlsIds => [];
+
     /// <summary>The element's own language (BCP 47, from the lang attribute), or empty when not set.</summary>
     string Language => string.Empty;
 
@@ -383,6 +389,7 @@ public sealed class VBufferBuilder
             RoleDescription = element.RoleDescription?.Trim() ?? string.Empty,
             AcceleratorKey = element.AcceleratorKey?.Trim() ?? string.Empty,
             HasDetails = element.HasDetails,
+            ControlsIds = invalid.Length == 0 ? element.ControlsIds ?? [] : [],
             Annotation = Annotations.Kind(ariaRole, element.AnnotationTypes),
             // aria-modal (Chromium also reports a <dialog> opened with showModal() this way)
             IsModal = ariaRole is "dialog" or "alertdialog" && ParseAriaPropertyBool(ariaProps, "modal"),

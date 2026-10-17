@@ -38,6 +38,7 @@ public sealed class UIAElementSnapshot : IVBufferElement
     public string RoleDescription { get; init; } = string.Empty;
     public string AcceleratorKey { get; init; } = string.Empty;
     public bool HasDetails { get; init; }
+    public IReadOnlyList<int[]> ControlsIds { get; init; } = [];
     public int RowSpan { get; init; } = 1;
     public int ColumnSpan { get; init; } = 1;
     public IReadOnlyList<int> AnnotationTypes { get; init; } = [];
@@ -135,6 +136,9 @@ public sealed class UIAElementSnapshot : IVBufferElement
             RoleDescription = ReadRoleDescription(element, controlType, ariaRole),
             AcceleratorKey = ReadCachedString(element, UIAProvider.UIA_AcceleratorKeyPropertyId)?.Trim() ?? string.Empty,
             HasDetails = ReadHasDetails(element),
+            // Only controls that can open or switch to a region: ControllerFor costs a call per target
+            ControlsIds = AriaStates.Invalid(isDataValid, ariaProperties).Length == 0 && MayControlRegion(element, controlType, ariaRole)
+                ? ReadErrorMessageIds(element) : [],
             Language = LanguageName(ReadCachedInt(element, UIAProvider.UIA_CulturePropertyId)),
             RowSpan = ReadCachedInt(element, UIAProvider.UIA_GridItemRowSpanPropertyId) ?? 1,
             ColumnSpan = ReadCachedInt(element, UIAProvider.UIA_GridItemColumnSpanPropertyId) ?? 1,
@@ -165,6 +169,12 @@ public sealed class UIAElementSnapshot : IVBufferElement
         }
         return ids;
     }
+
+    /// <summary>Whether an element may be a disclosure, tab or other control of a region (aria-controls).</summary>
+    internal static bool MayControlRegion(IUIAutomationElement element, string controlType, string ariaRole) =>
+        controlType is "Button" or "TabItem" or "SplitButton" or "MenuItem"
+        || ariaRole.Trim().ToLowerInvariant() is "tab" or "button" or "switch"
+        || ReadCachedInt(element, UIAProvider.UIA_ExpandCollapseStatePropertyId) is not null;
 
     /// <summary>True when the cached DescribedBy property names any element (aria-details, Core-AAM).</summary>
     internal static bool ReadHasDetails(IUIAutomationElement element) =>

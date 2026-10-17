@@ -1,3 +1,5 @@
+using Vox.Core.Configuration;
+using Vox.Core.Navigation;
 using Vox.Core.Buffer;
 using Xunit;
 
@@ -159,6 +161,32 @@ public class AriaStatesBufferTests
     }
 
     [Fact]
+    public void AriaControls_ResolvesToTheControlledElement_AndIsNotKeptForInvalidEntries()
+    {
+        var doc = Build(
+            new AriaElement { RuntimeId = [2], Name = "Details", ControlType = "Button", ControlsIds = [[3], [99]] },
+            new AriaElement { RuntimeId = [3], Name = "More text", ControlType = "Group" },
+            new AriaElement { RuntimeId = [4], Name = "Email", ControlType = "Edit", IsDataValidForForm = false, ControlsIds = [[3]] });
+
+        var button = doc.FindByRuntimeId([2])!;
+        Assert.Single(button.ControlsIds, id => id[0] == 3);
+        Assert.Same(doc.FindByRuntimeId([3]), doc.ControlledBy(button));
+        Assert.Empty(doc.FindByRuntimeId([4])!.ControlsIds);
+        Assert.Null(doc.ControlledBy(doc.FindByRuntimeId([3])!));
+    }
+
+    [Theory]
+    [InlineData(VerbosityLevel.Beginner, "Details, button, controls")]
+    [InlineData(VerbosityLevel.Intermediate, "Details, button, controls")]
+    [InlineData(VerbosityLevel.Advanced, "Details, button")]
+    public void AriaControls_SaidOnFocusPerVerbosity(VerbosityLevel level, string expected)
+    {
+        var focus = new Vox.Core.Pipeline.FocusChangedEvent(DateTimeOffset.UtcNow, "Details", "Button", ControlsIds: [[3]]);
+
+        Assert.Equal(expected, new AnnouncementBuilder().Build(focus, VerbosityProfile.For(level), true));
+    }
+
+    [Fact]
     public void AriaStates_SurviveCloneDetached()
     {
         var node = new VBufferNode
@@ -191,6 +219,7 @@ public class AriaStatesBufferTests
         public string RoleDescription { get; set; } = string.Empty;
         public string AcceleratorKey { get; set; } = string.Empty;
         public bool HasDetails { get; set; }
+        public IReadOnlyList<int[]> ControlsIds { get; set; } = [];
         public List<IVBufferElement> Children { get; } = new();
         public IReadOnlyList<IVBufferElement> GetChildren() => Children;
     }

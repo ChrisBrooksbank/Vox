@@ -474,6 +474,12 @@ public sealed class BrowseModeController
             return;
         }
 
+        if (command == NavigationCommand.GoToControlled)
+        {
+            GoToControlled();
+            return;
+        }
+
         if (command == NavigationCommand.MoveToMainContent)
         {
             MoveToMainContent();
@@ -1495,6 +1501,21 @@ public sealed class BrowseModeController
         {
             Language = _cursor.CurrentNode?.Language is { Length: > 0 } language ? language : null,
         });
+    }
+
+    /// <summary>Moves to the element the control at the cursor controls (aria-controls).</summary>
+    private void GoToControlled()
+    {
+        var document = _quickNavHandler.CurrentDocument;
+        var node = _cursor?.CurrentNode;
+        var target = document is null || node is null ? null : document.ControlledBy(node);
+        if (target is null || !document!.InScope(target))
+        {
+            _audioCuePlayer.Play("error");
+            Speak(VoxStrings.Get("Browse.NothingControlled"));
+            return;
+        }
+        GoToElement(target);
     }
 
     /// <summary>The page being browsed (for a summary), or null when not browsing. Pipeline thread.</summary>

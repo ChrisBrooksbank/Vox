@@ -132,6 +132,18 @@
   <data name="State.HasDetails" xml:space="preserve">
     <value>has details</value>
   </data>
+  <data name="State.Controls" xml:space="preserve">
+    <value>controls</value>
+  </data>
+  <data name="Command.GoToControlled.Name" xml:space="preserve">
+    <value>Move to controlled element</value>
+  </data>
+  <data name="Command.GoToControlled.Description" xml:space="preserve">
+    <value>Moves the browse cursor to the element the control at the cursor controls (aria-controls): a tab's panel, the region a button opens.</value>
+  </data>
+  <data name="Browse.NothingControlled" xml:space="preserve">
+    <value>Controls nothing on this page</value>
+  </data>
   <data name="ControlType.AppBar" xml:space="preserve">
     <value>app bar</value>
   </data>

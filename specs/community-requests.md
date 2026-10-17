@@ -53,7 +53,7 @@ AI guidance through tasks, and touch. Follows Milestone F (Milestone G).
 ### Web markup
 
 - [ ] Definition lists (`dl`/`dt`/`dd`, or `role=term`/`definition`) read as lists of terms and definitions: "definition list with N items", term and definition announced, `L`/`I` move through them
-- [ ] `aria-controls` beyond combo boxes: a control that controls another region (tabs, accordions, disclosure buttons) offers a command to move to the controlled element, and says "controls" on focus at Intermediate verbosity
+- [x] `aria-controls` beyond combo boxes: a control that controls another region (tabs, accordions, disclosure buttons) offers a command to move to the controlled element, and says "controls" on focus at Intermediate verbosity
 - [ ] Dialog content announced once: a dialog whose description repeats its text isn't read twice on open (focus announcement and overlay announcement merged)
 
 ### Firefox through IAccessible2

@@ -484,6 +484,25 @@ public class BrowseModeControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task GoToControlled_MovesToTheControlledElement_ElseSaysNothing()
+    {
+        var button = new MockElement { RuntimeId = [151], Name = "Show details", ControlType = "Button", ControlsIds = [[153]] };
+        var root = new MockElement { RuntimeId = [150], ControlType = "Document" }
+            .AddChild(button)
+            .AddChild(new MockElement { RuntimeId = [152], Name = "Other text" })
+            .AddChild(new MockElement { RuntimeId = [153], Name = "Hidden panel text" });
+        var document = new VBufferBuilder().Build(root);
+        _controller.HandleDocumentChanged(new DocumentChangedEvent(DateTimeOffset.UtcNow, document, null));
+
+        _controller.HandleCommand(NavigationCommand.GoToControlled);
+        await WaitForSpeech(u => u.Text.Contains("Hidden panel text"));
+        Assert.Equal(document.FindByRuntimeId([153])!.TextRange.Start, _controller.Cursor!.TextOffset);
+
+        _controller.HandleCommand(NavigationCommand.GoToControlled);
+        await WaitForSpeech(u => u.Text == "Controls nothing on this page");
+    }
+
+    [Fact]
     public void BrowsedDocument_IsThePage_OnlyWhileBrowsing()
     {
         var root = new MockElement { RuntimeId = [140], ControlType = "Document" }.AddChild(new MockElement { RuntimeId = [141], Name = "Text" });

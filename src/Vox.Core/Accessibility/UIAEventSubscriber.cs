@@ -480,6 +480,8 @@ public sealed class UIAEventSubscriber :
             Sort: Vox.Core.Buffer.AriaStates.Sort(ariaProps),
             RoleDescription: UIAElementSnapshot.ReadRoleDescription(element, controlType, ariaRole ?? string.Empty),
             HasDetails: UIAElementSnapshot.ReadHasDetails(element),
+            ControlsIds: invalid.Length == 0 && UIAElementSnapshot.MayControlRegion(element, controlType, ariaRole ?? string.Empty)
+                ? UIAElementSnapshot.ReadErrorMessageIds(element) : null,
             Bounds: ReadCachedBounds(element)
         );
     }

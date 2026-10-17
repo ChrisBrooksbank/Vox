@@ -112,7 +112,8 @@ public static class CommandCatalog
             NavigationCommand.ActivateElement, NavigationCommand.ToggleMode, NavigationCommand.ExitFocusMode,
             NavigationCommand.ElementsList, NavigationCommand.PageSummary, NavigationCommand.SayLinkUrl,
             NavigationCommand.DismissOverlay, NavigationCommand.InteractWithMath, NavigationCommand.SummarizePage,
-            NavigationCommand.MoveToMainContent, NavigationCommand.LabelElement, NavigationCommand.AskPage);
+            NavigationCommand.MoveToMainContent, NavigationCommand.LabelElement, NavigationCommand.AskPage,
+            NavigationCommand.GoToControlled);
         Add(CommandCategory.Tables,
             NavigationCommand.TableNextColumn, NavigationCommand.TablePrevColumn, NavigationCommand.TableNextRow,
             NavigationCommand.TablePrevRow, NavigationCommand.TableFirstCell, NavigationCommand.TableLastCell,

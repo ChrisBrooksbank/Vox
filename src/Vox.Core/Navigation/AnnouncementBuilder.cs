@@ -173,6 +173,12 @@ public sealed class AnnouncementBuilder
             Append(sb, L["State.HasDetails"].Value);
         }
 
+        // Controls another region — "controls" (aria-controls)
+        if (profile.AnnounceElementDescription && node.ControlsIds.Count > 0)
+        {
+            Append(sb, L["State.Controls"].Value);
+        }
+
         // Error message of an invalid entry — "Enter a valid email" (aria-errormessage)
         var errorMessage = node.Invalid.Length > 0 ? node.ErrorMessage.Trim() : string.Empty;
         if (errorMessage.Length > 0)
@@ -228,6 +234,7 @@ public sealed class AnnouncementBuilder
             Sort = focus.Sort ?? string.Empty,
             RoleDescription = focus.RoleDescription ?? string.Empty,
             HasDetails = focus.HasDetails,
+            ControlsIds = focus.ControlsIds ?? [],
         }, profile, announceVisitedLinks);
 
     /// <summary>

@@ -364,5 +364,9 @@ public enum NavigationCommand
 
     // Meetings
     /// <summary>Mutes or unmutes the microphone: the meeting application's or page's own button, else the default capture device.</summary>
-    ToggleMicrophone
+    ToggleMicrophone,
+
+    // Web markup
+    /// <summary>Moves the browse cursor to the element the control at the cursor controls (aria-controls).</summary>
+    GoToControlled
 }

@@ -283,6 +283,17 @@ public sealed class VBufferDocument
         return string.Join(' ', parts);
     }
 
+    /// <summary>The first element in the document that <paramref name="node"/> controls (aria-controls), or null.</summary>
+    public VBufferNode? ControlledBy(VBufferNode node)
+    {
+        foreach (var id in node.ControlsIds)
+        {
+            if (FindByRuntimeId(id) is { } target)
+                return target;
+        }
+        return null;
+    }
+
     private static bool IsControlledPopup(VBufferNode node) =>
         node.ControlType is "List" or "Menu" or "MenuBar" or "Tree" or "DataGrid" or "Table" or "Window"
         || node.AriaRole?.Trim().ToLowerInvariant() is "listbox" or "menu" or "tree" or "grid" or "treegrid" or "dialog" or "tabpanel";

@@ -108,6 +108,12 @@ public sealed class VBufferNode
     public bool HasDetails { get; init; }
 
     /// <summary>
+    /// Runtime IDs of the elements it controls (aria-controls: a tab's panel, a disclosure
+    /// button's region); empty when none, and for an invalid entry (whose ControllerFor is its error message).
+    /// </summary>
+    public IReadOnlyList<int[]> ControlsIds { get; init; } = [];
+
+    /// <summary>
     /// The kind of annotation it is ("comment", "insertion", "deletion", "highlight",
     /// "suggestion"; see <see cref="Annotations"/>), or empty.
     /// </summary>
@@ -198,6 +204,7 @@ public sealed class VBufferNode
         Sort = Sort,
         RoleDescription = RoleDescription,
         HasDetails = HasDetails,
+        ControlsIds = ControlsIds,
         Annotation = Annotation,
         IsModal = IsModal,
         IsClickable = IsClickable,
