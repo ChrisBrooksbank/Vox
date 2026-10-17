@@ -59,6 +59,8 @@ public sealed class AddOnIntegration
     /// <summary>Runs work on the pipeline thread.</summary>
     public Action<Action> Post { get; init; } = work => work();
     public Func<string?> ForegroundProcessName { get; init; } = () => null;
+    /// <summary>Read-only access to the focused and navigator objects (none: add-ons get null).</summary>
+    public IAddOnObjectSource? Objects { get; init; }
     /// <summary>Gives the app module manager the add-ons' modules.</summary>
     public Action<IReadOnlyList<CoreAppModule>> SetAppModules { get; init; } = _ => { };
     /// <summary>The app module active now.</summary>
@@ -290,7 +292,8 @@ public sealed class AddOnManager
         _watchdog.Watch(guard);
         var host = new AddOnHost(id, () => Path.Combine(_directory!, DataFolderName, id), logger,
             new GuardedSpeech(_integration, guard), _integration.ForegroundProcessName,
-            work => _integration.Post(() => guard.Run(work, "running work on the pipeline")));
+            work => _integration.Post(() => guard.Run(work, "running work on the pipeline")),
+            _integration.Objects);
         if (!guard.Run(() => code.Instance.Initialize(host), "starting", AddOnGuard.StartBudget))
         {
             guard.Stop();

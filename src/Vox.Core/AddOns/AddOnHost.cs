@@ -19,13 +19,14 @@ public sealed class AddOnContributions
 /// starts (then <see cref="Seal"/> closes it) and passes speech, logging and pipeline work on.
 /// <see cref="Stop"/> cancels <see cref="Stopping"/> before the add-on is disposed.
 /// </summary>
-internal sealed class AddOnHost(
+public sealed class AddOnHost(
     string addOnId,
     Func<string> dataDirectory,
     ILogger logger,
     ISpeechOutput speech,
     Func<string?> foregroundProcessName,
-    Action<Action> post) : IAddOnHost
+    Action<Action> post,
+    IAddOnObjectSource? objects = null) : IAddOnHost
 {
     private readonly CancellationTokenSource _stopping = new();
     private bool _sealed;
@@ -46,6 +47,25 @@ internal sealed class AddOnHost(
             var directory = dataDirectory();
             Directory.CreateDirectory(directory);
             return directory;
+        }
+    }
+
+    public Task<IVoxObject?> GetFocusedObjectAsync() => ReadObjectAsync(o => o.GetFocused());
+
+    public Task<IVoxObject?> GetNavigatorObjectAsync() => ReadObjectAsync(o => o.GetNavigator());
+
+    private async Task<IVoxObject?> ReadObjectAsync(Func<IAddOnObjectSource, Navigation.INavigatorObject?> find)
+    {
+        if (objects is null || _stopping.IsCancellationRequested)
+            return null;
+        try
+        {
+            return await objects.RunAsync(() => VoxObject.Wrap(find(objects), objects)).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogDebug(ex, "Add-on {AddOn} could not read an object", addOnId);
+            return null;
         }
     }
 

@@ -1,1 +1,24 @@
 #nullable enable
+Vox.Sdk.IAddOnHost.GetFocusedObjectAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
+Vox.Sdk.IAddOnHost.GetNavigatorObjectAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
+Vox.Sdk.IVoxObject
+Vox.Sdk.IVoxObject.Bounds.get -> Vox.Sdk.VoxRect?
+Vox.Sdk.IVoxObject.GetChildrenAsync(int maxCount = 100) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Vox.Sdk.IVoxObject!>!>!
+Vox.Sdk.IVoxObject.GetFirstChildAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
+Vox.Sdk.IVoxObject.GetNextAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
+Vox.Sdk.IVoxObject.GetParentAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
+Vox.Sdk.IVoxObject.GetPreviousAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
+Vox.Sdk.IVoxObject.Name.get -> string!
+Vox.Sdk.IVoxObject.Role.get -> string!
+Vox.Sdk.IVoxObject.Value.get -> string?
+Vox.Sdk.VoxRect
+Vox.Sdk.VoxRect.Height.get -> int
+Vox.Sdk.VoxRect.Height.init -> void
+Vox.Sdk.VoxRect.Left.get -> int
+Vox.Sdk.VoxRect.Left.init -> void
+Vox.Sdk.VoxRect.Top.get -> int
+Vox.Sdk.VoxRect.Top.init -> void
+Vox.Sdk.VoxRect.VoxRect() -> void
+Vox.Sdk.VoxRect.VoxRect(int Left, int Top, int Width, int Height) -> void
+Vox.Sdk.VoxRect.Width.get -> int
+Vox.Sdk.VoxRect.Width.init -> void

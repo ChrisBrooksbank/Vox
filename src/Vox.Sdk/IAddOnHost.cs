@@ -60,6 +60,12 @@ public interface IAddOnHost
     /// the add-on. Since API 1.1.
     /// </summary>
     CancellationToken Stopping { get; }
+
+    /// <summary>The object with keyboard focus, or null when there is none. Since API 1.1.</summary>
+    Task<IVoxObject?> GetFocusedObjectAsync() => Task.FromResult<IVoxObject?>(null);
+
+    /// <summary>The navigator object (the one object navigation is on, which follows focus until moved), or null. Since API 1.1.</summary>
+    Task<IVoxObject?> GetNavigatorObjectAsync() => Task.FromResult<IVoxObject?>(null);
 }
 
 /// <summary>How urgently something is said.</summary>
