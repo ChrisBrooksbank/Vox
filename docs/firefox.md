@@ -26,3 +26,7 @@ Through the MSAA proxy, Firefox doesn't report several things Chromium puts in U
 - Text attributes (fonts, spelling errors) and live regions, which Firefox reports through IA2 events.
 
 Reading these needs an `IVBufferElement` provider over IAccessible2 (`IAccessible2::attributes` holds `xml-roles`, `level` and the ARIA states; `IAccessible2::relations` the described-by and error-message targets; `IAccessibleText` the text attributes). Calling IA2 needs the IA2 proxy/stub, so it belongs in the planned C++/CLI `Vox.NativeHelper` (PLAN.md, Phase 3). The provider would plug in beside `UIAElementSnapshot` and be chosen for documents inside a Firefox window.
+
+## The native helper (in progress)
+
+`src/Vox.NativeHelper` (C++/CLI, not in `Vox.sln`; built by the `native-helper` CI job) captures a Firefox document's IA2 tree as JSON (`IA2Capture.CaptureDocument`): role, states, name, value, description, `IAccessible2::attributes`, relations (target unique ids) and text-attribute runs. `IA2SnapshotReader` (Vox.Core) reads it into a COM-free `IA2Node` tree. The `IVBufferElement` provider over that tree and the IA2 events are the next steps; until then Firefox pages are read through UIA as above.

@@ -51,3 +51,32 @@ jobs:
         with:
           name: test-results
           path: TestResults/**/*.trx
+
+  # C++/CLI helper for Firefox IAccessible2 (src/Vox.NativeHelper); not part of Vox.sln.
+  # Not yet verified on a runner, so a failure doesn't fail the push.
+  native-helper:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Fetch the IAccessible2 SDK and generate its headers
+        shell: pwsh
+        run: |
+          git clone --depth 1 https://github.com/LinuxA11y/IAccessible2 ia2-src
+          New-Item -ItemType Directory -Force third_party/ia2 | Out-Null
+          # Windows SDK midl, from the Developer Command Prompt environment
+          Get-ChildItem ia2-src/idl -Filter ia2_api_all.idl | ForEach-Object {
+            midl /nologo /I ia2-src/idl /h ia2_api_all.h /iid ia2_api_all_i.c /out third_party/ia2 $_.FullName
+          }
+
+      - name: Build Vox.NativeHelper
+        run: msbuild src/Vox.NativeHelper/Vox.NativeHelper.vcxproj -p:Configuration=Release -p:Platform=x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-helper
+          path: src/Vox.NativeHelper/bin/Release/
