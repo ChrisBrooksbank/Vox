@@ -193,6 +193,72 @@ and add the matching public key to `trusted-keys` (or ship it as `addon-key.pem`
 installed only when its SHA-256 is the catalogue's. Without any trusted key there is no store
 (the dialog says so).
 
+## Design: hosting engines and drivers out of process
+
+*A design only; nothing here is built.* Today every add-on runs in Vox's process with its rights
+(see [Security](security.md)). A speech engine or braille driver is the add-on most likely to wrap
+native code (a vendor's DLL, a serial or USB stack) that can crash, hang or leak, so these two kinds
+could run in a separate **add-on host** process, while app modules, plug-ins, filters and commands stay
+in-process: they sit on the keypress-to-speech path, where a hop between processes costs more than it
+earns.
+
+**Opting in.** The manifest gets `"host": "process"` (default `"inprocess"`; only `ISpeechEngine`
+and `IBrailleDriver` registrations are allowed in a process-hosted add-on — one that also registers
+a module, plug-in or command is refused with a spoken reason). An organization can force it with a
+policy (`AddOnHostMode`), and a package that needs full trust says so (`"host": "inprocess"` and the
+user is told when installing).
+
+**The host.** `Vox.AddOnHost.exe` (a new small project referencing `Vox.Sdk` only) is started by
+`AddOnManager` once per add-on with the add-on's folder, id and a pipe name. It loads the entry
+assembly exactly as `AssemblyAddOnLoader` does (hash-checked, in memory, collectible context), runs
+`IAddOn.Initialize` with a host whose `RegisterSpeechEngine`/`RegisterBrailleDriver` calls are
+answered over the channel, and exits when the pipe closes or Vox stops it. It runs with a restricted
+token (low integrity, no UI access, no elevation), as a job object member with a memory limit and
+kill-on-close, so it can never outlive Vox. Everything else on `IAddOnHost` (logging, `DataDirectory`,
+settings, `Stopping`) is served over the same channel; calls that make no sense there (commands, events)
+throw `NotSupportedException` with a message naming the manifest key.
+
+**The channel.** A named pipe with a random name and an ACL for the current user only, carrying
+length-prefixed JSON messages (request id, method, arguments), the same shape as `RemoteMessage`, in
+both directions. Vox holds a proxy implementing `ISpeechEngine` or `IBrailleDriver` that turns each
+call into a message:
+
+- Speech: `SpeakAsync` sends `speak` (text, options, utterance id) and completes on the host's
+  `done`/`error` for that id; `Cancel` sends `cancel` at once and never waits (the speech queue
+  needs it immediately); `SetRate/Pitch/Volume/Voice` are fire-and-forget and re-sent after a host
+  restart; `GetVoices` is cached from the host's reply at start-up and on `voices-changed`;
+  `IsSpeaking` is the last state the host sent. Audio is played by the host itself on the default
+  output device; a later revision may stream PCM back for `AudioCuePlayer`, so the earcon output
+  device is honoured (the v1 limitation is documented in the settings page).
+- Braille: `Write` sends `cells` (latest wins: a pending write is replaced, so a slow display can
+  never queue up a backlog); `TryConnect` is a request with a one-second timeout; `KeysPressed`,
+  `Disconnected` and `CellCount` changes are events from the host.
+
+**Failure.** Every request has a timeout (speech `speak` is bounded by the utterance's length plus
+a margin; others one second). A timeout, a broken pipe or an exit of the host counts as a failure in
+the add-on's `AddOnGuard` (five in a minute turns it off and says so, as now). One failure is
+survivable: the proxy raises the same error a failing in-process engine would, so
+`SpeechEngineRegistry` falls back to the next engine, and `AddOnManager` restarts the host (backing
+off 1, 2, 4 s) and re-applies rate, pitch, volume and voice. A hung host is killed, not waited for.
+Because the host is a separate process, a native crash no longer takes Vox down, and the watchdog
+sees nothing.
+
+**Cost and limits.** Expect a round trip of well under a millisecond on the pipe; the added latency
+to first speech is dominated by the engine, not the hop. A process per add-on costs memory (a few
+tens of MB with the runtime), which is why only these two kinds use it and why the host is started
+lazily: a speech engine when it is chosen, a braille driver at the first rescan. Never on secure
+screens (as for all add-ons). The host is *not* a security boundary against a malicious add-on of the
+user's own choosing — it still runs as the user and can use the network — but the restricted token,
+job object and the absence of UI access limit what a buggy or compromised one can do, and the
+network is still the add-on's own to use, so `docs/security.md` keeps saying that add-ons bypass
+`NetworkGate`.
+
+**Testing.** The proxies are tested against a fake channel (timeouts, restarts, latest-write-wins,
+cancel never blocking); a sample out-of-process engine in `samples/` is built in CI and loaded by an
+integration test that kills the host mid-utterance and expects fallback and restart. `SdkTests`
+checks every `ISpeechEngine`/`IBrailleDriver` member has a message, so a new member can't be
+forgotten.
+
 ## Manual test
 
 1. Build Vox and the sample; pack the sample.
