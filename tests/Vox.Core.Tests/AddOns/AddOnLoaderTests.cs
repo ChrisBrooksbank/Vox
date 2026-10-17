@@ -170,4 +170,34 @@ public class AddOnLoaderTests : IDisposable
         var error = Assert.Throws<AddOnLoadException>(() => new AssemblyAddOnLoader().Load(folder, manifest));
         Assert.Contains("IAddOn", error.Message);
     }
+
+    private static (AssemblyLoadContext Context, System.Reflection.MethodInfo Load) NativeContext(string folder, AddOnManifest manifest)
+    {
+        var type = typeof(AssemblyAddOnLoader).Assembly.GetType("Vox.Core.AddOns.AddOnLoadContext")!;
+        var context = (AssemblyLoadContext)Activator.CreateInstance(type, "native.test", folder, manifest)!;
+        return (context, type.GetMethod("LoadUnmanagedDll", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!);
+    }
+
+    [Fact]
+    public void ANativeLibrary_ThatDiffersFromTheManifest_IsRefused()
+    {
+        var folder = _files.PathOf("native");
+        Directory.CreateDirectory(folder);
+        File.WriteAllBytes(Path.Combine(folder, "native.dll"), [1, 2, 3]);
+        var manifest = new AddOnManifest { Id = "native.test", Files = { ["native.dll"] = new string('0', 64) } };
+        var (context, load) = NativeContext(folder, manifest);
+
+        var error = Assert.Throws<System.Reflection.TargetInvocationException>(() => load.Invoke(context, ["native"]));
+
+        Assert.IsType<AddOnLoadException>(error.InnerException);
+        Assert.Contains("changed", error.InnerException!.Message);
+    }
+
+    [Fact]
+    public void ANativeLibrary_TheManifestDoesNotList_IsNotLoaded()
+    {
+        var (context, load) = NativeContext(_files.PathOf("none"), new AddOnManifest { Id = "native.test" });
+
+        Assert.Equal(IntPtr.Zero, load.Invoke(context, ["other"]));
+    }
 }

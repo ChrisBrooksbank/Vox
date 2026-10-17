@@ -452,6 +452,8 @@ public sealed class AddOnManager
         loaded.Guard.Stop();
         _watchdog.Forget(loaded.Guard);
         var context = loaded.Code.LoadContext;
+        if (loaded.Code.HasNativeLibraries)
+            _logger.LogInformation("Add-on {AddOn} loaded native libraries, which stay in memory: an update takes effect after Vox restarts", id);
         loaded.Code.Unload();
         _logger.LogInformation("Add-on {AddOn} unloaded", id);
         if (context is not null && verify)

@@ -15,6 +15,9 @@ public interface ILoadedAddOn
 
     /// <summary>The add-on's load context, weakly held, to check it is collected after <see cref="Unload"/>; null when there is none.</summary>
     WeakReference? LoadContext => null;
+
+    /// <summary>True when the add-on loaded a native library, which stays in memory until Vox restarts: an update takes effect after a restart.</summary>
+    bool HasNativeLibraries => false;
 }
 
 /// <summary>Loads an installed add-on's code (tests use a fake that hands out objects).</summary>
@@ -75,12 +78,16 @@ public sealed class AssemblyAddOnLoader : IAddOnLoader
 
         public WeakReference LoadContext { get; } = new(context);
 
+        public bool HasNativeLibraries => _context?.HasNativeLibraries ?? _hadNative;
+        private bool _hadNative;
+
         public IAddOn Instance => _instance ?? throw new ObjectDisposedException("add-on");
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void Unload()
         {
             _instance = null;
+            _hadNative = _context?.HasNativeLibraries ?? _hadNative;
             Interlocked.Exchange(ref _context, null)?.Unload();
         }
     }
@@ -144,17 +151,28 @@ internal sealed class AddOnLoadContext(string id, string directory, AddOnManifes
         if (!manifest.Files.TryGetValue(fileName, out var hash))
             return IntPtr.Zero;
         var path = Path.Combine(directory, fileName);
-        // Hashed like the managed assemblies are, just before it is loaded
+        // Read once and hashed like the managed assemblies are; the copy that is loaded is the
+        // bytes that were checked, in a per-load temp folder, so the add-on's own folder is never
+        // locked and an update can replace its files
         try
         {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (!AddOnPackage.HashMatches(stream, hash))
+            var bytes = File.ReadAllBytes(path);
+            if (!AddOnPackage.HashMatches(bytes, hash))
                 throw new AddOnLoadException($"{fileName} has changed since the add-on was installed.");
+            _nativeFolder ??= Directory.CreateTempSubdirectory("vox-addon-").FullName;
+            var copy = Path.Combine(_nativeFolder, Path.GetFileName(fileName));
+            File.WriteAllBytes(copy, bytes);
+            HasNativeLibraries = true;
+            return LoadUnmanagedDllFromPath(copy);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             throw new AddOnLoadException($"{fileName} can't be read.", ex);
         }
-        return LoadUnmanagedDllFromPath(path);
     }
+
+    private string? _nativeFolder;
+
+    /// <summary>True once a native library has been loaded; native code can't be unloaded.</summary>
+    public bool HasNativeLibraries { get; private set; }
 }
