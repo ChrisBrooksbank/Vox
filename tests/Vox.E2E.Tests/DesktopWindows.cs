@@ -50,6 +50,25 @@ public static class DesktopWindows
 
     public static bool IsForeground(IntPtr hwnd) => GetForegroundWindow() == hwnd;
 
+    /// <summary>
+    /// Why the interactive desktop can't be driven (locked, display off, no window in front), or null
+    /// when it can. On a locked screen the input desktop belongs to Winlogon and can't be opened.
+    /// </summary>
+    public static string? DesktopUnavailableReason()
+    {
+        var desktop = OpenInputDesktop(0, false, 0x0100); // DESKTOP_SWITCHDESKTOP
+        if (desktop == IntPtr.Zero)
+            return "the input desktop can't be opened (the session is locked or on a secure screen)";
+        CloseDesktop(desktop);
+        var hwnd = GetForegroundWindow();
+        if (hwnd == IntPtr.Zero)
+            return "no window is in front (the display is off or the session is locked)";
+        var window = Describe(hwnd);
+        if (window.Title.Length == 0 && window.ClassName is not ("Shell_TrayWnd" or "Shell_SecondaryTrayWnd" or "Progman" or "WorkerW"))
+            return "the foreground window has no title (the session is locked or the display is off)";
+        return null;
+    }
+
     public static WindowInfo Foreground() => Describe(GetForegroundWindow());
 
     /// <summary>
@@ -183,6 +202,12 @@ public static class DesktopWindows
     }
 
     private delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr OpenInputDesktop(uint flags, bool inherit, uint access);
+
+    [DllImport("user32.dll")]
+    private static extern bool CloseDesktop(IntPtr desktop);
 
     [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
