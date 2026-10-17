@@ -17,7 +17,7 @@ The page is then captured with the same cached `BuildUpdatedCache` call and `UIA
 - Text, links, form fields, buttons, check boxes, radio buttons, combo boxes, lists, tables (GridItem), landmarks where Firefox reports them, and focus following.
 - Headings: from the UIA `HeadingLevel` property, or else from the localized control type ("heading", "heading 2"; English only, `WebContent.HeadingLevelFromLocalizedType`).
 
-## What needs IAccessible2 (not yet available)
+## What needs IAccessible2 (being built; not used yet)
 
 Through the MSAA proxy, Firefox doesn't report several things Chromium puts in UIA properties:
 

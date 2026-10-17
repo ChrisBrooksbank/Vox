@@ -86,6 +86,10 @@ keypad.
 | Insert+S | Pause speech, or start it again |
 | Insert+Shift+S | Sleep mode: Vox stays quiet in this application |
 | Insert+R | Read text in a picture or an inaccessible control (text recognition) |
+| Insert+Alt+S | Speech on demand: Vox speaks only when you ask it to |
+| Insert+Alt+C | Screen curtain: blank the screen while Vox keeps reading |
+| Insert+Alt+Z | Magnifier on or off |
+| Insert+Ctrl+Shift+M | Mute or unmute the microphone, in Teams, Zoom or any application |
 | Insert+Ctrl+S | Run the welcome wizard again |
 | Insert+Q, twice | Quit Vox |
 
@@ -111,6 +115,8 @@ Single letters jump between elements. Add **Shift** to any letter to go backward
 | Enter or Space | Activate the link, button or control at the cursor |
 | Insert+F7 | Elements List: every heading, link, landmark and form field |
 | Insert+Ctrl+F | Find text on the page |
+| Insert+Alt+H | Guide me: numbered steps for a task on this page (AI, optional) |
+| Insert+Alt+Q | Ask the page a question (AI, optional) |
 | Insert+Space | Switch between browse mode and focus mode |
 | Escape | Leave focus mode |
 
@@ -129,6 +135,9 @@ selection and copy. Tables are read with their headers. Live regions and notific
 without flooding you. Pages that change while you read keep your place. Each page remembers where
 you were. Vox announces cookie banners and dialogs, and Insert+Shift+D dismisses them. Math is
 spoken with the optional MathCAT component. PDFs open in Edge or Chrome are read like web pages.
+Definition lists are read as terms and definitions, and a control that changes another part of the
+page can take you to it. Firefox pages are read through UI Automation; reading them through
+IAccessible2 for the full set of ARIA details is being built (see [Firefox](docs/firefox.md)).
 
 **Applications and documents.** Vox reads text fields and editors with caret, selection and
 spelling-error reporting. It reads terminals, menus, dialogs and File Explorer's details view.
@@ -142,6 +151,14 @@ read. Text in other languages switches voice automatically. You can add your own
 dictionaries. Optional sounds play for states, modes and boundaries. Typing echo can say
 characters, words or both.
 
+**Seeing and hearing less.** A built-in magnifier enlarges the screen up to 16 times, follows the
+focus, caret, browse cursor and mouse, and has colour filters and docked and lens views. A screen
+curtain blanks the screen while Vox keeps reading. Speech on demand keeps Vox silent until you ask
+for something, which suits meetings. Vox says "cut", "copied" and "pasted" after Ctrl+X, C and V,
+and one key mutes the microphone in Teams, Zoom or any application. On a touch screen, touch
+exploration and gestures say what is under your finger (turn it on in the settings; it is off by
+default).
+
 **Braille.** Vox supports HID braille displays and every display BRLTTY supports. It shows
 contracted or uncontracted braille with the optional liblouis component, and has routing keys,
 panning, and typing from the braille keyboard.
@@ -149,7 +166,8 @@ panning, and typing from the braille keyboard.
 **Text recognition and descriptions.** Vox reads text in pictures, scanned PDFs and inaccessible
 applications with Windows' built-in text recognition, on your computer. AI descriptions of images
 and screens are optional and off until you set them up. They use a local model or a cloud service,
-and Vox asks before anything is sent.
+and Vox asks before anything is sent. They can also guide you through a task on a page as
+numbered steps and answer questions about it.
 
 **Sign-in screens and safety.** Vox reads the Windows sign-in, lock and "allow changes" (UAC)
 screens. It restarts itself if it crashes, and says "not responding" instead of hanging when an
@@ -183,6 +201,7 @@ need:
   [Teams](docs/apps/teams.md), [File Explorer](docs/apps/explorer.md),
   [developer tools, Zoom and Acrobat](docs/apps/developer-tools.md)
 - [Text recognition](docs/ocr.md) and [AI descriptions](docs/ai.md)
+- [Magnifier and screen curtain](docs/magnifier.md) and [touch](docs/touch.md)
 - For developers: the [technical documentation](docs/technical/README.md)
 
 ## Feedback and bug reports
