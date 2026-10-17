@@ -24,6 +24,23 @@ public sealed class SettingsManager
         }
     };
 
+    /// <summary>The settings file's JSON for <paramref name="settings"/>.</summary>
+    public static string Serialize(VoxSettings settings) => JsonSerializer.Serialize(settings, JsonOptions);
+
+    /// <summary>Reads settings JSON; false (and null) when it isn't valid settings.</summary>
+    public static bool TryParse(string json, out VoxSettings? settings)
+    {
+        try
+        {
+            settings = JsonSerializer.Deserialize<VoxSettings>(json, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            settings = null;
+        }
+        return settings is not null;
+    }
+
     private readonly ILogger<SettingsManager> _logger;
     private readonly string _defaultSettingsPath;
     private readonly string _userSettingsPath;

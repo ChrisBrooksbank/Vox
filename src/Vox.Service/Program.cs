@@ -8,5 +8,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddWindowsService(options => options.ServiceName = "VoxService");
 builder.Services.AddSingleton<ISecureInstanceHost>(_ =>
     new Win32SecureInstanceHost(Path.Combine(AppContext.BaseDirectory, "Vox.App.exe")));
+builder.Services.AddSingleton<SecureSettingsReceiver>();
 builder.Services.AddHostedService<SecureScreenService>();
+builder.Services.AddHostedService<SecureSettingsService>();
 builder.Build().Run();

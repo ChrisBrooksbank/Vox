@@ -145,11 +145,12 @@ record here with its reason.
    against the manifest just before they load. Remaining: the hash and the load are two steps, so a
    program running as the user could swap a native library between them; a trusted publisher's
    add-on is trusted not to ship one that loads others.
-2. **`%ProgramData%\Vox` has default permissions.** Users can create files there, so any user can
-   write the settings the SYSTEM instance reads on every user's lock screen, and the user who
-   created the folder owns it (a junction for `secure-logs` would make SYSTEM write and rotate files
-   elsewhere). Fix: create the folder in the installer, writable only by administrators and SYSTEM,
-   and copy settings to the secure screens through the service.
+2. ~~**`%ProgramData%\Vox` has default permissions.**~~ Fixed: the installer creates the folder
+   writable only by administrators and SYSTEM (users may read it). A user's Vox sends the settings
+   for the secure screens to Vox.Service over the `VoxSecureSettings` pipe (`SecureSettingsPipe`;
+   network logons denied, size capped); the service checks they parse and is the only writer.
+   Remaining: with no service installed (`INSTALLSERVICE=0`) the copy reports failure; an upgrade
+   over a folder an earlier version let users create keeps its old permissions.
 3. **The secure instance runs with SYSTEM's full token** (`Win32SecureInstanceHost`). Fix: a
    restricted token without privileges it doesn't need.
 4. **The downloaded MSI isn't held until `msiexec` has read it.** Vox exits right after starting it,

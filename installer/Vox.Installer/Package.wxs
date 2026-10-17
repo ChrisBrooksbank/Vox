@@ -13,7 +13,8 @@
     a setting use Group Policy (installer/policy, docs/enterprise.md).
   Silent install: msiexec /i Vox.msi /qn STARTATLOGON=1 UPDATECHANNEL=Off KEYBOARDLAYOUT=Laptop
 -->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package Name="Vox Screen Reader" Manufacturer="Vox" Version="$(var.VoxVersion)"
            UpgradeCode="{3CB5D444-22D1-43A1-BF28-7035F8DE7DD4}" Scope="perMachine" Compressed="yes">
     <MajorUpgrade DowngradeErrorMessage="A newer version of Vox is already installed." />
@@ -33,6 +34,9 @@
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="Vox" />
     </StandardDirectory>
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="SHAREDDATAFOLDER" Name="Vox" />
+    </StandardDirectory>
 
     <Feature Id="Vox" Title="Vox" Level="1">
       <ComponentGroupRef Id="VoxFiles" />
@@ -41,6 +45,7 @@
       <ComponentRef Id="DesktopShortcut" />
       <ComponentRef Id="StartAtLogon" />
       <ComponentRef Id="MachineDefaults" />
+      <ComponentRef Id="SharedData" />
     </Feature>
 
     <ComponentGroup Id="VoxFiles" Directory="INSTALLFOLDER">
@@ -55,6 +60,17 @@
                       Description="Reads the sign-in, lock and UAC screens with Vox."
                       Type="ownProcess" Start="auto" ErrorControl="normal" Account="LocalSystem" />
       <ServiceControl Id="VoxServiceControl" Name="VoxService" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+    </Component>
+
+    <!-- %ProgramData%\Vox holds what SYSTEM reads on the sign-in screens (secure-settings.json,
+         machine-settings.json) and writes (secure-logs): only administrators and SYSTEM may change it.
+         Users send their settings through Vox.Service (SecureSettingsPipe). -->
+    <Component Id="SharedData" Directory="SHAREDDATAFOLDER" Guid="{6E0B3A52-9C41-4D7A-8F15-2B7D4C9E1A63}">
+      <CreateFolder>
+        <util:PermissionEx User="Administrators" GenericAll="yes" />
+        <util:PermissionEx User="SYSTEM" GenericAll="yes" />
+        <util:PermissionEx User="Users" GenericRead="yes" GenericExecute="yes" />
+      </CreateFolder>
     </Component>
 
     <!-- Hotkey: low byte the key (V, 0x56), high byte the modifiers (Ctrl 0x02 + Alt 0x04) -->
