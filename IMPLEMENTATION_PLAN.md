@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 270
+- Build iterations: 271
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -433,7 +433,7 @@ From the community research behind `docs/choosing-a-screen-reader.md`: features 
 
 - [x] Add `Vox.NativeHelper` (C++/CLI) with the IA2 proxy/stub and a COM-free snapshot of a Firefox document's IA2 tree (roles, `xml-roles`, `level`, ARIA states, relations, text attributes); build in CI (spec: community-requests.md)
 - [x] Add an `IVBufferElement` provider over the IA2 snapshot, chosen for documents in a Firefox window, so landmarks, ARIA states, visited links, described-by/error-message and `lang` work as in Chromium; update `docs/firefox.md`; unit tests over a fake snapshot (spec: community-requests.md)
-- [ ] Post Firefox IA2 live-region and text-attribute events to the pipeline like UIA's; unit tests (spec: community-requests.md)
+- [x] Post Firefox IA2 live-region and text-attribute events to the pipeline like UIA's; unit tests (spec: community-requests.md)
 
 #### Touch (spec: community-requests.md)
 
