@@ -151,6 +151,12 @@ NVDA users install separately:
   model on your own computer or a cloud service, off until you set them up and asking before
   anything leaves your machine;
 - remote access between two Vox computers, for trainers and helpers;
+- a built-in magnifier (docked, lens or full screen, with colour filters), a screen curtain
+  that blanks the display while Vox keeps reading, and touch gestures on touch screens;
+- speech on demand for meetings, a key that mutes the microphone in Teams, Zoom or any
+  application, and spoken confirmation of cut, copy and paste;
+- "Guide me": say what you want to do on a page and get short numbered steps, each offering to
+  take you to its element;
 - configuration profiles, per-site settings, custom labels for unlabelled controls, and its
   own signed add-on store;
 - Group Policy, silent install and locked settings for organisations;
@@ -170,11 +176,14 @@ trial mode stops your current screen reader while you try Vox and brings it back
 - Its performance hasn't been independently measured yet. The method is written down, but the
   figures haven't been published.
 - Firefox support is incomplete: some ARIA roles, landmarks and live regions need a lower-level
-  interface Vox doesn't use yet.
+  interface (IAccessible2). The pieces that read it are written, but until the helper that
+  talks to Firefox is deployed, Vox still reads Firefox through UI Automation.
 - Its accessibility conformance report is a self-assessed draft, and its interface
   translations other than English are machine-made and still need review.
 - NVDA add-ons don't run in it, and its own add-on ecosystem is close to empty.
-- It needs Windows 11, and it has no magnifier, no screen curtain and no touch gestures.
+- It needs Windows 11. Its magnifier, screen curtain and touch support are new and haven't had
+  the use that NVDA's, Narrator's or SuperNova's have; if you rely on magnification all day, a
+  dedicated suite is still the safer choice.
 
 **Choose it if** you're an NVDA or JAWS user who's curious, technically comfortable and
 happy to report bugs, or you want an open-source reader with modern AI features built in.
@@ -193,7 +202,7 @@ Don't make it your only screen reader yet.
 | Braille | Yes | Yes | Yes | Yes |
 | Extending it | Scripts | Hundreds of add-ons | No | Add-ons, few so far |
 | AI descriptions | Built in (cloud) | Through add-ons | Built in (on-device on Copilot+ PCs) | Built in, local or cloud, opt-in |
-| Magnifier | With Fusion | Built-in, full-screen only | Windows Magnifier | No |
+| Magnifier | With Fusion | Built-in, full-screen only | Windows Magnifier | Built in (docked, lens, full screen), new |
 | Support | Paid, phone and email | Community, paid training | Microsoft | Community, GitHub issues |
 | Track record | 35 years | 20 years | Built in since 2000 | Months |
 
@@ -231,9 +240,9 @@ screen reader feature here, an add-on there, and a chatbot in another window.
 **"Shut up, but answer when I ask."** People spend their working days in video calls, and
 want a reader that stays quiet while they listen and still tells them the time, the window
 title or the current line on request. JAWS has a speech-on-demand mode; for NVDA it's one of
-the oldest open requests on the tracker. Related requests: a single key to mute the
-microphone in any meeting app, confirmation of cut, copy and paste, and a quick way to hear
-or copy the last thing said (NVDA 2026.2 added a key to repeat it).
+the oldest open requests on the tracker (Vox has it too, see below). Related requests: a
+single key to mute the microphone in any meeting app, confirmation of cut, copy and paste,
+and a quick way to hear or copy the last thing said (NVDA 2026.2 added a key to repeat it).
 
 **"Help me find the command I can't remember."** Screen readers have hundreds of keystrokes,
 and nobody remembers them all. NVDA users have asked for a searchable command palette and for
@@ -275,13 +284,20 @@ other, like low cost and phone support. Roughly:
     a local model or a cloud one, and nothing sent without consent;
   - *finding commands*: command search, input help and practice lessons from the welcome
     wizard;
-  - *meetings*: Teams and Zoom support that says when your microphone or camera changes;
+  - *meetings*: Teams and Zoom support that says when your microphone or camera changes,
+    speech on demand so it stays quiet during a call, and one key that mutes the microphone
+    in any application;
+  - *step-by-step help*: "Guide me" answers "how do I do this on this page?" in short numbered
+    steps that name controls by their text, never "the green button", and offers to move you
+    to each one;
+  - *clipboard*: it says "cut", "copied" or "pasted" with the first few words;
+  - *the web as written*: definition lists and `aria-controls` relationships are read;
   - *organisations*: Group Policy, locked settings, a switch to turn off all network access;
   - *what was said*: a speech history and speech viewer;
   - *AltGr*: typing echo handles AltGr characters on international layouts.
 
-  It doesn't yet offer speech on demand, a universal microphone-mute key or a magnifier, its
-  speed hasn't been independently measured, and its web support, while broad, hasn't had years
+  Its speed hasn't been independently measured, its new magnifier, screen curtain and touch
+  support are untested by a wide audience, and its web support, while broad, hasn't had years
   of real pages thrown at it.
 
 ## Should you switch?
@@ -362,4 +378,5 @@ are US list prices at the time of writing and vary by country and agreement.*
 - [How blind users seek help from forums and generative AI (arXiv, 2026)](https://arxiv.org/abs/2602.18623)
 - [Dolphin SuperNova (Double Tap)](https://doubletaponair.com/dolphin-supernova-a-screen-reader-and-magnifier-for-every-stage-of-sight-loss/)
 - Vox's own documentation: [switching](switching.md), [Firefox](firefox.md),
+  [magnifier and screen curtain](magnifier.md), [touch](touch.md), [AI and Guide me](ai.md),
   [performance](performance.md), [organisations](organisations.md) and the [VPAT draft](vpat.md)
