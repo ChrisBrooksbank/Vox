@@ -27,8 +27,11 @@ public sealed class UpdateChecker(
     Uri feedUrl,
     Version currentVersion,
     ILogger<UpdateChecker> logger,
-    Lifecycle.RunPolicy? policy = null) : IDisposable
+    Lifecycle.RunPolicy? policy = null,
+    Func<string, bool>? isSigned = null) : IDisposable
 {
+    private readonly Func<string, bool> _isSigned = isSigned ?? InstallerSignature.IsTrusted;
+
     /// <summary>The signed feed of every release (feed.json.sig beside it).</summary>
     public static readonly Uri DefaultFeedUrl = new("https://raw.githubusercontent.com/ChrisBrooksbank/Vox/master/updates/feed.json");
 
@@ -98,9 +101,13 @@ public sealed class UpdateChecker(
             }
             // Reopened read-only (msiexec can then open it for reading too), denying writes and deletes
             held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (!UpdateFeed.HasChecksum(held, release.Sha256))
+            var checksumOk = UpdateFeed.HasChecksum(held, release.Sha256);
+            // The signature is checked on the held file, so it's the one msiexec will read
+            if (!checksumOk || !_isSigned(path))
             {
-                logger.LogWarning("Downloaded installer for {Version} doesn't match the signed checksum; deleted", release.Version);
+                logger.LogWarning(checksumOk
+                    ? "Downloaded installer for {Version} has no valid Authenticode signature; deleted"
+                    : "Downloaded installer for {Version} doesn't match the signed checksum; deleted", release.Version);
                 held.Dispose();
                 held = null;
                 folder.Delete(recursive: true);

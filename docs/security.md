@@ -155,10 +155,12 @@ record here with its reason.
    the token is passed through `CreateRestrictedToken` first, deleting the privileges in
    `SecureInstanceHardening.RemovedPrivileges` (debug, TCB, drivers, backup/restore, take ownership
    and others). Remaining: it is still the SYSTEM user, with its group memberships.
-4. **The downloaded MSI isn't held until `msiexec` has read it.** Vox exits right after starting it,
-   which releases its lock while the UAC prompt is up, and the MSI's Authenticode signature isn't
-   checked. Fix: check the signature, and download to a folder only the installing process can
-   change, or keep a handle open until `msiexec` has started reading.
+4. ~~**The downloaded MSI isn't held until `msiexec` has read it.**~~ Fixed: the MSI goes into a new
+   randomly named folder, and its SHA-256 (the signed feed's) and its Authenticode signature
+   (`InstallerSignature`, WinVerifyTrust) are checked through a handle that denies writes and
+   deletes, kept open after `msiexec` starts and until Vox exits; a file failing either check is
+   deleted and never started. Remaining: the folder is in the user's `%TEMP%`, so a process running as
+   the user could read it, but not change it while held.
 5. ~~**A dropped keyboard hook isn't noticed.**~~ Fixed: when Windows reports input the hook hasn't
    seen for 5 seconds, `HookHealth` has the hook inject one probe key it swallows (at most one every
    30 seconds, none while the computer is idle or locked); a probe the hook doesn't see within a

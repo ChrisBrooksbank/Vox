@@ -79,7 +79,7 @@ public sealed class UpdateCommandsTests : IDisposable
                 ["https://example.com/Vox-1.2.0.msi"] = Installer,
             })),
             () => UpdateChannel.Stable, _releaseKey.ExportSubjectPublicKeyInfoPem(), new Uri("https://example.com/feed.json"),
-            new Version(1, 0, 0), NullLogger<UpdateChecker>.Instance);
+            new Version(1, 0, 0), NullLogger<UpdateChecker>.Instance, isSigned: _ => true);
 
         _commands = new UpdateCommands(_checker, _confirm.Object, _browse, _sink, _speech, () => _exited.TrySetResult(),
             lastCheckFile: null, NullLogger<UpdateCommands>.Instance, startInstaller: _started.Add);

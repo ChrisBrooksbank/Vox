@@ -93,7 +93,8 @@ public sealed class UpdateFeedTests : IDisposable
                 : new HttpResponseMessage(HttpStatusCode.NotFound));
     }
 
-    private UpdateChecker Checker(string feed, string signature, byte[]? installer = null, UpdateChannel channel = UpdateChannel.Stable) =>
+    private UpdateChecker Checker(string feed, string signature, byte[]? installer = null, UpdateChannel channel = UpdateChannel.Stable,
+        Func<string, bool>? isSigned = null) =>
         new(new HttpClient(new FakeWeb(new()
             {
                 ["https://example.com/feed.json"] = Encoding.UTF8.GetBytes(feed),
@@ -101,7 +102,35 @@ public sealed class UpdateFeedTests : IDisposable
                 ["https://example.com/Vox-1.2.0.msi"] = installer ?? Installer,
             })),
             () => channel, _publicKey, new Uri("https://example.com/feed.json"), new Version(1, 0, 0),
-            NullLogger<UpdateChecker>.Instance);
+            NullLogger<UpdateChecker>.Instance, isSigned: isSigned ?? (_ => true));
+
+    [Fact]
+    public async Task Install_RefusesAnInstallerWithoutAValidAuthenticodeSignature()
+    {
+        var feed = Feed();
+        var checker = Checker(feed, Sign(feed), isSigned: _ => false);
+        await checker.CheckAsync();
+        string? started = null;
+        var before = Directory.GetDirectories(Path.GetTempPath(), "Vox-update-*").ToHashSet();
+
+        Assert.False(await checker.InstallAsync(checker.Available!, path => started = path));
+
+        Assert.Null(started);
+        Assert.Empty(Directory.GetDirectories(Path.GetTempPath(), "Vox-update-*").Except(before));
+    }
+
+    [Fact]
+    public void InstallerSignature_RejectsAFileThatIsNotSigned()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, "not an installer");
+            Assert.False(InstallerSignature.IsTrusted(path));
+            Assert.False(InstallerSignature.IsTrusted(path + ".missing"));
+        }
+        finally { File.Delete(path); }
+    }
 
     [Fact]
     public async Task Checker_FindsTheUpdate_InASignedFeed()
