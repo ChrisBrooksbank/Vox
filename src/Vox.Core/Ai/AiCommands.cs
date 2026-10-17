@@ -109,6 +109,7 @@ public sealed class AiCommands
             case NavigationCommand.AskAboutScreen: _ = AskAboutScreenAsync(); return true;
             case NavigationCommand.SummarizePage: _ = SummarizePageAsync(); return true;
             case NavigationCommand.AskPage: _ = AskPageAsync(); return true;
+            case NavigationCommand.GuideMe: _ = GuideMeAsync(); return true;
             case NavigationCommand.SetAiKey: _ = SetKeyAsync(); return true;
             default: return false;
         }
@@ -339,6 +340,104 @@ public sealed class AiCommands
         }
         if (go)
             GoToElement(goTo);
+    }
+
+    /// <summary>
+    /// Guide me: asks for a task on the page ("book the 9:30 appointment"), answers it as numbered
+    /// steps (the describer on this computer first, else the cloud one with consent), and offers,
+    /// step by step, to move the browse cursor to the element each names. Call on the pipeline
+    /// thread: the page is read before it returns.
+    /// </summary>
+    public async Task GuideMeAsync()
+    {
+        if (Cancel(announce: true))
+            return;
+        var document = PageDocument?.Invoke();
+        if (document is null)
+        {
+            Speak(VoxStrings.Get("Ai.NotOnAPage"));
+            return;
+        }
+        var local = _ai.Consent.ForLocal();
+        if (local.Decision == AiConsentDecision.Refused)
+        {
+            Speak(AiConsent.Explain(local.Reason));
+            return;
+        }
+        if (!_ai.IsSetUp)
+        {
+            Speak(VoxStrings.Get("Ai.Refusal.NotSetUp"));
+            return;
+        }
+        var page = PageQuestion.For(document);
+        var tether = _review.BrowseTether?.Invoke();
+
+        var target = (await _context.WindowTargetAsync().ConfigureAwait(false)) with { IsPassword = false, Site = document.Root.Value };
+        if (_ai.Describer is { IsLocal: false } && _ai.Consent.ForCloud(target) is { Decision: AiConsentDecision.Refused } refused)
+        {
+            Speak(AiConsent.Explain(refused.Reason));
+            return;
+        }
+
+        string? task;
+        try
+        {
+            task = await RunDialog(() => _textPrompt.AskAsync(VoxStrings.Get("Ai.GuideMe.Title"), VoxStrings.Get("Ai.GuideMe.Label"),
+                history: Questions()), whenBusy: null).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "The task prompt failed");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(task))
+            return;
+        RememberQuestion(task);
+
+        IReadOnlyList<PageQuestion.GuideStep> steps = [];
+        await RunAsync(VoxStrings.Get("Ai.Thinking"), async token =>
+        {
+            var answer = await AskAsync(new AiRequest(AiTask.GuideMe, null, task, page.Context, Language(), target.ProcessName), target, token)
+                .ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            if (!answer.HasText)
+            {
+                Speak(AiAssistant.Explain(answer));
+                return;
+            }
+            var read = page.ReadSteps(answer.Text!);
+            var text = read.Text.Length > 0 ? read.Text : answer.Text!;
+            // An answer without steps still gets said, with the model's doubt if it has one
+            if (read.Steps.Count == 0 && read.Uncertainty is null)
+                text += "\n" + VoxStrings.Get("Ai.GuideMe.NoSteps");
+            await ShowTextAsync(text, tether, token).ConfigureAwait(false);
+            steps = read.Steps;
+        }).ConfigureAwait(false);
+
+        if (GoToElement is null || _confirm is null)
+            return;
+        for (int i = 0; i < steps.Count; i++)
+        {
+            if (steps[i].Target is not { } node)
+                continue;
+            bool go;
+            try
+            {
+                go = await RunDialog(() => _confirm.AskAsync(VoxStrings.Get("Ai.GuideMe.GoTitle"),
+                    VoxStrings.Format("Ai.GuideMe.Go", i + 1, Shorten(steps[i].TargetText ?? steps[i].Text))), whenBusy: false)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "The move prompt failed");
+                return;
+            }
+            if (go)
+            {
+                GoToElement(node);
+                return;
+            }
+        }
     }
 
     private Task<T> RunDialog<T>(Func<Task<T>> show, T whenBusy) =>

@@ -46,6 +46,14 @@ public static class AiPrompts
                 "say, say so. Be brief, and don't mention the line numbers in your answer. When the answer is at one " +
                 "place on the page the person may want to go to (a heading, link, button, field or passage), end " +
                 "with one more line, exactly \"GO TO: [n]\", n being that line's number.",
+            AiTask.GuideMe =>
+                common + " You are given the text of a web page, one line per line, each starting with its number in " +
+                "brackets, such as [12], and a task the person wants to do on it. Give the steps as a numbered list " +
+                "(\"1. ...\"), one short step per line, at most ten. Name each element by its text and its role " +
+                "(link, button, edit field, check box, heading), never by colour, position or appearance. Where the " +
+                "person must press a key, say it: " + KeyAdvice(request) + " End a step that is at one place on the page " +
+                "with \" GO TO: [n]\", n being that line's number. If the page doesn't seem to allow the task, or you " +
+                "are not sure of a step, add a last line starting \"Not sure:\" saying what is uncertain.",
             _ => common,
         };
     }
@@ -59,17 +67,23 @@ public static class AiPrompts
             var context = request.Context.Length > MaxContextLength
                 ? request.Context[..MaxContextLength] + "\n[The rest of the text was left out: it is too long.]"
                 : request.Context;
-            var heading = request.Task is AiTask.SummarizePage or AiTask.AskPage ? "Page text:" : "Controls and text of the window:";
+            var heading = request.Task is AiTask.SummarizePage or AiTask.AskPage or AiTask.GuideMe ? "Page text:" : "Controls and text of the window:";
             parts.Add($"{heading}\n{context}");
         }
         if (!string.IsNullOrWhiteSpace(request.Question))
-            parts.Add($"Question: {request.Question.Trim()}");
+            parts.Add($"{(request.Task == AiTask.GuideMe ? "Task" : "Question")}: {request.Question.Trim()}");
         else if (request.Task == AiTask.DescribeImage)
             parts.Add("Describe this picture.");
         else if (request.Task == AiTask.SummarizePage)
             parts.Add("Summarise this page.");
         return string.Join("\n\n", parts);
     }
+
+    // The browse-mode keys the steps may use, and the browser, as Vox knows them
+    private static string KeyAdvice(AiRequest request) =>
+        "in Vox's browse mode, H and Shift+H move by heading, K by link, B by button, E by edit field, F by form " +
+        "field, T by table, Enter or Space activates, Insert+F7 lists the page's elements" +
+        (string.IsNullOrWhiteSpace(request.Browser) ? "." : $"; the browser is {request.Browser}.");
 
     private static string LanguageName(string? tag)
     {

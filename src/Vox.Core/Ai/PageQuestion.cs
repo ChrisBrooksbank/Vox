@@ -138,6 +138,49 @@ public sealed partial class PageQuestion
         return (text, target, targetText);
     }
 
+    /// <summary>One step of a "Guide me" answer: what to do, and the element it is at when it named a line this page has.</summary>
+    public sealed record GuideStep(string Text, VBufferNode? Target, string? TargetText);
+
+    /// <summary>
+    /// A "Guide me" answer read back: the text to say (line numbers and "GO TO" taken out), its
+    /// numbered steps with the element each named (a number the page doesn't have is ignored),
+    /// and the model's "Not sure" note, if any.
+    /// </summary>
+    public (string Text, IReadOnlyList<GuideStep> Steps, string? Uncertainty) ReadSteps(string answer)
+    {
+        var steps = new List<GuideStep>();
+        var kept = new List<string>();
+        string? note = null;
+        foreach (var raw in answer.ReplaceLineEndings("\n").Split('\n'))
+        {
+            VBufferNode? target = null;
+            string? targetText = null;
+            var line = raw;
+            var tail = GoToTail().Match(line);
+            if (tail.Success)
+            {
+                if (int.TryParse(tail.Groups[1].Value, out var number) && _lines.TryGetValue(number, out var found))
+                    (target, targetText) = found;
+                line = line[..tail.Index];
+            }
+            line = MultipleSpaces().Replace(LineNumber().Replace(line, string.Empty), " ").TrimEnd();
+            if (line.Trim().Length == 0)
+                continue;
+            kept.Add(line);
+            if (line.TrimStart().StartsWith("Not sure", StringComparison.OrdinalIgnoreCase))
+                note ??= line.Trim();
+            else if (StepStart().IsMatch(line))
+                steps.Add(new GuideStep(StepStart().Replace(line, string.Empty, 1).Trim(), target, targetText));
+        }
+        return (string.Join("\n", kept), steps, note);
+    }
+
+    [GeneratedRegex(@"\s*GO\s*TO\s*:?\s*\[?\s*(\d+)\s*\]?\s*\.?\s*$", RegexOptions.IgnoreCase)]
+    private static partial Regex GoToTail();
+
+    [GeneratedRegex(@"^\s*\d+\s*[.)]\s*")]
+    private static partial Regex StepStart();
+
     [GeneratedRegex(@"^\s*GO\s*TO\s*:?\s*\[?\s*(\d+)\s*\]?\s*\.?\s*$", RegexOptions.IgnoreCase)]
     private static partial Regex GoToLine();
 

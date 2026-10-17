@@ -118,6 +118,7 @@ public sealed class AiAssistant(
             AiTask.DescribeImage => "Ai.Consent.DescribeImage",
             AiTask.ExplainScreen => "Ai.Consent.ExplainScreen",
             AiTask.AskPage => "Ai.Consent.AskPage",
+            AiTask.GuideMe => "Ai.Consent.GuideMe",
             _ => "Ai.Consent.SummarizePage",
         }, describer.Name);
 }

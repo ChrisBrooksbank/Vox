@@ -484,6 +484,46 @@ public class AiCommandsTests : IDisposable
         Assert.Empty(_textPrompt.Asked);
     }
 
+    [Fact]
+    public async Task GuideMe_SaysTheSteps_AndMovesToTheFirstStepOfferedWhenAccepted()
+    {
+        var page = Page();
+        int n = NumberOf(page, "Tomatoes need sun");
+        _textPrompt.Answer = "Find out about sun";
+        _cloud.Answer = $"1. Read the heading Growing tomatoes.\n2. Read the text Tomatoes need sun. GO TO: [{n}]\nNot sure: the page has no form.";
+        var moved = new List<VBufferNode>();
+        var commands = Commands();
+        commands.PageDocument = () => page;
+        commands.GoToElement = moved.Add;
+
+        var said = await Run(commands.GuideMeAsync);
+        await WaitUntil(() => moved.Count > 0);
+
+        Assert.StartsWith("1. Read the heading Growing tomatoes.\n2. Read the text Tomatoes need sun.\nNot sure:", said);
+        var request = Assert.Single(_cloud.Requests);
+        Assert.Equal(AiTask.GuideMe, request.Task);
+        Assert.Equal("Find out about sun", request.Question);
+        Assert.Contains("step 2", Assert.Single(_confirm.Questions));
+        Assert.Single(moved);
+    }
+
+    [Fact]
+    public void ReadSteps_IgnoresAStepNumberThePageDoesNotHave()
+    {
+        var read = PageQuestion.For(Page()).ReadSteps("1. Press Go. GO TO: [99]\n2. Done.");
+
+        Assert.Equal(2, read.Steps.Count);
+        Assert.All(read.Steps, s => Assert.Null(s.Target));
+        Assert.Equal("Press Go.", read.Steps[0].Text);
+        Assert.Null(read.Uncertainty);
+    }
+
+    [Fact]
+    public async Task GuideMe_NotOnAPage_SaysSo()
+    {
+        Assert.Equal("Not on a page", await Run(Commands().GuideMeAsync));
+    }
+
     private static int NumberOf(VBufferDocument page, string text)
     {
         var context = PageQuestion.For(page).Context;

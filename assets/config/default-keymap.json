@@ -101,6 +101,7 @@
     { "modifiers": "Insert|Alt",  "vkCode": 81,  "mode": "Any",    "command": "AskPage" },
     { "modifiers": "Insert|Ctrl", "vkCode": 77,  "mode": "Browse", "command": "MoveToMainContent" },
     { "modifiers": "Insert|Alt",  "vkCode": 79,  "mode": "Browse", "command": "GoToControlled" },
+    { "modifiers": "Insert|Alt",  "vkCode": 72,  "mode": "Any",    "command": "GuideMe" },
     { "modifiers": "Insert",      "vkCode": 75,  "mode": "Browse", "command": "SayLinkUrl" },
     { "modifiers": "Insert|Shift", "vkCode": 68, "mode": "Browse", "command": "DismissOverlay" },
     { "modifiers": "Insert|Alt",  "vkCode": 77,  "mode": "Browse", "command": "InteractWithMath" },

@@ -10,6 +10,7 @@ Vox can describe pictures, answer questions about what is on the screen and summ
 | Insert+Alt+G | Ask a question about the window in front ("how do I attach a file?"). |
 | Insert+Ctrl+I | Summarise the page being browsed (browse mode). |
 | Insert+Ctrl+M | Move to where the page's main content starts; press again for the next suggestion (browse mode). |
+| Insert+Alt+H | Guide me: say what you want to do on the page and get numbered steps, each offering to move to its element. |
 | Insert+Alt+Q | Ask the page: a question about the page you are on ("when is it open on Sundays?"), answered from its text; when the answer is at a place on the page, Vox offers to move there. |
 
 Vox says "Describing image", "Thinking" or "Summarizing" and plays the progress sound every couple of seconds until the answer comes. Pressing the same key again cancels ("Cancelled"), and so does Ctrl (stop speech). The answer is spoken and put under the review cursor, like recognised text ([Text recognition (OCR)](ocr.md)): the review keys read it again line by line, word by word or character by character, and a braille display shows it. The review cursor goes back to what it was reviewing when focus, the caret, the review mode or the browse cursor moves.
@@ -72,6 +73,10 @@ After a web page has loaded, Vox describes its unlabelled graphics and its butto
 ## Ask the page
 
 Insert+Alt+Q, on a web page in browse or focus mode, asks for a question and answers it from the page's text, with the model on this computer, else Claude (with consent, and never for a private site). The page is sent with each line, and each link, control, heading and graphic in it, numbered; the model may end its answer by naming one of those numbers. When it does, and the page has that number, Vox asks "Move to ...?" after the answer: Yes moves the browse cursor there (in browse mode) and reads the line; a number the page doesn't have is ignored, and an element gone from the page meanwhile is said to be gone. While a modal dialog is open only the dialog is sent. The questions asked this session are offered again in the prompt.
+
+## Guide me
+
+Insert+Alt+H, on a web page, asks what you want to do ("book the 9:30 appointment") and answers with short numbered steps naming links and controls by their text and role, never by colour or position, with the keys to press. The model on this computer is used first, else Claude (with consent, and never for a private site). A step that is at a place on the page ends with its line number; after the answer Vox offers, step by step, "Move to step 2, ...?" and Yes moves the browse cursor there. Numbers the page doesn't have are ignored. When the model isn't sure it says so on a last "Not sure" line, which is read with the steps.
 
 ## Page summaries and main content
 

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 267
+- Build iterations: 268
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -427,7 +427,7 @@ From the community research behind `docs/choosing-a-screen-reader.md`: features 
 
 #### AI guidance (spec: community-requests.md)
 
-- [ ] Add "Guide me": a prompt for a task on the current page, answered as short numbered steps naming elements by text and role (never colour or position) with an uncertainty note, each step offering to move the browse cursor to its element (`BrowseModeController.GoToElement`), the prompt telling the model Vox's keys and the browser; local first, cloud with consent; unit tests over a fake describer (spec: community-requests.md)
+- [x] Add "Guide me": a prompt for a task on the current page, answered as short numbered steps naming elements by text and role (never colour or position) with an uncertainty note, each step offering to move the browse cursor to its element (`BrowseModeController.GoToElement`), the prompt telling the model Vox's keys and the browser; local first, cloud with consent; unit tests over a fake describer (spec: community-requests.md)
 
 #### Firefox through IAccessible2 (spec: community-requests.md; docs/firefox.md)
 

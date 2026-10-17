@@ -13,6 +13,8 @@ public enum AiTask
     SummarizePage,
     /// <summary>Answer a question about a page from its numbered text (<see cref="PageQuestion"/>), naming the line the answer is at.</summary>
     AskPage,
+    /// <summary>Answer a task on a page ("book the 9:30 appointment") as numbered steps, each naming the line it is at (<see cref="PageQuestion.ReadSteps"/>).</summary>
+    GuideMe,
 }
 
 /// <summary>
@@ -21,7 +23,7 @@ public enum AiTask
 /// language to answer in (BCP 47; null: English).
 /// </summary>
 public sealed record AiRequest(AiTask Task, CapturedImage? Image = null, string? Question = null, string? Context = null,
-    string? Language = null);
+    string? Language = null, string? Browser = null);
 
 /// <summary>
 /// Describes pictures of the screen and answers questions about it: on this computer

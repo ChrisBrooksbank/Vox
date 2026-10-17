@@ -368,5 +368,9 @@ public enum NavigationCommand
 
     // Web markup
     /// <summary>Moves the browse cursor to the element the control at the cursor controls (aria-controls).</summary>
-    GoToControlled
+    GoToControlled,
+
+    // AI guidance
+    /// <summary>Asks for a task on the page being browsed and answers it as numbered steps, each offering to move to its element.</summary>
+    GuideMe
 }
