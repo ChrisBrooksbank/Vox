@@ -61,6 +61,14 @@ public sealed class AddOnIntegration
     public Func<string?> ForegroundProcessName { get; init; } = () => null;
     /// <summary>Read-only access to the focused and navigator objects (none: add-ons get null).</summary>
     public IAddOnObjectSource? Objects { get; init; }
+    /// <summary>Plays an earcon by name.</summary>
+    public Action<string> PlayEarcon { get; init; } = _ => { };
+    /// <summary>Flashes a message on the braille display.</summary>
+    public Action<string> ShowBrailleMessage { get; init; } = _ => { };
+    /// <summary>Puts a text under the review cursor.</summary>
+    public Func<string, Task> ShowDocument { get; init; } = _ => Task.CompletedTask;
+    /// <summary>Runs a command as if its key had been pressed.</summary>
+    public Action<NavigationCommand> RunCommand { get; init; } = _ => { };
     /// <summary>Gives the app module manager the add-ons' modules.</summary>
     public Action<IReadOnlyList<CoreAppModule>> SetAppModules { get; init; } = _ => { };
     /// <summary>The app module active now.</summary>
@@ -293,7 +301,7 @@ public sealed class AddOnManager
         var host = new AddOnHost(id, () => Path.Combine(_directory!, DataFolderName, id), logger,
             new GuardedSpeech(_integration, guard), _integration.ForegroundProcessName,
             work => _integration.Post(() => guard.Run(work, "running work on the pipeline")),
-            _integration.Objects);
+            _integration.Objects, _integration);
         if (!guard.Run(() => code.Instance.Initialize(host), "starting", AddOnGuard.StartBudget))
         {
             guard.Stop();

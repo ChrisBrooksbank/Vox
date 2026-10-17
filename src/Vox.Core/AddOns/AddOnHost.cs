@@ -26,7 +26,8 @@ public sealed class AddOnHost(
     ISpeechOutput speech,
     Func<string?> foregroundProcessName,
     Action<Action> post,
-    IAddOnObjectSource? objects = null) : IAddOnHost
+    IAddOnObjectSource? objects = null,
+    AddOnIntegration? output = null) : IAddOnHost
 {
     private readonly CancellationTokenSource _stopping = new();
     private bool _sealed;
@@ -67,6 +68,35 @@ public sealed class AddOnHost(
             logger.LogDebug(ex, "Add-on {AddOn} could not read an object", addOnId);
             return null;
         }
+    }
+
+    public void PlayEarcon(string name)
+    {
+        if (!string.IsNullOrWhiteSpace(name) && !_stopping.IsCancellationRequested)
+            output?.PlayEarcon(name);
+    }
+
+    public void ShowBrailleMessage(string text)
+    {
+        if (!string.IsNullOrWhiteSpace(text) && !_stopping.IsCancellationRequested)
+            output?.ShowBrailleMessage(text);
+    }
+
+    public Task ShowDocumentAsync(string text)
+    {
+        if (string.IsNullOrEmpty(text) || output is null || _stopping.IsCancellationRequested)
+            return Task.CompletedTask;
+        return output.ShowDocument(text);
+    }
+
+    public bool RunCommand(string commandName)
+    {
+        if (output is null || _stopping.IsCancellationRequested
+            || !Enum.TryParse<Input.NavigationCommand>(commandName, ignoreCase: false, out var command)
+            || !Enum.IsDefined(command) || command == Input.NavigationCommand.Quit)
+            return false;
+        output.RunCommand(command);
+        return true;
     }
 
     public void Seal() => _sealed = true;

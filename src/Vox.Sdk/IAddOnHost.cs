@@ -66,6 +66,25 @@ public interface IAddOnHost
 
     /// <summary>The navigator object (the one object navigation is on, which follows focus until moved), or null. Since API 1.1.</summary>
     Task<IVoxObject?> GetNavigatorObjectAsync() => Task.FromResult<IVoxObject?>(null);
+
+    /// <summary>Plays one of the earcons of the current scheme by name (for example "boundary"); an unknown name is ignored. Since API 1.1.</summary>
+    void PlayEarcon(string name) { }
+
+    /// <summary>Flashes <paramref name="text"/> on the braille display for the message timeout (nothing without a display). Since API 1.1.</summary>
+    void ShowBrailleMessage(string text) { }
+
+    /// <summary>
+    /// Shows <paramref name="text"/> as a document the user reads with the review cursor, from its
+    /// start, until focus or the caret moves. Since API 1.1.
+    /// </summary>
+    Task ShowDocumentAsync(string text) => Task.CompletedTask;
+
+    /// <summary>
+    /// Runs a Vox command by its name (a <c>NavigationCommand</c> such as "NextHeading"), as if its
+    /// key had been pressed. Returns false when there is no such command or it can't be run by an
+    /// add-on (Quit). Since API 1.1.
+    /// </summary>
+    bool RunCommand(string commandName) => false;
 }
 
 /// <summary>How urgently something is said.</summary>

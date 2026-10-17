@@ -7,6 +7,10 @@ Vox.Sdk.CaretMovedEvent.Word.get -> string?
 Vox.Sdk.CaretMovedEvent.Word.init -> void
 Vox.Sdk.IAddOnHost.GetFocusedObjectAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
 Vox.Sdk.IAddOnHost.GetNavigatorObjectAsync() -> System.Threading.Tasks.Task<Vox.Sdk.IVoxObject?>!
+Vox.Sdk.IAddOnHost.PlayEarcon(string! name) -> void
+Vox.Sdk.IAddOnHost.RunCommand(string! commandName) -> bool
+Vox.Sdk.IAddOnHost.ShowBrailleMessage(string! text) -> void
+Vox.Sdk.IAddOnHost.ShowDocumentAsync(string! text) -> System.Threading.Tasks.Task!
 Vox.Sdk.IVoxObject
 Vox.Sdk.IVoxObject.Bounds.get -> Vox.Sdk.VoxRect?
 Vox.Sdk.IVoxObject.GetChildrenAsync(int maxCount = 100) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Vox.Sdk.IVoxObject!>!>!

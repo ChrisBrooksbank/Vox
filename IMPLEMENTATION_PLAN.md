@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 249
+- Build iterations: 250
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -375,7 +375,7 @@ API surface:
 
 - [x] Add read-only object access to the SDK (`IVoxObject`: name, role, value, bounds, parent, children, next/previous; focused and navigator objects from the host), run through `UIAThread` with its timeouts and never giving a password's value; sample add-on uses it; unit tests over `INavigatorObject` fakes; `VoxApi` 1.1 (spec: extensibility.md)
 - [x] Give `CaretMovedEvent` the line, word and character at the caret (from `ITextDocument`; nothing for password fields) as `init` properties; unit tests (spec: extensibility.md)
-- [ ] Add output beyond speech to `IAddOnHost`: play an earcon, flash a braille message, show a text document under the review cursor (`ReviewCommands.ShowRecognizedAsync`), and run a Vox command by `NavigationCommand` name; unit tests (spec: extensibility.md)
+- [x] Add output beyond speech to `IAddOnHost`: play an earcon, flash a braille message, show a text document under the review cursor (`ReviewCommands.ShowRecognizedAsync`), and run a Vox command by `NavigationCommand` name; unit tests (spec: extensibility.md)
 - [ ] Add an add-on settings model (toggle/number/choice fields like `SettingsPages`) shown as a page in the settings dialog, stored per add-on and layered by profiles and policy; unit tests (spec: extensibility.md)
 - [ ] Add per-add-on localized strings (a string table in the package resolved in `VoxStrings.Culture`, English fallback) for command names, descriptions and settings labels; unit tests (spec: extensibility.md)
 
