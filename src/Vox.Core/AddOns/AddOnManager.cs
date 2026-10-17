@@ -318,7 +318,7 @@ public sealed class AddOnManager
         var guard = new AddOnGuard(id, _logger, OnRepeatedFailure, _time);
         _watchdog.Watch(guard);
         var host = new AddOnHost(id, () => Path.Combine(_directory!, DataFolderName, id), logger,
-            new GuardedSpeech(_integration, guard), _integration.ForegroundProcessName,
+            new GuardedSpeech(_integration, guard, _time), _integration.ForegroundProcessName,
             work => _integration.Post(() => guard.Run(work, "running work on the pipeline")),
             _integration.Objects, _integration, () => Reload(id))
         {
@@ -897,12 +897,14 @@ public sealed class AddOnManager
     }
 
     /// <summary>An add-on's speech, guarded like its other calls into Vox are not: speaking can't fail it.</summary>
-    private sealed class GuardedSpeech(AddOnIntegration integration, AddOnGuard guard) : ISpeechOutput
+    private sealed class GuardedSpeech(AddOnIntegration integration, AddOnGuard guard, TimeProvider time) : ISpeechOutput
     {
+        private readonly AddOnSpeechLimiter _limiter = new(time);
+
         public void Speak(string text, Sdk.SpeechPriority priority = Sdk.SpeechPriority.Normal)
         {
             if (!guard.IsStopped && !string.IsNullOrWhiteSpace(text))
-                integration.Speak(text, priority);
+                integration.Speak(text, _limiter.Limit(priority));
         }
 
         public void StopSpeaking()
