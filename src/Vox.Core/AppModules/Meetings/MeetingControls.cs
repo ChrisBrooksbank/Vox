@@ -78,5 +78,22 @@ public static class MeetingControls
         return parts.Count == 0 ? null : string.Join(", ", parts);
     }
 
+    /// <summary>
+    /// What pressing the button named <paramref name="name"/> does to the microphone: true mutes it,
+    /// false unmutes it, null when it isn't a microphone button. Covers Teams' and Zoom's "Mute" /
+    /// "Unmute" and Meet's "Turn off microphone" / "Turn on microphone".
+    /// </summary>
+    public static bool? PressingMutes(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+        name = name.Trim();
+        if (StartsWith(name, "Unmute") || StartsWith(name, "Turn on microphone"))
+            return false;
+        if ((StartsWith(name, "Mute") && !StartsWith(name, "Mute all")) || StartsWith(name, "Turn off microphone"))
+            return true;
+        return null;
+    }
+
     private static bool StartsWith(string name, string prefix) => name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
 }

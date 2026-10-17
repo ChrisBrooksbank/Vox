@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Vox.Core.Accessibility;
+using Vox.Core.AppModules.Meetings;
 using Vox.Core.AddOns;
 using Vox.Core.Ai;
 using Vox.Core.AppModules;
@@ -628,6 +629,22 @@ public static class ServiceRegistration
             sp.GetRequiredService<IEventSink>(), sp.GetRequiredService<ILogger<PowerPointModule>>()));
         services.AddSingleton<UIAAppSources>();
         services.AddSingleton<IWindowButtonSource>(sp => sp.GetRequiredService<UIAAppSources>());
+        services.AddSingleton<IWindowButtonPresser>(sp => sp.GetRequiredService<UIAAppSources>());
+        services.AddSingleton<IMicrophone, CoreAudioMicrophone>();
+        services.AddSingleton<MicrophoneCommands>(sp =>
+        {
+            var queue = sp.GetRequiredService<SpeechQueue>();
+            var browse = sp.GetRequiredService<BrowseModeController>();
+            return new MicrophoneCommands(
+                sp.GetRequiredService<IMicrophone>(),
+                sp.GetRequiredService<IWindowButtonPresser>(),
+                () => sp.GetRequiredService<AppModuleManager>().ActiveProcessName,
+                browse.ActiveDocument,
+                () => browse.CurrentSite,
+                sp.GetRequiredService<IBrowseDocumentActions>().ActivateAsync,
+                text => queue.Enqueue(new Utterance(text, SpeechPriority.Interrupt)),
+                sp.GetRequiredService<ILogger<MicrophoneCommands>>());
+        });
         services.AddSingleton<IDetailsRowSource>(sp => sp.GetRequiredService<UIAAppSources>());
         // What Vox says, so applications' own announcements of the same aren't said again
         services.AddSingleton<RecentSpeech>(sp =>

@@ -11,6 +11,13 @@ public interface IWindowButtonSource
     Task<IReadOnlyList<string>?> ButtonNamesAsync();
 }
 
+/// <summary>Presses a button in the foreground window.</summary>
+public interface IWindowButtonPresser
+{
+    /// <summary>Invokes the first button whose name satisfies <paramref name="match"/>; false when there is none or it can't be pressed.</summary>
+    Task<bool> PressButtonAsync(Func<string, bool> match);
+}
+
 /// <summary>One cell of a details-view row: its column's header and its value.</summary>
 public sealed record DetailsCell(string Header, string Value);
 
@@ -22,7 +29,7 @@ public interface IDetailsRowSource
 }
 
 /// <summary><see cref="IWindowButtonSource"/> and <see cref="IDetailsRowSource"/> through UIA, on the UIA thread.</summary>
-public sealed class UIAAppSources : IWindowButtonSource, IDetailsRowSource
+public sealed class UIAAppSources : IWindowButtonSource, IWindowButtonPresser, IDetailsRowSource
 {
     private const int NamePropertyId = 30005;
     private const int ControlTypePropertyId = 30003;
@@ -30,6 +37,7 @@ public sealed class UIAAppSources : IWindowButtonSource, IDetailsRowSource
     private const int ListItemControlTypeId = 50007;
     private const int TableItemPatternId = 10013;
     private const int ValuePatternId = 10002;
+    private const int InvokePatternId = 10000;
     private const int MaxCells = 32;
 
     private readonly UIAThread _uiaThread;
@@ -77,6 +85,45 @@ public sealed class UIAAppSources : IWindowButtonSource, IDetailsRowSource
         {
             _logger.LogDebug(ex, "Could not read the window's buttons");
             return null;
+        }
+    }
+
+    public async Task<bool> PressButtonAsync(Func<string, bool> match)
+    {
+        if (_foreground.Get() is not { Handle: var hwnd } || hwnd == IntPtr.Zero)
+            return false;
+        try
+        {
+            return await _uiaThread.RunAsync(() =>
+            {
+                var automation = _uiaProvider.Automation;
+                var window = automation.ElementFromHandle(hwnd);
+                if (window is null)
+                    return false;
+                var cache = automation.CreateCacheRequest();
+                cache.AddProperty(NamePropertyId);
+                var buttons = _uiaProvider.WithDocumentCaptureTimeout(() => window.FindAllBuildCache(
+                    TreeScope.TreeScope_Descendants,
+                    automation.CreatePropertyCondition(ControlTypePropertyId, ButtonControlTypeId),
+                    cache));
+                for (int i = 0; i < (buttons?.Length ?? 0); i++)
+                {
+                    var button = buttons!.GetElement(i);
+                    var name = button.CachedName;
+                    if (string.IsNullOrWhiteSpace(name) || !match(name))
+                        continue;
+                    if (button.GetCurrentPattern(InvokePatternId) is not IUIAutomationInvokePattern invoke)
+                        return false;
+                    invoke.Invoke();
+                    return true;
+                }
+                return false;
+            }, UIAThread.DocumentTimeout).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not press the window's button");
+            return false;
         }
     }
 

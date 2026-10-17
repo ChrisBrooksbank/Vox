@@ -131,6 +131,7 @@
     { "modifiers": "Insert",      "vkCode": 83,  "mode": "Any",    "command": "TogglePauseSpeech" },
     { "modifiers": "Insert|Alt",  "vkCode": 83,  "mode": "Any",    "command": "ToggleSpeechOnDemand" },
     { "modifiers": "Insert|Alt",  "vkCode": 67,  "mode": "Any",    "command": "ToggleScreenCurtain" },
+    { "modifiers": "Insert|Ctrl|Shift", "vkCode": 77, "mode": "Any", "command": "ToggleMicrophone" },
     { "modifiers": "Insert",      "vkCode": 9,   "mode": "Any",    "command": "SayFocus" },
     { "modifiers": "Insert|Ctrl", "vkCode": 9,   "mode": "Any",    "command": "LabelElement" },
     { "modifiers": "Insert",      "vkCode": 35,  "mode": "Any",    "command": "SayStatusBar" },

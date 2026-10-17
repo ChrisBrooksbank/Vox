@@ -10,6 +10,7 @@ move between the messages of a chat, and Teams' own keys work in focus mode.
 | Insert+Alt+1 to 5 | Read the latest message, or the 2nd to 5th from the latest |
 | Insert+Alt+M | Call state: in a call, microphone, camera, hand raised, sharing |
 | Ctrl+Shift+M, Ctrl+Shift+O, Ctrl+Shift+K | Teams' own mute, camera and raise hand keys; after them Vox says what changed ("Microphone muted") |
+| Insert+Ctrl+Shift+M | Mutes or unmutes the microphone from any application: Teams' own button here, else the default microphone |
 
 In Teams, Insert+Alt+M is the call state, not math exploring.
 

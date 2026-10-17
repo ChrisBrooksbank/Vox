@@ -62,6 +62,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly SleepMode _sleepMode;
     private readonly SpeechOnDemandCommands _speechOnDemandCommands;
     private readonly Vox.Core.ScreenCurtain.ScreenCurtainCommands _screenCurtain;
+    private readonly Vox.Core.AppModules.Meetings.MicrophoneCommands _microphone;
     private readonly MouseCommands _mouseCommands;
     private readonly OcrCommands _ocr;
     private readonly AiCommands _ai;
@@ -151,6 +152,7 @@ public sealed class ScreenReaderService : IHostedService
         SleepMode sleepMode,
         SpeechOnDemandCommands speechOnDemandCommands,
         Vox.Core.ScreenCurtain.ScreenCurtainCommands screenCurtain,
+        Vox.Core.AppModules.Meetings.MicrophoneCommands microphone,
         MouseCommands mouseCommands,
         SettingsCommands settingsCommands,
         Vox.Core.Updates.UpdateCommands updateCommands,
@@ -196,6 +198,7 @@ public sealed class ScreenReaderService : IHostedService
         _sleepMode = sleepMode;
         _speechOnDemandCommands = speechOnDemandCommands;
         _screenCurtain = screenCurtain;
+        _microphone = microphone;
         _mouseCommands = mouseCommands;
         _ocr = ocr;
         _ai = ai;
@@ -685,7 +688,7 @@ public sealed class ScreenReaderService : IHostedService
             && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command) && !_ocr.TryHandle(e.Command)
             && !_ai.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
-            && !_sleepMode.TryHandle(e.Command) && !_speechOnDemandCommands.TryHandle(e.Command) && !_screenCurtain.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
+            && !_sleepMode.TryHandle(e.Command) && !_speechOnDemandCommands.TryHandle(e.Command) && !_screenCurtain.TryHandle(e.Command) && !_microphone.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)
             && !_updateCommands.TryHandle(e.Command) && !_profileCommands.TryHandle(e.Command)
             && !_addOnCommands.TryHandle(e.Command) && !_remoteCommands.TryHandle(e.Command)
             && !_importCommands.TryHandle(e.Command) && !_labelCommands.TryHandle(e.Command)

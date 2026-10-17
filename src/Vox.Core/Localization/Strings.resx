@@ -4415,6 +4415,15 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="Meeting.CallEnded" xml:space="preserve">
     <value>Call ended</value>
   </data>
+  <data name="Command.ToggleMicrophone.Name" xml:space="preserve">
+    <value>Mute or unmute the microphone</value>
+  </data>
+  <data name="Command.ToggleMicrophone.Description" xml:space="preserve">
+    <value>Presses the mute button in Teams, Zoom or a Teams or Google Meet page, otherwise mutes the default microphone, and says the new state.</value>
+  </data>
+  <data name="Meeting.MicrophoneFailed" xml:space="preserve">
+    <value>The microphone could not be changed</value>
+  </data>
   <data name="Meeting.MicrophoneMuted" xml:space="preserve">
     <value>Microphone muted</value>
   </data>

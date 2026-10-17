@@ -360,5 +360,9 @@ public enum NavigationCommand
 
     // Screen curtain
     /// <summary>Turns the screen curtain on or off: the display goes black while Vox keeps reading.</summary>
-    ToggleScreenCurtain
+    ToggleScreenCurtain,
+
+    // Meetings
+    /// <summary>Mutes or unmutes the microphone: the meeting application's or page's own button, else the default capture device.</summary>
+    ToggleMicrophone
 }
