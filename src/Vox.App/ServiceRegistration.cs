@@ -285,6 +285,22 @@ public static class ServiceRegistration
                 sp.GetService<RunPolicy>() ?? RunPolicy.Normal,
                 sp.GetRequiredService<IAudioCuePlayer>());
         });
+        // The screen curtain: black display, Vox keeps reading; not on secure screens
+        services.AddSingleton<Vox.Core.ScreenCurtain.IScreenCurtain>(sp =>
+            new Vox.Core.ScreenCurtain.WindowsScreenCurtain(sp.GetRequiredService<ILogger<Vox.Core.ScreenCurtain.WindowsScreenCurtain>>()));
+        services.AddSingleton<Vox.Core.ScreenCurtain.ScreenCurtainCommands>(sp =>
+        {
+            var queue = sp.GetRequiredService<SpeechQueue>();
+            var policy = sp.GetService<RunPolicy>() ?? RunPolicy.Normal;
+            return new Vox.Core.ScreenCurtain.ScreenCurtainCommands(
+                sp.GetRequiredService<Vox.Core.ScreenCurtain.IScreenCurtain>(),
+                sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+                text => queue.Enqueue(new Utterance(text, SpeechPriority.Interrupt)),
+                policy.AllowMagnifier ? sp.GetRequiredService<Vox.Core.Magnifier.MagnifierController>() : null,
+                policy,
+                sp.GetRequiredService<IAudioCuePlayer>(),
+                sp.GetRequiredService<ILogger<Vox.Core.ScreenCurtain.ScreenCurtainCommands>>());
+        });
         // Remote Desktop / Citrix: said at startup; some audio settings are off remotely
         services.AddSingleton<IRemoteSessionProbe, Win32RemoteSessionProbe>();
         services.AddSingleton<RemoteSessionMonitor>();
@@ -782,6 +798,7 @@ public static class ServiceRegistration
         services.AddHostedService<ScreenReaderService>();
         services.AddHostedService<BrailleService>();
         services.AddHostedService<MagnifierService>();
+        services.AddHostedService<ScreenCurtainService>();
     }
 
     /// <summary>The key <paramref name="command"/> is on in the dispatcher's keymap ("Insert+F11"), or the command's name.</summary>

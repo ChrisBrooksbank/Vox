@@ -43,7 +43,7 @@ AI guidance through tasks, and touch. Follows Milestone F (Milestone G).
 
 ### Screen curtain
 
-- [ ] A screen curtain that blacks out the display (full-screen colour effect to black) while Vox keeps reading; toggle key and Vox menu item; optional at start-up with a spoken warning; can't be on with the magnifier (the curtain wins, and Vox says so); turned off when Vox exits or crashes (the watchdog removes it)
+- [x] A screen curtain that blacks out the display (full-screen colour effect to black) while Vox keeps reading; toggle key and Vox menu item; optional at start-up with a spoken warning; can't be on with the magnifier (the curtain wins, and Vox says so); turned off when Vox exits or crashes (the watchdog removes it)
 
 ### Meetings and the clipboard
 

@@ -52,6 +52,8 @@ public sealed record RunPolicy(bool IsSecure)
     public bool AllowNetwork => !IsSecure && !NetworkOffByPolicy;
     public bool AllowAi => !IsSecure && !AiOffByPolicy;
     /// <summary>Whether the magnifier may be used (not on the secure screens for now).</summary>
+    /// <summary>Whether the screen curtain may be used (not on the secure screens).</summary>
+    public bool AllowScreenCurtain => !IsSecure;
     public bool AllowMagnifier => !IsSecure && !MagnifierOffByPolicy;
     public bool AllowUserProfileAccess => !IsSecure;
     public bool AllowSetupWizard => !IsSecure;

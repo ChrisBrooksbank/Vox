@@ -356,5 +356,9 @@ public enum NavigationCommand
 
     // Speech on demand
     /// <summary>Turns speech on demand on or off: only the answers to reporting commands are spoken.</summary>
-    ToggleSpeechOnDemand
+    ToggleSpeechOnDemand,
+
+    // Screen curtain
+    /// <summary>Turns the screen curtain on or off: the display goes black while Vox keeps reading.</summary>
+    ToggleScreenCurtain
 }

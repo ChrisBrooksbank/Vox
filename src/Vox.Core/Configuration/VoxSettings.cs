@@ -285,6 +285,8 @@ public record VoxSettings
     public MouseTextUnit MouseTextUnit { get; init; } = MouseTextUnit.Line;
     /// <summary>The magnifier is on (and comes on when Vox starts).</summary>
     public bool MagnifierEnabled { get; init; }
+    /// <summary>The screen curtain is turned on when Vox starts (with a spoken warning).</summary>
+    public bool ScreenCurtainAtStart { get; init; }
     /// <summary>How much the magnifier enlarges, as a percentage (100 = 1×, up to 1600 = 16×).</summary>
     public int MagnifierZoomPercent { get; init; } = 200;
     /// <summary>Full screen, a docked window along an edge, or a lens that moves with what is followed.</summary>

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 261
+- Build iterations: 262
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -403,7 +403,7 @@ From the community research behind `docs/choosing-a-screen-reader.md`: features 
 
 #### Screen curtain (spec: community-requests.md)
 
-- [ ] Add a screen curtain (`IScreenCurtain`, `WindowsScreenCurtain` over `MagSetFullscreenColorEffect` with a black matrix): toggle key, Vox menu item, optional at start-up with a spoken warning, removed on exit and by Vox.Watchdog after a crash; unit tests over a fake (spec: community-requests.md)
+- [x] Add a screen curtain (`IScreenCurtain`, `WindowsScreenCurtain` over `MagSetFullscreenColorEffect` with a black matrix): toggle key, Vox menu item, optional at start-up with a spoken warning, removed on exit and by Vox.Watchdog after a crash; unit tests over a fake (spec: community-requests.md)
 
 #### Magnifier (spec: community-requests.md)
 

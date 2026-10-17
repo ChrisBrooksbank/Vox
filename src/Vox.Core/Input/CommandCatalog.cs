@@ -144,7 +144,7 @@ public static class CommandCatalog
             NavigationCommand.ToggleMagnifier, NavigationCommand.MagnifierZoomIn, NavigationCommand.MagnifierZoomOut,
             NavigationCommand.MagnifierNextFilter, NavigationCommand.MagnifierNextView, NavigationCommand.MagnifierMoveView,
             NavigationCommand.MagnifierViewLarger, NavigationCommand.MagnifierViewSmaller, NavigationCommand.MagnifierPanLeft,
-            NavigationCommand.MagnifierPanRight, NavigationCommand.MagnifierPanUp, NavigationCommand.MagnifierPanDown);
+            NavigationCommand.MagnifierPanRight, NavigationCommand.MagnifierPanUp, NavigationCommand.MagnifierPanDown, NavigationCommand.ToggleScreenCurtain);
         Add(CommandCategory.Speech,
             NavigationCommand.StopSpeech, NavigationCommand.SettingsRingPrevious, NavigationCommand.SettingsRingNext,
             NavigationCommand.SettingsRingIncrease, NavigationCommand.SettingsRingDecrease,

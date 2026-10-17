@@ -37,6 +37,7 @@ var supervisor = new VoxSupervisor(
     restartPolicy,
     () =>
     {
+        Vox.Core.ScreenCurtain.WindowsScreenCurtain.ClearLeftover();
         var choice = WatchdogFallback.Choose(Vox.Core.Trial.TrialRecord.Read(Path.Combine(VoxPaths.UserData, Vox.Core.Trial.TrialRecord.FileName)));
         using (var synthesizer = new SpeechSynthesizer())
             synthesizer.Speak(Vox.Core.Localization.VoxStrings.Format("Watchdog.StartingFallback", Vox.Core.Trial.TrialMode.Name(choice)));

@@ -214,6 +214,7 @@ public static class SettingsPages
     public static SettingsPage Magnifier() => new(L("SettingsPage.Magnifier"),
     [
         new ToggleField(L("Setting.MagnifierEnabled"), s => s.MagnifierEnabled, (s, v) => s with { MagnifierEnabled = v }),
+        new ToggleField(L("Setting.ScreenCurtainAtStart"), s => s.ScreenCurtainAtStart, (s, v) => s with { ScreenCurtainAtStart = v }),
         new ChoiceField(L("Setting.MagnifierZoomPercent"),
             global::Vox.Core.Magnifier.MagnifierZoom.StepsPercent.Select(p => new SettingChoice(global::Vox.Core.Magnifier.MagnifierZoom.Describe(p), (object?)p)).ToList(),
             s => s.MagnifierZoomPercent, (s, v) => v is int percent ? s with { MagnifierZoomPercent = percent } : s),

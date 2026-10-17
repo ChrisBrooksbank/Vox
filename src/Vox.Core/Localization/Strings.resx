@@ -2247,6 +2247,33 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="App.SpeechOnDemandOff" xml:space="preserve">
     <value>Speech on demand off</value>
   </data>
+  <data name="VoxMenu.ToggleScreenCurtain" xml:space="preserve">
+    <value>Screen curtain (displa&amp;y off)</value>
+  </data>
+  <data name="Command.ToggleScreenCurtain.Name" xml:space="preserve">
+    <value>Screen curtain on or off</value>
+  </data>
+  <data name="Command.ToggleScreenCurtain.Description" xml:space="preserve">
+    <value>Turns the screen curtain on or off. With it on the display is black while Vox keeps reading, for privacy or to save power.</value>
+  </data>
+  <data name="Setting.ScreenCurtainAtStart" xml:space="preserve">
+    <value>Screen &amp;curtain on at start</value>
+  </data>
+  <data name="ScreenCurtain.On" xml:space="preserve">
+    <value>Screen curtain on. The display is black</value>
+  </data>
+  <data name="ScreenCurtain.OnAtStart" xml:space="preserve">
+    <value>Screen curtain on. The display is black; Vox keeps reading. Press the screen curtain key to turn it off</value>
+  </data>
+  <data name="ScreenCurtain.Off" xml:space="preserve">
+    <value>Screen curtain off</value>
+  </data>
+  <data name="ScreenCurtain.Failed" xml:space="preserve">
+    <value>The screen curtain could not be turned on</value>
+  </data>
+  <data name="ScreenCurtain.NotAvailable" xml:space="preserve">
+    <value>The screen curtain is not available here</value>
+  </data>
   <data name="VoxMenu.TogglePauseSpeech" xml:space="preserve">
     <value>&amp;Pause speech</value>
   </data>
