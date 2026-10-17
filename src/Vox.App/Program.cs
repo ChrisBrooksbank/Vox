@@ -44,6 +44,13 @@ policy = organizationPolicy.Restrict(policy);
 if (organizationPolicy.SettingsLocation == SettingsLocation.Local)
     VoxPaths.KeepUserDataLocal(true);
 
+// With UI access Vox runs only code a user-level program can't have planted (docs/security.md)
+if (UIAccess.IsGranted() == true)
+{
+    policy = policy with { RequireSignedAddOns = true };
+    VoxPaths.RequireMachineComponents(true);
+}
+
 // A relay for remote access between computers that can't reach each other (docs/remote.md)
 if (args is ["--remote-relay", .. var relayRest])
 {

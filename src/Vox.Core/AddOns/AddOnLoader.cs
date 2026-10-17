@@ -141,6 +141,20 @@ internal sealed class AddOnLoadContext(string id, string directory, AddOnManifes
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
     {
         var fileName = unmanagedDllName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? unmanagedDllName : unmanagedDllName + ".dll";
-        return manifest.Files.ContainsKey(fileName) ? LoadUnmanagedDllFromPath(Path.Combine(directory, fileName)) : IntPtr.Zero;
+        if (!manifest.Files.TryGetValue(fileName, out var hash))
+            return IntPtr.Zero;
+        var path = Path.Combine(directory, fileName);
+        // Hashed like the managed assemblies are, just before it is loaded
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (!AddOnPackage.HashMatches(stream, hash))
+                throw new AddOnLoadException($"{fileName} has changed since the add-on was installed.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new AddOnLoadException($"{fileName} can't be read.", ex);
+        }
+        return LoadUnmanagedDllFromPath(path);
     }
 }

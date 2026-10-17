@@ -3,8 +3,8 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 240
-- Last updated: 2026-10-16
+- Build iterations: 241
+- Last updated: 2026-10-17
 
 ## Tasks
 
@@ -349,7 +349,7 @@ Prerequisites that aren't code (the loop can't do these; track them outside the 
 
 #### Security hardening (spec: quality-engineering.md; docs/security.md "Known weaknesses")
 
-- [ ] With UI access, load only add-ons whose signature is checked at load time (native libraries hashed too) and optional components from a folder only administrators can write (weakness 1) (spec: quality-engineering.md)
+- [x] With UI access, load only add-ons whose signature is checked at load time (native libraries hashed too) and optional components from a folder only administrators can write (weakness 1) (spec: quality-engineering.md)
 - [ ] Create `%ProgramData%\Vox` in the installer writable only by administrators and SYSTEM; copy settings to the secure screens through Vox.Service (weakness 2) (spec: quality-engineering.md)
 - [ ] Run the secure-screen instance with a restricted token; use a global-namespace secure-instance mutex (weaknesses 3 and 11) (spec: quality-engineering.md)
 - [ ] Check the downloaded MSI's Authenticode signature and keep it unchangeable until msiexec has read it (weakness 4) (spec: quality-engineering.md)

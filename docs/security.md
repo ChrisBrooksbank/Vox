@@ -137,14 +137,14 @@ and administrators (they control the install).
 Found in the review that wrote this page (October 2026). Each is a task to fix, or a decision to
 record here with its reason.
 
-1. **UI access can be borrowed through user-writable code.** A signed Vox has UI access and loads
-   add-on assemblies and native libraries from `%APPDATA%\Vox\addons`, and eSpeak NG and MathCAT from
-   `%LOCALAPPDATA%\Vox\components`. At load time the add-on's signature isn't re-checked
-   (`AddOnManager.LoadFolder`); managed assemblies are hashed against the `addon.json` beside them,
-   which is just as writable, and native libraries aren't hashed. Any program running as the user
-   can therefore get code into a process that types into elevated windows. Fix: with UI access,
-   load only signed add-ons whose signature is checked at load, and components from a
-   per-machine folder only administrators can write.
+1. ~~**UI access can be borrowed through user-writable code.**~~ Fixed: a Vox with UI access
+   (`RunPolicy.RequireSignedAddOns`) loads an add-on only when its signature, checked again by
+   `AddOnManager.LoadFolder` at each load, is from a trusted publisher, and takes eSpeak NG, MathCAT
+   and liblouis only from `components` beside the program (`VoxPaths.MachineComponents`, in Program
+   Files when installed), not from the user's profile. Native libraries of an add-on are hashed
+   against the manifest just before they load. Remaining: the hash and the load are two steps, so a
+   program running as the user could swap a native library between them; a trusted publisher's
+   add-on is trusted not to ship one that loads others.
 2. **`%ProgramData%\Vox` has default permissions.** Users can create files there, so any user can
    write the settings the SYSTEM instance reads on every user's lock screen, and the user who
    created the folder owns it (a junction for `secure-logs` would make SYSTEM write and rotate files

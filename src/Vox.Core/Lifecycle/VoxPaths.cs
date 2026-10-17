@@ -42,6 +42,20 @@ public static class VoxPaths
         ? UserData
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Vox");
 
+    private static volatile bool _machineComponents;
+
+    /// <summary>
+    /// Takes optional components only from <see cref="MachineComponents"/>, a folder only
+    /// administrators can write: a Vox with UI access mustn't load code a user-level program could
+    /// have put in the user's profile. Set once at startup, before anything reads <see cref="Components"/>.
+    /// </summary>
+    public static void RequireMachineComponents(bool required) => _machineComponents = required;
+
+    /// <summary>The per-machine components folder, beside the program (in Program Files when installed).</summary>
+    public static string MachineComponents => Path.Combine(AppContext.BaseDirectory, "components");
+
     /// <summary>Where optional components (eSpeak NG, MathCAT) are installed.</summary>
-    public static string Components => Path.Combine(LocalData, "components");
+    public static string Components => _machineComponents && !IsPortable
+        ? MachineComponents
+        : Path.Combine(LocalData, "components");
 }

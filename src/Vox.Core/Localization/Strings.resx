@@ -2986,6 +2986,9 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="AddOns.Damaged" xml:space="preserve">
     <value>Its files are damaged or incomplete.</value>
   </data>
+  <data name="AddOns.NeedsTrustedSignature" xml:space="preserve">
+    <value>Not loaded: this copy of Vox can use elevated windows, so it runs only add-ons signed by a publisher you trust.</value>
+  </data>
   <data name="AddOns.LoadFailed" xml:space="preserve">
     <value>It could not be loaded.</value>
   </data>

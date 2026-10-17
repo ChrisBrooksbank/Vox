@@ -37,6 +37,12 @@ public sealed record RunPolicy(bool IsSecure)
     /// <summary>Started with <see cref="TrialFlag"/>: begin trial mode at startup (never on secure screens).</summary>
     public bool StartTrial { get; init; }
 
+    /// <summary>
+    /// Vox has UI access: it loads only add-ons signed by a trusted publisher, the signature checked
+    /// when each is loaded, so user-writable files can't borrow its reach into elevated windows.
+    /// </summary>
+    public bool RequireSignedAddOns { get; init; }
+
     public bool AllowSettingsWrites => !IsSecure;
     public bool AllowAddOns => !IsSecure && !AddOnsOffByPolicy;
     /// <summary>

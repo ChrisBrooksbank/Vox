@@ -267,6 +267,15 @@ public sealed class AddOnManager
             return;
         }
 
+        // With UI access the signature is checked again now, not only when the package was installed:
+        // the folder is writable by any program the user runs
+        if (_policy.RequireSignedAddOns && AddOnPackage.TrustOfFolder(folder, _trust).Trust is not AddOnTrust.TrustedPublisher)
+        {
+            _logger.LogWarning("Add-on {AddOn} {Version} not loaded: Vox has UI access and it isn't signed by a trusted publisher", id, manifest.Version);
+            NotLoaded(id, AddOnState.Failed, VoxStrings.Get("AddOns.NeedsTrustedSignature"));
+            return;
+        }
+
         ILoadedAddOn code;
         try { code = _loader.Load(folder, manifest); }
         catch (Exception ex)
