@@ -18,7 +18,9 @@ public sealed class E2EFactAttribute : FactAttribute
         !OperatingSystem.IsWindows() ? "End-to-end tests need Windows"
         : Environment.GetEnvironmentVariable(EnableVariable) != "1"
             ? $"End-to-end tests drive the desktop; set {EnableVariable}=1 to run them (docs/e2e.md)"
-            : null;
+            : DesktopWindows.DesktopUnavailableReason() is { } why
+                ? $"End-to-end tests need an unlocked interactive desktop, but {why}; unlock the session and keep the display on (docs/e2e.md)"
+                : null;
 }
 
 /// <summary>An end-to-end theory (see <see cref="E2EFactAttribute"/>).</summary>
