@@ -10,11 +10,19 @@ namespace Vox.Core.Configuration;
 /// <param name="CancelCapture">Stops waiting for a key.</param>
 /// <param name="Say">Speaks a prompt ("Press the new keys").</param>
 /// <param name="ScreenReaderKey">"Insert" or "Caps Lock", for naming keys.</param>
+/// <param name="AddOnCommands">The running add-ons' commands, listed under "Add-ons".</param>
 public sealed record GestureDialogServices(
     Action<Action<KeyModifiers, int, bool>> CaptureKey,
     Action CancelCapture,
     Action<string> Say,
-    string ScreenReaderKey);
+    string ScreenReaderKey,
+    IReadOnlyList<GestureAddOnCommand>? AddOnCommands = null);
+
+/// <summary>An add-on's command in the input gestures dialog.</summary>
+/// <param name="AddOnName">The add-on's name (its node under "Add-ons").</param>
+/// <param name="BindingName">The command's name in the user keymap (<see cref="AddOnCommandRef.BindingName"/>).</param>
+/// <param name="Defaults">The keys the add-on gives it.</param>
+public sealed record GestureAddOnCommand(string AddOnName, string BindingName, string Name, string Description, IReadOnlyList<KeyBinding> Defaults);
 
 /// <summary>Shows the input gestures dialog; true when the user saved changes.</summary>
 public interface IInputGesturesPresenter
@@ -125,28 +133,47 @@ public sealed class InputGesturesDialog : VoxDialog
         Fill();
     }
 
-    private void Fill(NavigationCommand? select = null)
+    /// <summary>A command node's tag: its name in the keymap (a <see cref="NavigationCommand"/> name or an add-on's) and its spoken name.</summary>
+    private sealed record CommandTag(string Key, string Name);
+
+    private void Fill(string? select = null)
     {
         _tree.BeginUpdate();
         _tree.Nodes.Clear();
         TreeNode? selected = null;
+
+        TreeNode AddCommand(TreeNodeCollection parent, string key, string name, string description, TreeNode expand)
+        {
+            var gestures = _editor.GesturesFor(key);
+            var keys = gestures.Count == 0 ? VoxStrings.Get("AddOns.Details.NoKey") : string.Join(", ", gestures.Select(g => g.Describe(_services.ScreenReaderKey)));
+            var commandNode = parent.Add(VoxStrings.Format("Gesture.CommandKeys", name, keys));
+            commandNode.Tag = new CommandTag(key, name);
+            commandNode.ToolTipText = description;
+            foreach (var gesture in gestures)
+                commandNode.Nodes.Add(new TreeNode(gesture.Describe(_services.ScreenReaderKey)) { Tag = gesture });
+            if (select == key)
+            {
+                for (var node = expand; node is not null; node = node.Parent)
+                    node.Expand();
+                selected = commandNode;
+            }
+            return commandNode;
+        }
+
         foreach (var category in CommandCatalog.All.GroupBy(c => c.Category))
         {
             var categoryNode = _tree.Nodes.Add(CommandCatalog.CategoryName(category.Key));
             foreach (var info in category)
+                AddCommand(categoryNode.Nodes, info.Command.ToString(), info.Name, info.Description, categoryNode);
+        }
+        if (_services.AddOnCommands is { Count: > 0 } addOnCommands)
+        {
+            var addOnsNode = _tree.Nodes.Add(VoxStrings.Get("Gesture.AddOnsCategory"));
+            foreach (var addOn in addOnCommands.GroupBy(c => c.AddOnName))
             {
-                var gestures = _editor.GesturesFor(info.Command);
-                var keys = gestures.Count == 0 ? VoxStrings.Get("AddOns.Details.NoKey") : string.Join(", ", gestures.Select(g => g.Describe(_services.ScreenReaderKey)));
-                var commandNode = categoryNode.Nodes.Add(VoxStrings.Format("Gesture.CommandKeys", info.Name, keys));
-                commandNode.Tag = info.Command;
-                commandNode.ToolTipText = info.Description;
-                foreach (var gesture in gestures)
-                    commandNode.Nodes.Add(new TreeNode(gesture.Describe(_services.ScreenReaderKey)) { Tag = gesture });
-                if (select == info.Command)
-                {
-                    categoryNode.Expand();
-                    selected = commandNode;
-                }
+                var addOnNode = addOnsNode.Nodes.Add(addOn.Key);
+                foreach (var command in addOn)
+                    AddCommand(addOnNode.Nodes, command.BindingName, command.Name, command.Description, addOnNode);
             }
         }
         _tree.EndUpdate();
@@ -155,8 +182,8 @@ public sealed class InputGesturesDialog : VoxDialog
         UpdateButtons();
     }
 
-    private NavigationCommand? SelectedCommand =>
-        _tree.SelectedNode?.Tag as NavigationCommand? ?? _tree.SelectedNode?.Parent?.Tag as NavigationCommand?;
+    private CommandTag? SelectedCommand =>
+        _tree.SelectedNode?.Tag as CommandTag ?? _tree.SelectedNode?.Parent?.Tag as CommandTag;
 
     private void UpdateButtons()
     {
@@ -170,11 +197,16 @@ public sealed class InputGesturesDialog : VoxDialog
             return;
         var mode = Places[Math.Max(0, _where.SelectedIndex)].Mode;
         _add.Enabled = false;
-        _services.Say(VoxStrings.Format("Gesture.PressNewKeys", CommandCatalog.Describe(command).Name));
+        _services.Say(VoxStrings.Format("Gesture.PressNewKeys", command.Name));
         _services.CaptureKey((modifiers, vk, keypad) => BeginInvoke(() => KeyPressed(command, mode, modifiers, vk, keypad)));
     }
 
-    private void KeyPressed(NavigationCommand command, string mode, KeyModifiers modifiers, int vk, bool keypad)
+    /// <summary>The spoken name of a command in the keymap (an add-on's, else Vox's).</summary>
+    private string NameOf(string key) =>
+        _services.AddOnCommands?.FirstOrDefault(c => c.BindingName == key)?.Name
+        ?? (Enum.TryParse<NavigationCommand>(key, out var command) ? CommandCatalog.Describe(command).Name : key);
+
+    private void KeyPressed(CommandTag command, string mode, KeyModifiers modifiers, int vk, bool keypad)
     {
         UpdateButtons();
         if (vk == 0x1B && modifiers == KeyModifiers.None)
@@ -187,28 +219,28 @@ public sealed class InputGesturesDialog : VoxDialog
             _services.Say(VoxStrings.Get("Gesture.NumpadDigits"));
             return;
         }
-        var conflicts = _editor.ConflictsWith(gesture, command);
+        var conflicts = _editor.ConflictNames(gesture, command.Key);
         if (conflicts.Count > 0)
         {
-            var names = string.Join(", ", conflicts.Select(c => CommandCatalog.Describe(c).Name));
+            var names = string.Join(", ", conflicts.Select(NameOf));
             var answer = MessageBox.Show(this,
-                VoxStrings.Format("Gesture.KeyInUseQuestion", gesture.Describe(_services.ScreenReaderKey), names, CommandCatalog.Describe(command).Name),
+                VoxStrings.Format("Gesture.KeyInUseQuestion", gesture.Describe(_services.ScreenReaderKey), names, command.Name),
                 VoxStrings.Get("Gesture.KeyInUse"), MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (answer != DialogResult.Yes)
                 return;
         }
-        _editor.Add(command, gesture);
+        _editor.Add(command.Key, gesture);
         _services.Say(VoxStrings.Format("Gesture.KeyAdded", gesture.Describe(_services.ScreenReaderKey)));
-        Fill(command);
+        Fill(command.Key);
     }
 
     private void RemoveKey()
     {
         if (_tree.SelectedNode?.Tag is not Gesture gesture || SelectedCommand is not { } command)
             return;
-        _editor.Remove(command, gesture);
+        _editor.Remove(command.Key, gesture);
         _services.Say(VoxStrings.Format("Gesture.KeyRemoved", gesture.Describe(_services.ScreenReaderKey)));
-        Fill(command);
+        Fill(command.Key);
     }
 
     private void ResetAll()

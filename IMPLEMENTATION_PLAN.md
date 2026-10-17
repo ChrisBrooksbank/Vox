@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 252
+- Build iterations: 253
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -381,7 +381,7 @@ API surface:
 
 Integration:
 
-- [ ] Show add-on commands in the input gestures dialog (`GestureEditor`, under "Add-ons › name") and keep the user's rebinding in the user keymap, applied by `AddOnKeyLayer`; unit tests (spec: extensibility.md)
+- [x] Show add-on commands in the input gestures dialog (`GestureEditor`, under "Add-ons › name") and keep the user's rebinding in the user keymap, applied by `AddOnKeyLayer`; unit tests (spec: extensibility.md)
 - [ ] Log key conflicts where an add-on's key overrides a Vox key, and list them in the add-ons dialog; unit tests (spec: extensibility.md)
 - [ ] Add an optional `order` to the manifest for plug-ins and announcement filters (ties by id) and show the order in the add-ons dialog; unit tests (spec: extensibility.md)
 - [ ] Add `IAddOnHost.RequestReload()` so an add-on can change what it contributes (e.g. commands after a settings change) without the user disabling and enabling it; unit tests (spec: extensibility.md)

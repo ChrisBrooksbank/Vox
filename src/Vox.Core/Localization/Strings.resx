@@ -3623,6 +3623,9 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
     <value>The portable copy could not be created: {0}</value>
     <comment>{0}: the reason (a system error message)</comment>
   </data>
+  <data name="Gesture.AddOnsCategory" xml:space="preserve">
+    <value>Add-ons</value>
+  </data>
   <data name="Gesture.KeysSaved" xml:space="preserve">
     <value>Keys saved</value>
   </data>

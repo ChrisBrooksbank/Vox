@@ -75,6 +75,8 @@ public sealed class AddOnIntegration
     public Func<CoreAppModule?> ActiveAppModule { get; init; } = () => null;
     /// <summary>Gives the key dispatcher the add-on commands' keys.</summary>
     public Action<AddOnKeyLayer?> SetKeyLayer { get; init; } = _ => { };
+    /// <summary>The user's keymap entries (the add-on commands' keys the user changed are among them).</summary>
+    public Func<IReadOnlyList<KeyBinding>> UserKeys { get; init; } = () => [];
     public SpeechEngineRegistry? SpeechEngines { get; init; }
     /// <summary>Vox's settings as they apply now (profiles and policy included), where add-ons' settings are kept.</summary>
     public Func<Configuration.VoxSettings> CurrentSettings { get; init; } = () => new Configuration.VoxSettings();
@@ -421,23 +423,58 @@ public sealed class AddOnManager
         List<Loaded> running;
         lock (_lock) running = _loaded.Values.OrderBy(l => l.Manifest.Id, StringComparer.Ordinal).ToList();
         var gestures = new List<(KeyGesture, AddOnCommandRef)>();
+        var commands = new List<AddOnCommandRef>();
         if (_integration.ActiveAppModule() is AddOnAppModule active && running.FirstOrDefault(l => l.Modules.Contains(active)) is { } owner)
         {
             foreach (var command in active.Commands)
-                gestures.AddRange(Gestures(owner, command, active.Id));
+                gestures.AddRange(Gestures(owner, command, active.Id, commands));
         }
         foreach (var loaded in running)
         {
             foreach (var command in loaded.Contributions.Commands)
-                gestures.AddRange(Gestures(loaded, command, null));
+                gestures.AddRange(Gestures(loaded, command, null, commands));
         }
-        _integration.SetKeyLayer(gestures.Count == 0 ? null : AddOnKeyLayer.Build(gestures));
+        // The keys the user gave the commands in the input gestures dialog replace their defaults
+        var effective = commands.Count == 0 ? gestures : AddOnKeyLayer.ApplyUserKeys(gestures, commands, _integration.UserKeys()).ToList();
+        _integration.SetKeyLayer(effective.Count == 0 ? null : AddOnKeyLayer.Build(effective));
     }
 
-    private static IEnumerable<(KeyGesture, AddOnCommandRef)> Gestures(Loaded loaded, AddOnCommand command, string? moduleId)
+    /// <summary>
+    /// Every command of the running add-ons (all their app modules', active or not) with its default
+    /// keys, for the input gestures dialog.
+    /// </summary>
+    public IReadOnlyList<Configuration.GestureAddOnCommand> GestureCommands()
+    {
+        List<Loaded> running;
+        lock (_lock) running = _loaded.Values.OrderBy(l => l.Manifest.Id, StringComparer.Ordinal).ToList();
+        var result = new List<Configuration.GestureAddOnCommand>();
+        foreach (var loaded in running)
+        {
+            var found = new List<AddOnCommandRef>();
+            var gestures = new List<(KeyGesture, AddOnCommandRef)>();
+            foreach (var module in loaded.Modules)
+            {
+                foreach (var command in module.Commands)
+                    gestures.AddRange(Gestures(loaded, command, module.Id, found));
+            }
+            foreach (var command in loaded.Contributions.Commands)
+                gestures.AddRange(Gestures(loaded, command, null, found));
+            var defaults = AddOnKeyLayer.DefaultBindings(gestures);
+            foreach (var reference in found)
+            {
+                result.Add(new Configuration.GestureAddOnCommand(
+                    loaded.Manifest.Name, reference.BindingName, reference.Name, reference.Description,
+                    defaults.Where(d => d.Command == reference.BindingName).ToList()));
+            }
+        }
+        return result;
+    }
+
+    private static IEnumerable<(KeyGesture, AddOnCommandRef)> Gestures(Loaded loaded, AddOnCommand command, string? moduleId, List<AddOnCommandRef> commands)
     {
         var reference = new AddOnCommandRef(loaded.Manifest.Id, moduleId is null ? command.Id : $"{moduleId}/{command.Id}",
             loaded.Host.Strings.Resolve(command.Name), loaded.Host.Strings.Resolve(command.Description ?? string.Empty));
+        commands.Add(reference);
         return loaded.Guard.Call(() => command.Gestures.ToList(), [], "listing a command's keys").Select(g => (g, reference));
     }
 

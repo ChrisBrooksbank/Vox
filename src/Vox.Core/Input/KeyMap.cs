@@ -419,6 +419,10 @@ public sealed class KeyMap
                 continue;
             }
 
+            // An add-on command's key (AddOnKeyLayer applies it)
+            if (entry.Command.StartsWith(AddOnCommandRef.BindingPrefix, StringComparison.Ordinal))
+                continue;
+
             if (!TryParseName<NavigationCommand>(entry.Command, out var command))
             {
                 warningList.Add($"Binding for vkCode {entry.VkCode}: unrecognized command '{entry.Command}' — skipped.");

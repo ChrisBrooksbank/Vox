@@ -19,7 +19,11 @@ public sealed record GestureSetup(
     string ConfigDirectory,
     string? UserKeyMapPath,
     KeyInputDispatcher Dispatcher,
-    Action ReloadKeyMap);
+    Action ReloadKeyMap)
+{
+    /// <summary>The running add-ons' commands, whose keys are edited in the dialog too.</summary>
+    public Func<IReadOnlyList<GestureAddOnCommand>>? AddOnCommands { get; init; }
+}
 
 /// <summary>
 /// Opens Vox's settings dialog (Insert+Ctrl+G) and input gestures dialog. While one is open
@@ -150,11 +154,14 @@ public sealed class SettingsCommands(
         try
         {
             var path = setup.UserKeyMapPath!;
-            var layout = KeyMap.LayoutBindings(setup.ConfigDirectory, settings.CurrentValue.KeyboardLayout);
+            var addOnCommands = setup.AddOnCommands?.Invoke() ?? [];
+            // The add-ons' own keys are part of what the user's changes are measured against
+            var layout = KeyMap.LayoutBindings(setup.ConfigDirectory, settings.CurrentValue.KeyboardLayout)
+                .Concat(addOnCommands.SelectMany(c => c.Defaults)).ToList();
             var editor = new GestureEditor(layout, ReadUserKeyMap(path));
             var services = new GestureDialogServices(
                 setup.Dispatcher.CaptureNextKey, setup.Dispatcher.CancelCapture, Say,
-                InputHelp.ScreenReaderKeyName(settings.CurrentValue.ModifierKey));
+                InputHelp.ScreenReaderKeyName(settings.CurrentValue.ModifierKey), addOnCommands);
             if (await setup.Presenter.ShowAsync(editor, services).ConfigureAwait(false))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);

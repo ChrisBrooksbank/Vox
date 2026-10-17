@@ -561,7 +561,15 @@ public static class ServiceRegistration
                 // Secure screens never change the user's keys
                 policy.AllowSettingsWrites && policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null,
                 dispatcher,
-                () => dispatcher.SetKeyMap(LoadKeyMap(settings.CurrentValue.KeyboardLayout, keyMapLogger, policy)));
+                () =>
+                {
+                    dispatcher.SetKeyMap(LoadKeyMap(settings.CurrentValue.KeyboardLayout, keyMapLogger, policy));
+                    // The add-on commands' keys come from the same file
+                    sp.GetRequiredService<IEventSink>().Post(new PipelineWorkEvent(DateTimeOffset.UtcNow, () => sp.GetRequiredService<AddOnManager>().RefreshKeys()));
+                })
+            {
+                AddOnCommands = () => sp.GetRequiredService<AddOnManager>().GestureCommands(),
+            };
             return new SettingsCommands(
                 sp.GetRequiredService<ISettingsDialogPresenter>(),
                 settings,
@@ -661,6 +669,7 @@ public static class ServiceRegistration
                     SetAppModules = modules => sp.GetRequiredService<AppModuleManager>().SetAddOnModules(modules),
                     ActiveAppModule = () => sp.GetRequiredService<AppModuleManager>().ActiveModule,
                     SetKeyLayer = layer => sp.GetRequiredService<KeyInputDispatcher>().SetAddOnKeys(layer),
+                    UserKeys = () => KeyMap.ReadUserBindings(policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null),
                     Objects = new UIAAddOnObjectSource(sp.GetRequiredService<UIAThread>(),
                         sp.GetRequiredService<INavigatorObjectSource>(), sp.GetRequiredService<ObjectNavigationCommands>()),
                     SpeechEngines = sp.GetRequiredService<SpeechEngineRegistry>(),

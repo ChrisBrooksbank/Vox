@@ -66,9 +66,11 @@ public sealed class GestureEditor
     public bool IsChanged { get; private set; }
 
     /// <summary>The keys bound to <paramref name="command"/>.</summary>
-    public IReadOnlyList<Gesture> GesturesFor(NavigationCommand command)
+    public IReadOnlyList<Gesture> GesturesFor(NavigationCommand command) => GesturesFor(command.ToString());
+
+    /// <summary>The keys bound to a command by its binding name (a <see cref="NavigationCommand"/> name, or an add-on command's <see cref="AddOnCommandRef.BindingName"/>).</summary>
+    public IReadOnlyList<Gesture> GesturesFor(string name)
     {
-        var name = command.ToString();
         var gestures = new List<Gesture>();
         foreach (var ((modifiers, vk), slots) in _keys.OrderBy(k => k.Key.Item2).ThenBy(k => k.Key.Item1))
         {
@@ -85,7 +87,14 @@ public sealed class GestureEditor
     }
 
     /// <summary>The commands <paramref name="gesture"/> would take its keys from (other than <paramref name="command"/>).</summary>
-    public IReadOnlyList<NavigationCommand> ConflictsWith(Gesture gesture, NavigationCommand command)
+    public IReadOnlyList<NavigationCommand> ConflictsWith(Gesture gesture, NavigationCommand command) =>
+        ConflictNames(gesture, command.ToString())
+            .Select(n => Enum.TryParse<NavigationCommand>(n, out var c) ? c : (NavigationCommand?)null)
+            .OfType<NavigationCommand>()
+            .ToList();
+
+    /// <summary>The binding names of the commands (built-in or add-on) <paramref name="gesture"/> would take its keys from.</summary>
+    public IReadOnlyList<string> ConflictNames(Gesture gesture, string command)
     {
         if (!_keys.TryGetValue((gesture.Modifiers, gesture.VkCode), out var slots))
             return [];
@@ -94,29 +103,33 @@ public sealed class GestureEditor
         if (any || IsMode(gesture.Mode, "Browse")) taken.Add(slots.Browse);
         if (any || IsMode(gesture.Mode, "Focus")) taken.Add(slots.Focus);
         if (any) taken.Add(slots.Outside);
-        return taken.Where(s => s is not null && s.Value.Command != command.ToString())
-            .Select(s => Enum.TryParse<NavigationCommand>(s!.Value.Command, out var c) ? c : (NavigationCommand?)null)
-            .OfType<NavigationCommand>()
+        return taken.Where(s => s is not null && s.Value.Command != command)
+            .Select(s => s!.Value.Command)
             .Distinct()
             .ToList();
     }
 
     /// <summary>Binds <paramref name="gesture"/> to <paramref name="command"/>, replacing whatever it ran there.</summary>
-    public void Add(NavigationCommand command, Gesture gesture)
+    public void Add(NavigationCommand command, Gesture gesture) => Add(command.ToString(), gesture);
+
+    /// <summary>Binds <paramref name="gesture"/> to a command by its binding name.</summary>
+    public void Add(string command, Gesture gesture)
     {
         var key = (gesture.Modifiers, gesture.VkCode);
         if (!_keys.TryGetValue(key, out var slots))
             _keys[key] = slots = new Slots();
-        Apply(slots, gesture.Mode, new Slot(command.ToString(), false));
+        Apply(slots, gesture.Mode, new Slot(command, false));
         IsChanged = true;
     }
 
     /// <summary>Takes <paramref name="gesture"/> away from <paramref name="command"/>.</summary>
-    public void Remove(NavigationCommand command, Gesture gesture)
+    public void Remove(NavigationCommand command, Gesture gesture) => Remove(command.ToString(), gesture);
+
+    /// <summary>Takes <paramref name="gesture"/> away from a command by its binding name.</summary>
+    public void Remove(string name, Gesture gesture)
     {
         if (!_keys.TryGetValue((gesture.Modifiers, gesture.VkCode), out var slots))
             return;
-        var name = command.ToString();
         bool any = IsAny(gesture.Mode);
         if ((any || IsMode(gesture.Mode, "Browse")) && slots.Browse?.Command == name) slots.Browse = null;
         if ((any || IsMode(gesture.Mode, "Focus")) && slots.Focus?.Command == name) slots.Focus = null;
