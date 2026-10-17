@@ -62,4 +62,28 @@ public class KeyGestureTests
         Assert.False(layer.TryResolve(KeyModifiers.None, 0x4A, InteractionMode.Focus, out _));
         Assert.False(layer.TryResolveOutsideDocument(KeyModifiers.None, 0x4A, out _));
     }
+
+    [Fact]
+    public void AKeyThatOverridesAVoxKey_IsAConflict()
+    {
+        var voxKeys = KeyMap.FromBindings([
+            new KeyBinding(KeyModifiers.Insert, 0x4A, "Any", "StopSpeech"),
+            new KeyBinding(KeyModifiers.None, 0x4B, "Browse", "StopSpeech"),
+        ], out _);
+        var clash = new AddOnCommandRef("a", "one", "One", "");
+        var wrongMode = new AddOnCommandRef("a", "two", "Two", "");
+        var free = new AddOnCommandRef("a", "three", "Three", "");
+        var layer = AddOnKeyLayer.Build([
+            (KeyGesture.Parse("VoxKey+J"), clash),
+            (KeyGesture.Parse("K", GestureMode.Focus), wrongMode),
+            (KeyGesture.Parse("VoxKey+L"), free),
+        ]);
+
+        var conflicts = layer.FindConflicts(voxKeys);
+
+        var conflict = Assert.Single(conflicts);
+        Assert.Same(clash, conflict.Command);
+        Assert.Equal(NavigationCommand.StopSpeech, conflict.Replaced);
+        Assert.Contains("One", conflict.Describe());
+    }
 }

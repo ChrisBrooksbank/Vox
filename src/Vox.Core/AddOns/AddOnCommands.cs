@@ -191,6 +191,12 @@ public sealed class AddOnCommands : IAddOnActions
                 text.AppendLine(VoxStrings.Format("AddOns.Details.Command", command.Name, keys, command.Description));
             }
         }
+        if (addOn.KeyConflicts is { Count: > 0 } conflicts)
+        {
+            text.AppendLine(VoxStrings.Get("AddOns.Details.KeyConflicts"));
+            foreach (var conflict in conflicts)
+                text.AppendLine(conflict);
+        }
         return text.ToString().TrimEnd();
     }
 

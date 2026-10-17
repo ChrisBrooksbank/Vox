@@ -39,7 +39,8 @@ public sealed record AddOnInfo(
     string? Problem,
     AddOnTrust Trust,
     string? Publisher,
-    IReadOnlyList<AddOnCommandInfo> Commands);
+    IReadOnlyList<AddOnCommandInfo> Commands,
+    IReadOnlyList<string>? KeyConflicts = null);
 
 /// <summary>A checked package and what installing it would do.</summary>
 /// <param name="Installed">The version of it installed now, or null.</param>
@@ -77,6 +78,8 @@ public sealed class AddOnIntegration
     public Action<AddOnKeyLayer?> SetKeyLayer { get; init; } = _ => { };
     /// <summary>The user's keymap entries (the add-on commands' keys the user changed are among them).</summary>
     public Func<IReadOnlyList<KeyBinding>> UserKeys { get; init; } = () => [];
+    /// <summary>The keymap in use, to find add-on keys that override Vox's (none: no check).</summary>
+    public Func<KeyMap?> VoxKeyMap { get; init; } = () => null;
     public SpeechEngineRegistry? SpeechEngines { get; init; }
     /// <summary>Vox's settings as they apply now (profiles and policy included), where add-ons' settings are kept.</summary>
     public Func<Configuration.VoxSettings> CurrentSettings { get; init; } = () => new Configuration.VoxSettings();
@@ -217,7 +220,8 @@ public sealed class AddOnManager
         lock (_lock)
         {
             if (_loaded.TryGetValue(manifest.Id, out var loaded))
-                return new AddOnInfo(loaded.Manifest, AddOnState.Running, null, trust, publisher, loaded.CommandInfos());
+                return new AddOnInfo(loaded.Manifest, AddOnState.Running, null, trust, publisher, loaded.CommandInfos(),
+                    _keyConflicts.TryGetValue(manifest.Id, out var conflicts) ? conflicts : []);
             if (_labelPacks.TryGetValue(manifest.Id, out var pack))
                 return new AddOnInfo(pack, AddOnState.Running, null, trust, publisher, []);
             var reason = AddOnCompatibility.Reason(manifest, VoxApi.Current);
@@ -436,7 +440,36 @@ public sealed class AddOnManager
         }
         // The keys the user gave the commands in the input gestures dialog replace their defaults
         var effective = commands.Count == 0 ? gestures : AddOnKeyLayer.ApplyUserKeys(gestures, commands, _integration.UserKeys()).ToList();
-        _integration.SetKeyLayer(effective.Count == 0 ? null : AddOnKeyLayer.Build(effective));
+        var layer = effective.Count == 0 ? null : AddOnKeyLayer.Build(effective);
+        _integration.SetKeyLayer(layer);
+        PublishConflicts(layer);
+    }
+
+    private Dictionary<string, List<string>> _keyConflicts = new();
+
+    /// <summary>Logs the add-on keys that override Vox keys (once each change) and keeps them for the add-ons dialog.</summary>
+    private void PublishConflicts(AddOnKeyLayer? layer)
+    {
+        var voxKeys = _integration.VoxKeyMap();
+        var found = new Dictionary<string, List<string>>();
+        if (layer is not null && voxKeys is not null)
+        {
+            foreach (var conflict in layer.FindConflicts(voxKeys))
+            {
+                if (!found.TryGetValue(conflict.Command.AddOnId, out var list))
+                    found[conflict.Command.AddOnId] = list = [];
+                list.Add(conflict.Describe());
+            }
+        }
+        var previous = _keyConflicts;
+        _keyConflicts = found;
+        foreach (var (id, texts) in found)
+        {
+            if (previous.TryGetValue(id, out var before) && before.SequenceEqual(texts))
+                continue;
+            foreach (var text in texts)
+                _logger.LogWarning("Add-on {AddOn} key conflict: {Conflict}", id, text);
+        }
     }
 
     /// <summary>

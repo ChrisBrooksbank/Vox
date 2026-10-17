@@ -3046,6 +3046,12 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="AddOns.Details.Command" xml:space="preserve">
     <value>{0}: {1}. {2}</value>
   </data>
+  <data name="AddOns.Details.KeyConflicts" xml:space="preserve">
+    <value>Keys that replace Vox's:</value>
+  </data>
+  <data name="AddOns.KeyConflict" xml:space="preserve">
+    <value>{0} runs {1} instead of {2}</value>
+  </data>
   <data name="AddOns.Details.NoKey" xml:space="preserve">
     <value>no key</value>
   </data>

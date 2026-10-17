@@ -669,6 +669,7 @@ public static class ServiceRegistration
                     SetAppModules = modules => sp.GetRequiredService<AppModuleManager>().SetAddOnModules(modules),
                     ActiveAppModule = () => sp.GetRequiredService<AppModuleManager>().ActiveModule,
                     SetKeyLayer = layer => sp.GetRequiredService<KeyInputDispatcher>().SetAddOnKeys(layer),
+                    VoxKeyMap = () => sp.GetRequiredService<KeyInputDispatcher>().KeyMap,
                     UserKeys = () => KeyMap.ReadUserBindings(policy.AllowUserProfileAccess ? KeyMap.DefaultUserKeyMapPath : null),
                     Objects = new UIAAddOnObjectSource(sp.GetRequiredService<UIAThread>(),
                         sp.GetRequiredService<INavigatorObjectSource>(), sp.GetRequiredService<ObjectNavigationCommands>()),

@@ -13,6 +13,14 @@ public sealed record AddOnCommandRef(string AddOnId, string CommandId, string Na
     public string BindingName => $"{BindingPrefix}{AddOnId}/{CommandId}";
 }
 
+/// <summary>An add-on command's key that is also bound to a Vox command, which the add-on's takes over.</summary>
+public sealed record AddOnKeyConflict(KeyGesture Gesture, AddOnCommandRef Command, NavigationCommand Replaced)
+{
+    /// <summary>The conflict as said and shown: the key, the add-on's command and the Vox command it replaces.</summary>
+    public string Describe() => Vox.Core.Localization.VoxStrings.Format("AddOns.KeyConflict",
+        InputHelp.KeyName((KeyModifiers)(int)Gesture.Modifiers, Gesture.VirtualKey), Command.Name, CommandCatalog.Describe(Replaced).Name);
+}
+
 /// <summary>
 /// The keys of add-on commands (the active add-on app module's, then every add-on's global ones),
 /// looked up by <see cref="KeyInputDispatcher"/> before Vox's own keys. Modes work as in the
@@ -82,6 +90,28 @@ public sealed class AddOnKeyLayer
                 layer._all.Add((gesture, command));
         }
         return layer;
+    }
+
+    /// <summary>The keys in the layer that Vox's own keymap binds too (the add-on's command wins).</summary>
+    public IReadOnlyList<AddOnKeyConflict> FindConflicts(KeyMap voxKeys)
+    {
+        var conflicts = new List<AddOnKeyConflict>();
+        foreach (var (gesture, command) in _all)
+        {
+            var modifiers = (KeyModifiers)(int)gesture.Modifiers;
+            NavigationCommand replaced;
+            bool found = gesture.Mode switch
+            {
+                GestureMode.Any => voxKeys.TryResolveOutsideDocument(modifiers, gesture.VirtualKey, out replaced, out _)
+                    || voxKeys.TryResolve(modifiers, gesture.VirtualKey, InteractionMode.Browse, out replaced)
+                    || voxKeys.TryResolve(modifiers, gesture.VirtualKey, InteractionMode.Focus, out replaced),
+                GestureMode.Browse => voxKeys.TryResolve(modifiers, gesture.VirtualKey, InteractionMode.Browse, out replaced),
+                _ => voxKeys.TryResolve(modifiers, gesture.VirtualKey, InteractionMode.Focus, out replaced),
+            };
+            if (found)
+                conflicts.Add(new AddOnKeyConflict(gesture, command, replaced));
+        }
+        return conflicts;
     }
 
     public int Count => _all.Count;
