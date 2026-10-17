@@ -1,5 +1,9 @@
 using Xunit;
 
+// Every test types into the one desktop and owns its foreground window, so they can't overlap:
+// run in parallel they speak each other's pages and steal each other's focus (issue #55).
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace Vox.E2E.Tests;
 
 /// <summary>
