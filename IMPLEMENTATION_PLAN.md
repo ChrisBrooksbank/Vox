@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 272
+- Build iterations: 273
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -438,7 +438,7 @@ From the community research behind `docs/choosing-a-screen-reader.md`: features 
 #### Touch (spec: community-requests.md)
 
 - [x] Design touch support in `docs/technical/` (touch input capture with UI access, explore by touch, gestures, a touch keymap in the keymap format, interaction with the magnifier) (spec: community-requests.md)
-- [ ] Implement touch exploration and gestures per the design: explore, double-tap to activate, flicks for objects and browse-mode headings/links/form fields, two-finger tap to stop speech; unit tests over a fake touch source (spec: community-requests.md)
+- [x] Implement touch exploration and gestures per the design: explore, double-tap to activate, flicks for objects and browse-mode headings/links/form fields, two-finger tap to stop speech; unit tests over a fake touch source (spec: community-requests.md)
 
 ## Completed
 

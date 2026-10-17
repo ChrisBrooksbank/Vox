@@ -281,6 +281,8 @@ public record VoxSettings
     public bool ReviewFollowsCaret { get; init; } = true;
     /// <summary>Speak what is under the mouse pointer as it moves.</summary>
     public bool MouseTracking { get; init; } = false;
+    /// <summary>Touch exploration and gestures on a touch screen (a layer over the screen takes the touch).</summary>
+    public bool TouchEnabled { get; init; } = false;
     /// <summary>What mouse tracking reports: the object, or the line or word of text under the pointer.</summary>
     public MouseTextUnit MouseTextUnit { get; init; } = MouseTextUnit.Line;
     /// <summary>The magnifier is on (and comes on when Vox starts).</summary>

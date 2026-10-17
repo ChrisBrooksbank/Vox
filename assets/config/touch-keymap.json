@@ -1,0 +1,15 @@
+{
+  "bindings": [
+    { "gesture": "DoubleTap", "fingers": 1, "mode": "Any", "command": "TouchActivate" },
+    { "gesture": "FlickRight", "fingers": 1, "mode": "Any", "command": "TouchNextItem" },
+    { "gesture": "FlickLeft", "fingers": 1, "mode": "Any", "command": "TouchPreviousItem" },
+    { "gesture": "FlickDown", "fingers": 1, "mode": "Browse", "command": "NextLine" },
+    { "gesture": "FlickUp", "fingers": 1, "mode": "Browse", "command": "PrevLine" },
+    { "gesture": "Tap", "fingers": 2, "mode": "Any", "command": "StopSpeech" },
+    { "gesture": "DoubleTap", "fingers": 2, "mode": "Any", "command": "TogglePauseSpeech" },
+    { "gesture": "FlickRight", "fingers": 3, "mode": "Browse", "command": "TouchNextRotorSetting" },
+    { "gesture": "FlickLeft", "fingers": 3, "mode": "Browse", "command": "TouchPreviousRotorSetting" },
+    { "gesture": "Tap", "fingers": 3, "mode": "Any", "command": "OpenVoxMenu" },
+    { "gesture": "FlickDown", "fingers": 2, "mode": "Any", "command": "SayAll" }
+  ]
+}

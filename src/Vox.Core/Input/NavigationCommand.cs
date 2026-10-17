@@ -372,5 +372,19 @@ public enum NavigationCommand
 
     // AI guidance
     /// <summary>Asks for a task on the page being browsed and answers it as numbered steps, each offering to move to its element.</summary>
-    GuideMe
+    GuideMe,
+
+    // Touch
+    /// <summary>Turns touch exploration and gestures on or off.</summary>
+    ToggleTouch,
+    /// <summary>Activates the object last explored by touch (outside browse mode, the navigator object).</summary>
+    TouchActivate,
+    /// <summary>Touch flick: the next object, or in browse mode the next item of the touch rotor.</summary>
+    TouchNextItem,
+    /// <summary>Touch flick: the previous object, or in browse mode the previous item of the touch rotor.</summary>
+    TouchPreviousItem,
+    /// <summary>Chooses the next kind of item the touch rotor moves by.</summary>
+    TouchNextRotorSetting,
+    /// <summary>Chooses the previous kind of item the touch rotor moves by.</summary>
+    TouchPreviousRotorSetting
 }

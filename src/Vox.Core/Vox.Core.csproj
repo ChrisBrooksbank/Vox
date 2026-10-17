@@ -27,6 +27,7 @@
     <EmbeddedResource Include="..\..\assets\config\default-keymap.json" LogicalName="Vox.Core.default-keymap.json" />
     <EmbeddedResource Include="..\..\assets\config\laptop-keymap.json" LogicalName="Vox.Core.laptop-keymap.json" />
     <EmbeddedResource Include="..\..\assets\config\jaws-keymap.json" LogicalName="Vox.Core.jaws-keymap.json" />
+    <EmbeddedResource Include="..\..\assets\config\touch-keymap.json" LogicalName="Vox.Core.touch-keymap.json" />
     <EmbeddedResource Include="..\..\assets\speech\*.json" LogicalName="Vox.Core.speech.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\assets\braille\*.json" LogicalName="Vox.Core.braille.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\assets\braille\keymaps\*.json" LogicalName="Vox.Core.braille.keymaps.%(Filename)%(Extension)" />

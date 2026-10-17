@@ -152,6 +152,9 @@ public sealed class BrowseModeController
     /// <summary>True while a web document has focus and no Vox dialog is open.</summary>
     public bool IsDocumentActive => _documentActive;
 
+    /// <summary>True while a web document has focus in browse mode (touch gestures follow it).</summary>
+    public bool IsBrowsing => _documentActive && _navigationManager.CurrentMode == InteractionMode.Browse;
+
     /// <summary>The virtual cursor for the active document, or null.</summary>
     public VBufferCursor? Cursor => _cursor;
 

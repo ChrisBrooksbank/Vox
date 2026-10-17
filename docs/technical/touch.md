@@ -1,7 +1,12 @@
 # Touch input (design)
 
-This page is the design for touch support (Milestone G, `specs/community-requests.md`). Nothing
-here is built yet; the implementation task follows it. A touch-screen user explores the screen
+This page is the design for touch support (Milestone G, `specs/community-requests.md`), and
+`Vox.Core/Touch/` implements it: `WindowsTouchSource`, `GestureRecognizer`, `TouchKeyMap`
+(`assets/config/touch-keymap.json`), `TouchController` and the `ToggleTouch`/`Touch*` commands,
+switched by the `TouchEnabled` setting. Not built yet: moving the navigator object and browse
+cursor to the explored element, the magnifier transform and `MagnifierFollowTouch`, passing
+unclaimed touch on, three-finger/triple taps beyond the defaults, and the keyboard reference's
+touch table. A touch-screen user explores the screen
 by finger and Vox speaks what is under it, as the keyboard and the mouse already can.
 
 ## Goals and limits

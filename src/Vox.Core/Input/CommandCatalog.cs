@@ -140,7 +140,9 @@ public static class CommandCatalog
             NavigationCommand.ClickRecognizedWord, NavigationCommand.DescribeObject, NavigationCommand.AskAboutScreen);
         Add(CommandCategory.Mouse,
             NavigationCommand.ToggleMouseTracking, NavigationCommand.RouteMouseToNavigator,
-            NavigationCommand.MouseLeftClick, NavigationCommand.MouseRightClick, NavigationCommand.ToggleLeftMouseLock);
+            NavigationCommand.MouseLeftClick, NavigationCommand.MouseRightClick, NavigationCommand.ToggleLeftMouseLock,
+            NavigationCommand.ToggleTouch, NavigationCommand.TouchActivate, NavigationCommand.TouchNextItem,
+            NavigationCommand.TouchPreviousItem, NavigationCommand.TouchNextRotorSetting, NavigationCommand.TouchPreviousRotorSetting);
         Add(CommandCategory.Magnifier,
             NavigationCommand.ToggleMagnifier, NavigationCommand.MagnifierZoomIn, NavigationCommand.MagnifierZoomOut,
             NavigationCommand.MagnifierNextFilter, NavigationCommand.MagnifierNextView, NavigationCommand.MagnifierMoveView,

@@ -277,6 +277,18 @@ public static class ServiceRegistration
         services.AddSingleton<IPointerTargetSource>(sp => new UIAPointerTargetSource(sp.GetRequiredService<UIAProvider>()));
         services.AddSingleton<MouseTracker>(sp => ActivatorUtilities.CreateInstance<MouseTracker>(sp,
             new Action<VoxSettings>(sp.GetRequiredService<SettingsMonitor>().UpdateSettings)));
+        services.AddSingleton<Vox.Core.Touch.ITouchSource>(sp => new Vox.Core.Touch.WindowsTouchSource(
+            sp.GetRequiredService<ILogger<Vox.Core.Touch.WindowsTouchSource>>()));
+        services.AddSingleton<Vox.Core.Touch.ITouchActivator>(sp => new Vox.Core.Touch.UIATouchActivator(
+            sp.GetRequiredService<UIAProvider>(), sp.GetRequiredService<IMouseInput>()));
+        services.AddSingleton<Vox.Core.Touch.TouchController>(sp =>
+        {
+            var browse = sp.GetRequiredService<BrowseModeController>();
+            return ActivatorUtilities.CreateInstance<Vox.Core.Touch.TouchController>(sp,
+                new Action<VoxSettings>(sp.GetRequiredService<SettingsMonitor>().UpdateSettings),
+                new Func<Vox.Core.Touch.TouchContext>(() => new Vox.Core.Touch.TouchContext(browse.IsDocumentActive, browse.IsBrowsing)),
+                (string?)Path.Combine(Vox.Core.Lifecycle.VoxPaths.UserData, Vox.Core.Touch.TouchKeyMap.UserFileName));
+        });
         services.AddSingleton<IStartupRegistration, RunKeyStartupRegistration>();
         // The magnifier: the Magnification API on its own thread; never on secure screens or with
         // the DisableMagnifier policy (the controller says so)

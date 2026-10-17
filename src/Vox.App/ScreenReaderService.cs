@@ -48,6 +48,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly ObjectNavigationCommands _objectNavigation;
     private readonly ReviewCommands _review;
     private readonly MouseTracker _mouseTracker;
+    private readonly Vox.Core.Touch.TouchController? _touch;
     private readonly SpeechEngineRegistry _speechEngines;
     private readonly SettingsRing _settingsRing;
     private readonly SpeechHistoryCommands _speechHistoryCommands;
@@ -174,8 +175,10 @@ public sealed class ScreenReaderService : IHostedService
         Vox.Core.Labels.AutomaticLabeler? automaticLabels = null,
         Vox.Core.Trial.TrialMode? trial = null,
         Vox.Core.Magnifier.MagnifierController? magnifier = null,
-        ClipboardAnnouncer? clipboardAnnouncer = null)
+        ClipboardAnnouncer? clipboardAnnouncer = null,
+        Vox.Core.Touch.TouchController? touch = null)
     {
+        _touch = touch;
         _clipboardAnnouncer = clipboardAnnouncer;
         _magnifier = magnifier;
         _trial = trial;
@@ -287,6 +290,9 @@ public sealed class ScreenReaderService : IHostedService
 
         // Speak what is under the mouse pointer while mouse tracking is on
         _mouseTracker.Start();
+
+        // Touch exploration and gestures while the TouchEnabled setting is on (and the policy allows)
+        _touch?.Refresh();
 
         // Wire pipeline events (all raised on the pipeline thread)
         _eventPipeline.RawKeyReceived += OnRawKeyReceived;
@@ -508,6 +514,7 @@ public sealed class ScreenReaderService : IHostedService
 
         _mouseTracker.Dispose();
         _mouseCommands.Dispose();
+        _touch?.Dispose();
 
         // Stop pending buffer updates, then release UIA (both run on the STA thread in order)
         _documentTracker.Dispose();
@@ -540,6 +547,7 @@ public sealed class ScreenReaderService : IHostedService
     /// </summary>
     private void ApplySettings(VoxSettings settings)
     {
+        _touch?.Refresh();
         // As the settings work in this session (a remote one turns some audio settings off)
         if (_remoteSessions is not null)
             settings = _remoteSessions.Current.Adjust(settings);
@@ -691,7 +699,7 @@ public sealed class ScreenReaderService : IHostedService
         if (e.Command == NavigationCommand.StopSpeech)
             _ai.Cancel();
         if (!_whereAmI.TryHandle(e.Command) && !_objectNavigation.TryHandle(e.Command) && !_review.TryHandle(e.Command)
-            && !_mouseTracker.TryHandle(e.Command) && !_mouseCommands.TryHandle(e.Command) && !_ocr.TryHandle(e.Command)
+            && !_mouseTracker.TryHandle(e.Command) && _touch?.TryHandle(e.Command) != true && !_mouseCommands.TryHandle(e.Command) && !_ocr.TryHandle(e.Command)
             && !_ai.TryHandle(e.Command)
             && !_settingsRing.TryHandle(e.Command) && !_speechHistoryCommands.TryHandle(e.Command)
             && !_sleepMode.TryHandle(e.Command) && !_speechOnDemandCommands.TryHandle(e.Command) && !_screenCurtain.TryHandle(e.Command) && !_microphone.TryHandle(e.Command) && !_settingsCommands.TryHandle(e.Command)

@@ -5684,4 +5684,73 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
     <value>Magnifier on. {0} turns it off; the Magnifier tab of the settings sets the zoom and what it follows.</value>
     <comment>{0} the magnifier's on/off key</comment>
   </data>
+  <data name="Command.ToggleTouch.Name" xml:space="preserve">
+    <value>Toggle touch</value>
+  </data>
+  <data name="Command.ToggleTouch.Description" xml:space="preserve">
+    <value>Turns touch exploration and gestures on or off.</value>
+  </data>
+  <data name="Command.TouchActivate.Name" xml:space="preserve">
+    <value>Touch activate</value>
+  </data>
+  <data name="Command.TouchActivate.Description" xml:space="preserve">
+    <value>Activates the object last explored by touch.</value>
+  </data>
+  <data name="Command.TouchNextItem.Name" xml:space="preserve">
+    <value>Touch next item</value>
+  </data>
+  <data name="Command.TouchNextItem.Description" xml:space="preserve">
+    <value>Moves to the next object, or in browse mode to the next item of the touch rotor.</value>
+  </data>
+  <data name="Command.TouchPreviousItem.Name" xml:space="preserve">
+    <value>Touch previous item</value>
+  </data>
+  <data name="Command.TouchPreviousItem.Description" xml:space="preserve">
+    <value>Moves to the previous object, or in browse mode to the previous item of the touch rotor.</value>
+  </data>
+  <data name="Command.TouchNextRotorSetting.Name" xml:space="preserve">
+    <value>Next touch rotor setting</value>
+  </data>
+  <data name="Command.TouchNextRotorSetting.Description" xml:space="preserve">
+    <value>Chooses the next kind of item the touch rotor moves by.</value>
+  </data>
+  <data name="Command.TouchPreviousRotorSetting.Name" xml:space="preserve">
+    <value>Previous touch rotor setting</value>
+  </data>
+  <data name="Command.TouchPreviousRotorSetting.Description" xml:space="preserve">
+    <value>Chooses the previous kind of item the touch rotor moves by.</value>
+  </data>
+  <data name="Touch.On" xml:space="preserve">
+    <value>Touch on</value>
+  </data>
+  <data name="Touch.Off" xml:space="preserve">
+    <value>Touch off</value>
+  </data>
+  <data name="Touch.Unavailable" xml:space="preserve">
+    <value>Touch could not be turned on</value>
+  </data>
+  <data name="Touch.UnsignedWarning" xml:space="preserve">
+    <value>Touch covers ordinary windows only in this build</value>
+  </data>
+  <data name="Touch.NothingToActivate" xml:space="preserve">
+    <value>Nothing explored</value>
+  </data>
+  <data name="Touch.Rotor.Headings" xml:space="preserve">
+    <value>Headings</value>
+  </data>
+  <data name="Touch.Rotor.Links" xml:space="preserve">
+    <value>Links</value>
+  </data>
+  <data name="Touch.Rotor.FormFields" xml:space="preserve">
+    <value>Form fields</value>
+  </data>
+  <data name="Touch.Rotor.Landmarks" xml:space="preserve">
+    <value>Landmarks</value>
+  </data>
+  <data name="Touch.Rotor.Lines" xml:space="preserve">
+    <value>Lines</value>
+  </data>
+  <data name="Setting.TouchEnabled" xml:space="preserve">
+    <value>Touch exploration and gestures</value>
+  </data>
 </root>

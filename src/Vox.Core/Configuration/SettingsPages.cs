@@ -209,6 +209,7 @@ public static class SettingsPages
     public static SettingsPage Mouse() => new(L("SettingsPage.Mouse"),
     [
         new ToggleField(L("Setting.MouseTracking"), s => s.MouseTracking, (s, v) => s with { MouseTracking = v }),
+        new ToggleField(L("Setting.TouchEnabled"), s => s.TouchEnabled, (s, v) => s with { TouchEnabled = v }),
         Choice(L("Setting.MouseTextUnit"), s => s.MouseTextUnit, (s, v) => s with { MouseTextUnit = v }),
     ]);
 
