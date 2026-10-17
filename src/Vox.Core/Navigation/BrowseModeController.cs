@@ -1874,6 +1874,18 @@ public sealed class BrowseModeController
     public string? CustomLabelFor(int[] runtimeId) =>
         _quickNavHandler.CurrentDocument?.FindByRuntimeId(runtimeId) is { CustomLabel.Length: > 0 } node ? node.CustomLabel : null;
 
+    /// <summary>
+    /// Whether a dialog's description only repeats the text inside it (which browse mode reads),
+    /// so the focus announcement can leave it out. Pipeline thread.
+    /// </summary>
+    public bool DescriptionRepeatsContent(int[] runtimeId)
+    {
+        var document = _quickNavHandler.CurrentDocument;
+        if (document?.FindByRuntimeId(runtimeId) is not { } node || !node.IsModal || node.Description.Trim().Length == 0)
+            return false;
+        return OverlayDetector.DescriptionRepeatsContent(document, node);
+    }
+
     /// <summary>The address of the page in the buffer (its document element's value), or null. Pipeline thread.</summary>
     public string? CurrentAddress => _quickNavHandler.CurrentDocument?.Root.Value;
 

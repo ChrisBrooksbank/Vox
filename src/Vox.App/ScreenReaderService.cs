@@ -313,6 +313,7 @@ public sealed class ScreenReaderService : IHostedService
         _eventPipeline.FocusContextProvider = FocusContext;
         _eventPipeline.ErrorMessageProvider = _browseModeController.ErrorMessageFor;
         _eventPipeline.CustomLabelProvider = _browseModeController.CustomLabelFor;
+        _eventPipeline.DescriptionRepeatsContentProvider = _browseModeController.DescriptionRepeatsContent;
         // The foreground application's module, then the add-ons' global plug-ins, may drop events,
         // change focus announcements and see every event once handled
         _eventPipeline.EventFilter = e => _appModules.ShouldProcess(e) && _addOns.ShouldProcess(e);

@@ -107,6 +107,13 @@ public sealed class EventPipeline : IEventSink, IDisposable
     public Func<int[], string?>? CustomLabelProvider { get; set; }
 
     /// <summary>
+    /// Whether the description of a focused element (by runtime ID) only repeats the page text
+    /// browse mode reads anyway, such as a dialog described by its own message; if so it is left
+    /// out of the focus announcement. Called on the pipeline thread; null keeps every description.
+    /// </summary>
+    public Func<int[], bool>? DescriptionRepeatsContentProvider { get; set; }
+
+    /// <summary>
     /// Asked first for every event; false drops it unhandled (the foreground application's module
     /// leaving something to the application). Called on the pipeline thread; null keeps everything.
     /// </summary>
@@ -406,6 +413,9 @@ public sealed class EventPipeline : IEventSink, IDisposable
         // silently cut off whatever is being spoken
         if (focus.RuntimeId is { Length: > 0 } labelled && CustomLabelProvider?.Invoke(labelled) is { Length: > 0 } label)
             focus = focus with { ElementName = label };
+        if (!string.IsNullOrEmpty(focus.Description) && focus.RuntimeId is { Length: > 0 } described
+            && DescriptionRepeatsContentProvider?.Invoke(described) == true)
+            focus = focus with { Description = null };
         if (focus.ErrorMessageIds is { Count: > 0 } errorIds && string.IsNullOrEmpty(focus.ErrorMessage)
             && ErrorMessageProvider?.Invoke(errorIds) is { Length: > 0 } errorMessage)
             focus = focus with { ErrorMessage = errorMessage };

@@ -72,6 +72,28 @@ public class OverlayDetectorTests
     }
 
     [Fact]
+    public void DialogDescribedByItsOwnMessage_DescriptionRepeatsContent()
+    {
+        var dialog = new MockElement { RuntimeId = [_id++], ControlType = "Group", AriaRole = "dialog", AriaProperties = "modal=true", Name = "Newsletter", Description = "Sign up  for OFFERS" }
+            .AddChild(Text("Sign up for offers"))
+            .AddChild(Button("Subscribe"));
+        var document = Page(dialog);
+
+        Assert.True(OverlayDetector.DescriptionRepeatsContent(document, document.FindByRuntimeId(dialog.RuntimeId)!));
+    }
+
+    [Fact]
+    public void DialogWithADifferentDescription_KeepsIt()
+    {
+        var dialog = new MockElement { RuntimeId = [_id++], ControlType = "Group", AriaRole = "dialog", AriaProperties = "modal=true", Name = "Newsletter", Description = "Weekly emails only" }
+            .AddChild(Text("Sign up for offers"))
+            .AddChild(Button("Subscribe"));
+        var document = Page(dialog);
+
+        Assert.False(OverlayDetector.DescriptionRepeatsContent(document, document.FindByRuntimeId(dialog.RuntimeId)!));
+    }
+
+    [Fact]
     public void OrdinaryPage_HasNoOverlay()
     {
         Assert.Null(OverlayDetector.Find(Page(Group(Text("Our products"), Button("Close menu")))));

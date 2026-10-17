@@ -72,6 +72,22 @@ public static class OverlayDetector
             && (AcceptWords.Concat(RejectWords).Concat(CloseWords).Any(word => ContainsWord(n.Name, word))
                 || CloseSymbols.Contains(n.Name.Trim(), StringComparer.OrdinalIgnoreCase)));
 
+    /// <summary>
+    /// Whether a container's description is text the container already holds (a dialog described
+    /// by its own message), ignoring case and spacing, so saying both reads it twice.
+    /// </summary>
+    public static bool DescriptionRepeatsContent(VBufferDocument document, VBufferNode container)
+    {
+        var (start, end) = VBufferDocument.SubtreeSpan(container);
+        if (end <= start || end > document.FlatText.Length)
+            return false;
+        var description = Normalize(container.Description);
+        return description.Length > 0
+            && Normalize(document.FlatText.Substring(start, end - start)).Contains(description, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string Normalize(string text) => string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
     /// <summary>What to say about an overlay, naming the key that presses its dismiss button.</summary>
     public static string Announcement(Overlay overlay, string key)
     {
