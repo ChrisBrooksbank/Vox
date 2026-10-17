@@ -106,6 +106,21 @@ internal sealed class AddOnLoadContext(string id, string directory, AddOnManifes
         "Vox.Sdk", "Microsoft.Extensions.Logging.Abstractions", "Microsoft.Extensions.DependencyInjection.Abstractions",
     };
 
+    /// <summary>What Vox provides; tests substitute their own.</summary>
+    internal SharedAssemblies SharedAssemblies { get; init; } = SharedAssemblies.Current;
+
+    internal Microsoft.Extensions.Logging.ILogger? Logger { get; init; }
+
+    /// <summary>An add-on that ships a newer copy of a shared assembly than Vox's is using Vox's older one; say so in the log.</summary>
+    private void WarnIfNewer(string name, Version? requested)
+    {
+        var voxs = SharedAssemblies.VersionOf(name);
+        if (requested is null || voxs is null || requested <= voxs)
+            return;
+        Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(Logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance,
+            "Add-on {AddOn} wants {Assembly} {Wanted} but Vox provides {Provided}; Vox's copy is used", id, name, requested, voxs);
+    }
+
     public Assembly LoadFile(string fileName)
     {
         if (!manifest.Files.TryGetValue(fileName, out var hash))
@@ -137,8 +152,11 @@ internal sealed class AddOnLoadContext(string id, string directory, AddOnManifes
         if (manifest.Files.ContainsKey(fileName) && File.Exists(Path.Combine(directory, fileName)))
         {
             // Vox's (or the framework's) own copy wins: types must be the same ones
-            if (Default.Assemblies.Any(a => string.Equals(a.GetName().Name, name, StringComparison.OrdinalIgnoreCase)))
+            if (SharedAssemblies.Contains(name))
+            {
+                WarnIfNewer(name, assemblyName.Version);
                 return null;
+            }
             return LoadFile(fileName);
         }
         return null;

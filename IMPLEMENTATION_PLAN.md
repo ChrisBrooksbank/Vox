@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 246
+- Build iterations: 247
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -369,7 +369,7 @@ Robustness first:
 API compatibility:
 
 - [x] Add `Microsoft.CodeAnalysis.PublicApiAnalyzers` (`PublicAPI.Shipped.txt`/`Unshipped.txt`) to `Vox.Sdk` so CI fails on an unintended API change; document in `docs/addons.md` that add-on-implemented interfaces grow only through default interface members and new record members are `init` properties, not positional parameters (spec: extensibility.md)
-- [ ] `AddOnLoadContext.Load`: decide "Vox's copy wins" from the trusted platform assemblies list and Vox.App's own assemblies instead of `Default.Assemblies` (which depends on load timing); log when an add-on ships a newer version of a shared assembly than Vox's; unit tests (spec: extensibility.md)
+- [x] `AddOnLoadContext.Load`: decide "Vox's copy wins" from the trusted platform assemblies list and Vox.App's own assemblies instead of `Default.Assemblies` (which depends on load timing); log when an add-on ships a newer version of a shared assembly than Vox's; unit tests (spec: extensibility.md)
 
 API surface:
 
