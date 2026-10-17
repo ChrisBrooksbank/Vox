@@ -85,7 +85,7 @@ Log.Logger = new LoggerConfiguration()
 // Only one instance: a second one would install another keyboard hook and UIA handlers, so every
 // key would be handled twice and everything spoken twice. The secure-screen instance runs alongside
 // the user's (the UAC screen is in the same session), so it has its own name.
-var instanceName = policy.IsSecure ? @"Local\Vox.ScreenReader.Secure" : @"Local\Vox.ScreenReader";
+var instanceName = policy.IsSecure ? SecureInstanceHardening.MutexName : @"Local\Vox.ScreenReader";
 using var singleInstance = new Mutex(initiallyOwned: true, instanceName, out bool isFirstInstance);
 // Started by the Vox before this one to restart: it may still be closing
 if (!isFirstInstance && RestartRequest.HasFlag(args, RestartRequest.RestartedFlag))

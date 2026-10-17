@@ -33,16 +33,24 @@ public sealed class Win32SecureInstanceHost(string voxAppPath) : ISecureInstance
                 if (!SetTokenInformation(token, TokenSessionId, ref session, sizeof(int)))
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "SetTokenInformation");
 
-                var startup = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>(), lpDesktop = SecureDesktop };
-                var commandLine = $"\"{voxAppPath}\" {RunPolicy.SecureFlag}";
-                if (!CreateProcessAsUser(token, null, commandLine, IntPtr.Zero, IntPtr.Zero, false,
-                        CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, Path.GetDirectoryName(voxAppPath),
-                        ref startup, out var info))
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessAsUser");
+                var restricted = RestrictPrivileges(token);
+                try
+                {
+                    var startup = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>(), lpDesktop = SecureDesktop };
+                    var commandLine = $"\"{voxAppPath}\" {RunPolicy.SecureFlag}";
+                    if (!CreateProcessAsUser(restricted, null, commandLine, IntPtr.Zero, IntPtr.Zero, false,
+                            CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, Path.GetDirectoryName(voxAppPath),
+                            ref startup, out var info))
+                        throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessAsUser");
 
-                CloseHandle(info.hThread);
-                CloseHandle(info.hProcess);
-                return new Instance(sessionId, Process.GetProcessById(info.dwProcessId));
+                    CloseHandle(info.hThread);
+                    CloseHandle(info.hProcess);
+                    return new Instance(sessionId, Process.GetProcessById(info.dwProcessId));
+                }
+                finally
+                {
+                    CloseHandle(restricted);
+                }
             }
             finally
             {
@@ -53,6 +61,26 @@ public sealed class Win32SecureInstanceHost(string voxAppPath) : ISecureInstance
         {
             CloseHandle(serviceToken);
         }
+    }
+
+    /// <summary>
+    /// A copy of the token without the privileges the instance has no use for
+    /// (<see cref="SecureInstanceHardening.RemovedPrivileges"/>): it is SYSTEM, but cannot debug,
+    /// load drivers, act as part of the operating system or bypass file permissions.
+    /// </summary>
+    private static IntPtr RestrictPrivileges(IntPtr token)
+    {
+        var remove = new List<LUID_AND_ATTRIBUTES>();
+        foreach (var name in SecureInstanceHardening.RemovedPrivileges)
+        {
+            // A privilege this Windows doesn't know needs no removing
+            if (LookupPrivilegeValue(null, name, out var luid))
+                remove.Add(new LUID_AND_ATTRIBUTES { Luid = luid });
+        }
+        var array = remove.ToArray();
+        if (!CreateRestrictedToken(token, 0, 0, IntPtr.Zero, array.Length, array, 0, IntPtr.Zero, out var restricted))
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateRestrictedToken");
+        return restricted;
     }
 
     private sealed class Instance(int sessionId, Process process) : ISecureInstance
@@ -104,6 +132,21 @@ public sealed class Win32SecureInstanceHost(string voxAppPath) : ISecureInstance
         public IntPtr hProcess, hThread;
         public int dwProcessId, dwThreadId;
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LUID_AND_ATTRIBUTES
+    {
+        public long Luid;
+        public uint Attributes;
+    }
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool LookupPrivilegeValue(string? systemName, string name, out long luid);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool CreateRestrictedToken(IntPtr existing, uint flags, int disableSidCount, IntPtr sidsToDisable,
+        int deletePrivilegeCount, [In] LUID_AND_ATTRIBUTES[] privilegesToDelete, int restrictedSidCount,
+        IntPtr sidsToRestrict, out IntPtr newToken);
 
     [DllImport("kernel32.dll")]
     private static extern uint WTSGetActiveConsoleSessionId();

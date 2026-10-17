@@ -151,8 +151,10 @@ record here with its reason.
    network logons denied, size capped); the service checks they parse and is the only writer.
    Remaining: with no service installed (`INSTALLSERVICE=0`) the copy reports failure; an upgrade
    over a folder an earlier version let users create keeps its old permissions.
-3. **The secure instance runs with SYSTEM's full token** (`Win32SecureInstanceHost`). Fix: a
-   restricted token without privileges it doesn't need.
+3. ~~**The secure instance runs with SYSTEM's full token** (`Win32SecureInstanceHost`).~~ Fixed:
+   the token is passed through `CreateRestrictedToken` first, deleting the privileges in
+   `SecureInstanceHardening.RemovedPrivileges` (debug, TCB, drivers, backup/restore, take ownership
+   and others). Remaining: it is still the SYSTEM user, with its group memberships.
 4. **The downloaded MSI isn't held until `msiexec` has read it.** Vox exits right after starting it,
    which releases its lock while the UAC prompt is up, and the MSI's Authenticode signature isn't
    checked. Fix: check the signature, and download to a folder only the installing process can
@@ -181,9 +183,10 @@ record here with its reason.
 10. **The remote-access relay has no limits per address**: 1,000 waiting channels can be filled by
     one client. It only ever sees ciphertext and a hash of the code. The code is also copied to the
     clipboard, where clipboard history may keep it.
-11. **The secure instance's single-instance mutex is in the session namespace**
-    (`Local\Vox.ScreenReader.Secure`), so a program in the session could create it first and stop
-    Vox starting on the sign-in screen.
+11. ~~**The secure instance's single-instance mutex is in the session namespace.**~~ Fixed: it is
+    `Global\Vox.ScreenReader.Secure` (`SecureInstanceHardening.MutexName`); a program without
+    SeCreateGlobalPrivilege, as an ordinary user's has none, can't create it first. The restricted
+    token keeps that privilege for the instance.
 
 Fixed in the same review: a failed browse-mode activation logged the node, including its page text,
 at Warning; notification text was logged at Debug. Both now log only the control type or length.
