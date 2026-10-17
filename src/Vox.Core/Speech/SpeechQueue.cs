@@ -75,12 +75,27 @@ public sealed class SpeechQueue : IDisposable
         catch { return false; }
     }
 
+    /// <summary>
+    /// Speech on demand: marks utterances caused by reporting commands and, while the mode is on,
+    /// drops the rest (braille and the utterance events still see them). Set at startup.
+    /// </summary>
+    public SpeechOnDemand OnDemand { get; set; } = new();
+
+    /// <summary>Stamps <paramref name="utterance"/>; null when speech on demand drops it.</summary>
+    private Utterance? Gate(Utterance utterance)
+    {
+        var gate = OnDemand;
+        var stamped = gate.Stamp(utterance);
+        return gate.Drops(stamped) ? null : stamped;
+    }
+
     public ValueTask EnqueueAsync(Utterance utterance, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         RaiseQueued(utterance);
-        if (IsMutedNow())
+        if (IsMutedNow() || Gate(utterance) is not { } gated)
             return ValueTask.CompletedTask;
+        utterance = gated;
         lock (_suspendLock)
         {
             if (_suspended) return ValueTask.CompletedTask;
@@ -92,8 +107,9 @@ public sealed class SpeechQueue : IDisposable
     public void Enqueue(Utterance utterance)
     {
         RaiseQueued(utterance);
-        if (IsMutedNow())
+        if (IsMutedNow() || Gate(utterance) is not { } gated)
             return;
+        utterance = gated;
         lock (_suspendLock)
         {
             if (_suspended) return;
@@ -141,11 +157,12 @@ public sealed class SpeechQueue : IDisposable
         }
 
         RaiseQueued(utterance);
-        if (IsMutedNow())
+        if (IsMutedNow() || Gate(utterance) is not { } gated)
         {
             completion.TrySetCanceled();
             return completion.Task;
         }
+        utterance = gated;
         lock (_suspendLock)
         {
             if (_suspended || !_channel.Writer.TryWrite(Prepare(utterance, completion)))

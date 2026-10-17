@@ -617,6 +617,8 @@ public sealed class ScreenReaderService : IHostedService
 
     private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e)
     {
+        // Speech on demand keeps the speech a reporting command causes
+        _speechQueue.OnDemand.CommandReceived(e.Command);
         // Braille commands are BrailleService's
         if (e.Command is NavigationCommand.BraillePanLeft or NavigationCommand.BraillePanRight or NavigationCommand.CycleBrailleTether)
             return;

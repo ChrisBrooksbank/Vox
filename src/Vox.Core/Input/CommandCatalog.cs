@@ -46,6 +46,22 @@ public static class CommandCatalog
     /// <summary>True when <paramref name="command"/> has an entry (a test checks every command has).</summary>
     public static bool Has(NavigationCommand command) => Categories.ContainsKey(command);
 
+    // Commands that report something on request: the speech they cause is kept in speech-on-demand
+    // mode. Every other command (navigation, toggles, dialogs, ...) is dropped there.
+    private static readonly HashSet<NavigationCommand> OnDemandReports =
+    [
+        NavigationCommand.SayTime, NavigationCommand.SayBattery, NavigationCommand.SayTitle,
+        NavigationCommand.SayFocus, NavigationCommand.SayStatusBar, NavigationCommand.ReadWindow,
+        NavigationCommand.ReadCurrentLine, NavigationCommand.ReadCurrentWord, NavigationCommand.ReadCurrentChar,
+        NavigationCommand.ReadSelection, NavigationCommand.ReadFormatting, NavigationCommand.SayAll,
+        NavigationCommand.SayLinkUrl, NavigationCommand.PageSummary, NavigationCommand.ReportNavigator,
+        NavigationCommand.ReviewCurrentLine, NavigationCommand.ReviewCurrentWord, NavigationCommand.ReviewCurrentChar,
+        NavigationCommand.TeamsCallState, NavigationCommand.ZoomCallState,
+    ];
+
+    /// <summary>True when <paramref name="command"/> reports something on request (kept in speech on demand).</summary>
+    public static bool IsOnDemandReport(NavigationCommand command) => OnDemandReports.Contains(command);
+
     /// <summary>A category as people read it.</summary>
     public static string CategoryName(CommandCategory category) => VoxStrings.Get($"CommandCategory.{category}");
 
