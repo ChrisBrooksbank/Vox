@@ -1,6 +1,7 @@
 using Vox.Core.Tests.TestSupport;
 using Vox.Core.AddOns;
 using Vox.Sdk;
+using Xunit;
 
 namespace Vox.Core.Tests.AddOns;
 

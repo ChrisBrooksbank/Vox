@@ -732,6 +732,9 @@ public sealed class AddOnManager
     public AddOnInstallCheck CheckPackage(string packagePath, string? catalogueSha256 = null)
     {
         var package = AddOnPackage.Read(packagePath, _trust);
+        // Checked on the signature itself: a catalogue checksum doesn't survive to load time
+        if (_policy.RequireSignedAddOns && package.Trust is not AddOnTrust.TrustedPublisher)
+            throw new AddOnPackageException(VoxStrings.Get("AddOns.NeedsTrustedSignature"));
         if (catalogueSha256 is not null)
         {
             if (!string.Equals(package.Sha256, catalogueSha256, StringComparison.OrdinalIgnoreCase))

@@ -18,6 +18,8 @@
       <string id="UpdateChannel_Off">Never check</string>
       <string id="DisableAddOns">Turn off optional components and add-ons</string>
       <string id="DisableAddOns_Help">When enabled, Vox loads no optional components or add-ons (eSpeak NG, MathCAT, liblouis).</string>
+      <string id="RequireSignedAddOns">Allow only signed add-ons</string>
+      <string id="RequireSignedAddOns_Help">When enabled, Vox installs and loads only add-ons signed by a trusted publisher (checked again each time one is loaded). Unsigned add-ons, including ones from the store catalogue without a trusted signature, are refused.</string>
       <string id="DisableAI">Turn off AI features</string>
       <string id="DisableAI_Help">When enabled, Vox offers no AI features (image descriptions, explanations), local or online.</string>
       <string id="DisableMagnifier">Turn off the magnifier</string>

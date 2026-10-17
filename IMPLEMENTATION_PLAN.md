@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 257
+- Build iterations: 258
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -389,7 +389,7 @@ Integration:
 
 Isolation (longer term):
 
-- [ ] Document in `docs/security.md` and `docs/enterprise.md` that add-ons run in-process with full rights and bypass `NetworkGate`; add a Group Policy allowing only signed or catalogue add-ons (`AddOnTrust.Signed`/`Catalogue`), enforced by `AddOnManager` at install and load; unit tests (spec: extensibility.md)
+- [x] Document in `docs/security.md` and `docs/enterprise.md` that add-ons run in-process with full rights and bypass `NetworkGate`; add a Group Policy allowing only signed or catalogue add-ons (`AddOnTrust.Signed`/`Catalogue`), enforced by `AddOnManager` at install and load; unit tests (spec: extensibility.md)
 - [ ] Design (in `docs/addons.md`) out-of-process hosting for add-on speech engines and braille drivers over a local channel, keeping app modules in-process for latency (spec: extensibility.md)
 
 ### Milestone G — "What users ask for"

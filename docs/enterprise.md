@@ -51,6 +51,7 @@ Store) and `installer/policy/en-US/Vox.adml` to its `en-US` folder. The policies
 | Turn off update checks | `DisableUpdates` = 1 | Update channel forced to Off |
 | Update channel | `UpdateChannel` = Stable/Beta/Off | Forced; users can't change it |
 | Turn off optional components and add-ons | `DisableAddOns` = 1 | eSpeak NG, MathCAT and liblouis aren't loaded; no add-on is loaded, installed or offered by the store ([Add-ons](addons.md)) |
+| Allow only signed add-ons | `RequireSignedAddOns` = 1 | Add-ons are installed and loaded only when signed by a trusted publisher (`addon-key.pem` or `%APPDATA%\Voxddons	rusted-keys`), checked at install and again at every load. Add-ons run in Vox's process with its rights and are not bound by `NetworkGate`, so this is the control for what code runs ([Security](security.md)) |
 | Turn off AI features | `DisableAI` = 1 | No image descriptions or explanations |
 | Turn off the magnifier | `DisableMagnifier` = 1 | Vox's magnifier can't be turned on; its keys say so ([Magnifier](magnifier.md)). Windows Magnifier is not affected |
 | Start Vox at sign-in | `StartAtLogon` = 1/0 | Forced on or off |

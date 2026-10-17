@@ -54,6 +54,13 @@
       <enabledValue><decimal value="1" /></enabledValue>
       <disabledValue><decimal value="0" /></disabledValue>
     </policy>
+    <policy name="RequireSignedAddOns" class="Both" displayName="$(string.RequireSignedAddOns)" explainText="$(string.RequireSignedAddOns_Help)"
+            key="Software\Policies\Vox" valueName="RequireSignedAddOns">
+      <parentCategory ref="Vox" />
+      <supportedOn ref="SUPPORTED_Vox" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
     <policy name="DisableAI" class="Both" displayName="$(string.DisableAI)" explainText="$(string.DisableAI_Help)"
             key="Software\Policies\Vox" valueName="DisableAI">
       <parentCategory ref="Vox" />

@@ -22,8 +22,9 @@ public class AddOnUiAccessTests : IDisposable
     [Fact]
     public void AnUnsignedAddOn_IsNotLoaded()
     {
+        var installer = Manager(RunPolicy.Normal, AddOnTrustStore.Empty);
+        installer.InstallFiles(installer.CheckPackage(_files.Package(SampleFolder, name: "vox.sample")));
         var manager = Manager(WithUiAccess, AddOnTrustStore.Empty);
-        manager.InstallFiles(manager.CheckPackage(_files.Package(SampleFolder, name: "vox.sample")));
 
         manager.LoadAll();
 
@@ -36,8 +37,9 @@ public class AddOnUiAccessTests : IDisposable
     public void AnAddOnSignedByAnUnknownPublisher_IsNotLoaded()
     {
         using var key = RSA.Create(2048);
+        var installer = Manager(RunPolicy.Normal, AddOnTrustStore.Empty);
+        installer.InstallFiles(installer.CheckPackage(_files.Package(SampleFolder, key, "vox.sample")));
         var manager = Manager(WithUiAccess, AddOnTrustStore.Empty);
-        manager.InstallFiles(manager.CheckPackage(_files.Package(SampleFolder, key, "vox.sample")));
 
         manager.LoadAll();
 
@@ -67,6 +69,24 @@ public class AddOnUiAccessTests : IDisposable
         manager.LoadAll();
 
         Assert.Equal(AddOnState.Failed, Assert.Single(manager.List()).State);
+    }
+
+    [Fact]
+    public void WhenSignedAddOnsAreRequired_AnUnsignedPackageIsRefusedAtInstall()
+    {
+        var manager = Manager(WithUiAccess, AddOnTrustStore.Empty);
+
+        Assert.Throws<AddOnPackageException>(() => manager.CheckPackage(_files.Package(SampleFolder, name: "vox.sample")));
+    }
+
+    [Fact]
+    public void WhenSignedAddOnsAreRequired_ACataloguePackageNeedsASignatureToo()
+    {
+        var manager = Manager(WithUiAccess, AddOnTrustStore.Empty);
+        var path = _files.Package(SampleFolder, name: "vox.sample");
+        var sha = AddOnPackage.Read(path, AddOnTrustStore.Empty).Sha256;
+
+        Assert.Throws<AddOnPackageException>(() => manager.CheckPackage(path, sha));
     }
 
     [Fact]

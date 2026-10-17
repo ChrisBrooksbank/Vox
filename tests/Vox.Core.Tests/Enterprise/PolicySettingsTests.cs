@@ -41,6 +41,16 @@ public class PolicySettingsTests
     }
 
     [Fact]
+    public void RequireSignedAddOns_SetsTheRunPolicy()
+    {
+        var run = PolicySettings.Read(new FakeRegistry().Machine(PolicySettings.RequireSignedAddOnsValue, 1)).Restrict(RunPolicy.Normal);
+
+        Assert.True(run.RequireSignedAddOns);
+        Assert.True(run.AllowAddOns);
+        Assert.False(RunPolicy.Normal.RequireSignedAddOns);
+    }
+
+    [Fact]
     public void AddOnsAndAi_AreTurnedOffSeparately()
     {
         var run = PolicySettings.Read(new FakeRegistry().Machine(PolicySettings.DisableAddOnsValue, 1).User(PolicySettings.DisableAiValue, "1"))

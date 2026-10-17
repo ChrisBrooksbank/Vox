@@ -106,6 +106,9 @@ and administrators (they control the install).
       (`AddOnAdapters`: `FocusInfo.Value` is null for passwords; `VoxEvent`s carry no keys).
 - [ ] `--safe`, the Vox menu's restart and the `DisableAddOns` policy load no add-on; secure mode
       never does.
+- [ ] Add-ons run in Vox's process with its rights and are not bound by `NetworkGate`: an add-on
+      can open its own sockets. The `RequireSignedAddOns` policy (`docs/enterprise.md`) limits
+      installing and loading to add-ons signed by a trusted publisher, and is the control for it.
 - [ ] Nobody, in the docs or the UI, describes the per-add-on `AssemblyLoadContext` or `AddOnGuard`
       as isolation: an add-on is full-trust code in Vox's process, with Vox's UI access.
 
