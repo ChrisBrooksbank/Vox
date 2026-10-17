@@ -2797,6 +2797,27 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="Setting.AnnounceCaptchas" xml:space="preserve">
     <value>Announce CAPTCHAs and their accessible alternatives</value>
   </data>
+  <data name="Setting.ClipboardAnnouncements" xml:space="preserve">
+    <value>Announce cut, copy and paste</value>
+  </data>
+  <data name="Clipboard.Cut" xml:space="preserve">
+    <value>cut</value>
+  </data>
+  <data name="Clipboard.Copied" xml:space="preserve">
+    <value>copied</value>
+  </data>
+  <data name="Clipboard.Pasted" xml:space="preserve">
+    <value>pasted</value>
+  </data>
+  <data name="Clipboard.WithText" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Clipboard.OneFile" xml:space="preserve">
+    <value>{0} 1 file</value>
+  </data>
+  <data name="Clipboard.Files" xml:space="preserve">
+    <value>{0} {1} files</value>
+  </data>
   <data name="Setting.AutomaticLabels" xml:space="preserve">
     <value>Describe unlabelled graphics and buttons automatically</value>
   </data>

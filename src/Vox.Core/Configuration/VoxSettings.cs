@@ -345,6 +345,8 @@ public record VoxSettings
     /// provider only when <see cref="AiCloudConsent"/> is Allow).
     /// </summary>
     public bool AutomaticLabels { get; init; } = true;
+    /// <summary>Say "cut", "copied" or "pasted" (with a few words or a file count) after Ctrl+X, Ctrl+C and Ctrl+V.</summary>
+    public bool ClipboardAnnouncements { get; init; } = true;
     /// <summary>A vision model on this computer (served by Ollama), used before the cloud provider; null: none.</summary>
     public string? AiLocalModel { get; init; }
     /// <summary>Where the local model is served; only an address on this computer is ever used.</summary>

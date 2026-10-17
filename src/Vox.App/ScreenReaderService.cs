@@ -76,6 +76,7 @@ public sealed class ScreenReaderService : IHostedService
     private readonly Vox.Core.Labels.AutomaticLabeler? _automaticLabels;
     private readonly Vox.Core.Trial.TrialMode? _trial;
     private readonly Vox.Core.Magnifier.MagnifierController? _magnifier;
+    private readonly ClipboardAnnouncer? _clipboardAnnouncer;
     private readonly RunPolicy _runPolicy;
     private readonly SettingsManager _settingsManager;
     private readonly IStartupRegistration _startupRegistration;
@@ -172,8 +173,10 @@ public sealed class ScreenReaderService : IHostedService
         RemoteSessionMonitor? remoteSessions = null,
         Vox.Core.Labels.AutomaticLabeler? automaticLabels = null,
         Vox.Core.Trial.TrialMode? trial = null,
-        Vox.Core.Magnifier.MagnifierController? magnifier = null)
+        Vox.Core.Magnifier.MagnifierController? magnifier = null,
+        ClipboardAnnouncer? clipboardAnnouncer = null)
     {
+        _clipboardAnnouncer = clipboardAnnouncer;
         _magnifier = magnifier;
         _trial = trial;
         _automaticLabels = automaticLabels;
@@ -622,6 +625,8 @@ public sealed class ScreenReaderService : IHostedService
         _browseModeController.HandleRawKey(e);
         TrackBackground(_focusedTextMonitor.HandleRawKey(e));
         _terminalMonitor.HandleRawKey(e);
+        if (!_runPolicy.IsSecure)
+            _clipboardAnnouncer?.HandleRawKey(e);
     }
 
     private void OnNavigationCommandReceived(object? sender, NavigationCommandEvent e)

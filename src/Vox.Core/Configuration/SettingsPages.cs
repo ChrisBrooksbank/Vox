@@ -203,6 +203,7 @@ public static class SettingsPages
         Choice(L("Setting.ModifierKey"), s => s.ModifierKey, (s, v) => s with { ModifierKey = v }),
         Choice(L("Setting.KeyboardLayout"), s => s.KeyboardLayout, (s, v) => s with { KeyboardLayout = v }),
         Choice(L("Setting.TypingEchoMode"), s => s.TypingEchoMode, (s, v) => s with { TypingEchoMode = v }),
+        new ToggleField(L("Setting.ClipboardAnnouncements"), s => s.ClipboardAnnouncements, (s, v) => s with { ClipboardAnnouncements = v }),
     ]);
 
     public static SettingsPage Mouse() => new(L("SettingsPage.Mouse"),

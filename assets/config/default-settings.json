@@ -73,6 +73,7 @@
   "AiPrivateApps": ["KeePass", "KeePassXC", "1Password", "Bitwarden"],
   "AiPrivateSites": [],
   "AutomaticLabels": true,
+  "ClipboardAnnouncements": true,
   "AiLocalModel": null,
   "AiLocalEndpoint": "http://localhost:11434",
   "AnnounceCaptchas": true,

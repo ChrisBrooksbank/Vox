@@ -257,6 +257,16 @@ public static class ServiceRegistration
         services.AddSingleton<WhereAmICommands>();
         services.AddSingleton<INavigatorObjectSource>(sp => new UIANavigatorObjectSource(sp.GetRequiredService<UIAProvider>()));
         services.AddSingleton<IClipboard, StaClipboard>();
+        services.AddSingleton<IClipboardReader, WindowsClipboardReader>();
+        services.AddSingleton<ClipboardAnnouncer>(sp =>
+        {
+            var settings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            var echo = sp.GetRequiredService<TypingEchoHandler>();
+            var queue = sp.GetRequiredService<SpeechQueue>();
+            return new ClipboardAnnouncer(sp.GetRequiredService<IClipboardReader>(), sp.GetRequiredService<EventPipeline>(),
+                queue.Enqueue, () => settings.CurrentValue, () => echo.PasswordMode,
+                sp.GetRequiredService<ILogger<ClipboardAnnouncer>>());
+        });
         services.AddSingleton<ObjectNavigationCommands>();
         services.AddSingleton<IReviewTextSource>(sp => new UIAReviewTextSource(sp.GetRequiredService<UIAProvider>(),
             sp.GetRequiredService<IFocusedTextSource>(), sp.GetRequiredService<IForegroundWindow>()));

@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 263
+- Build iterations: 264
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -417,7 +417,7 @@ From the community research behind `docs/choosing-a-screen-reader.md`: features 
 #### Meetings and the clipboard (spec: community-requests.md)
 
 - [x] Add a `ToggleMicrophone` command: in Teams and Zoom press the app's mute button through `IWindowButtonSource`, in Teams or Google Meet in a browser the page's mute button through the buffer, else toggle the default capture device's mute through Core Audio (`IAudioEndpointVolume`, behind an interface); say the new state; unit tests over fakes (spec: community-requests.md)
-- [ ] Add clipboard announcements: after Ctrl+X/C/V (passed through) in text fields, browse mode and Explorer, when the clipboard sequence number changed, say "cut", "copied" or "pasted" with a few words or a file count; `ClipboardAnnouncements` setting; never a password field's text; unit tests (spec: community-requests.md)
+- [x] Add clipboard announcements: after Ctrl+X/C/V (passed through) in text fields, browse mode and Explorer, when the clipboard sequence number changed, say "cut", "copied" or "pasted" with a few words or a file count; `ClipboardAnnouncements` setting; never a password field's text; unit tests (spec: community-requests.md)
 
 #### Web markup (spec: community-requests.md)
 
