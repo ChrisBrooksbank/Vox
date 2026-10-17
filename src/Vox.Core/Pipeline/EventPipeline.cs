@@ -30,6 +30,7 @@ public sealed class EventPipeline : IEventSink, IDisposable
     private readonly IOptionsMonitor<VoxSettings>? _settings;
     private readonly Channel<ScreenReaderEvent> _channel;
     private readonly CancellationTokenSource _cts = new();
+    private int _disposed;
     private readonly Task _processingTask;
 
     private const int FocusCoalescingWindowMs = 30;
@@ -599,6 +600,8 @@ public sealed class EventPipeline : IEventSink, IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+            return;
         _channel.Writer.TryComplete();
         _cts.Cancel();
         try { _processingTask.Wait(TimeSpan.FromSeconds(2)); } catch { }

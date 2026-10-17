@@ -30,10 +30,11 @@ public static class ControlState
             };
         }
 
+        // aria-expanded=false alone says nothing: Chromium lists expanded=false on every element, and
+        // a control that really can expand offers UIA's ExpandCollapse pattern
         var expanded = VBufferBuilder.ParseAriaPropertyBool(ariaProps ?? string.Empty, "expanded");
         var expandable = expanded
             || HasPopup(ariaProps)
-            || AriaPropertyPresent(ariaProps, "expanded")
             || string.Equals(controlType, "ComboBox", StringComparison.OrdinalIgnoreCase);
         return (expandable, expanded);
     }
@@ -51,18 +52,6 @@ public static class ControlState
                 continue;
             var value = reader.Value.ToString().ToLowerInvariant();
             return value is "true" or "1" or "yes" or "menu" or "listbox" or "tree" or "grid" or "dialog";
-        }
-        return false;
-    }
-
-    /// <summary>True when <paramref name="key"/> appears in the ARIA properties at all (e.g. expanded=false).</summary>
-    private static bool AriaPropertyPresent(string? ariaProps, string key)
-    {
-        var reader = new AriaPropertyReader(ariaProps);
-        while (reader.MoveNext())
-        {
-            if (reader.IsKey(key))
-                return true;
         }
         return false;
     }

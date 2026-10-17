@@ -46,7 +46,7 @@ public class StateAnnouncementTests
     [InlineData(0, null, true, false)]      // Collapsed
     [InlineData(1, null, true, true)]       // Expanded
     [InlineData(3, "expanded=true", false, false)] // LeafNode wins over ARIA
-    [InlineData(null, "expanded=false", true, false)]
+    [InlineData(null, "expanded=false", false, false)]
     [InlineData(null, "", false, false)]
     public void ControlState_Expansion(int? uiaState, string? aria, bool expandable, bool expanded)
     {
