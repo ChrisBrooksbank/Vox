@@ -2229,6 +2229,24 @@ Keys marked "browse mode" or "focus mode" work only on web pages, in that mode. 
   <data name="VoxMenu.ToggleSpeechViewer" xml:space="preserve">
     <value>Speech &amp;viewer</value>
   </data>
+  <data name="VoxMenu.ToggleSpeechOnDemand" xml:space="preserve">
+    <value>Spea&amp;k on demand only</value>
+  </data>
+  <data name="Command.ToggleSpeechOnDemand.Name" xml:space="preserve">
+    <value>Speech on demand on or off</value>
+  </data>
+  <data name="Command.ToggleSpeechOnDemand.Description" xml:space="preserve">
+    <value>Turns speech on demand on or off. When it is on, Vox speaks only the answers to commands that report something, such as the time, the title or the current line.</value>
+  </data>
+  <data name="Setting.SpeechOnDemand" xml:space="preserve">
+    <value>Speech on &amp;demand</value>
+  </data>
+  <data name="App.SpeechOnDemandOn" xml:space="preserve">
+    <value>Speech on demand on</value>
+  </data>
+  <data name="App.SpeechOnDemandOff" xml:space="preserve">
+    <value>Speech on demand off</value>
+  </data>
   <data name="VoxMenu.TogglePauseSpeech" xml:space="preserve">
     <value>&amp;Pause speech</value>
   </data>

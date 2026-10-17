@@ -192,6 +192,8 @@ public record VoxSettings
     public string? Language { get; init; }
     /// <summary>The voice to use for a language (BCP 47 tag or just the language, e.g. "fr"), overriding the automatic choice.</summary>
     public Dictionary<string, string> LanguageVoices { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Speech on demand: only the answers to reporting commands are spoken (profiles can turn it on for an application).</summary>
+    public bool SpeechOnDemand { get; init; } = false;
     /// <summary>Applications (process names) in sleep mode: Vox neither speaks nor takes keys while they have focus.</summary>
     public List<string> SleepApps { get; init; } = [];
     /// <summary>

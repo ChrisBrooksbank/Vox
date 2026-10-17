@@ -178,6 +178,8 @@ public static class ServiceRegistration
         {
             var queue = new SpeechQueue(sp.GetRequiredService<ISpeechEngine>(), sp.GetRequiredService<ILogger<SpeechQueue>>());
             queue.TextProcessor = sp.GetRequiredService<TextProcessor>();
+            var onDemandSettings = sp.GetRequiredService<IOptionsMonitor<VoxSettings>>();
+            queue.OnDemand.IsOnFunc = () => onDemandSettings.CurrentValue.SpeechOnDemand;
             var cues = sp.GetRequiredService<IAudioCuePlayer>();
             queue.CuePlayer = cue =>
             {
@@ -204,6 +206,11 @@ public static class ServiceRegistration
             sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
             sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
             sp.GetRequiredService<SpeechQueue>()));
+        services.AddSingleton<SpeechOnDemandCommands>(sp => new SpeechOnDemandCommands(
+            sp.GetRequiredService<IOptionsMonitor<VoxSettings>>(),
+            sp.GetRequiredService<SettingsMonitor>().UpdateSettings,
+            sp.GetRequiredService<SpeechQueue>(),
+            sp.GetRequiredService<IAudioCuePlayer>()));
         services.AddSingleton<LatencyTracker>(sp =>
         {
             var tracker = new LatencyTracker();

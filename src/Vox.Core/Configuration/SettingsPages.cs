@@ -285,6 +285,7 @@ public static class SettingsPages
         fields.Add(Choice(L("Setting.CapitalsForCharacters"), s => s.CapitalsForCharacters, (s, v) => s with { CapitalsForCharacters = v }));
         fields.Add(Choice(L("Setting.CapitalsForWords"), s => s.CapitalsForWords, (s, v) => s with { CapitalsForWords = v }));
         fields.Add(Choice(L("Setting.Numbers"), s => s.Numbers, (s, v) => s with { Numbers = v }));
+        fields.Add(new ToggleField(L("Setting.SpeechOnDemand"), s => s.SpeechOnDemand, (s, v) => s with { SpeechOnDemand = v }));
         fields.Add(new ToggleField(L("Setting.AutoLanguageSwitching"), s => s.AutoLanguageSwitching, (s, v) => s with { AutoLanguageSwitching = v }));
         return new SettingsPage(L("SettingsPage.Speech"), fields);
     }

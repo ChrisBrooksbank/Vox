@@ -129,6 +129,7 @@
     { "modifiers": "Insert|Ctrl", "vkCode": 84,  "mode": "Any",    "command": "CycleBrailleTether" },
     { "modifiers": "Insert",      "vkCode": 78,  "mode": "Any",    "command": "OpenVoxMenu" },
     { "modifiers": "Insert",      "vkCode": 83,  "mode": "Any",    "command": "TogglePauseSpeech" },
+    { "modifiers": "Insert|Alt",  "vkCode": 83,  "mode": "Any",    "command": "ToggleSpeechOnDemand" },
     { "modifiers": "Insert",      "vkCode": 9,   "mode": "Any",    "command": "SayFocus" },
     { "modifiers": "Insert|Ctrl", "vkCode": 9,   "mode": "Any",    "command": "LabelElement" },
     { "modifiers": "Insert",      "vkCode": 35,  "mode": "Any",    "command": "SayStatusBar" },

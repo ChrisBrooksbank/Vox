@@ -150,7 +150,7 @@ public static class CommandCatalog
             NavigationCommand.SettingsRingIncrease, NavigationCommand.SettingsRingDecrease,
             NavigationCommand.SpeechHistoryPrevious, NavigationCommand.SpeechHistoryNext,
             NavigationCommand.ToggleSleepMode, NavigationCommand.ToggleSpeechViewer,
-            NavigationCommand.TogglePauseSpeech);
+            NavigationCommand.TogglePauseSpeech, NavigationCommand.ToggleSpeechOnDemand);
         Add(CommandCategory.Braille,
             NavigationCommand.BraillePanLeft, NavigationCommand.BraillePanRight, NavigationCommand.CycleBrailleTether);
         Add(CommandCategory.System,

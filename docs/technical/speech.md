@@ -39,6 +39,7 @@ to be played before the text.
 | Joining | `Normal` utterances that arrive within 50 ms of each other are spoken as one. |
 | Waiting | `EnqueueAndWaitAsync` completes when the utterance has been spoken. Say All uses it to read line after line. |
 | Muting | `IsMuted` drops everything. Sleep mode and Pause speech use it. |
+| Speech on demand | With the `SpeechOnDemand` setting (Insert+Alt+S, `SpeechOnDemandCommands`; profiles can set it), `SpeechOnDemand.Drops` drops every utterance not marked `OnDemand`, i.e. not the answer to a reporting command (`CommandCatalog.IsOnDemandReport`). |
 
 Which priority to use:
 

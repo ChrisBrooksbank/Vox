@@ -3,7 +3,7 @@
 ## Status
 
 - Planning iterations: 5
-- Build iterations: 260
+- Build iterations: 261
 - Last updated: 2026-10-17
 
 ## Tasks
@@ -399,7 +399,7 @@ From the community research behind `docs/choosing-a-screen-reader.md`: features 
 #### Speech on demand (spec: community-requests.md)
 
 - [x] Add `Utterance.OnDemand` and a speech-on-demand gate in `SpeechQueue` beside `IsMuted` that drops every utterance not marked on demand; mark reporting commands in `CommandCatalog` (time, title, current line/word/character, focus, read window, Say All, status bar, navigator object, selection, page summary) and have their speech carry the mark; a test that every command has a decision; unit tests (spec: community-requests.md)
-- [ ] Add the `ToggleSpeechOnDemand` command with a key in the desktop, laptop and JAWS layouts, a Vox menu item, a `SpeechOnDemand` setting that profiles can set (so it can turn on in Teams or Zoom), a cue and spoken state on change; braille unchanged; keyboard reference and guide updated; unit tests (spec: community-requests.md)
+- [x] Add the `ToggleSpeechOnDemand` command with a key in the desktop, laptop and JAWS layouts, a Vox menu item, a `SpeechOnDemand` setting that profiles can set (so it can turn on in Teams or Zoom), a cue and spoken state on change; braille unchanged; keyboard reference and guide updated; unit tests (spec: community-requests.md)
 
 #### Screen curtain (spec: community-requests.md)
 

@@ -352,5 +352,9 @@ public enum NavigationCommand
     /// <summary>Moves the magnified view up.</summary>
     MagnifierPanUp,
     /// <summary>Moves the magnified view down.</summary>
-    MagnifierPanDown
+    MagnifierPanDown,
+
+    // Speech on demand
+    /// <summary>Turns speech on demand on or off: only the answers to reporting commands are spoken.</summary>
+    ToggleSpeechOnDemand
 }

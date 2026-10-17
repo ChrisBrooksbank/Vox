@@ -21,6 +21,7 @@ public static class VoxMenu
         Item(NavigationCommand.OpenCommandSearch),
         Item(NavigationCommand.ToggleSpeechViewer),
         Item(NavigationCommand.TogglePauseSpeech),
+        Item(NavigationCommand.ToggleSpeechOnDemand),
         Item(NavigationCommand.OpenUserGuide),
         Item(NavigationCommand.RunTutorial),
         Item(NavigationCommand.CreatePortableCopy),
