@@ -10,7 +10,7 @@ It then opens a page from the test-page corpus (`tests/pages/`) in a new Edge wi
 
 ## Running them
 
-They need Windows, an unlocked interactive desktop that nobody types into while they run, and Microsoft Edge (or another Chromium browser named by `VOX_E2E_BROWSER`). Close Vox first: a running Vox would handle every key as well.
+They need Windows, an unlocked interactive desktop that nobody types into while they run, and Microsoft Edge (or another Chromium browser named by `VOX_E2E_BROWSER`). Close Vox first: a running Vox would handle every key as well. Close other browser windows too, and don't touch the keyboard or mouse during a run: a stray window can take the focus. The tests run one at a time (xUnit parallelism is off for this assembly), because they share the one desktop and foreground window.
 
 ```powershell
 $env:VOX_E2E = "1"
