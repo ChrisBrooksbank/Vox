@@ -24,7 +24,7 @@ has a text description beside it for anyone reading with a screen reader.
 8. [Settings, profiles and policy](configuration.md): the settings layers, profiles, run policy
    and the network gate.
 9. [Extensibility](extensibility.md): app modules, add-ons, custom labels and remote access.
-10. [Touch input](touch.md): the design for touch exploration and gestures (not built yet).
+10. [Touch input](touch.md): touch exploration and gestures: the design and what is built.
 11. [Testing](testing.md): unit tests, test seams, end-to-end tests, benchmarks and CI.
 
 ## Other sources
