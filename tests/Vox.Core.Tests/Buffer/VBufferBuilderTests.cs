@@ -330,7 +330,7 @@ public class VBufferBuilderTests
 
     [Theory]
     [InlineData("expanded=true",  true,  true)]
-    [InlineData("expanded=false", false, true)]   // collapsed: expandable, announced as "collapsed"
+    [InlineData("expanded=false", false, false)]  // Chromium lists it on every element; UIA ExpandCollapse says collapsed
     [InlineData("haspopup=true",  false, true)]
     [InlineData("haspopup=menu",  false, true)]   // ARIA 1.1 token values
     [InlineData("haspopup=listbox", false, true)]
